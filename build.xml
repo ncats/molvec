@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<project name="molvec" default="compile" basedir=".">
+  <property name="lib" value="lib"/>
+  <property name="build" value="build"/>
+  <property name="src" value="src"/>
+  <property name="dist" value="dist"/>
+  <property name="deploy" value="deploy"/>
+  <property name="jarfile" value="molvec.jar"/>
+
+  <path id="compile.classpath">
+    <fileset dir="${lib}">
+      <include name="**/*.jar"/>
+    </fileset>
+  </path>
+
+  <target name="init">
+    <tstamp>
+        <format property="touch.time" pattern="MM/dd/yyyy 'at' HH:mm:ss z"/>
+    </tstamp>
+
+    <!-- Create the build directory structure used by compile -->
+    <mkdir dir="${build}"/>
+    <mkdir dir="${dist}"/>
+    <mkdir dir="${deploy}"/>
+  </target>
+
+  <target name="compile" depends="init">
+    <!-- Compile the java code from ${src} into ${build} -->
+
+    <javac srcdir="${src}" 
+           destdir="${build}"
+	   deprecation="on"
+           debug="on"
+           fork="yes"
+           target="1.5"
+           source="1.5">
+      <classpath refid="compile.classpath"/>
+    </javac>
+  </target>
+
+  <target name="dist" depends="compile">
+    <jar jarfile="${dist}/${jarfile}" basedir=".">
+       <manifest>
+          <attribute name="Built-By" value="${user.name}"/>
+       </manifest>
+    </jar>
+  </target>
+
+  <target name="deploy" depends="dist">
+    <copy todir="${deploy}">
+      <fileset dir="." includes="${dist}/${jarfile}"/>
+    </copy>
+  </target>
+</project>
