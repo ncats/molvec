@@ -27,6 +27,8 @@ public class Viewer extends JPanel {
 	Bitmap bitmap = Bitmap.readtif(file);
 	bboxes = bitmap.connectedComponents(Bitmap.Bbox.Polygon);
 	segments = bitmap.segments();
+
+
 	logger.info(bboxes.size() + " connected components; "
 		    +segments.size()+" segments!");
 
@@ -48,6 +50,8 @@ public class Viewer extends JPanel {
 	    imgbuf = ((Graphics2D)g).getDeviceConfiguration()
 		.createCompatibleImage(getWidth (), getHeight());
 	    Graphics2D g2 = imgbuf.createGraphics();
+
+
 	    draw (g2);
 	    g2.dispose();
 	}
@@ -64,8 +68,10 @@ public class Viewer extends JPanel {
 	g2.fillRect(0, 0, getWidth(), getHeight());
 	    
 	g2.drawImage(image, THICKNESS, THICKNESS, null);
+	VectorUtil xz = new VectorUtil();
+	xz.vectorize(segments, g2); 
 	//drawBBoxes (g2);
-	drawSegments (g2);
+	//drawSegments (g2);
     }
 
     void drawBBoxes (Graphics2D g2) {
