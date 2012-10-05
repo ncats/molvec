@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<project name="molvec" default="compile" basedir=".">
+<project name="molvec" default="viewer" basedir=".">
   <property name="lib" value="lib"/>
   <property name="build" value="build"/>
   <property name="src" value="src"/>
@@ -11,6 +11,13 @@
     <fileset dir="${lib}">
       <include name="**/*.jar"/>
     </fileset>
+  </path>
+
+  <path id="lib.classpath">
+      <fileset dir="${lib}">
+          <include name="**/*.jar"/>
+      </fileset>
+      <pathelement location="${build}"/>
   </path>
 
   <target name="init">
@@ -50,5 +57,14 @@
     <copy todir="${deploy}">
       <fileset dir="." includes="${dist}/${jarfile}"/>
     </copy>
+  </target>
+
+  <target name="viewer" depends="compile">
+     <echo message="=== Simple test to demonstrate primitive utilities "/>
+     <echo message="=== we're currently testing out...."/>
+     <java classname="Viewer" classpathref="lib.classpath" fork="true">
+         <arg value="test/ml-2011-00100t_0002_thin.tif"/>
+         <!--arg value="2"/-->
+     </java>
   </target>
 </project>

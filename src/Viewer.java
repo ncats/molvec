@@ -23,19 +23,17 @@ public class Viewer extends JPanel {
     double sx, sy;
     BufferedImage imgbuf;
 
-    public Viewer (File file) throws IOException {
+    public Viewer (File file, double scale) throws IOException {
 	Bitmap bitmap = Bitmap.readtif(file);
 	bboxes = bitmap.connectedComponents(Bitmap.Bbox.Polygon);
 	segments = bitmap.segments();
-
-
 	logger.info(bboxes.size() + " connected components; "
 		    +segments.size()+" segments!");
 
 	//sx = (double)(bitmap.width()+3*THICKNESS)/bitmap.width();
 	//sy = (double)(bitmap.height()+3*THICKNESS)/bitmap.height();
-	sx = 1;
-	sy = 1;
+	sx = scale;
+	sy = scale;
 	logger.info("scale x: "+sx + " scale y: "+sy);
 	image = bitmap.createBufferedImage();
 	setPreferredSize (new Dimension ((int)(sx*bitmap.width()+.5),
@@ -50,8 +48,6 @@ public class Viewer extends JPanel {
 	    imgbuf = ((Graphics2D)g).getDeviceConfiguration()
 		.createCompatibleImage(getWidth (), getHeight());
 	    Graphics2D g2 = imgbuf.createGraphics();
-
-
 	    draw (g2);
 	    g2.dispose();
 	}
@@ -60,6 +56,7 @@ public class Viewer extends JPanel {
     }
 
     void draw (Graphics2D g2) {
+        g2.scale(sx, sy);
 	g2.setRenderingHint(RenderingHints.KEY_RENDERING, 
 			    RenderingHints.VALUE_RENDER_QUALITY);
 	g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, 
@@ -68,10 +65,8 @@ public class Viewer extends JPanel {
 	g2.fillRect(0, 0, getWidth(), getHeight());
 	    
 	g2.drawImage(image, THICKNESS, THICKNESS, null);
-	VectorUtil xz = new VectorUtil();
-	xz.vectorize(segments, g2); 
 	//drawBBoxes (g2);
-	//drawSegments (g2);
+	drawSegments (g2);
     }
 
     void drawBBoxes (Graphics2D g2) {
@@ -104,11 +99,12 @@ public class Viewer extends JPanel {
     }
     
 
-    static JFrame createApp (String name) throws IOException {
+    static JFrame createApp (String name, double scale) throws IOException {
+        logger.info("Loading "+name+"; scale="+scale+"...");
 	JFrame f = new JFrame ();
 	File file = new File (name);
 	f.setTitle(file.getName());
-	Viewer v = new Viewer (file);
+	Viewer v = new Viewer (file, scale);
 	JPanel p = new JPanel (new BorderLayout ());
 	p.add(new JScrollPane (v));
 	f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -119,14 +115,25 @@ public class Viewer extends JPanel {
 
     public static void main (final String[] argv) {
 	if (argv.length == 0) {
-	    System.err.println("Usage: Viewer FILE");
+	    System.err.println("Usage: Viewer FILE [SCALE]");
 	    System.exit(1);
 	}
 
 	SwingUtilities.invokeLater(new Runnable () {
 		public void run () {
 		    try {
-			JFrame f = createApp (argv[0]);
+                        double scale = 1.;
+                        if (argv.length > 1) {
+                            try {
+                                scale = Double.parseDouble(argv[1]);
+                                scale = Math.max(scale, 1.);
+                            }
+                            catch (NumberFormatException ex) {
+                                logger.warning("Bogus scale value: "+argv[1]);
+                            }
+                        }
+
+			JFrame f = createApp (argv[0], scale);
 			f.setVisible(true);
 		    }
 		    catch (Exception ex) {
