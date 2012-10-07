@@ -63,7 +63,8 @@
      <echo message="=== Simple test to demonstrate primitive utilities "/>
      <echo message="=== we're currently testing out...."/>
      <java classname="Viewer" classpathref="lib.classpath" fork="true">
-         <arg value="test/ml-2011-00100t_0002_thin.tif"/>
+         <arg value="test/hand-drawn.tif"/>
+         <!--arg value="test/ml-2011-00100t_0002.tif"/-->
          <!--arg value="2"/-->
      </java>
   </target>
