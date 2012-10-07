@@ -68,7 +68,7 @@ public class Viewer extends JPanel {
     }
 
     public void load (File file) throws IOException {
-        load (file, 1.);
+        load (file, Math.min(sx, sy));
     }
 
     public void load (File file, double scale) throws IOException {
@@ -85,6 +85,8 @@ public class Viewer extends JPanel {
         thin = bitmap.skeleton();
 
         start = System.currentTimeMillis();
+        // segments are generated for thinned bitmap only, since
+        //  it can quite noisy on normal bitmap!
 	segments = thin.segments();
 	logger.info("## generated "+segments.size()+" segments in "
                     +String.format("%1$.3fs", 
