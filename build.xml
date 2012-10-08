@@ -59,6 +59,12 @@
     </copy>
   </target>
 
+  <target name="clean">
+    <delete includeEmptyDirs="true" quiet="true">
+         <fileset dir="${build}" includes="**"/>
+    </delete>
+  </target>
+
   <target name="viewer" depends="compile">
      <echo message="=== Simple test to demonstrate primitive utilities "/>
      <echo message="=== we're currently testing out...."/>

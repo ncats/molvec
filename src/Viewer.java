@@ -19,9 +19,10 @@ public class Viewer extends JPanel {
     static final int THICKNESS = 0;
 
     static final int SEGMENTS = 1<<0;
-    static final int BBOXES = 1<<1;
+    static final int POLYGONS = 1<<1;
     static final int THINNING = 1<<2;
     static final int BITMAP = 1<<3;
+    static final int CLOSURE = 1<<4;
 
     static Color[] colors = new Color[]{Color.red, Color.blue, Color.black};
 
@@ -30,8 +31,10 @@ public class Viewer extends JPanel {
     BufferedImage image; // buffered image
     BufferedImage imgbuf; // rendered image
 
-    java.util.List<Shape> bboxes;
+    java.util.List<Shape> polygons;
     java.util.List<GeneralPath> segments;
+    java.util.List<Shape> closure;
+
     double sx, sy;
     int show = SEGMENTS|THINNING|BITMAP;
 
@@ -77,13 +80,17 @@ public class Viewer extends JPanel {
 
         bitmap = Bitmap.readtif(file);
         long start = System.currentTimeMillis();
-	bboxes = bitmap.connectedComponents(Bitmap.Bbox.Polygon);
-        logger.info("## generated "+bboxes.size()+" connected components in "
+	polygons = bitmap.polyConnectedComponents();
+        logger.info("## generated "+polygons.size()+" connected components in "
+                    +String.format("%1$.3fs", 
+                                   (System.currentTimeMillis()-start)*1e-3));
+        start = System.currentTimeMillis();
+        closure = GeomUtil.transitiveClosure(polygons, 10.);
+        logger.info("## closure "+closure.size()+"  in "
                     +String.format("%1$.3fs", 
                                    (System.currentTimeMillis()-start)*1e-3));
 
         thin = bitmap.skeleton();
-
         start = System.currentTimeMillis();
         // segments are generated for thinned bitmap only, since
         //  it can quite noisy on normal bitmap!
@@ -137,8 +144,12 @@ public class Viewer extends JPanel {
             g2.drawImage(image, THICKNESS, THICKNESS, null);
         }
 
-        if ((show & BBOXES) != 0) {
-            drawBBoxes (g2);
+        if ((show & CLOSURE) != 0) {
+            drawClosure (g2);
+        }
+
+        if ((show & POLYGONS) != 0) {
+            drawPolygons (g2);
         }
 
         if ((show & SEGMENTS) != 0) {
@@ -146,12 +157,47 @@ public class Viewer extends JPanel {
         }
     }
 
-    void drawBBoxes (Graphics2D g2) {
-	g2.setPaint(Color.red);
-	for (Shape b : bboxes) {
-	    g2.draw(b);
+    void drawPolygons (Graphics2D g2) {
+        ArrayList<Line2D> lines = new ArrayList<Line2D>();
+	for (Shape a : polygons) {
+            double min = Double.MAX_VALUE;
+            Point2D[] line = null;
+            for (Shape b : polygons) {
+                if (a != b) {
+                    Point2D[] vertex = GeomUtil.nearestNeighborVertices(a, b);
+                    double d = GeomUtil.distance(vertex[0], vertex[1]);
+                    if (line == null || d < min) {
+                        line = vertex;
+                        min = d;
+                    }
+                }
+            }
+            lines.add(new Line2D.Double(line[0], line[1]));
 	}
+
+        // nearest neighbor
+        g2.setPaint(Color.blue);
+        for (Line2D l : lines) {
+            g2.draw(l);
+        }
+
+	g2.setPaint(Color.red);
+	for (Shape a : polygons) {
+	    g2.draw(a);
+        }
     }
+
+    void drawClosure (Graphics2D g2) {
+        g2.setPaint(new Color (0xdd, 0xdd, 0xdd, 120));
+	for (Shape s : closure) {
+	    g2.fill(s);
+	}
+
+        g2.setPaint(Color.blue);
+	for (Shape s : closure) {
+	    g2.draw(s);
+	}
+    }        
 
     void drawSegments (Graphics2D g2) {
 	int i = 0;
@@ -177,11 +223,12 @@ public class Viewer extends JPanel {
     static class ViewerFrame extends JFrame 
         implements ActionListener, ChangeListener {
         Viewer viewer;
+        JToolBar toolbar;
         FileDialog fileDialog = new FileDialog (this, "Open Image");
 
         ViewerFrame (File file, double scale) throws IOException {
             setTitle (file.getName());
-            JToolBar toolbar = new JToolBar ();
+            toolbar = new JToolBar ();
             AbstractButton ab;
             toolbar.add(ab = new JButton ("Load"));
             ab.setToolTipText("Load new file");
@@ -204,8 +251,13 @@ public class Viewer extends JPanel {
             ab.setToolTipText("Show thinning image");
             ab.addActionListener(this);
             
-            toolbar.add(ab = new JCheckBox ("Connected components"));
+            toolbar.add(ab = new JCheckBox ("Polygons"));
             ab.setToolTipText("Show connected components");
+            ab.addActionListener(this);
+
+            toolbar.add(ab = new JCheckBox ("Closure"));
+            ab.setToolTipText
+                ("Show transitive closure of connected components");
             ab.addActionListener(this);
 
             toolbar.addSeparator();
@@ -253,6 +305,14 @@ public class Viewer extends JPanel {
             }
             else if (cmd.equalsIgnoreCase("bitmap")) {
                 viewer.setVisible(BITMAP, show);
+                for (Component c : toolbar.getComponents()) {
+                    if (c instanceof AbstractButton) {
+                        if ("thinning".equalsIgnoreCase
+                            (((AbstractButton)c).getText())) {
+                            c.setEnabled(show);
+                        }
+                    }
+                }
             }
             else if (cmd.equalsIgnoreCase("segments")) {
                 viewer.setVisible(SEGMENTS, show);
@@ -260,8 +320,11 @@ public class Viewer extends JPanel {
             else if (cmd.equalsIgnoreCase("thinning")) {
                 viewer.setVisible(THINNING, show);
             }
-            else if (cmd.equalsIgnoreCase("connected components")) {
-                viewer.setVisible(BBOXES, show);
+            else if (cmd.equalsIgnoreCase("polygons")) {
+                viewer.setVisible(POLYGONS, show);
+            }
+            else if (cmd.equalsIgnoreCase("closure")) {
+                viewer.setVisible(CLOSURE, show);
             }
         }
 

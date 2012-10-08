@@ -794,6 +794,20 @@ public class Bitmap implements Serializable {
 	}
     }
 
+    /*
+     * return connected components as rectangular bounding boxes
+     */
+    public List<Shape> rectConnectedComponents () {
+	return connectedComponents (Bbox.Rectangular);
+    }
+
+    /*
+     * return connected components as convex hull polygons
+     */
+    public List<Shape> polyConnectedComponents () {
+        return connectedComponents (Bbox.Polygon);
+    }
+
     public List<Shape> connectedComponents () {
 	return connectedComponents (Bbox.Rectangular);
     }
