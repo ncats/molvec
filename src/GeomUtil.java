@@ -157,10 +157,6 @@ public class GeomUtil {
 	return (Math.abs(p1.x-p2.x) <= 1 && Math.abs(p1.y-p2.y) <= 1);
     }
 
-    public static Point2D[] vertices (Shape shape) {
-        return vertices (shape, null);
-    }
-
     public static Polygon toPolygon (Shape shape) {
         Polygon poly = new Polygon ();
         for (Point2D p : vertices (shape)) {
@@ -181,6 +177,10 @@ public class GeomUtil {
         return convexHull (pts.toArray(new Point2D[0]));
     }
 
+    public static Point2D[] vertices (Shape shape) {
+        return vertices (shape, null);
+    }
+
     public static Point2D[] vertices (Shape shape, AffineTransform afx) {
         PathIterator p = shape.getPathIterator(afx);
         List<Point2D> vertices = new ArrayList<Point2D>();
@@ -196,6 +196,122 @@ public class GeomUtil {
         return vertices.toArray(new Point2D[0]);
     }
 
+    public static Line2D[] lines (Shape shape) {
+        return lines (shape, null);
+    }
+
+    public static Line2D[] lines (Shape shape, AffineTransform afx) {
+        List<Line2D> lines = new ArrayList<Line2D>();
+
+        double[] coord = new double[6];
+        Point2D start = null, prev = null;
+
+        PathIterator p = shape.getPathIterator(afx);
+        while (!p.isDone()) {
+            int type = p.currentSegment(coord);
+            if (type == PathIterator.SEG_MOVETO) {
+                start = prev = new Point2D.Double(coord[0], coord[1]);
+            }
+            else if (type == PathIterator.SEG_CLOSE) {
+                if (prev == null || start == null) {
+                    logger.warning("Unexpected state while "
+                                   +"iterating over shape!");
+                }
+                else {
+                    lines.add(new Line2D.Double(prev, start));
+                }
+            }            
+            else {
+                Point2D pt = new Point2D.Double(coord[0], coord[1]);
+                lines.add(new Line2D.Double(prev, pt));
+                prev = pt;
+            }
+            p.next();
+        }
+
+        return lines.toArray(new Line2D[0]);
+    }
+
+    /**
+     * return the intersection point (if any) between two lines
+     */
+    public static Point2D intersection (Line2D l1, Line2D l2) {
+        Point2D p1 = l1.getP1(), p2 = l1.getP2();
+        Point2D p3 = l2.getP1(), p4 = l2.getP2();
+        
+        double c = (p1.getX()-p2.getX())*(p3.getY()-p4.getY())
+            - (p1.getY() - p2.getY())*(p3.getX() - p4.getX());
+
+        if (Math.abs(c) < 0.0001) 
+            return null;
+
+
+        double x = (p1.getX()*p2.getY() - p1.getY()*p2.getX())
+            *(p3.getX()-p4.getX()) - (p1.getX() - p2.getX())
+            *(p3.getX()*p4.getY() - p3.getY()*p4.getX());
+        double y = (p1.getX()*p2.getY() - p1.getY()*p2.getX())
+            *(p3.getY() - p4.getY()) - (p1.getY()-p2.getY())
+            *(p3.getX()*p4.getY() - p3.getY()*p4.getX());
+
+        return new Point2D.Double(x/c, y/c);
+
+        /*
+        double[] p1 = calcLineParams (l1);
+        double[] p2 = calcLineParams (l2);
+        if (p1[0] != p2[0]) {
+            double x = (p2[1] - p1[1])/(p1[0] - p2[0]);
+            double y = p1[0]*x + p1[1];
+            return new Point2D.Double(x, y);
+        }
+        return null;
+        */
+    }
+
+    // calculate line parameters (slope & intercept) of a line
+    public static double[] calcLineParams (Line2D line) {
+        Point2D p1 = line.getP1(), p2 = line.getP2();
+        double intercept = 0, slope = 0;
+        if (p1.getX() != p2.getX()) {
+            intercept = (p2.getX()*p1.getY() - p1.getX()*p2.getY())
+                / (p2.getX() - p1.getX());
+
+            slope = (p1.getY() - intercept) / p1.getX();
+        }
+
+        return new double[]{slope, intercept};
+    }
+
+    public static boolean intersects (Line2D line, Point2D pt) {
+        return line.ptSegDist(pt) < 0.0001;
+    }
+
+    public static boolean intersects (Shape s1, Shape s2) {
+        Line2D[] lines1 = lines (s1);
+        Line2D[] lines2 = lines (s2);
+        for (Line2D l1 : lines1) {
+            for (Line2D l2 : lines2) {
+                Point2D pt = intersection (l1, l2);
+                if (pt != null && intersects (l1, pt) && intersects (l2, pt)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Test whether s2 is contained within s1
+     */
+    public static boolean contains (Shape s1, Shape s2) {
+        Point2D[] vertices = vertices (s2);
+        int k = 0;
+        for (Point2D p : vertices) {
+            if (s1.contains(p))
+                ++k;
+        }
+        return k == vertices.length;
+    }
+
     /**
      * Return two closest vertices between two shapes
      */
@@ -207,7 +323,7 @@ public class GeomUtil {
         Point2D p1 = null, p2 = null;
         for (int i = 0; i < pts1.length; ++i) {
             for (int j = 0; j < pts2.length; ++j) {
-                double dist = distance (pts1[i], pts2[j]);
+                double dist = length (pts1[i], pts2[j]);
                 if (dist < minDist) {
                     p1 = pts1[i];
                     p2 = pts2[j];
@@ -222,86 +338,16 @@ public class GeomUtil {
     /**
      * Euclidean distance between two points
      */
-    public static double distance (Point2D pt1, Point2D pt2) {
+    public static double length (Point2D pt1, Point2D pt2) {
         double dx = pt1.getX() - pt2.getX(), dy = pt1.getY() - pt2.getY();
         return Math.sqrt(dx*dx + dy*dy);
     }
 
     /**
-     * Euclidean between two polygons
+     * Euclidean between two polygons based on nearest vertices distance
      */
     public static double distance (Shape s1, Shape s2) {
         Point2D[] vertex = nearestNeighborVertices (s1, s2);
-        return distance (vertex[0], vertex[1]);
-    }
-
-    /**
-     * Given a collection of polygons, this routine performs transitive 
-     * closure based on containment and neighborhood distance threshold.
-     * Here distance is measured as the distance between the closest
-     * vertices between two polygons.
-     */
-    public static List<Shape> transitiveClosure 
-        (Collection<Shape> polygons, double distance) {
-
-        Shape[] poly = polygons.toArray(new Shape[0]);
-        List<Shape> closure = new ArrayList<Shape>();
-        
-        // first pass remove containments and merge intersections
-        for (int i = 0; i < poly.length; ++i) {
-            for (int j = 0; j < poly.length; ++j) {
-                if (i != j && poly[i] != null && poly[j] != null) {
-                    Rectangle2D bounds = poly[j].getBounds2D();
-                    if (poly[i].contains(bounds)) {
-                        poly[j] = null;
-                    }
-                    else if (poly[i].intersects(bounds)) {
-                        poly[i] = add (poly[i], poly[j]);
-                        poly[j] = null;
-                    }
-                }
-            }
-        }
-
-        for (int i = 0; i < poly.length; ++i) {
-            if (poly[i] != null) {
-                closure.add(poly[i]);
-            }
-        }
-
-        return closure;
-    }
-
-
-    static int transitiveClosure (int index, Polygon[] polygons) {
-        Polygon poly = polygons[index];
-        if (poly == null) {
-            return 0;
-        }
-
-        Rectangle2D bounds = poly.getBounds2D();
-        double cx = bounds.getCenterX();
-        double cy = bounds.getCenterY();
-
-        double[] coord = new double[6];
-        int k = 0;
-        for (int i = 0; i < polygons.length; ++i) {
-            if (i == index) continue;
-            Polygon p = polygons[i];
-            PathIterator path = polygons[i].getPathIterator(null);
-            while (!path.isDone()) {
-                int type = path.currentSegment(coord);
-                if (type != PathIterator.SEG_CLOSE) {
-                    double x = coord[0], y = coord[1];
-                    if (Math.abs(cx-x) <= bounds.getWidth()
-                        && Math.abs(cy-y) <= bounds.getHeight()) {
-                        poly.addPoint((int)x, (int)y);
-                        ++k;
-                    }
-                }
-                path.next();
-            }
-        }
-        return 0;
+        return length (vertex[0], vertex[1]);
     }
 }

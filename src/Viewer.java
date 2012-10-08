@@ -22,7 +22,7 @@ public class Viewer extends JPanel {
     static final int POLYGONS = 1<<1;
     static final int THINNING = 1<<2;
     static final int BITMAP = 1<<3;
-    static final int CLOSURE = 1<<4;
+    static final int COMPOSITE = 1<<4;
 
     static Color[] colors = new Color[]{Color.red, Color.blue, Color.black};
 
@@ -31,9 +31,9 @@ public class Viewer extends JPanel {
     BufferedImage image; // buffered image
     BufferedImage imgbuf; // rendered image
 
-    java.util.List<Shape> polygons;
-    java.util.List<GeneralPath> segments;
-    java.util.List<Shape> closure;
+    Collection<Shape> polygons;
+    Collection<GeneralPath> segments;
+    Collection<Shape> composites;
 
     double sx, sy;
     int show = SEGMENTS|THINNING|BITMAP;
@@ -85,8 +85,9 @@ public class Viewer extends JPanel {
                     +String.format("%1$.3fs", 
                                    (System.currentTimeMillis()-start)*1e-3));
         start = System.currentTimeMillis();
-        closure = GeomUtil.transitiveClosure(polygons, 10.);
-        logger.info("## closure "+closure.size()+"  in "
+
+        composites = new Segmentation (polygons).getComposites();
+        logger.info("## generated "+composites.size()+" composites in "
                     +String.format("%1$.3fs", 
                                    (System.currentTimeMillis()-start)*1e-3));
 
@@ -144,8 +145,8 @@ public class Viewer extends JPanel {
             g2.drawImage(image, THICKNESS, THICKNESS, null);
         }
 
-        if ((show & CLOSURE) != 0) {
-            drawClosure (g2);
+        if ((show & COMPOSITE) != 0) {
+            drawComposites (g2);
         }
 
         if ((show & POLYGONS) != 0) {
@@ -158,6 +159,25 @@ public class Viewer extends JPanel {
     }
 
     void drawPolygons (Graphics2D g2) {
+	g2.setPaint(Color.red);
+	for (Shape a : polygons) {
+	    g2.draw(a);
+        }
+    }
+
+    void drawComposites (Graphics2D g2) {
+        g2.setPaint(new Color (0xdd, 0xdd, 0xdd, 120));
+	for (Shape s : composites) {
+	    g2.fill(s);
+	}
+
+        g2.setPaint(Color.blue);
+	for (Shape s : composites) {
+	    g2.draw(s);
+	}
+    }
+
+    void drawNearestNeighbor (Graphics2D g2, Collection<Shape> polygons) {
         ArrayList<Line2D> lines = new ArrayList<Line2D>();
 	for (Shape a : polygons) {
             double min = Double.MAX_VALUE;
@@ -165,7 +185,7 @@ public class Viewer extends JPanel {
             for (Shape b : polygons) {
                 if (a != b) {
                     Point2D[] vertex = GeomUtil.nearestNeighborVertices(a, b);
-                    double d = GeomUtil.distance(vertex[0], vertex[1]);
+                    double d = GeomUtil.length(vertex[0], vertex[1]);
                     if (line == null || d < min) {
                         line = vertex;
                         min = d;
@@ -176,28 +196,40 @@ public class Viewer extends JPanel {
 	}
 
         // nearest neighbor
-        g2.setPaint(Color.blue);
+        double dist = 0.;
+        ArrayList<Double> dists = new ArrayList<Double>();
         for (Line2D l : lines) {
-            g2.draw(l);
+            double d = GeomUtil.length(l.getP1(), l.getP2());
+            dists.add(d);
+            dist += d;
+        }
+        dist /= lines.size();
+        Collections.sort(dists);
+
+        double med = 0.;
+        if (lines.size() % 2 == 0) {
+            int i = lines.size()/2;
+            med = (dists.get(i) + dists.get(i-1))/2.;
+        }
+        else {
+            med = dists.get(lines.size()/2);
+        }
+        logger.info("### NN distance: ave="+dist+" med="+med);
+
+        g2.setPaint(Color.red);
+        for (Line2D l : lines) {
+            if (GeomUtil.length(l.getP1(), l.getP2()) < dist) {
+                g2.draw(l);
+            }
         }
 
-	g2.setPaint(Color.red);
-	for (Shape a : polygons) {
-	    g2.draw(a);
+        g2.setPaint(Color.green);
+        for (Line2D l : lines) {
+            if (GeomUtil.length(l.getP1(), l.getP2()) < med) {
+                g2.draw(l);
+            }
         }
     }
-
-    void drawClosure (Graphics2D g2) {
-        g2.setPaint(new Color (0xdd, 0xdd, 0xdd, 120));
-	for (Shape s : closure) {
-	    g2.fill(s);
-	}
-
-        g2.setPaint(Color.blue);
-	for (Shape s : closure) {
-	    g2.draw(s);
-	}
-    }        
 
     void drawSegments (Graphics2D g2) {
 	int i = 0;
@@ -255,9 +287,9 @@ public class Viewer extends JPanel {
             ab.setToolTipText("Show connected components");
             ab.addActionListener(this);
 
-            toolbar.add(ab = new JCheckBox ("Closure"));
+            toolbar.add(ab = new JCheckBox ("Composites"));
             ab.setToolTipText
-                ("Show transitive closure of connected components");
+                ("Show connected component composites");
             ab.addActionListener(this);
 
             toolbar.addSeparator();
@@ -323,8 +355,8 @@ public class Viewer extends JPanel {
             else if (cmd.equalsIgnoreCase("polygons")) {
                 viewer.setVisible(POLYGONS, show);
             }
-            else if (cmd.equalsIgnoreCase("closure")) {
-                viewer.setVisible(CLOSURE, show);
+            else if (cmd.equalsIgnoreCase("composites")) {
+                viewer.setVisible(COMPOSITE, show);
             }
         }
 
