@@ -36,6 +36,7 @@ public class Bitmap implements Serializable {
     }
 
     static final double DEFAULT_AEV_THRESHOLD = 1.5;
+    static final double DEFAULT_SIGMA_THRESHOLD = 1.5;
 
     /**
      * bounding box shape
@@ -396,16 +397,23 @@ public class Bitmap implements Serializable {
 
 	Bitmap bm = new Bitmap (raster.getWidth(), raster.getHeight());
 	double max = -1, min = Double.MAX_VALUE;
+	double sum=0, sumSquare=0;
+	
 	for (int y = 0; y < bm.height; ++y) {
 	    for (int x = 0; x < bm.width; ++x) {
 		double pel = raster.getSampleDouble(x, y, 0);
+		sum+=pel;
+		sumSquare+=pel*pel;
 		if (pel < min) min = pel;
 		if (pel > max) max = pel;
 	    }
 	}
-
+	long tot=bm.height*bm.width;
+	double mean = sum/tot;
+	double stdDEV =Math.sqrt(sumSquare/tot-mean/tot);
 	// do simple thresholding
-	double threshold = (max-min)/2.;
+	//UPDATE: this is now based not on range, but standard deviation
+	double threshold = mean+stdDEV*DEFAULT_SIGMA_THRESHOLD;		 //threshold = (max-min)/2.;
 	for (int y = 0; y < bm.height; ++y) {
 	    for (int x = 0; x < bm.width; ++x) {
 		double pel = raster.getSampleDouble(x, y, 0);

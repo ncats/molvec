@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.awt.*;
 import java.awt.color.*;
 import java.awt.image.*;
+
 import javax.imageio.*;
+
 import java.util.logging.Logger;
 import java.util.logging.Level;
 import com.sun.media.jai.codec.*;
@@ -13,7 +15,7 @@ import com.sun.media.jai.codec.*;
 public class ImageUtil implements TiffTags {
     private static final Logger logger = Logger.getLogger
 	(ImageUtil.class.getName());
-
+    
     public static BufferedImage decode (File file) throws IOException {
 	ImageDecoder decoder = ImageCodec.createImageDecoder
 	    ("TIFF", file, new TIFFDecodeParam ());
@@ -123,6 +125,48 @@ public class ImageUtil implements TiffTags {
 	image.setData(scaled);
 
 	return image;
+    }
+    public static BufferedImage decodeAny (BufferedImage bi){
+    	BufferedImage gImage = new BufferedImage 
+        	    (bi.getWidth(), bi.getHeight(), 
+        	     BufferedImage.TYPE_BYTE_GRAY);
+    	Graphics graph = gImage.getGraphics();
+    	graph.setColor(Color.white);
+    	graph.fillRect(0,0, bi.getWidth(), bi.getHeight());
+    	
+    	gImage.getGraphics().drawImage(bi, 0, 0, null);
+    	Raster raster = gImage.getData();
+    	
+    	int max = 0;
+    	int min = Integer.MAX_VALUE;
+    	for (int i = 0; i < raster.getWidth(); ++i) {
+    	    for (int j = 0; j < raster.getHeight(); ++j) {
+	    		int pixel = raster.getSample(i, j, 0);
+	    		//System.out.print(pixel%10);
+	    		if (pixel > max) max = pixel;
+	    		if (pixel < min) min = pixel;
+    	    }
+    	    //System.out.println();
+    	}
+
+    	// rescale to 8-bit
+    	double scale = Math.max(256./(max-min+1),1);
+    	RescaleOp rescale = new RescaleOp 
+    	    ((float)scale, -(float)scale*min, null);
+    	Raster scaled = rescale.filter(raster, null);
+    	rescale = new RescaleOp 
+        	    (-1, 255, null);
+        scaled = rescale.filter(scaled, null);
+        	
+    	BufferedImage image = new BufferedImage 
+    	    (raster.getWidth(), raster.getHeight(), 
+    	     BufferedImage.TYPE_BYTE_GRAY);
+    	
+    	image.setData(scaled);
+    	return image;
+    }
+    public static BufferedImage decodeAny (File file) throws IOException {
+    	return decodeAny(ImageIO.read(file));
     }
 
     public static BufferedImage fuse (BufferedImage img0, BufferedImage img1) {

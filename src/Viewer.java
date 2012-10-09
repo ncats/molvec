@@ -1,4 +1,6 @@
 
+
+
 import java.util.*;
 import java.io.*;
 import java.awt.*;
@@ -78,9 +80,15 @@ public class Viewer extends JPanel {
         sx = scale;
         sy = scale;
 
-        bitmap = Bitmap.readtif(file);
+        try{
+        	bitmap = Bitmap.readtif(file);
+        }catch(Exception e){
+        	logger.info("Problem loading file: not valid Tiff? Attempting conversion.");
+        	bitmap = Bitmap.createBitmap(ImageUtil.decodeAny(file).getData());
+        }
+        
         long start = System.currentTimeMillis();
-	polygons = bitmap.polyConnectedComponents();
+        polygons = bitmap.polyConnectedComponents();
         logger.info("## generated "+polygons.size()+" connected components in "
                     +String.format("%1$.3fs", 
                                    (System.currentTimeMillis()-start)*1e-3));
