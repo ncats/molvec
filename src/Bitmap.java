@@ -1,4 +1,3 @@
-
 import java.io.*;
 
 import java.awt.geom.*;
@@ -11,6 +10,7 @@ import java.awt.Rectangle;
 import java.awt.Point;
 import java.awt.Polygon;
 import java.awt.image.*;
+
 import javax.imageio.*;
 
 import com.sun.media.jai.codec.*;
@@ -37,6 +37,12 @@ public class Bitmap implements Serializable {
 
     static final double DEFAULT_AEV_THRESHOLD = 1.5;
     static final double DEFAULT_SIGMA_THRESHOLD = 1.5;
+    static final int DEFAULT_ADAPTIVE_BOX_RADIUS = 25;
+    static final int DEFAULT_ADAPTIVE_MIN_THRESHOLD = 20;
+    static final int DEFAULT_ADAPTIVE_MIN_STDDEV = 10;
+    
+    
+    
 
     /**
      * bounding box shape
@@ -395,33 +401,110 @@ public class Bitmap implements Serializable {
 		("Can handle sample with multiple channels");
 	}
 
-	Bitmap bm = new Bitmap (raster.getWidth(), raster.getHeight());
-	double max = -1, min = Double.MAX_VALUE;
-	double sum=0, sumSquare=0;
-	
-	for (int y = 0; y < bm.height; ++y) {
-	    for (int x = 0; x < bm.width; ++x) {
-		double pel = raster.getSampleDouble(x, y, 0);
-		sum+=pel;
-		sumSquare+=pel*pel;
-		if (pel < min) min = pel;
-		if (pel > max) max = pel;
-	    }
+		return AdaptiveThreshold(raster, Bitmap.DEFAULT_ADAPTIVE_BOX_RADIUS,
+				Bitmap.DEFAULT_SIGMA_THRESHOLD,
+				Bitmap.DEFAULT_ADAPTIVE_MIN_THRESHOLD,
+				Bitmap.DEFAULT_ADAPTIVE_MIN_STDDEV);
 	}
-	long tot=bm.height*bm.width;
-	double mean = sum/tot;
-	double stdDEV =Math.sqrt(sumSquare/tot-mean/tot);
-	// do simple thresholding
-	//UPDATE: this is now based not on range, but standard deviation
-	double threshold = mean+stdDEV*DEFAULT_SIGMA_THRESHOLD;		 //threshold = (max-min)/2.;
-	for (int y = 0; y < bm.height; ++y) {
-	    for (int x = 0; x < bm.width; ++x) {
-		double pel = raster.getSampleDouble(x, y, 0);
-		bm.set(x, y,pel >= threshold);
-	    }
-	}
-
-	return bm;
+    /*
+     * Simple threshold based on full image mean and standard deviation. 
+     */
+    public static Bitmap SigmaThreshold(Raster inRaster, double sigma){
+    	Bitmap bm= new Bitmap (inRaster.getWidth(), inRaster.getHeight());
+    	double max = -1, min = Double.MAX_VALUE;
+    	double sum=0;
+    	double sumSquare=0;
+    	for (int y = 0; y < bm.height; ++y) {
+    	    for (int x = 0; x < bm.width; ++x) {
+    		double pel = inRaster.getSampleDouble(x, y, 0);
+    		sum+=pel;
+    		sumSquare+=pel*pel;
+    		if (pel < min) min = pel;
+    		if (pel > max) max = pel;
+    	    }
+    	}
+    	long tot=bm.height*bm.width;
+    	double mean = sum/tot;
+    	double stdDEV =Math.sqrt(sumSquare/tot-mean*mean);    	
+    	double threshold = mean+stdDEV*sigma;
+    	for (int y = 0; y < bm.height; ++y) {
+    	    for (int x = 0; x < bm.width; ++x) {
+    		double pel = inRaster.getSampleDouble(x, y, 0);
+    		bm.set(x, y,pel >= threshold);
+    	    }
+    	}
+    	return bm;
+    }
+    /*
+     * Adaptive Threshold based on local pixel average
+     * Loosely based on Bradley & Roth Integral Image Adaptive Thresholding
+     * Added ability to use a specific SIGMA minimum threshold.
+     * General Algorithm:
+     * 		[*]Precompute the integral image (used to get local mean)
+     * 		[*]Precompute the square integral image (used to get local standard dev)
+     * 	 	[*]For each pixel: 
+     * 			1)get the sum and sum of squares for those pixels in an 
+     * 			  (nsize*2+1) sized box around the given pixel. 
+     * 			  (using the precomputed integrals)
+     * 			2)calculate mean = sum/ pixel count
+     * 			3)calculate stDEV = sqrt(sumSquares/(pixel count) - mean^2)
+     * 			4)set threshold for given pixel at mean+stDEV*SIGMA
+     * 				(where sigma is a provided constant)
+     */
+    public static Bitmap AdaptiveThreshold(Raster inRaster, int nsize, double sigma, int absMin, double minSigma){
+    	Bitmap bm= new Bitmap (inRaster.getWidth(), inRaster.getHeight());
+    	double[][] integralImage = new double[inRaster.getWidth()][inRaster.getHeight()];
+    	double[][] squareIntegralImage = new double[inRaster.getWidth()][inRaster.getHeight()];
+    	
+    	//make Integral-Image for quick averaging
+    	for (int y = 0; y < bm.height; ++y) {
+    		double sum=0;
+    		double sumSquare=0;
+    	    for (int x = 0; x < bm.width; ++x) {
+    	    	sum+=inRaster.getSampleDouble(x, y, 0);
+    	    	sumSquare+=inRaster.getSampleDouble(x, y, 0)*inRaster.getSampleDouble(x, y, 0);
+    	    	
+    	    	if(y==0){
+    	    		integralImage[x][y]=sum;
+    	    		squareIntegralImage[x][y]=sumSquare;
+    	    	}else{
+    	    		integralImage[x][y]=sum + integralImage[x][y-1];
+    	    		squareIntegralImage[x][y]=sumSquare + squareIntegralImage[x][y-1];
+    	    	}
+    	    }
+    	}
+    	
+    	for(int y = 0; y < bm.height; ++y) {
+    	    for (int x = 0; x < bm.width; ++x) {
+    	    	//box to average over:
+    	    	int x1= Math.max(x-nsize,0); int y1 = Math.max(y-nsize, 0);
+    	    	int x2= Math.min(x+nsize,bm.width-1); int y2 = Math.min(y+nsize, bm.height-1);
+    	    	int count = (x2-x1+1)*(y2-y1+1);
+    	    	
+    	    	//get summed area around pixel
+    	    	double sum = integralImage[x2][y2];
+    	    	double sumSquare = squareIntegralImage[x2][y2];
+    	    	if(y1>0){
+    	    		sum+=-integralImage[x2][y1-1];
+    	    		sumSquare+=-squareIntegralImage[x2][y1-1];
+    	    	}
+    	    	if(x1>0){
+    	    		sum+=-integralImage[x1-1][y2];
+    	    		sumSquare+=-squareIntegralImage[x1-1][y2];
+    	    	}
+    	    	if(y1>0 && x1>0){
+    	    		sum+=integralImage[x1-1][y1-1];
+    	    		sumSquare+=squareIntegralImage[x1-1][y1-1];
+    	    	}
+    	    	double mean = sum/((double)count);
+    	    	double var = Math.abs(sumSquare/((double)count)-mean*mean);
+    	    	double stdDEV =Math.sqrt(var);
+    	    	double threshold = Math.max(mean+stdDEV*sigma,absMin);
+    	    	double pel = inRaster.getSampleDouble(x, y, 0);
+    	    	bm.set(x, y,pel > threshold && stdDEV > minSigma);
+    	    }
+    	}
+    	return bm;
     }
 
     public static Bitmap readtif (String file) throws IOException {
