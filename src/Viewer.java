@@ -147,10 +147,17 @@ public class Viewer extends JPanel
                                    (System.currentTimeMillis()-start)*1e-3));
 
         start = System.currentTimeMillis();
-        composites = new Segmentation (polygons).getComposites();
-        logger.info("## generated "+composites.size()+" composites in "
-                    +String.format("%1$.3fs", 
-                                   (System.currentTimeMillis()-start)*1e-3));
+
+        boolean medium = bitmap.width()*bitmap.height() <= 500000l;
+        if (medium) {
+            composites = new Segmentation (polygons).getComposites();
+            logger.info("## generated "+composites.size()+" composites in "
+                        +String.format("%1$.3fs", 
+                                       (System.currentTimeMillis()-start)*1e-3));
+        }
+        else {
+            composites.clear();
+        }
 
         start = System.currentTimeMillis();
         thin = bitmap.skeleton();
@@ -161,11 +168,15 @@ public class Viewer extends JPanel
         start = System.currentTimeMillis();
         // segments are generated for thinned bitmap only, since
         //  it can quite noisy on normal bitmap!
-	segments = thin.segments();
-	logger.info("## generated "+segments.size()+" segments in "
-                    +String.format("%1$.3fs", 
-                                   (System.currentTimeMillis()-start)*1e-3));
-
+        if (medium) {
+            segments = thin.segments();
+            logger.info("## generated "+segments.size()+" segments in "
+                        +String.format("%1$.3fs", 
+                                       (System.currentTimeMillis()-start)*1e-3));
+        }
+        else {
+            segments.clear();
+        }
 	setPreferredSize (new Dimension ((int)(sx*bitmap.width()+.5),
 					 (int)(sy*bitmap.height()+.5)));
         resetAndRepaint ();
