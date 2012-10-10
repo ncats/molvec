@@ -471,11 +471,12 @@ public class Bitmap implements Serializable {
 		for (int y = 0; y < bm.height; ++y) {
 			int y1 = Math.max(y - nsize, 0);
 			int y2 = Math.min(y + nsize, bm.height - 1);
+			int boxHeight = (y2 - y1 + 1);
 			double[] topIntLine = null;
 			double[] topSquareIntLine = null;
-			double[] bottomIntLine;
-			double[] bottomSquareIntLine;
-			int boxHeight = (y2 - y1 + 1);
+			double[] bottomIntLine= null;
+			double[] bottomSquareIntLine= null;
+			
 			if (y1 >= 2) {
 				if (boxHeight >= nsize * 2 + 1) {
 					yMap[y2] = yMap[y1 - 2];
@@ -511,9 +512,8 @@ public class Bitmap implements Serializable {
 				}
 
 				double mean = sum / ((double) count);
-				double var = Math.abs(sumSquare / ((double) count) - mean
-						* mean);
-				double stdDEV = Math.sqrt(var);
+				double stdDEV = Math.sqrt(Math.abs(sumSquare / ((double) count)
+						- mean * mean));
 				double threshold = Math.max(mean + stdDEV * sigma, absMin);
 				double pel = inRaster.getSampleDouble(x, y, 0);
 				bm.set(x, y, pel > threshold && stdDEV > minSigma);
@@ -521,7 +521,6 @@ public class Bitmap implements Serializable {
 		}
 		return bm;
 	}
-
 	private static void addIntLines(Raster inRaster, int[] yMap,
 			double[][] intLines, double[][] intSquareLines, int width, int y) {
 		double sum = 0;
