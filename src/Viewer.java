@@ -14,7 +14,8 @@ import java.util.logging.Logger;
 import java.util.logging.Level;
 
 
-public class Viewer extends JPanel {
+public class Viewer extends JPanel 
+    implements MouseMotionListener, ComponentListener {
     private static final Logger logger = 
 	Logger.getLogger(Viewer.class.getName());
 
@@ -26,6 +27,7 @@ public class Viewer extends JPanel {
     static final int BITMAP = 1<<3;
     static final int COMPOSITE = 1<<4;
 
+    static final Color HL_COLOR = new Color (0xdd, 0xdd, 0xdd, 120);
     static Color[] colors = new Color[]{Color.red, Color.blue, Color.black};
 
     Bitmap bitmap; // original bitmap
@@ -36,22 +38,67 @@ public class Viewer extends JPanel {
     Collection<Shape> polygons;
     Collection<GeneralPath> segments;
     Collection<Shape> composites;
+    java.util.List<Shape> highlights = new ArrayList<Shape>();
 
     double sx, sy;
+    AffineTransform afx = new AffineTransform ();
+
     int show = SEGMENTS|THINNING|BITMAP;
 
     public Viewer ()  {
+        addMouseMotionListener (this);
     }
 
     public Viewer (File file) throws IOException {
+        this ();
         load (file);
     }
 
     public Viewer (File file, double scale) throws IOException {
+        this ();
 	//sx = (double)(bitmap.width()+3*THICKNESS)/bitmap.width();
 	//sy = (double)(bitmap.height()+3*THICKNESS)/bitmap.height();
         load (file, scale);
     }
+
+    public void mouseDragged (MouseEvent e) {
+    }
+    
+    public void mouseMoved (MouseEvent e) {
+        Point pt = e.getPoint();
+        highlights.clear();
+
+        if ((show & POLYGONS) == 0) {
+            // polygon off
+            for (Shape s : polygons) {
+                if (Path2D.contains(s.getPathIterator(afx), pt)) {
+                    highlights.add(s);
+                }
+            }
+        }
+
+        if (composites != null && (show & COMPOSITE) == 0) {
+            // composite off
+            for (Shape s : composites) {
+                if (Path2D.contains(s.getPathIterator(afx), pt)) {
+                    highlights.add(s);
+                }
+            }
+        }
+
+        //logger.info("## "+highlights.size()+" highlights");
+
+        repaint ();
+    }
+
+    public void componentResized (ComponentEvent e) {
+        highlights.clear();
+        repaint ();
+    }
+
+    public void componentHidden (ComponentEvent e) {}
+    public void componentMoved (ComponentEvent e) {}
+    public void componentShown (ComponentEvent e) {}
 
     public void setScale (double scale) {
 	sx = scale;
@@ -80,26 +127,37 @@ public class Viewer extends JPanel {
         sx = scale;
         sy = scale;
 
-        try{
-        	bitmap = Bitmap.readtif(file);
-        }catch(Exception e){
-        	logger.info("Problem loading file: not valid Tiff? Attempting conversion.");
-        	bitmap = Bitmap.createBitmap(ImageUtil.decodeAny(file).getData());
-        }
-        
         long start = System.currentTimeMillis();
+        try {
+            bitmap = Bitmap.readtif(file);
+        } 
+        catch (Exception e) {
+            logger.info("Problem loading file: not valid Tiff? "
+                        +"Attempting conversion.");
+            bitmap = Bitmap.createBitmap(ImageUtil.decodeAny(file).getData());
+        }
+        logger.info("## load image "+bitmap.width()+"x"+bitmap.height()+" in "
+                    +String.format("%1$.3fs", 
+                                   (System.currentTimeMillis()-start)*1e-3));
+
+        start = System.currentTimeMillis();
         polygons = bitmap.polyConnectedComponents();
         logger.info("## generated "+polygons.size()+" connected components in "
                     +String.format("%1$.3fs", 
                                    (System.currentTimeMillis()-start)*1e-3));
-        start = System.currentTimeMillis();
 
+        start = System.currentTimeMillis();
         composites = new Segmentation (polygons).getComposites();
         logger.info("## generated "+composites.size()+" composites in "
                     +String.format("%1$.3fs", 
                                    (System.currentTimeMillis()-start)*1e-3));
 
+        start = System.currentTimeMillis();
         thin = bitmap.skeleton();
+        logger.info("## thinning in "
+                    +String.format("%1$.3fs", 
+                                   (System.currentTimeMillis()-start)*1e-3));
+
         start = System.currentTimeMillis();
         // segments are generated for thinned bitmap only, since
         //  it can quite noisy on normal bitmap!
@@ -112,6 +170,8 @@ public class Viewer extends JPanel {
 					 (int)(sy*bitmap.height()+.5)));
         resetAndRepaint ();
     }
+
+    
 
     void resetAndRepaint () {
         imgbuf = null;
@@ -130,8 +190,27 @@ public class Viewer extends JPanel {
 	}
 
         Rectangle r = getBounds ();
-	g.drawImage(imgbuf, (int)((r.getWidth()-sx*image.getWidth())/2.+.5), 
-                    (int)((r.getHeight()-sy*image.getHeight())/2.+.5), null);
+        double x = (r.getWidth()-sx*image.getWidth())/2.;
+        double y = (r.getHeight()-sy*image.getHeight())/2.;
+        Graphics2D g2 = (Graphics2D)g;
+
+	g2.drawImage(imgbuf, (int)(x+.5), (int)(y+.5), null);
+
+        afx.setToTranslation(x, y);
+        afx.scale(sx, sy);
+
+        if (!highlights.isEmpty()) {
+            g2.setTransform(afx);
+            g2.setRenderingHint(RenderingHints.KEY_RENDERING, 
+                                RenderingHints.VALUE_RENDER_QUALITY);
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, 
+                                RenderingHints.VALUE_ANTIALIAS_ON);
+
+            g2.setPaint(HL_COLOR);
+            for (Shape s : highlights) {
+                g2.fill(s);
+            }
+        }
     }
 
     void draw (Graphics2D g2) {
@@ -153,15 +232,15 @@ public class Viewer extends JPanel {
             g2.drawImage(image, THICKNESS, THICKNESS, null);
         }
 
-        if ((show & COMPOSITE) != 0) {
+        if (composites != null && (show & COMPOSITE) != 0) {
             drawComposites (g2);
         }
 
-        if ((show & POLYGONS) != 0) {
+        if (polygons != null && (show & POLYGONS) != 0) {
             drawPolygons (g2);
         }
 
-        if ((show & SEGMENTS) != 0) {
+        if (segments != null && (show & SEGMENTS) != 0) {
             drawSegments (g2);
         }
     }
@@ -174,7 +253,7 @@ public class Viewer extends JPanel {
     }
 
     void drawComposites (Graphics2D g2) {
-        g2.setPaint(new Color (0xdd, 0xdd, 0xdd, 120));
+        g2.setPaint(HL_COLOR);
 	for (Shape s : composites) {
 	    g2.fill(s);
 	}

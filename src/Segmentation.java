@@ -21,6 +21,8 @@ public class Segmentation implements Serializable {
 
         composites = bboxes;
         do {
+            // this is extremely inefficient; not suitable for
+            //  big images
             Collection<Shape> cc = createComposites (composites);
             if (cc.size() < composites.size()) {
                 composites = cc;
@@ -42,6 +44,7 @@ public class Segmentation implements Serializable {
     public Collection<Shape> createComposites (Collection<Shape> polygons) {
         Shape[] poly = polygons.toArray(new Shape[0]);
         // first pass, collapse containments and intersections
+        logger.info("## collapsing polygons...");
         do {
             int k = 0;
             for (int i = 0; i < poly.length; ++i) {
@@ -62,6 +65,7 @@ public class Segmentation implements Serializable {
             }
         }
 
+        logger.info("## calculating polygon nearest neighbor...");
         // calculate average nearest neighbor distance
         poly = composites.toArray(new Shape[0]);
         int[] nb = new int[poly.length]; // neighbors
@@ -89,6 +93,7 @@ public class Segmentation implements Serializable {
                 : median[median.length/2];
         }
         
+        logger.info("## merging nearest neighbor at cutoff "+cutoff+"..");
         composites.clear();
         for (int i = 0; i < poly.length; ++i) {
             if (poly[i] != null) {
@@ -133,6 +138,11 @@ public class Segmentation implements Serializable {
                     ++k;
                     break;
                 }
+                else if (GeomUtil.intersects(poly, p)) {
+                    polygons[index] = poly = GeomUtil.add(poly, p);
+                    polygons[i] = null;
+                    ++k;
+                }
                 else if (GeomUtil.contains(poly, p)) {
                     polygons[i] = null;
                     ++k;
@@ -141,11 +151,6 @@ public class Segmentation implements Serializable {
                     polygons[index] = null;
                     ++k;
                     break;
-                }
-                else if (GeomUtil.intersects(poly, p)) {
-                    polygons[index] = poly = GeomUtil.add(poly, p);
-                    polygons[i] = null;
-                    ++k;
                 }
             }
         }

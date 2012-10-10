@@ -41,8 +41,6 @@ public class Bitmap implements Serializable {
     static final int DEFAULT_ADAPTIVE_MIN_THRESHOLD = 20;
     static final int DEFAULT_ADAPTIVE_MIN_STDDEV = 10;
     
-    
-    
 
     /**
      * bounding box shape
@@ -401,11 +399,13 @@ public class Bitmap implements Serializable {
 		("Can handle sample with multiple channels");
 	}
 
-		return AdaptiveThreshold(raster, Bitmap.DEFAULT_ADAPTIVE_BOX_RADIUS,
-				Bitmap.DEFAULT_SIGMA_THRESHOLD,
-				Bitmap.DEFAULT_ADAPTIVE_MIN_THRESHOLD,
-				Bitmap.DEFAULT_ADAPTIVE_MIN_STDDEV);
-	}
+        return adaptiveThreshold
+            (raster, DEFAULT_ADAPTIVE_BOX_RADIUS,
+             DEFAULT_SIGMA_THRESHOLD,
+             DEFAULT_ADAPTIVE_MIN_THRESHOLD,
+             DEFAULT_ADAPTIVE_MIN_STDDEV);
+    }
+
     /*
      * Simple threshold based on full image mean and standard deviation. 
      */
@@ -451,25 +451,31 @@ public class Bitmap implements Serializable {
      * 			4)set threshold for given pixel at mean+stDEV*SIGMA
      * 				(where sigma is a provided constant)
      */
-    public static Bitmap AdaptiveThreshold(Raster inRaster, int nsize, double sigma, int absMin, double minSigma){
+    public static Bitmap adaptiveThreshold
+        (Raster inRaster, int nsize, 
+         double sigma, int absMin, double minSigma) {
+
     	Bitmap bm= new Bitmap (inRaster.getWidth(), inRaster.getHeight());
-    	double[][] integralImage = new double[inRaster.getWidth()][inRaster.getHeight()];
-    	double[][] squareIntegralImage = new double[inRaster.getWidth()][inRaster.getHeight()];
+    	double[][] integralImage = 
+            new double[inRaster.getWidth()][inRaster.getHeight()];
+    	double[][] squareIntegralImage = 
+            new double[inRaster.getWidth()][inRaster.getHeight()];
     	
     	//make Integral-Image for quick averaging
     	for (int y = 0; y < bm.height; ++y) {
-    		double sum=0;
-    		double sumSquare=0;
+            double sum=0;
+            double sumSquare=0;
     	    for (int x = 0; x < bm.width; ++x) {
     	    	sum+=inRaster.getSampleDouble(x, y, 0);
     	    	sumSquare+=inRaster.getSampleDouble(x, y, 0)*inRaster.getSampleDouble(x, y, 0);
     	    	
     	    	if(y==0){
-    	    		integralImage[x][y]=sum;
-    	    		squareIntegralImage[x][y]=sumSquare;
-    	    	}else{
-    	    		integralImage[x][y]=sum + integralImage[x][y-1];
-    	    		squareIntegralImage[x][y]=sumSquare + squareIntegralImage[x][y-1];
+                    integralImage[x][y]=sum;
+                    squareIntegralImage[x][y]=sumSquare;
+    	    	}
+                else {
+                    integralImage[x][y]=sum + integralImage[x][y-1];
+                    squareIntegralImage[x][y]=sumSquare + squareIntegralImage[x][y-1];
     	    	}
     	    }
     	}
@@ -477,8 +483,10 @@ public class Bitmap implements Serializable {
     	for(int y = 0; y < bm.height; ++y) {
     	    for (int x = 0; x < bm.width; ++x) {
     	    	//box to average over:
-    	    	int x1= Math.max(x-nsize,0); int y1 = Math.max(y-nsize, 0);
-    	    	int x2= Math.min(x+nsize,bm.width-1); int y2 = Math.min(y+nsize, bm.height-1);
+    	    	int x1= Math.max(x-nsize,0); 
+                int y1 = Math.max(y-nsize, 0);
+    	    	int x2= Math.min(x+nsize,bm.width-1); 
+                int y2 = Math.min(y+nsize, bm.height-1);
     	    	int count = (x2-x1+1)*(y2-y1+1);
     	    	
     	    	//get summed area around pixel
@@ -847,8 +855,7 @@ public class Bitmap implements Serializable {
 		break;
 	    /* copy the image back */
 	    System.arraycopy(copy, 0, thin.data, 0, copy.length);
-	    /* flip the coin */
-	    step = !step;
+	    step = !step; // toggle the step
 	} /* endwhile (1) */
 
 	return thin;
