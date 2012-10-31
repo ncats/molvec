@@ -8,5 +8,5 @@ To build the code, you'll need to install Apache ant (http://ant.apache.org).
 Once ant is installed, simply type ant in this directory. If all goes well
 (and it should), a simple window will popup demonstrating the various image
 and geometry primitives currently available in the code. Of course, the
-next step is to turn these primitives into meaning geometric objects and
+next step is to turn these primitives into meaningful geometric objects and
 beyond.

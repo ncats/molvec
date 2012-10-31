@@ -1,6 +1,4 @@
 
-
-
 import java.util.*;
 import java.io.*;
 import java.awt.*;
@@ -15,20 +13,26 @@ import java.util.logging.Level;
 
 
 public class Viewer extends JPanel 
-    implements MouseMotionListener, ComponentListener {
+    implements MouseMotionListener, MouseListener, 
+               ComponentListener, ActionListener {
+
     private static final Logger logger = 
 	Logger.getLogger(Viewer.class.getName());
 
     static final int THICKNESS = 0;
+    static final long LARGE_IMAGE = 500000l;
 
     static final int SEGMENTS = 1<<0;
     static final int POLYGONS = 1<<1;
     static final int THINNING = 1<<2;
     static final int BITMAP = 1<<3;
     static final int COMPOSITE = 1<<4;
+    static final int ALL = SEGMENTS|POLYGONS|THINNING|BITMAP|COMPOSITE;
 
     static final Color HL_COLOR = new Color (0xdd, 0xdd, 0xdd, 120);
     static Color[] colors = new Color[]{Color.red, Color.blue, Color.black};
+
+    FileDialog fileDialog;
 
     Bitmap bitmap; // original bitmap
     Bitmap thin; // thinned bitmap
@@ -36,17 +40,27 @@ public class Viewer extends JPanel
     BufferedImage imgbuf; // rendered image
 
     Collection<Shape> polygons;
-    Collection<GeneralPath> segments;
+    Collection<Path2D> segments;
     Collection<Shape> composites;
     java.util.List<Shape> highlights = new ArrayList<Shape>();
 
-    double sx, sy;
+    double sx = 1., sy = 1.;
     AffineTransform afx = new AffineTransform ();
 
+    JPopupMenu popupMenu;
+
     int show = SEGMENTS|THINNING|BITMAP;
+    int available;
 
     public Viewer ()  {
         addMouseMotionListener (this);
+        addMouseListener (this);
+
+        popupMenu = new JPopupMenu ();
+        JMenuItem item;
+        popupMenu.add(item = new JMenuItem ("Save polygon bitmap"));
+        item.setToolTipText("Save highlighted polygon bitmap");
+        item.addActionListener(this);
     }
 
     public Viewer (File file) throws IOException {
@@ -65,6 +79,10 @@ public class Viewer extends JPanel
     }
     
     public void mouseMoved (MouseEvent e) {
+        if (bitmap == null) {
+            return;
+        }
+
         Point pt = e.getPoint();
         highlights.clear();
 
@@ -91,6 +109,33 @@ public class Viewer extends JPanel
         repaint ();
     }
 
+    public void mouseClicked (MouseEvent e) {
+        popupGesture (e);
+    }
+    public void mouseEntered (MouseEvent e) {}
+    public void mouseExited (MouseEvent e) {}
+    public void mousePressed (MouseEvent e) {
+        popupGesture (e);
+    }
+    public void mouseReleased (MouseEvent e) {
+        popupGesture (e);
+    }
+
+    boolean popupGesture (MouseEvent e) {
+        boolean popup = e.isPopupTrigger();
+        if (popup) {
+            popupMenu.show(this, e.getX(), e.getY());
+        }
+        return popup;
+    }
+
+    public void actionPerformed (ActionEvent e) {
+        String cmd = e.getActionCommand();
+        if (cmd.equalsIgnoreCase("save polygon bitmap")) {
+            saveHighlightedPolygon ();
+        }
+    }
+
     public void componentResized (ComponentEvent e) {
         highlights.clear();
         repaint ();
@@ -101,12 +146,14 @@ public class Viewer extends JPanel
     public void componentShown (ComponentEvent e) {}
 
     public void setScale (double scale) {
-	sx = scale;
-	sy = scale;
-	logger.info("scale x: "+sx + " scale y: "+sy);
-	setPreferredSize (new Dimension ((int)(sx*bitmap.width()+.5),
-					 (int)(sy*bitmap.height()+.5)));
-        resetAndRepaint ();
+        if (bitmap != null) {
+            sx = scale;
+            sy = scale;
+            logger.info("scale x: "+sx + " scale y: "+sy);
+            setPreferredSize (new Dimension ((int)(sx*bitmap.width()+.5),
+                                             (int)(sy*bitmap.height()+.5)));
+            resetAndRepaint ();
+        }
     }
 
     public void setVisible (int flag, boolean visible) {
@@ -119,6 +166,33 @@ public class Viewer extends JPanel
         resetAndRepaint ();
     }
 
+    FileDialog getFileDialog () {
+        if (fileDialog == null) {
+            fileDialog = new FileDialog 
+                ((Frame)SwingUtilities.getAncestorOfClass
+                 (Frame.class, this), "Open Image");
+        }
+        return fileDialog;
+    }
+
+    public boolean isAvailable (int flag) {
+        return (available & flag) != 0;
+    }
+
+    public File load () throws IOException {
+        FileDialog fd = getFileDialog ();
+
+        fd.setMode(FileDialog.LOAD);
+        fd.setTitle("Open image");
+        fd.setVisible(true);
+        String name = fd.getFile();
+        File file = null;
+        if (null != name) {
+            load (file = new File (fd.getDirectory(), name));
+        }
+        return file;
+    }
+
     public void load (File file) throws IOException {
         load (file, Math.min(sx, sy));
     }
@@ -126,6 +200,8 @@ public class Viewer extends JPanel
     public void load (File file, double scale) throws IOException {
         sx = scale;
         sy = scale;
+
+        available = ALL;
 
         long start = System.currentTimeMillis();
         try {
@@ -148,19 +224,22 @@ public class Viewer extends JPanel
 
         start = System.currentTimeMillis();
 
-        boolean medium = bitmap.width()*bitmap.height() <= 500000l;
-        if (medium) {
+        boolean isLarge = polygons.size() > 4000;
+        if (!isLarge) {
             composites = new Segmentation (polygons).getComposites();
             logger.info("## generated "+composites.size()+" composites in "
                         +String.format("%1$.3fs", 
                                        (System.currentTimeMillis()-start)*1e-3));
+            available |= COMPOSITE;
         }
         else {
             composites.clear();
+            available &=~COMPOSITE;
         }
 
         start = System.currentTimeMillis();
-        thin = bitmap.skeleton();
+        //thin = bitmap.skeleton();
+        thin = bitmap.thin();
         logger.info("## thinning in "
                     +String.format("%1$.3fs", 
                                    (System.currentTimeMillis()-start)*1e-3));
@@ -168,20 +247,21 @@ public class Viewer extends JPanel
         start = System.currentTimeMillis();
         // segments are generated for thinned bitmap only, since
         //  it can quite noisy on normal bitmap!
-        if (medium) {
+        if (!isLarge) {
             segments = thin.segments();
             logger.info("## generated "+segments.size()+" segments in "
                         +String.format("%1$.3fs", 
                                        (System.currentTimeMillis()-start)*1e-3));
+            available |= SEGMENTS;
         }
         else {
+            available &=~SEGMENTS;
             segments.clear();
         }
 	setPreferredSize (new Dimension ((int)(sx*bitmap.width()+.5),
 					 (int)(sy*bitmap.height()+.5)));
         resetAndRepaint ();
     }
-
     
 
     void resetAndRepaint () {
@@ -192,6 +272,10 @@ public class Viewer extends JPanel
 
     @Override
     protected void paintComponent (Graphics g) {
+        if (bitmap == null) {
+            return;
+        }
+
 	if (imgbuf == null) {
 	    imgbuf = ((Graphics2D)g).getDeviceConfiguration()
 		.createCompatibleImage(getWidth (), getHeight());
@@ -332,7 +416,7 @@ public class Viewer extends JPanel
     void drawSegments (Graphics2D g2) {
 	int i = 0;
 	float[] seg = new float[6];
-	for (GeneralPath p : segments) {
+	for (Path2D p : segments) {
 	    g2.setPaint(colors[i%colors.length]);
 	    g2.draw(p);
 	    PathIterator pi = p.getPathIterator(null);
@@ -350,14 +434,42 @@ public class Viewer extends JPanel
 	}
     }
 
+    void saveHighlightedPolygon () {
+        if (highlights.isEmpty()) {
+            return;
+        }
+        
+        FileDialog fd = getFileDialog ();
+        fd.setMode(FileDialog.SAVE);
+        fd.setTitle("Save bitmap polygon as...");
+        fd.setVisible(true);
+        String name = fd.getFile();
+        if (null != name) {
+            File file = new File (fd.getDirectory(), name);
+            Bitmap poly = bitmap.crop(highlights.iterator().next());
+            try {
+                poly.write(file);
+            }
+            catch (IOException ex) {
+                JOptionPane.showMessageDialog
+                    (this, "Can't save polygon to file \""+file+"\"!",
+                     "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
     static class ViewerFrame extends JFrame 
         implements ActionListener, ChangeListener {
         Viewer viewer;
         JToolBar toolbar;
-        FileDialog fileDialog = new FileDialog (this, "Open Image");
 
         ViewerFrame (File file, double scale) throws IOException {
+            this ();
             setTitle (file.getName());
+            viewer.load(file, scale);
+        }
+
+        ViewerFrame ()  {
             toolbar = new JToolBar ();
             AbstractButton ab;
             toolbar.add(ab = new JButton ("Load"));
@@ -366,26 +478,31 @@ public class Viewer extends JPanel
             toolbar.addSeparator();
 
             toolbar.add(ab = new JCheckBox ("Bitmap"));
+            ab.putClientProperty("MASK", BITMAP);
             ab.setToolTipText("Show bitmap image");
             ab.setSelected(true);
             ab.addActionListener(this);
             toolbar.addSeparator();
 
             toolbar.add(ab = new JCheckBox ("Segments"));
+            ab.putClientProperty("MASK", SEGMENTS);
             ab.setSelected(true);
             ab.setToolTipText("Show line segments");
             ab.addActionListener(this);
 
             toolbar.add(ab = new JCheckBox ("Thinning"));
+            ab.putClientProperty("MASK", THINNING);
             ab.setSelected(true);
             ab.setToolTipText("Show thinning image");
             ab.addActionListener(this);
             
             toolbar.add(ab = new JCheckBox ("Polygons"));
+            ab.putClientProperty("MASK", POLYGONS);
             ab.setToolTipText("Show connected components");
             ab.addActionListener(this);
 
             toolbar.add(ab = new JCheckBox ("Composites"));
+            ab.putClientProperty("MASK", COMPOSITE);
             ab.setToolTipText
                 ("Show connected component composites");
             ab.addActionListener(this);
@@ -395,7 +512,7 @@ public class Viewer extends JPanel
             hbox.add(new JLabel ("Scale"));
             hbox.add(Box.createHorizontalStrut(5));
             JSpinner spinner = new JSpinner 
-                (new SpinnerNumberModel (1., .1, 5., .2));
+                (new SpinnerNumberModel (1., .1, 50., .2));
             spinner.addChangeListener(this);
             hbox.add(spinner);
             hbox.add(Box.createHorizontalGlue());
@@ -403,7 +520,7 @@ public class Viewer extends JPanel
             
             JPanel pane = new JPanel (new BorderLayout (0, 2));
             pane.add(toolbar, BorderLayout.NORTH);
-            pane.add(new JScrollPane (viewer = new Viewer (file, scale)));
+            pane.add(new JScrollPane (viewer = new Viewer ()));
             getContentPane().add(pane);
             pack ();
             setDefaultCloseOperation (JFrame.EXIT_ON_CLOSE);
@@ -415,22 +532,30 @@ public class Viewer extends JPanel
             boolean show = ab.isSelected();
 
             if (cmd.equalsIgnoreCase("load")) {
-                fileDialog.setVisible(true);
-                String file = fileDialog.getFile();
-                if (null != file) {
-                    try {
-                        viewer.load(new File 
-                                    (fileDialog.getDirectory(), file));
-                        setTitle (file);
+                File file = null;
+                try {
+                    file = viewer.load();
+                    if (file != null) {
+                        setTitle (file.getName());
+                        for (Component c : toolbar.getComponents()) {
+                            if (c instanceof AbstractButton) {
+                                ab = (AbstractButton)c;
+                                Integer mask = 
+                                    (Integer)ab.getClientProperty("MASK");
+                                if (mask != null) {
+                                    ab.setEnabled(viewer.isAvailable(mask));
+                                }
+                            }
+                        }
                         repaint ();
                     }
-                    catch (Exception ex) {
-                        ex.printStackTrace();
-                        JOptionPane.showMessageDialog
-                            (this, "Can't load file \""+file+"\"; perhaps "
-                             +"it's not a 1 bpp TIFF image?", "Error", 
-                             JOptionPane.ERROR_MESSAGE);
-                    }
+                }
+                catch (Exception ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog
+                        (this, "Can't load file \""+file+"\"; perhaps "
+                         +"it's not a 1 bpp TIFF image?", "Error", 
+                         JOptionPane.ERROR_MESSAGE);
                 }
             }
             else if (cmd.equalsIgnoreCase("bitmap")) {
@@ -463,6 +588,11 @@ public class Viewer extends JPanel
             viewer.setScale(((Number)spinner.getValue()).doubleValue());
             repaint ();
         }
+
+        public void load (File file, double scale) throws IOException {
+            viewer.load(file, scale);
+            repaint ();
+        }
     }
     
 
@@ -473,27 +603,24 @@ public class Viewer extends JPanel
     }
 
     public static void main (final String[] argv) {
-	if (argv.length == 0) {
-	    System.err.println("Usage: Viewer FILE [SCALE]");
-	    System.exit(1);
-	}
-
 	SwingUtilities.invokeLater(new Runnable () {
 		public void run () {
 		    try {
-                        double scale = 1.;
-                        if (argv.length > 1) {
+                        ViewerFrame vf = new ViewerFrame ();
+                        if (argv.length > 0) {
                             try {
-                                scale = Double.parseDouble(argv[1]);
-                                scale = Math.max(scale, 1.);
+                                double scale = 1.;
+                                if (argv.length > 1) {
+                                    scale = Double.parseDouble(argv[1]);
+                                    scale = Math.max(scale, 1.);
+                                }
+                                vf.load(new File (argv[0]), scale);
                             }
                             catch (NumberFormatException ex) {
                                 logger.warning("Bogus scale value: "+argv[1]);
                             }
                         }
-
-			JFrame f = createApp (argv[0], scale);
-			f.setVisible(true);
+			vf.setVisible(true);
 		    }
 		    catch (Exception ex) {
 			ex.printStackTrace();
