@@ -38,10 +38,10 @@ public class Bitmap implements Serializable {
     }
 
     static final double DEFAULT_AEV_THRESHOLD = 1.5;
-    static final double DEFAULT_SIGMA_THRESHOLD = 1.;
-    static final int DEFAULT_ADAPTIVE_BOX_RADIUS = 50;
+    static final double DEFAULT_SIGMA_THRESHOLD = 1.2;
+    static final int DEFAULT_ADAPTIVE_BOX_RADIUS = 20;
     static final int DEFAULT_ADAPTIVE_MIN_THRESHOLD = 20;
-    static final int DEFAULT_ADAPTIVE_MIN_STDDEV = 10;
+    static final int DEFAULT_ADAPTIVE_MIN_STDDEV = 20;
 
 
     /**
@@ -447,7 +447,7 @@ public class Bitmap implements Serializable {
         }
 
         return adaptiveThreshold
-            (raster, DEFAULT_ADAPTIVE_BOX_RADIUS,
+            (raster, Math.max((DEFAULT_ADAPTIVE_BOX_RADIUS*raster.getWidth())/350,DEFAULT_ADAPTIVE_BOX_RADIUS),
              DEFAULT_SIGMA_THRESHOLD,
              DEFAULT_ADAPTIVE_MIN_THRESHOLD,
              DEFAULT_ADAPTIVE_MIN_STDDEV);
@@ -509,6 +509,7 @@ public class Bitmap implements Serializable {
         int[] yMap = new int[bm.height];
         double[][] intLines = new double[nsize * 2 + 2][bm.width];
         double[][] intSquareLines = new double[nsize * 2 + 2][bm.width];
+        
 
         // make Integral-Image for quick averaging
         for (int y = 0; y < nsize * 2 + 2; ++y) {
