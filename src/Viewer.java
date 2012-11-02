@@ -1,15 +1,61 @@
 
-import java.util.*;
-import java.io.*;
-import java.awt.*;
-import java.awt.image.*;
-import java.awt.event.*;
-import javax.swing.*;
-import javax.swing.event.*;
-import java.awt.geom.*;
-
+import java.awt.BasicStroke;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.FileDialog;
+import java.awt.Frame;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.RenderingHints;
+import java.awt.Shape;
+import java.awt.Stroke;
+import java.awt.Window;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
+import java.awt.event.HierarchyEvent;
+import java.awt.event.HierarchyListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Line2D;
+import java.awt.geom.Path2D;
+import java.awt.geom.PathIterator;
+import java.awt.geom.Point2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.logging.Logger;
-import java.util.logging.Level;
+
+import javax.swing.AbstractButton;
+import javax.swing.Box;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JSpinner;
+import javax.swing.JToolBar;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.plaf.basic.BasicToolBarUI;
 
 
 public class Viewer extends JPanel 
@@ -27,11 +73,14 @@ public class Viewer extends JPanel
     static final int THINNING = 1<<2;
     static final int BITMAP = 1<<3;
     static final int COMPOSITE = 1<<4;
-    static final int ALL = SEGMENTS|POLYGONS|THINNING|BITMAP|COMPOSITE;
+    static final int HISTOGRAM = 1<<5;    
+    static final int ALL = SEGMENTS|POLYGONS|THINNING|BITMAP|COMPOSITE|HISTOGRAM;
 
     static final Color HL_COLOR = new Color (0xdd, 0xdd, 0xdd, 120);
     static Color[] colors = new Color[]{Color.red, Color.blue, Color.black};
 
+    HistogramChart lineHistogram;
+    
     FileDialog fileDialog;
 
     Bitmap bitmap; // original bitmap
@@ -41,9 +90,15 @@ public class Viewer extends JPanel
 
     Collection<Shape> polygons;
     Collection<Path2D> segments;
+    
+    List<Double> lineLengths;
+    List<Line2D> lines;   
+    
     Collection<Shape> composites;
     java.util.List<Shape> highlights = new ArrayList<Shape>();
 
+    double cutoffLength=-1;
+    
     double sx = 1., sy = 1.;
     AffineTransform afx = new AffineTransform ();
 
@@ -258,9 +313,53 @@ public class Viewer extends JPanel
             available &=~SEGMENTS;
             segments.clear();
         }
-	setPreferredSize (new Dimension ((int)(sx*bitmap.width()+.5),
+        
+        lineLengths = new ArrayList<Double>();
+        lines= new ArrayList<Line2D>();
+        for(Path2D p2:segments){
+        	PathIterator pi=p2.getPathIterator(null);
+        	double[] prevPt=null;
+        	while(!pi.isDone()){
+        		
+        		double[] coord= new double[2];
+        		pi.currentSegment(coord);
+        		if(prevPt!=null){
+        			Line2D line = new Line2D.Double(coord[0], coord[1], prevPt[0], prevPt[1]);
+        			double lineLength=Math.sqrt((coord[0]-prevPt[0])*(coord[0]-prevPt[0])+(coord[1]-prevPt[1])*(coord[1]-prevPt[1]));
+        			lineLengths.add(lineLength);
+        			lines.add(line);
+        			System.out.println(lineLength);
+        		}
+        		prevPt=coord;
+        		pi.next();
+        		available |=HISTOGRAM;
+        	}
+        		
+        }
+        setPreferredSize (new Dimension ((int)(sx*bitmap.width()+.5),
 					 (int)(sy*bitmap.height()+.5)));
         resetAndRepaint ();
+        if(lineHistogram==null){
+        	final Viewer v = this;
+        	this.lineHistogram=new HistogramChart(lineLengths);
+        	lineHistogram.addMouseMotionListener(new MouseMotionListener(){
+            	@Override
+				public void mouseDragged(MouseEvent arg0) {
+					// TODO Auto-generated method stub
+					
+				}
+				@Override
+				public void mouseMoved(MouseEvent arg0) {
+					double cut=v.lineHistogram.getVal(arg0.getX(),arg0.getY());
+					System.out.println(v.lineHistogram.getVal(arg0.getX(),arg0.getY()));
+					v.cutoffLength=cut;
+					v.resetAndRepaint();
+				}
+            });
+        }else{
+        	this.lineHistogram.loadData(lineLengths);
+        }
+        
     }
     
 
@@ -334,11 +433,17 @@ public class Viewer extends JPanel
         if (polygons != null && (show & POLYGONS) != 0) {
             drawPolygons (g2);
         }
-
+        if (this.cutoffLength>0 && (show & HISTOGRAM)!=0){
+        	drawColoredLines(g2);
+        }
+        
         if (segments != null && (show & SEGMENTS) != 0) {
             drawSegments (g2);
         }
+       
     }
+    
+   
 
     void drawPolygons (Graphics2D g2) {
 	g2.setPaint(Color.red);
@@ -412,6 +517,29 @@ public class Viewer extends JPanel
             }
         }
     }
+    void drawColoredLines(Graphics2D g2){
+    	Stroke s = g2.getStroke();
+		Color rightColor = new Color(HistogramChart.rightColor.getRed(),
+				HistogramChart.rightColor.getGreen(),
+				HistogramChart.rightColor.getBlue(),
+				(int)(HistogramChart.rightColor.getAlpha() * .5));
+		Color leftColor = new Color(HistogramChart.leftColor.getRed(),
+				HistogramChart.leftColor.getGreen(),
+				HistogramChart.leftColor.getBlue(),
+				(int)(HistogramChart.leftColor.getAlpha() * .5));
+    	g2.setStroke(new BasicStroke(5.0f));
+    	for (int j=0;j<lines.size();j++) {
+    	    if(lineLengths.get(j)>=cutoffLength){
+    	    	g2.setColor(rightColor);
+    	    	
+    	    }else{
+    	    	g2.setColor(leftColor);
+    	    }
+    	    g2.draw(lines.get(j));
+    	}
+    	g2.setStroke(s);
+    	
+    }
 
     void drawSegments (Graphics2D g2) {
 	int i = 0;
@@ -432,6 +560,7 @@ public class Viewer extends JPanel
 	    }
 	    ++i;
 	}
+	
     }
 
     void saveHighlightedPolygon () {
@@ -457,20 +586,173 @@ public class Viewer extends JPanel
             }
         }
     }
+    
+    //simple component to display a histogram of values
+	static class HistogramChart extends JPanel implements ComponentListener{
+		static Color leftColor=Color.GREEN;
+		static Color rightColor=Color.MAGENTA;
+		static Color defColor = Color.DARK_GRAY;
+		
+		Collection<Double> _values;
+		
+		double _max;
+		double _min;
+		int[] _histogram;
+		int _largestFreq;
+		int _buckets=50;
+		boolean isLog=true;
+		BufferedImage imgbuf;
+		double _cutoff=-1;
+		public HistogramChart() {
+			this(null);
+		}
+		
+		public HistogramChart(Collection<Double> values) {
+			if(values!=null)
+				loadData(values);
+			this.addComponentListener(this);
+		}
+		public void loadData(Collection<Double> values){
+			imgbuf=null;
+			_values = values;
+			processData();
+			setPreferredSize (new Dimension ((int)(100),
+					 (int)(100)));
+		}
+		private void processData(){
+			_max = Double.MIN_VALUE;
+	    	_min = Double.MAX_VALUE;
+	    	for(double d:_values){
+	    		if(d>_max){
+	    			_max=d;
+	    		}
+	    		if(d<_min){
+	    			_min=d;
+	    		}
+	    	}
+	    	double range = _max-_min;
+	    	_histogram = new int[_buckets+1];
+	    	_largestFreq=0;
+	    	for(double d:_values){
+	    		int n=++_histogram[(int)(((d-_min)/(_max-_min))*_buckets)];
+	    		if(n>_largestFreq){
+	    			_largestFreq=n;
+	    		}
+	    	}
+		}
+		
+
+		@Override
+		protected void paintComponent(Graphics g) {
+			
+			if (imgbuf == null) {
+			    imgbuf = ((Graphics2D)g).getDeviceConfiguration()
+				.createCompatibleImage(getWidth (), getHeight());
+			    Graphics2D g2 = imgbuf.createGraphics();
+			    drawDistribution(g2);
+			    g2.dispose();
+			}
+			Rectangle r = getBounds ();
+	        Graphics2D g2 = (Graphics2D)g;
+	        g2.drawImage(imgbuf, (int)(0), (int)(0), null);
+		}
+		void drawDistribution(Graphics2D g2){
+			g2.setColor(Color.white);
+			g2.fillRect(0, 0, getWidth(), getHeight());
+			g2.setColor(defColor);
+			
+			double width=this.getWidth()/_buckets;
+			double bottom=getHeight();
+			double maxHeight=getHeight();
+			double logfac=maxHeight/Math.log(_largestFreq+1);
+			int x=this.getWidth();
+			if(_cutoff>0){
+				g2.setColor(leftColor);
+				x=(int)((_cutoff-_min)*this.getWidth()/(_max-_min));
+			}
+	    	for(int i=0;i<_histogram.length;i++){
+	    		if(i>(int)(((_cutoff-_min)/(_max-_min))*_buckets)-1){
+	    			g2.setColor(rightColor);
+	    		}
+	    		double unitheight;
+	    		if(!isLog){
+	    			unitheight=(maxHeight*_histogram[i])/_largestFreq;
+	    		}else{
+	    			unitheight=Math.log(_histogram[i]+1)*logfac;
+	    		}
+	    		
+	    		g2.fillRect((int)(i*width), (int)(bottom-unitheight), (int)width, (int)unitheight+1);
+	    	}
+	    	
+	    	g2.setColor(Color.black);
+	    	g2.drawLine(x,0,x,(int)bottom);
+	    	g2.drawString((int)(_cutoff)+"",x, (int)(bottom/2));
+	    	
+	    }
+		public double getVal(double x, double y){
+			_cutoff=(((_max-_min)*x)/this.getWidth()+_min);
+			imgbuf=null;
+			repaint();
+			return _cutoff;
+		}
+
+		@Override
+		public void componentHidden(ComponentEvent arg0) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void componentMoved(ComponentEvent arg0) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void componentResized(ComponentEvent arg0) {
+			// TODO Auto-generated method stub
+			imgbuf=null;
+			this.revalidate();
+			this.repaint();
+		}
+
+		@Override
+		public void componentShown(ComponentEvent arg0) {
+			// TODO Auto-generated method stub
+			
+		}
+	}
 
     static class ViewerFrame extends JFrame 
         implements ActionListener, ChangeListener {
         Viewer viewer;
         JToolBar toolbar;
+        JToolBar toolbar2;
 
         ViewerFrame (File file, double scale) throws IOException {
             this ();
             setTitle (file.getName());
             viewer.load(file, scale);
+           
         }
 
         ViewerFrame ()  {
             toolbar = new JToolBar ();
+            toolbar2= new JToolBar();
+            HierarchyListener hl = new HierarchyListener() {
+                
+                @Override
+                public void hierarchyChanged(HierarchyEvent e) {
+                    if ((e.getChangeFlags() & HierarchyEvent.PARENT_CHANGED) == 0) return;
+                    JToolBar bar = (JToolBar) e.getComponent();
+                    if (!((BasicToolBarUI) bar.getUI()).isFloating()) return;
+                    final Window topLevel = SwingUtilities.windowForComponent(bar);
+                    if (topLevel instanceof JDialog) {
+                        ((JDialog) topLevel).setResizable(true);
+                    }    
+                }
+            };
+            toolbar2.addHierarchyListener(hl);
             AbstractButton ab;
             toolbar.add(ab = new JButton ("Load"));
             ab.setToolTipText("Load new file");
@@ -506,6 +788,12 @@ public class Viewer extends JPanel
             ab.setToolTipText
                 ("Show connected component composites");
             ab.addActionListener(this);
+            
+            toolbar.add(ab = new JCheckBox ("Histogram"));
+            ab.putClientProperty("MASK", HISTOGRAM);
+            ab.setToolTipText
+                ("Show histogram coloring of lines");
+            ab.addActionListener(this);
 
             toolbar.addSeparator();
             Box hbox = Box.createHorizontalBox();
@@ -518,8 +806,10 @@ public class Viewer extends JPanel
             hbox.add(Box.createHorizontalGlue());
             toolbar.add(hbox);
             
+            
             JPanel pane = new JPanel (new BorderLayout (0, 2));
             pane.add(toolbar, BorderLayout.NORTH);
+            pane.add(toolbar2,BorderLayout.SOUTH);
             pane.add(new JScrollPane (viewer = new Viewer ()));
             getContentPane().add(pane);
             pack ();
@@ -581,6 +871,9 @@ public class Viewer extends JPanel
             else if (cmd.equalsIgnoreCase("composites")) {
                 viewer.setVisible(COMPOSITE, show);
             }
+            else if (cmd.equalsIgnoreCase("histogram")) {
+                viewer.setVisible(HISTOGRAM, show);
+            }
         }
 
         public void stateChanged (ChangeEvent e) {
@@ -591,6 +884,9 @@ public class Viewer extends JPanel
 
         public void load (File file, double scale) throws IOException {
             viewer.load(file, scale);
+            toolbar2.add(new JLabel("Line Lengths Histogram:"), BorderLayout.NORTH);
+            toolbar2.add(viewer.lineHistogram, BorderLayout.NORTH);
+            
             repaint ();
         }
     }
@@ -606,7 +902,7 @@ public class Viewer extends JPanel
 	SwingUtilities.invokeLater(new Runnable () {
 		public void run () {
 		    try {
-                        ViewerFrame vf = new ViewerFrame ();
+                        final ViewerFrame vf = new ViewerFrame ();
                         if (argv.length > 0) {
                             try {
                                 double scale = 1.;
