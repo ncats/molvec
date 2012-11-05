@@ -1,3 +1,4 @@
+package tripod.molvec.image;
 
 public interface TiffTags {
     static final int TAG_IMAGELENGTH = 257;

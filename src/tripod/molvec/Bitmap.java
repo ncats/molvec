@@ -1,3 +1,5 @@
+package tripod.molvec;
+
 import java.io.*;
 
 import java.awt.geom.*;
@@ -12,8 +14,10 @@ import java.awt.Polygon;
 import java.awt.image.*;
 
 import javax.imageio.*;
-
 import com.sun.media.jai.codec.*;
+
+import tripod.molvec.util.GeomUtil;
+import tripod.molvec.image.ImageUtil;
 
 /**
  * A bitmap image
@@ -447,7 +451,8 @@ public class Bitmap implements Serializable {
         }
 
         return adaptiveThreshold
-            (raster, Math.max((DEFAULT_ADAPTIVE_BOX_RADIUS*raster.getWidth())/350,DEFAULT_ADAPTIVE_BOX_RADIUS),
+            (raster, Math.max((DEFAULT_ADAPTIVE_BOX_RADIUS*raster.getWidth())
+                              /350, DEFAULT_ADAPTIVE_BOX_RADIUS),
              DEFAULT_SIGMA_THRESHOLD,
              DEFAULT_ADAPTIVE_MIN_THRESHOLD,
              DEFAULT_ADAPTIVE_MIN_STDDEV);
@@ -702,6 +707,15 @@ public class Bitmap implements Serializable {
                                   DEFAULT_SIGMA_THRESHOLD,
                                   DEFAULT_ADAPTIVE_MIN_THRESHOLD,
                                   DEFAULT_ADAPTIVE_MIN_STDDEV);
+    }
+
+    public static Bitmap read (File file) throws IOException {
+        try {
+            return readtif (file);
+        }
+        catch (Exception ex) {
+            return createBitmap (ImageUtil.decodeAny(file).getData());
+        }
     }
 
     /*
@@ -1083,7 +1097,8 @@ public class Bitmap implements Serializable {
     }
 
     /**
-     * This version is similar to the NWG algorithm above. It's based on
+     * This version is a slight improvement to the NWG algorithm above. 
+     * It's based on the following paper:
      * R. Carrsco, M. Forcada, A note on the Nagendraprasad-Wang-Gupta
      * thinning algorithm, Pattern Recognition Letters, 16, 539-541, 1995.
      */
@@ -1092,7 +1107,6 @@ public class Bitmap implements Serializable {
         byte[] copy = new byte[this.data.length];
         System.arraycopy (thin.data, 0, copy, 0, copy.length);
 
-        int[] p = new int[10]; // window
         int parity = 1;
         boolean changed;
         
@@ -1102,46 +1116,47 @@ public class Bitmap implements Serializable {
 
             for (int y = 0; y < height; ++y)
                 for (int x = 0; x < width; ++x) {
-                    if (!thin.isOn(x, y))
-                        continue;
-                    int nb = thin.neighbor8(x, y);
-                    int ap = thin.transition8(x, y);
-                    int cp = ((thin.p0(x, y) == 0 
-                               && thin.p1(x, y) == 0
-                               && thin.p2(x, y) == 0
-                               && thin.p5(x, y) == 0
-                               && thin.p4(x, y) == 1
-                               && thin.p6(x, y) == 1)
-                              || (thin.p2(x, y) == 0
-                                  && thin.p3(x, y) == 0 
-                                  && thin.p4(x, y) == 0
-                                  && thin.p7(x, y) == 0
-                                  && thin.p6(x, y) == 1
-                                  && thin.p0(x, y) == 1)) ? 1 : 0; 
-                    int dp = ((thin.p1(x, y) == 0 
-                               && thin.p4(x, y) == 0
-                               && thin.p6(x, y) == 0
-                               && thin.p0(x, y) == 1
-                               && thin.p2(x, y) == 1)
-                              || (thin.p0(x, y) == 0 
-                                  && thin.p3(x, y) == 0
-                                  && thin.p6(x, y) == 0 
-                                  && thin.p7(x, y) == 0
-                                  && thin.p2(x, y) == 1 
-                                  && thin.p4(x, y) == 1)) ? 1 : 0;
-                    if (nb > 1 && nb < 7 
-                        && (ap == 1 || ((1-parity)*cp + parity*dp) == 1)) {
-                        int ep = (thin.p2(x, y) + thin.p4(x, y))*thin.p0(x, y)
-                            * thin.p6(x, y);
-                        int fp = (thin.p6(x, y) + thin.p0(x, y))*thin.p4(x, y)
-                            * thin.p2(x, y);
-                        if ((parity == 0 && ep == 0) 
-                            || (parity == 1 && fp == 0)) {
-                            // delete this pixel
-                            copy[scanline * y + x / 8] &= ~MASK[x % 8];
-                            changed = true;
+                    if (thin.isOn(x, y)) {
+                        int nb = thin.neighbor8(x, y);
+                        int ap = thin.transition8(x, y);
+                        int cp = ((thin.p0(x, y) == 0 
+                                   && thin.p1(x, y) == 0
+                                   && thin.p2(x, y) == 0
+                                   && thin.p5(x, y) == 0
+                                   && thin.p4(x, y) == 1
+                                   && thin.p6(x, y) == 1)
+                                  || (thin.p2(x, y) == 0
+                                      && thin.p3(x, y) == 0 
+                                      && thin.p4(x, y) == 0
+                                      && thin.p7(x, y) == 0
+                                      && thin.p6(x, y) == 1
+                                      && thin.p0(x, y) == 1)) ? 1 : 0; 
+                        int dp = ((thin.p1(x, y) == 0 
+                                   && thin.p4(x, y) == 0
+                                   && thin.p5(x, y) == 0
+                                   && thin.p6(x, y) == 0
+                                   && thin.p0(x, y) == 1
+                                   && thin.p2(x, y) == 1)
+                                  || (thin.p0(x, y) == 0 
+                                      && thin.p3(x, y) == 0
+                                      && thin.p6(x, y) == 0
+                                      && thin.p7(x, y) == 0
+                                      && thin.p2(x, y) == 1 
+                                      && thin.p4(x, y) == 1)) ? 1 : 0;
+                        if (nb > 1 && nb < 7 
+                            && (ap == 1 || ((1-parity)*cp + parity*dp) == 1)) {
+                            int ep = (thin.p2(x, y) + thin.p4(x, y))
+                                *thin.p0(x, y) * thin.p6(x, y);
+                            int fp = (thin.p6(x, y) + thin.p0(x, y))
+                                *thin.p4(x, y) * thin.p2(x, y);
+                            if ((parity == 0 && ep == 0) 
+                                || (parity == 1 && fp == 0)) {
+                                // delete this pixel
+                                copy[scanline * y + x / 8] &= ~MASK[x % 8];
+                                changed = true;
+                            }
                         }
-                    }
+                    } // if pixel is on
                 } // endfor each pixel
 
             // update the image
@@ -1342,13 +1357,12 @@ public class Bitmap implements Serializable {
                         l = eqvtab[l];
 
                     labels[y][x] = l;
-                    Point pt = new Point (x, y);
 
                     List<Point> pts = coords.get (l);
                     if (pts == null) {
                         coords.put (l, pts = new ArrayList<Point> ());
                     }
-                    pts.add (pt);
+                    pts.add (new Point (x, y));
                 }
             }
 

@@ -1,3 +1,4 @@
+package tripod.molvec.segmentation;
 
 import java.io.Serializable;
 import java.util.*;
@@ -8,15 +9,17 @@ import java.awt.geom.*;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 
-public class Segmentation implements Serializable {
+import tripod.molvec.util.GeomUtil;
+
+public class Composite implements Serializable {
     static final Logger logger = 
-        Logger.getLogger(Segmentation.class.getName());
+        Logger.getLogger(Composite.class.getName());
 
     protected Collection<Shape> bboxes; // connected component
     protected Collection<Shape> composites;
     protected double cutoff = -1.;
 
-    public Segmentation (Collection<Shape> bboxes) {
+    public Composite (Collection<Shape> bboxes) {
         this.bboxes = bboxes;
 
         composites = bboxes;
