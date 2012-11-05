@@ -5,6 +5,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FileDialog;
+import java.awt.Font;
 import java.awt.Frame;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -24,6 +25,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.PathIterator;
@@ -34,7 +36,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.logging.Logger;
 
 import javax.swing.AbstractButton;
@@ -73,13 +78,19 @@ public class Viewer extends JPanel
     static final int THINNING = 1<<2;
     static final int BITMAP = 1<<3;
     static final int COMPOSITE = 1<<4;
-    static final int HISTOGRAM = 1<<5;    
-    static final int ALL = SEGMENTS|POLYGONS|THINNING|BITMAP|COMPOSITE|HISTOGRAM;
+    static final int HISTOGRAM = 1<<5;
+    static final int OCR_SHAPES = 1<<6;    
+    static final int ALL = SEGMENTS|POLYGONS|THINNING|BITMAP|COMPOSITE|HISTOGRAM|OCR_SHAPES;
 
     static final Color HL_COLOR = new Color (0xdd, 0xdd, 0xdd, 120);
     static Color[] colors = new Color[]{Color.red, Color.blue, Color.black};
 
     HistogramChart lineHistogram;
+
+    static final SCOCR OCR=new RasterCosineSCOCR();
+    static{
+    	OCR.setAlphabet(SCOCR.SET_COMMON_CHEM_ALL());
+    }
     
     FileDialog fileDialog;
 
@@ -96,6 +107,7 @@ public class Viewer extends JPanel
     
     Collection<Shape> composites;
     java.util.List<Shape> highlights = new ArrayList<Shape>();
+    Map<Shape,List<Entry<Character,Number>>> ocrAttmept = new HashMap<Shape,List<Entry<Character,Number>>>();
 
     double cutoffLength=-1;
     
@@ -106,6 +118,8 @@ public class Viewer extends JPanel
 
     int show = SEGMENTS|THINNING|BITMAP;
     int available;
+    
+    float ocrCutoff=.6f;
 
     public Viewer ()  {
         addMouseMotionListener (this);
@@ -141,23 +155,23 @@ public class Viewer extends JPanel
         Point pt = e.getPoint();
         highlights.clear();
 
-        if ((show & POLYGONS) == 0) {
+        //if ((show & POLYGONS) == 0) {
             // polygon off
             for (Shape s : polygons) {
                 if (Path2D.contains(s.getPathIterator(afx), pt)) {
                     highlights.add(s);
                 }
             }
-        }
+       // }
 
-        if (composites != null && (show & COMPOSITE) == 0) {
+       // if (composites != null && (show & COMPOSITE) == 0) {
             // composite off
             for (Shape s : composites) {
                 if (Path2D.contains(s.getPathIterator(afx), pt)) {
                     highlights.add(s);
                 }
             }
-        }
+       // }
 
         //logger.info("## "+highlights.size()+" highlights");
 
@@ -276,7 +290,8 @@ public class Viewer extends JPanel
         logger.info("## generated "+polygons.size()+" connected components in "
                     +String.format("%1$.3fs", 
                                    (System.currentTimeMillis()-start)*1e-3));
-
+      
+        
         start = System.currentTimeMillis();
 
         boolean isLarge = polygons.size() > 4000;
@@ -360,6 +375,18 @@ public class Viewer extends JPanel
         	this.lineHistogram.loadData(lineLengths);
         }
         
+        /*
+         * Looks at each polygon, and gets the likely OCR chars.
+         */
+        for (Shape s : polygons) {
+        	if(s.getBounds2D().getWidth()>0 && s.getBounds2D().getHeight()>0){
+        	   ocrAttmept.put(s, OCR.getNBestMatches(4,
+               		bitmap.crop(s).createRaster(),
+              			thin.crop(s).createRaster()
+               		   ));
+        	}
+        }
+        
     }
     
 
@@ -404,6 +431,9 @@ public class Viewer extends JPanel
             for (Shape s : highlights) {
                 g2.fill(s);
             }
+            if((show & OCR_SHAPES)!=0){
+            	 drawOCRStats(g2);
+			}
         }
     }
 
@@ -440,11 +470,49 @@ public class Viewer extends JPanel
         if (segments != null && (show & SEGMENTS) != 0) {
             drawSegments (g2);
         }
-       
+        if ((show & OCR_SHAPES) != 0) {
+        	drawOCRShapes(g2);
+        }
     }
-    
-   
 
+	void drawOCRStats(Graphics2D g2) {
+		g2.setStroke(new BasicStroke((float) (5 / sx)));
+		g2.setFont(g2.getFont().deriveFont(Font.BOLD, (float) (20 / sx)));
+		Font f = g2.getFont();
+		for (Shape s : highlights) {
+
+			if (this.ocrAttmept.get(s) != null) {
+				int i = 0;
+				for (Entry<Character, Number> ocrGuess : this.ocrAttmept.get(s)) {
+					String disp = ocrGuess.getKey() + ":"
+							+ ocrGuess.getValue().toString().substring(0, 4);
+					Shape strShape = f.createGlyphVector(
+							g2.getFontRenderContext(), disp).getOutline();
+					AffineTransform at = new AffineTransform();
+					at.translate((int) (s.getBounds().getMaxX() + 20 / sx),
+							(int) ((s.getBounds().getMaxY()) + i * 20 / sx));
+					g2.setColor(Color.BLACK);
+					g2.draw(at.createTransformedShape(strShape));
+					g2.setColor(Color.ORANGE);
+					g2.fill(at.createTransformedShape(strShape));
+					i++;
+				}
+			}
+		}
+
+	}
+   
+    void drawOCRShapes (Graphics2D g2) {
+    	g2.setPaint(makeColorAlpha(Color.ORANGE,.5f));
+    	for (Shape a : polygons) {
+    		if(ocrAttmept.containsKey(a)){
+    		if(ocrAttmept.get(a).get(0).getValue().doubleValue()>ocrCutoff){
+    	    g2.fill(a);
+    		}
+    		}
+            }
+        }
+    
     void drawPolygons (Graphics2D g2) {
 	g2.setPaint(Color.red);
 	for (Shape a : polygons) {
@@ -519,15 +587,9 @@ public class Viewer extends JPanel
     }
     void drawColoredLines(Graphics2D g2){
     	Stroke s = g2.getStroke();
-		Color rightColor = new Color(HistogramChart.rightColor.getRed(),
-				HistogramChart.rightColor.getGreen(),
-				HistogramChart.rightColor.getBlue(),
-				(int)(HistogramChart.rightColor.getAlpha() * .5));
-		Color leftColor = new Color(HistogramChart.leftColor.getRed(),
-				HistogramChart.leftColor.getGreen(),
-				HistogramChart.leftColor.getBlue(),
-				(int)(HistogramChart.leftColor.getAlpha() * .5));
-    	g2.setStroke(new BasicStroke(5.0f));
+		Color rightColor = makeColorAlpha(HistogramChart.rightColor, .5f);
+		Color leftColor = makeColorAlpha(HistogramChart.leftColor, .5f);
+		g2.setStroke(new BasicStroke(5.0f));
     	for (int j=0;j<lines.size();j++) {
     	    if(lineLengths.get(j)>=cutoffLength){
     	    	g2.setColor(rightColor);
@@ -553,7 +615,8 @@ public class Viewer extends JPanel
 		switch (type) {
 		case PathIterator.SEG_LINETO:
 		case PathIterator.SEG_MOVETO:
-		    g2.drawOval((int)(seg[0]-2), (int)(seg[1]-2), 4, 4);
+			g2.draw(new Ellipse2D.Double((seg[0]-2f/sx), (seg[1]-2f/sx), 4f/sx, 4f/sx));
+			//g2.drawOval((int)(seg[0]-2), (int)(seg[1]-2), 4, 4);
 		    break;
 		}
 		pi.next();
@@ -586,112 +649,121 @@ public class Viewer extends JPanel
             }
         }
     }
-    
+    private static Color makeColorAlpha(Color c,float alpha){
+    	return new Color(c.getRed(),
+				c.getGreen(),
+				c.getBlue(),
+				(int)(c.getAlpha() * alpha));
+    }
     //simple component to display a histogram of values
-	static class HistogramChart extends JPanel implements ComponentListener{
-		static Color leftColor=Color.GREEN;
-		static Color rightColor=Color.MAGENTA;
+	static class HistogramChart extends JPanel implements ComponentListener {
+		static Color leftColor = Color.GREEN;
+		static Color rightColor = Color.MAGENTA;
 		static Color defColor = Color.DARK_GRAY;
-		
+
 		Collection<Double> _values;
-		
+
 		double _max;
 		double _min;
 		int[] _histogram;
 		int _largestFreq;
-		int _buckets=50;
-		boolean isLog=true;
+		int _buckets = 50;
+		boolean isLog = true;
 		BufferedImage imgbuf;
-		double _cutoff=-1;
+		double _cutoff = -1;
+
 		public HistogramChart() {
 			this(null);
 		}
-		
+
 		public HistogramChart(Collection<Double> values) {
-			if(values!=null)
+			if (values != null)
 				loadData(values);
 			this.addComponentListener(this);
 		}
-		public void loadData(Collection<Double> values){
-			imgbuf=null;
+
+		public void loadData(Collection<Double> values) {
+			imgbuf = null;
 			_values = values;
 			processData();
-			setPreferredSize (new Dimension ((int)(100),
-					 (int)(100)));
+			setPreferredSize(new Dimension((int) (100), (int) (100)));
 		}
-		private void processData(){
+
+		private void processData() {
 			_max = Double.MIN_VALUE;
-	    	_min = Double.MAX_VALUE;
-	    	for(double d:_values){
-	    		if(d>_max){
-	    			_max=d;
-	    		}
-	    		if(d<_min){
-	    			_min=d;
-	    		}
-	    	}
-	    	double range = _max-_min;
-	    	_histogram = new int[_buckets+1];
-	    	_largestFreq=0;
-	    	for(double d:_values){
-	    		int n=++_histogram[(int)(((d-_min)/(_max-_min))*_buckets)];
-	    		if(n>_largestFreq){
-	    			_largestFreq=n;
-	    		}
-	    	}
+			_min = Double.MAX_VALUE;
+			for (double d : _values) {
+				if (d > _max) {
+					_max = d;
+				}
+				if (d < _min) {
+					_min = d;
+				}
+			}
+			double range = _max - _min;
+			_histogram = new int[_buckets + 1];
+			_largestFreq = 0;
+			for (double d : _values) {
+				int n = ++_histogram[(int) (((d - _min) / (_max - _min)) * _buckets)];
+				if (n > _largestFreq) {
+					_largestFreq = n;
+				}
+			}
 		}
-		
 
 		@Override
 		protected void paintComponent(Graphics g) {
-			
+
 			if (imgbuf == null) {
-			    imgbuf = ((Graphics2D)g).getDeviceConfiguration()
-				.createCompatibleImage(getWidth (), getHeight());
-			    Graphics2D g2 = imgbuf.createGraphics();
-			    drawDistribution(g2);
-			    g2.dispose();
+				imgbuf = ((Graphics2D) g).getDeviceConfiguration()
+						.createCompatibleImage(getWidth(), getHeight());
+				Graphics2D g2 = imgbuf.createGraphics();
+				drawDistribution(g2);
+				g2.dispose();
 			}
-			Rectangle r = getBounds ();
-	        Graphics2D g2 = (Graphics2D)g;
-	        g2.drawImage(imgbuf, (int)(0), (int)(0), null);
+			Rectangle r = getBounds();
+			Graphics2D g2 = (Graphics2D) g;
+			g2.drawImage(imgbuf, (int) (0), (int) (0), null);
 		}
-		void drawDistribution(Graphics2D g2){
+
+		void drawDistribution(Graphics2D g2) {
 			g2.setColor(Color.white);
 			g2.fillRect(0, 0, getWidth(), getHeight());
 			g2.setColor(defColor);
-			
-			double width=this.getWidth()/_buckets;
-			double bottom=getHeight();
-			double maxHeight=getHeight();
-			double logfac=maxHeight/Math.log(_largestFreq+1);
-			int x=this.getWidth();
-			if(_cutoff>0){
+
+			double width = this.getWidth() / _buckets;
+			double bottom = getHeight();
+			double maxHeight = getHeight();
+			double logfac = maxHeight / Math.log(_largestFreq + 1);
+			int x = this.getWidth();
+			if (_cutoff > 0) {
 				g2.setColor(leftColor);
-				x=(int)((_cutoff-_min)*this.getWidth()/(_max-_min));
+				x = (int) ((_cutoff - _min) * this.getWidth() / (_max - _min));
 			}
-	    	for(int i=0;i<_histogram.length;i++){
-	    		if(i>(int)(((_cutoff-_min)/(_max-_min))*_buckets)-1){
-	    			g2.setColor(rightColor);
-	    		}
-	    		double unitheight;
-	    		if(!isLog){
-	    			unitheight=(maxHeight*_histogram[i])/_largestFreq;
-	    		}else{
-	    			unitheight=Math.log(_histogram[i]+1)*logfac;
-	    		}
-	    		
-	    		g2.fillRect((int)(i*width), (int)(bottom-unitheight), (int)width, (int)unitheight+1);
-	    	}
-	    	
-	    	g2.setColor(Color.black);
-	    	g2.drawLine(x,0,x,(int)bottom);
-	    	g2.drawString((int)(_cutoff)+"",x, (int)(bottom/2));
-	    	
-	    }
-		public double getVal(double x, double y){
-			_cutoff=(((_max-_min)*x)/this.getWidth()+_min);
-			imgbuf=null;
+			for (int i = 0; i < _histogram.length; i++) {
+				if (i > (int) (((_cutoff - _min) / (_max - _min)) * _buckets) - 1) {
+					g2.setColor(rightColor);
+				}
+				double unitheight;
+				if (!isLog) {
+					unitheight = (maxHeight * _histogram[i]) / _largestFreq;
+				} else {
+					unitheight = Math.log(_histogram[i] + 1) * logfac;
+				}
+
+				g2.fillRect((int) (i * width), (int) (bottom - unitheight),
+						(int) width, (int) unitheight + 1);
+			}
+
+			g2.setColor(Color.black);
+			g2.drawLine(x, 0, x, (int) bottom);
+			g2.drawString((int) (_cutoff) + "", x, (int) (bottom / 2));
+
+		}
+
+		public double getVal(double x, double y) {
+			_cutoff = (((_max - _min) * x) / this.getWidth() + _min);
+			imgbuf = null;
 			repaint();
 			return _cutoff;
 		}
@@ -699,19 +771,19 @@ public class Viewer extends JPanel
 		@Override
 		public void componentHidden(ComponentEvent arg0) {
 			// TODO Auto-generated method stub
-			
+
 		}
 
 		@Override
 		public void componentMoved(ComponentEvent arg0) {
 			// TODO Auto-generated method stub
-			
+
 		}
 
 		@Override
 		public void componentResized(ComponentEvent arg0) {
 			// TODO Auto-generated method stub
-			imgbuf=null;
+			imgbuf = null;
 			this.revalidate();
 			this.repaint();
 		}
@@ -719,7 +791,7 @@ public class Viewer extends JPanel
 		@Override
 		public void componentShown(ComponentEvent arg0) {
 			// TODO Auto-generated method stub
-			
+
 		}
 	}
 
@@ -793,6 +865,12 @@ public class Viewer extends JPanel
             ab.putClientProperty("MASK", HISTOGRAM);
             ab.setToolTipText
                 ("Show histogram coloring of lines");
+            ab.addActionListener(this);
+            
+            toolbar.add(ab = new JCheckBox ("OCR Candidates"));
+            ab.putClientProperty("MASK", OCR_SHAPES);
+            ab.setToolTipText
+                ("Show colored polygons for likely characters");
             ab.addActionListener(this);
 
             toolbar.addSeparator();
@@ -873,6 +951,9 @@ public class Viewer extends JPanel
             }
             else if (cmd.equalsIgnoreCase("histogram")) {
                 viewer.setVisible(HISTOGRAM, show);
+            }
+            else if (cmd.equalsIgnoreCase("OCR Candidates")) {
+                viewer.setVisible(OCR_SHAPES, show);
             }
         }
 
