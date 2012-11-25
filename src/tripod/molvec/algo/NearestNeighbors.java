@@ -11,26 +11,27 @@ public class NearestNeighbors<T> {
     private static final int PAD = 10;
     private static final int DEFAULT_MAX_NEIGHBORS = 10;
 
-    public class Entry implements Comparable<Entry> {
+    public static class Neighbor<E> implements Comparable<Neighbor<E>> {
         double value;
-        T neighbor;
+        E neighbor;
 
-        Entry (double value, T neighbor) {
+        Neighbor (double value, E neighbor) {
             this.value = value;
             this.neighbor = neighbor;
         }
 
-        public int compareTo (Entry nb) {
+        public int compareTo (Neighbor<E> nb) {
             if (value < nb.value) return -1;
             if (value > nb.value) return 1;
             return 0;
         }
 
         public double getValue () { return value; }
-        public T getNeighbor () { return neighbor; }
+        public E getNeighbor () { return neighbor; }
     }
 
-    protected Map<T, Queue<Entry>> neighbors = new HashMap<T, Queue<Entry>>();
+    protected Map<T, Queue<Neighbor<T>>> neighbors = 
+        new HashMap<T, Queue<Neighbor<T>>>();
     protected Metric<T> metric;
     protected double threshold = Double.MAX_VALUE;
     protected int maxNb = DEFAULT_MAX_NEIGHBORS;
@@ -89,13 +90,13 @@ public class NearestNeighbors<T> {
     }
 
     public void add (T entry) {
-        Queue<Entry> nq = new PriorityQueue<Entry>();
-        for (Map.Entry<T, Queue<Entry>> me : neighbors.entrySet()) {
+        Queue<Neighbor<T>> nq = new PriorityQueue<Neighbor<T>>();
+        for (Map.Entry<T, Queue<Neighbor<T>>> me : neighbors.entrySet()) {
             double xv = metric.evaluate(me.getKey(), entry);
             if (xv < threshold) {
-                Queue<Entry> cq = me.getValue();
-                cq.add(new Entry (xv, entry));
-                nq.add(new Entry (xv, me.getKey()));
+                Queue<Neighbor<T>> cq = me.getValue();
+                cq.add(new Neighbor<T> (xv, entry));
+                nq.add(new Neighbor<T> (xv, me.getKey()));
 
                 adjustNeighborQueue (cq);
                 adjustNeighborQueue (nq);
@@ -104,10 +105,10 @@ public class NearestNeighbors<T> {
         neighbors.put(entry, nq);
     }
 
-    protected void adjustNeighborQueue (Queue<Entry> q) {
+    protected void adjustNeighborQueue (Queue<Neighbor<T>> q) {
         // truncate the queue to fit
         if (q.size() > (maxNb+PAD)) {
-            List<Entry> entries = new ArrayList<Entry>();
+            List<Neighbor<T>> entries = new ArrayList<Neighbor<T>>();
             for (int i = 0; i < maxNb && !q.isEmpty(); ++i) {
                 entries.add(q.poll());
             }
@@ -117,9 +118,9 @@ public class NearestNeighbors<T> {
     }
 
     public T neighbor (T entry) {
-        Queue<Entry> q = neighbors.get(entry);
+        Queue<Neighbor<T>> q = neighbors.get(entry);
         if (q != null) {
-            Entry nb = q.peek();
+            Neighbor<T> nb = q.peek();
             return nb.getNeighbor();
         }
         return null;
@@ -135,13 +136,34 @@ public class NearestNeighbors<T> {
         }
 
         List<T> nbs = new ArrayList<T>(K);
-        Queue<Entry> q = neighbors.get(entry);
+        Queue<Neighbor<T>> q = neighbors.get(entry);
         if (q != null) {
             int size = Math.min(K, q.size());
-            Iterator<Entry> iter = q.iterator();
+            Iterator<Neighbor<T>> iter = q.iterator();
             for (int k = 0; k < size; ++k) {
-                Entry nb = iter.next();
+                Neighbor<T> nb = iter.next();
                 nbs.add(nb.getNeighbor());
+            }
+        }
+        return nbs;
+    }
+
+    public List<Neighbor<T>> neighborList (T entry) {
+        return neighborList (entry, maxNb);
+    }
+
+    public List<Neighbor<T>> neighborList (T entry, int K) {
+        if (K < 1) {
+            throw new IllegalArgumentException ("K must > 0");
+        }
+
+        List<Neighbor<T>> nbs = new ArrayList<Neighbor<T>>(K);
+        Queue<Neighbor<T>> q = neighbors.get(entry);
+        if (q != null) {
+            int size = Math.min(K, q.size());
+            Iterator<Neighbor<T>> iter = q.iterator();
+            for (int k = 0; k < size; ++k) {
+                nbs.add(iter.next());
             }
         }
         return nbs;
@@ -149,11 +171,11 @@ public class NearestNeighbors<T> {
 
     public List<T> neighbors (T entry, double cutoff) {
         List<T> nbs = new ArrayList<T>();
-        Queue<Entry> q = neighbors.get(entry);
+        Queue<Neighbor<T>> q = neighbors.get(entry);
         if (q != null) {
-            Iterator<Entry> iter = q.iterator();
+            Iterator<Neighbor<T>> iter = q.iterator();
             while (iter.hasNext()) {
-                Entry nb = iter.next();
+                Neighbor<T> nb = iter.next();
                 if (nb.getValue() <= cutoff) {
                     nbs.add(nb.getNeighbor());
                 }
@@ -164,6 +186,26 @@ public class NearestNeighbors<T> {
         }
         return nbs;
     }
+
+    public List<Neighbor<T>> neighborList (T entry, double cutoff) {
+        List<Neighbor<T>> nbs = new ArrayList<Neighbor<T>>();
+        Queue<Neighbor<T>> q = neighbors.get(entry);
+        if (q != null) {
+            Iterator<Neighbor<T>> iter = q.iterator();
+            for (int k = 0; iter.hasNext() && k < maxNb; ++k) {
+                Neighbor<T> nb = iter.next();
+                if (nb.getValue() <= cutoff) {
+                    nbs.add(nb);
+                }
+                else {
+                    break;
+                }
+            }
+        }
+        return nbs;
+    }
+
+    public Set<T> entries () { return neighbors.keySet(); }
 
     public void clear () { neighbors.clear(); }
     public int size () { return neighbors.size(); }

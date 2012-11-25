@@ -15,6 +15,7 @@ public class GeomUtil {
         Logger.getLogger (GeomUtil.class.getName ());
 
     private static final boolean DEBUG;
+    public static final double EPS = 0.0001;
 
     static {
         boolean debug = false;
@@ -31,7 +32,14 @@ public class GeomUtil {
     }
 
     public static double angle (Point2D p0, Point2D p1) {
-        double dx = p1.getX () - p0.getX (), dy = p1.getY () - p0.getY ();
+        return angle (p0.getX(), p0.getY(), p1.getX(), p1.getY());
+    }
+
+    /**
+     * calculate angle between (x0,y0) and (x1,y1) in radian
+     */
+    public static double angle (double x0, double y0, double x1, double y1) {
+        double dx = x1 - x0, dy = y1 - y0;
         if (dx > 0 && dy > 0) {
             return Math.atan (dy / dx);
         } else if (dx > 0 && dy == 0) {
@@ -51,6 +59,7 @@ public class GeomUtil {
         }
         return 0.;
     }
+
 
     /**
      * Graham scan algorithm for convex hull

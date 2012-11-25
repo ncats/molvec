@@ -65,7 +65,7 @@ import javax.imageio.ImageIO;
 import tripod.molvec.*;
 import tripod.molvec.segmentation.*;
 import tripod.molvec.algo.*;
-import tripod.molvec.util.GeomUtil;
+import tripod.molvec.util.*;
 
 
 public class Viewer extends JPanel 
@@ -76,7 +76,6 @@ public class Viewer extends JPanel
 	Logger.getLogger(Viewer.class.getName());
 
     static final int THICKNESS = 0;
-    static final long LARGE_IMAGE = 500000l;
 
     static final int SEGMENTS = 1<<0;
     static final int POLYGONS = 1<<1;
@@ -292,12 +291,16 @@ public class Viewer extends JPanel
 
         start = System.currentTimeMillis();
         polygons = bitmap.connectedComponents(Bitmap.Bbox.Rectangular);
-        knn.clear();
-        knn.addAll(polygons);
-
         logger.info("## generated "+polygons.size()+" connected components in "
                     +String.format("%1$.3fs", 
                                    (System.currentTimeMillis()-start)*1e-3));
+
+        knn.clear();
+        knn.addAll(polygons);
+        GeomStats stats = new GeomStats (polygons);
+        logger.info("## connected components: "+stats);
+
+        new Docstrum (knn);
 
         start = System.currentTimeMillis();
 
@@ -416,12 +419,16 @@ public class Viewer extends JPanel
                 g2.fill(s);
                 int x0 = (int)s.getBounds2D().getCenterX();
                 int y0 = (int)s.getBounds2D().getCenterY();
-                List<Shape> nbs = knn.neighbors(s);
                 g2.setPaint(KNN_COLOR);
-                for (Shape ns : nbs) {
-                    int x1 = (int)ns.getBounds2D().getCenterX();
-                    int y1 = (int)ns.getBounds2D().getCenterY();
+                for (NearestNeighbors.Neighbor<Shape> ns 
+                         : knn.neighborList(s)) {
+                    Shape s1 = ns.getNeighbor();
+                    int x1 = (int)s1.getBounds2D().getCenterX();
+                    int y1 = (int)s1.getBounds2D().getCenterY();
                     g2.drawLine(x0, y0, x1, y1);
+                    g2.drawString(String.format
+                                  ("(%1$.0f,%2$.1f)", ns.getValue(), 
+                                   Math.toDegrees(GeomUtil.angle(x0, y0, x1, y1))), x1+5, y1+1);
                 }
                 //logger.info(s+": "+nbs.size()+" neighbors");
             }
