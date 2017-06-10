@@ -10,3 +10,5 @@ Once ant is installed, simply type ant in this directory. If all goes well
 and geometry primitives currently available in the code. Of course, the
 next step is to turn these primitives into meaningful geometric objects and
 beyond.
+
+![Primitives](sample1.png)
