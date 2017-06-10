@@ -1,5 +1,5 @@
 // $Id: UnionFind.java 3342 2009-10-12 19:50:39Z nguyenda $
-package tripo.molvec.algo;
+package tripod.molvec.algo;
 
 import java.util.Map;
 import java.util.List;

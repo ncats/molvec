@@ -18,35 +18,29 @@ import com.sun.media.jai.codec.*;
 
 import tripod.molvec.util.GeomUtil;
 import tripod.molvec.image.ImageUtil;
+import tripod.molvec.image.TiffTags;
+import tripod.molvec.image.Grayscale;
+import tripod.molvec.image.binarization.*;
 
 /**
  * A bitmap image
  */
-public class Bitmap implements Serializable {
+public class Bitmap implements Serializable, TiffTags {
     private static final long serialVersionUID = 0x5f1f54d8fed49ab3l;
-
     private static final Logger logger =
         Logger.getLogger (Bitmap.class.getName ());
 
     private static final double EPS = 0.000001;
+    public static final double DEFAULT_AEV_THRESHOLD = 1.5;
 
     private static final boolean DEBUG;
-
     static {
         boolean debug = false;
         try {
             debug = Boolean.getBoolean ("bitmap.debug");
-        } catch (Exception ex) {
-        }
+        } catch (Exception ex) { }
         DEBUG = debug;
     }
-
-    static final double DEFAULT_AEV_THRESHOLD = 1.5;
-    static final double DEFAULT_SIGMA_THRESHOLD = 1.2;
-    static final int DEFAULT_ADAPTIVE_BOX_RADIUS = 20;
-    static final int DEFAULT_ADAPTIVE_MIN_THRESHOLD = 20;
-    static final int DEFAULT_ADAPTIVE_MIN_STDDEV = 20;
-
 
     /**
      * bounding box shape
@@ -67,36 +61,6 @@ public class Bitmap implements Serializable {
         0x01
     };
 
-
-    /*
-     * commonly used TIFF tags
-     */
-    static final int TAG_IMAGELENGTH = 257;
-    static final int TAG_IMAGEWIDTH = 256;
-    static final int TAG_RESOLUTIONUNIT = 296;
-    static final int RESOLUTIONUNIT_NONE = 1; // no absolute unit
-    static final int RESOLUTIONUNIT_INCH = 2; // inch
-    static final int RESOLUTIONUNIT_CENT = 3; // centimeter
-    static final int TAG_XRESOLUTION = 282;
-    static final int TAG_YRESOLUTION = 283;
-    static final int TAG_BITSPERSAMPLE = 258;
-    static final int TAG_SAMPLESPERPIXEL = 277;
-    static final int TAG_PHOTOMETRIC = 262;
-    static final int PHOTOMETRIC_WHITEISZERO = 0;
-    static final int PHOTOMETRIC_BLACKISZERO = 1;
-    static final int PHOTOMETRIC_RGB = 2;
-    static final int PHOTOMETRIC_PALETTE = 3;
-    static final int PHOTOMETRIC_MASK = 4;
-    static final int TAG_STRIPOFFSETS = 273;
-    static final int TAG_ROWSPERSTRIP = 278;
-    static final int TAG_STRIPBYTECOUNTS = 279;
-    static final int TAG_COMPRESSION = 259;
-    static final int TAG_IMAGEDESCRIPTION = 270;
-    static final int TAG_MAXSAMPLEVALUE = 281;
-    static final int TAG_MINSAMPLEVALUE = 280;
-    static final int TAG_PLANARCONFIGURATION = 284;
-    static final int PLANARCONFIGURATION_CHUNKY = 1;
-    static final int PLANARCONFIGURATION_PLANAR = 2;
 
     static class SparseArray<T> {
         Map<Integer, Map<Integer, T>> data =
@@ -443,168 +407,17 @@ public class Bitmap implements Serializable {
     private SampleModel sampleModel;
 
     public static Bitmap createBitmap (Raster raster) {
-        SampleModel model = raster.getSampleModel ();
+        SampleModel model = raster.getSampleModel();
         int band = model.getNumBands ();
         if (band > 1) {
             throw new IllegalArgumentException
                 ("Can handle sample with multiple channels");
         }
 
-        return adaptiveThreshold
-            (raster, Math.max((DEFAULT_ADAPTIVE_BOX_RADIUS*raster.getWidth())
-                              /350, DEFAULT_ADAPTIVE_BOX_RADIUS),
-             DEFAULT_SIGMA_THRESHOLD,
-             DEFAULT_ADAPTIVE_MIN_THRESHOLD,
-             DEFAULT_ADAPTIVE_MIN_STDDEV);
+        return new AdaptiveThreshold ().binarize(raster);
+        //return new SigmaThreshold ().binarize(raster);
     }
 
-    /*
-     * Simple threshold based on full image mean and standard deviation. 
-     */
-    public static Bitmap sigmaThreshold (Raster inRaster, double sigma) {
-        Bitmap bm = new Bitmap (inRaster.getWidth (), inRaster.getHeight ());
-        double max = -1, min = Double.MAX_VALUE;
-        double sum = 0;
-        double sumSquare = 0;
-        for (int y = 0; y < bm.height; ++y) {
-            for (int x = 0; x < bm.width; ++x) {
-                double pel = inRaster.getSampleDouble (x, y, 0);
-                sum += pel;
-                sumSquare += pel * pel;
-                if (pel < min)
-                    min = pel;
-                if (pel > max)
-                    max = pel;
-            }
-        }
-        long tot = bm.height * bm.width;
-        double mean = sum / tot;
-        double stdDEV = Math.sqrt (sumSquare / tot - mean * mean);
-        double threshold = mean + stdDEV * sigma;
-        for (int y = 0; y < bm.height; ++y) {
-            for (int x = 0; x < bm.width; ++x) {
-                double pel = inRaster.getSampleDouble (x, y, 0);
-                bm.set (x, y, pel >= threshold);
-            }
-        }
-        return bm;
-    }
-
-    /*
-     * Adaptive Threshold based on local pixel average Loosely based on Bradley
-     * & Roth Integral Image Adaptive Thresholding Added ability to use a
-     * specific SIGMA minimum threshold. General Algorithm: 
-     * 	1)Precompute the integral image (used to get local mean) 
-     * 	2)Precompute the square integral image (used to get local 
-     * 		standard dev) 
-     * 	3)For each pixel: 
-     * 		a)get the sum and sum of squares for those pixels in 
-     * 		  an (nsize*2+1) sized box around the given pixel. 
-     * 		  (using the precomputed integrals) 
-     * 		b)calculate mean =  sum/ pixel count 
-     * 		c)calculate stDEV = sqrt(sumSquares/(pixel count)-* mean^2) 
-     * 		d)set threshold for given pixel at mean+stDEV*SIGMA 
-     * 		  (where sigma is a provided constant)
-     * UPDATE: Integral images calculated only for rows needed, on the fly
-     */
-    public static Bitmap adaptiveThreshold (Raster inRaster, int nsize,
-                                            double sigma, int absMin,
-                                            double minSigma) {
-        Bitmap bm = new Bitmap (inRaster.getWidth (), inRaster.getHeight ());
-        int[] yMap = new int[bm.height];
-        double[][] intLines = new double[nsize * 2 + 2][bm.width];
-        double[][] intSquareLines = new double[nsize * 2 + 2][bm.width];
-        
-
-        // make Integral-Image for quick averaging
-        for (int y = 0; y < nsize * 2 + 2; ++y) {
-            yMap[y] = y;
-            addIntLines (inRaster, yMap, intLines, intSquareLines, bm.width, y);
-        }
-
-        for (int y = 0; y < bm.height; ++y) {
-            int y1 = Math.max (y - nsize, 0);
-            int y2 = Math.min (y + nsize, bm.height - 1);
-            int boxHeight = (y2 - y1 + 1);
-            double[] topIntLine = null;
-            double[] topSquareIntLine = null;
-            double[] bottomIntLine = null;
-            double[] bottomSquareIntLine = null;
-
-            if (y1 >= 2) {
-                if (boxHeight >= nsize * 2 + 1) {
-                    yMap[y2] = yMap[y1 - 2];
-                    addIntLines (inRaster, yMap, intLines, intSquareLines,
-                                 bm.width, y2);
-                }
-            }
-            if (y1 > 0) {
-                topIntLine = intLines[yMap[y1 - 1]];
-                topSquareIntLine = intSquareLines[yMap[y1 - 1]];
-            }
-            bottomIntLine = intLines[yMap[y2]];
-            bottomSquareIntLine = intSquareLines[yMap[y2]];
-
-            for (int x = 0; x < bm.width; ++x) {
-                // box to average over:
-                int x1 = Math.max (x - nsize, 0);
-                int x2 = Math.min (x + nsize, bm.width - 1);
-                int count = (x2 - x1 + 1) * boxHeight;
-                double sum = bottomIntLine[x2];
-                double sumSquare = bottomSquareIntLine[x2];
-                if (y1 > 0) {
-                    sum += -topIntLine[x2];
-                    sumSquare += -topSquareIntLine[x2];
-                }
-                if (x1 > 0) {
-                    sum += -bottomIntLine[x1 - 1];
-                    sumSquare += -bottomSquareIntLine[x1 - 1];
-                }
-                if (y1 > 0 && x1 > 0) {
-                    sum += topIntLine[x1 - 1];
-                    sumSquare += topSquareIntLine[x1 - 1];
-                }
-
-                double mean = sum / ((double) count);
-                double stdDEV = Math.sqrt (Math.abs (sumSquare / ((double) count)
-                                                     - mean * mean));
-                double threshold = Math.max (mean + stdDEV * sigma, absMin);
-                double pel = inRaster.getSampleDouble (x, y, 0);
-                bm.set (x, y, pel > threshold && stdDEV > minSigma);
-            }
-        }
-        return bm;
-    }
-
-    private static void addIntLines (Raster inRaster, int[] yMap,
-                                     double[][] intLines,
-                                     double[][] intSquareLines,
-                                     int width, int y) {
-        double sum = 0;
-        double sumSquare = 0;
-        double[] intLine = intLines[yMap[y]];
-        double[] intSquareLine = intSquareLines[yMap[y]];
-
-        double[] intPrevLine = null;
-        double[] intSquarePrevLine = null;
-        if (y > 0) {
-            intPrevLine = intLines[yMap[y - 1]];
-            intSquarePrevLine = intSquareLines[yMap[y - 1]];
-        }
-
-        for (int x = 0; x < width; ++x) {
-            sum += inRaster.getSampleDouble (x, y, 0);
-            sumSquare += inRaster.getSampleDouble (x, y, 0)
-                * inRaster.getSampleDouble (x, y, 0);
-            if (y == 0) {
-                intLine[x] = sum;
-                intSquareLine[x] = sumSquare;
-            } else {
-                intLine[x] = sum + intPrevLine[x];
-                intSquareLine[x] = sumSquare + intSquarePrevLine[x];
-            }
-        }
-    }
 
     public static Bitmap readtif (String file) throws IOException {
         return readtif (new FileInputStream (file));
@@ -671,42 +484,36 @@ public class Bitmap implements Serializable {
             }
         }
 
+        RenderedImage decodedImage = decoder.decodeAsRenderedImage ();
+        Raster raster = decodedImage.getData ();
+
+        logger.info ("TIFF image: bpp=" + bpp
+                     + " channels=" + raster.getNumBands ());
         if (bpp != 1) {
             throw new IllegalArgumentException ("BitsPerSample != 1");
         }
 
-        RenderedImage decodedImage = decoder.decodeAsRenderedImage ();
-        Raster raster = decodedImage.getData ();
-        if (bpp == 1) {
-            Bitmap bm = new Bitmap (raster.getWidth (), raster.getHeight ());
-            for (int y = 0; y < bm.height; ++y) {
-                int band = bm.scanline * y;
-                for (int x = 0; x < bm.width; ++x) {
-                    int pel = raster.getSample (x, y, 0);
-                    if (pel == 1) {
-                        bm.data[band + x / 8] |= MASK[x % 8];
-                    }
+        Bitmap bm = new Bitmap (raster.getWidth (), raster.getHeight ());
+        for (int y = 0; y < bm.height; ++y) {
+            int band = bm.scanline * y;
+            for (int x = 0; x < bm.width; ++x) {
+                int pel = raster.getSample (x, y, 0);
+                if (pel == 1) {
+                    bm.data[band + x / 8] |= MASK[x % 8];
                 }
             }
-
-            if (photometric == PHOTOMETRIC_BLACKISZERO) {
-                // flip
-                for (int i = 0; i < bm.data.length; ++i) {
-                    bm.data[i] = (byte) (~bm.data[i] & 0xff);
-                }
-            }
-
-            return bm;
+        }
+        
+        if (photometric == PHOTOMETRIC_BLACKISZERO) {
+            // flip
+            /*
+              for (int i = 0; i < bm.data.length; ++i) {
+              bm.data[i] = (byte) (~bm.data[i] & 0xff);
+              }
+            */
         }
 
-        logger.info ("TIFF image: bpp=" + bpp
-                     + " channels=" + raster.getNumBands ());
-        return adaptiveThreshold (raster.getNumBands () == 1
-                                  ? raster : createGrayscaleRaster (raster),
-                                  DEFAULT_ADAPTIVE_BOX_RADIUS,
-                                  DEFAULT_SIGMA_THRESHOLD,
-                                  DEFAULT_ADAPTIVE_MIN_THRESHOLD,
-                                  DEFAULT_ADAPTIVE_MIN_STDDEV);
+        return bm;
     }
 
     public static Bitmap read (File file) throws IOException {
@@ -714,44 +521,10 @@ public class Bitmap implements Serializable {
             return readtif (file);
         }
         catch (Exception ex) {
-            return createBitmap (ImageUtil.decodeAny(file).getData());
+            return createBitmap (ImageUtil.grayscale(file).getData());
         }
     }
 
-    /*
-     * convert rgb raster into grayscale
-     */
-    static Raster createGrayscaleRaster (Raster inRaster) {
-        int height = inRaster.getHeight ();
-        int width = inRaster.getWidth ();
-        WritableRaster outRaster = Raster.createWritableRaster
-            (new BandedSampleModel
-             (DataBuffer.TYPE_BYTE, width, height, 1), null);
-
-        double[] sample = new double[3];
-        for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; ++x) {
-                int s = rgb2grayscale (inRaster.getPixel (x, y, sample));
-                outRaster.setSample (x, y, 0, s & 0xff);
-            }
-        }
-
-
-        try {
-            BufferedImage img = new BufferedImage
-                (width, height, BufferedImage.TYPE_BYTE_GRAY);
-            img.setData (outRaster);
-            ImageIO.write (img, "png", new File ("gray.png"));
-        } catch (Exception ex) {
-            ex.printStackTrace ();
-        }
-
-        return outRaster;
-    }
-
-    static int rgb2grayscale (double[] rgb) {
-        return (int) (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5);
-    }
 
     public void writetif (String file) throws IOException {
         writetif (new FileOutputStream (file));

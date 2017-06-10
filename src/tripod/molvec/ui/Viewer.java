@@ -93,7 +93,13 @@ public class Viewer extends JPanel
 
     static final Color HL_COLOR = new Color (0xdd, 0xdd, 0xdd, 120);
     static final Color KNN_COLOR = new Color (0x70, 0x5a, 0x9c, 120);
-    static Color[] colors = new Color[]{Color.red, Color.blue, Color.black};
+    static final Color ZONE_COLOR = new Color (0x9e, 0xe6, 0xcd, 120);
+
+    static Color[] colors = new Color[]{
+        //Color.green
+        Color.blue
+        //Color.red, Color.blue, Color.black
+    };
 
     HistogramChart lineHistogram;
 
@@ -109,8 +115,9 @@ public class Viewer extends JPanel
     BufferedImage image; // buffered image
     BufferedImage imgbuf; // rendered image
 
-    Collection<Shape> polygons;
-    Collection<Path2D> segments;
+    Collection<Shape> polygons = new ArrayList<Shape>();
+    Collection<Path2D> segments = new ArrayList<Path2D>();
+    Collection<Shape> zones = new ArrayList<Shape>();
 
     NearestNeighbors<Shape> knn = new NearestNeighbors<Shape>
         (5, new CentroidEuclideanMetric<Shape>());
@@ -168,12 +175,12 @@ public class Viewer extends JPanel
         highlights.clear();
 
         //if ((show & POLYGONS) != 0) {
-            for (Shape s : polygons) {
-                if (Path2D.contains(s.getPathIterator(afx), pt)) {
-                    highlights.add(s);
-                }
+        for (Shape s : polygons) {
+            if (Path2D.contains(s.getPathIterator(afx), pt)) {
+                highlights.add(s);
             }
-       // }
+        }
+        // }
 
         //logger.info("## "+highlights.size()+" highlights");
         repaint ();
@@ -298,26 +305,29 @@ public class Viewer extends JPanel
 
         long start = System.currentTimeMillis();
         bitmap = Bitmap.read(file);
-
         logger.info("## load image "+bitmap.width()+"x"+bitmap.height()+" in "
                     +String.format("%1$.3fs", 
                                    (System.currentTimeMillis()-start)*1e-3));
 
         start = System.currentTimeMillis();
-        polygons = bitmap.connectedComponents(Bitmap.Bbox.Rectangular);
+        polygons = bitmap.connectedComponents(Bitmap.Bbox.Polygon);
         logger.info("## generated "+polygons.size()+" connected components in "
                     +String.format("%1$.3fs", 
                                    (System.currentTimeMillis()-start)*1e-3));
 
-        knn.clear();
-        knn.addAll(polygons);
-        GeomStats stats = new GeomStats (polygons);
-        logger.info("## connected components: "+stats);
+        boolean isLarge = false;
+        if (!polygons.isEmpty()) {
+            knn.clear();
+            knn.addAll(polygons);
+            GeomStats stats = new GeomStats (polygons);
+            logger.info("## connected components: "+stats);
 
-        new Docstrum (knn);
-        start = System.currentTimeMillis();
+            Docstrum docstrum = new Docstrum (knn);
+            //zones = docstrum.getZones();
+            start = System.currentTimeMillis();
 
-        boolean isLarge = polygons.size() > 4000;
+            isLarge = polygons.size() > 4000;
+        }
 
         start = System.currentTimeMillis();
         //thin = bitmap.skeleton();
@@ -382,12 +392,12 @@ public class Viewer extends JPanel
          * Looks at each polygon, and gets the likely OCR chars.
          */
         for (Shape s : polygons) {
-        	if(s.getBounds2D().getWidth()>0 && s.getBounds2D().getHeight()>0){
-        	   ocrAttmept.put(s, OCR.getNBestMatches(4,
-               		bitmap.crop(s).createRaster(),
-              			thin.crop(s).createRaster()
-               		   ));
-        	}
+            if(s.getBounds2D().getWidth()>0 && s.getBounds2D().getHeight()>0){
+                ocrAttmept.put(s, OCR.getNBestMatches(4,
+                                                      bitmap.crop(s).createRaster(),
+                                                      thin.crop(s).createRaster()
+                                                      ));
+            }
         }
     }
     
@@ -410,6 +420,12 @@ public class Viewer extends JPanel
 	    Graphics2D g2 = imgbuf.createGraphics();
 	    draw (g2);
 	    g2.dispose();
+            try {
+                ImageIO.write(imgbuf, "png", new File ("snapshot.png"));
+            }
+            catch (IOException ex) {
+                ex.printStackTrace();
+            }
 	}
 
         Rectangle r = getBounds ();
@@ -445,22 +461,50 @@ public class Viewer extends JPanel
                 g2.fill(s);
                 int x0 = (int)s.getBounds2D().getCenterX();
                 int y0 = (int)s.getBounds2D().getCenterY();
-                g2.setPaint(KNN_COLOR);
+                int i = 0;
+                //System.out.println("## component "+s);
                 for (NearestNeighbors.Neighbor<Shape> ns 
                          : knn.neighborList(s)) {
                     Shape s1 = ns.getNeighbor();
                     int x1 = (int)s1.getBounds2D().getCenterX();
                     int y1 = (int)s1.getBounds2D().getCenterY();
+                    g2.setPaint(KNN_COLOR);
                     g2.drawLine(x0, y0, x1, y1);
-                    g2.drawString(String.format
-                                  ("(%1$.0f,%2$.1f)", ns.getValue(), 
-                                   Math.toDegrees(GeomUtil.angle(x0, y0, x1, y1))), x1+5, y1+1);
+
+                    double a = Math.toDegrees(GeomUtil.angle(x0, y0, x1, y1));
+                    String c = String.format
+                        ("(%1$.0f,%2$.1f)", ns.getValue(), a);
+                    /*
+                    System.out.printf
+                        ("%1$2d: %2$s %3$s\n", ++i, c, s1.toString());
+                    */
+                    x = x1; 
+                    y = y1;
+                    if (a < 90.) {
+                        x = x1+5;
+                        y = y1+5;
+                    }
+                    else if (a < 180.) {
+                        x = x1-10;
+                        y = y1+10;
+                    }
+                    else if (a < 270.) {
+                        x = x1-5;
+                        y = y1-5;
+                    }
+                    else { // < 360
+                        x = x+5;
+                        y = y-5;
+                    }
+                    g2.setPaint(Color.black);
+                    g2.drawString(String.valueOf(++i),
+                                  (int)(x+.5), (int)(y+.5));
                 }
                 //logger.info(s+": "+nbs.size()+" neighbors");
             }
             if((show & OCR_SHAPES)!=0){
-            	 drawOCRStats(g2);
-			}
+                drawOCRStats(g2);
+            }
         }
 
         if (cutoffLength > 0 && (show & HISTOGRAM)!=0) {
@@ -495,48 +539,52 @@ public class Viewer extends JPanel
             drawSegments (g2);
         }
 
+        if (zones != null) {
+            drawZones (g2);
+        }
+
         if ((show & OCR_SHAPES) != 0) {
-        	drawOCRShapes(g2);
+            drawOCRShapes(g2);
         }
     }
 
-	void drawOCRStats(Graphics2D g2) {
-		g2.setStroke(new BasicStroke((float) (5 / sx)));
-		g2.setFont(g2.getFont().deriveFont(Font.BOLD, (float) (20 / sx)));
-		Font f = g2.getFont();
-		for (Shape s : highlights) {
+    void drawOCRStats(Graphics2D g2) {
+        g2.setStroke(new BasicStroke((float) (5 / sx)));
+        g2.setFont(g2.getFont().deriveFont(Font.BOLD, (float) (20 / sx)));
+        Font f = g2.getFont();
+        for (Shape s : highlights) {
 
-			if (this.ocrAttmept.get(s) != null) {
-				int i = 0;
-				for (Entry<Character, Number> ocrGuess : this.ocrAttmept.get(s)) {
-					String disp = ocrGuess.getKey() + ":"
-							+ ocrGuess.getValue().toString().substring(0, 4);
-					Shape strShape = f.createGlyphVector(
-							g2.getFontRenderContext(), disp).getOutline();
-					AffineTransform at = new AffineTransform();
-					at.translate((int) (s.getBounds().getMaxX() + 20 / sx),
-							(int) ((s.getBounds().getMaxY()) + i * 20 / sx));
-					g2.setColor(Color.BLACK);
-					g2.draw(at.createTransformedShape(strShape));
-					g2.setColor(Color.ORANGE);
-					g2.fill(at.createTransformedShape(strShape));
-					i++;
-				}
-			}
-		}
+            if (this.ocrAttmept.get(s) != null) {
+                int i = 0;
+                for (Entry<Character, Number> ocrGuess : this.ocrAttmept.get(s)) {
+                    String disp = ocrGuess.getKey() + ":"
+                        + ocrGuess.getValue().toString().substring(0, 4);
+                    Shape strShape = f.createGlyphVector(
+                                                         g2.getFontRenderContext(), disp).getOutline();
+                    AffineTransform at = new AffineTransform();
+                    at.translate((int) (s.getBounds().getMaxX() + 20 / sx),
+                                 (int) ((s.getBounds().getMaxY()) + i * 20 / sx));
+                    g2.setColor(Color.BLACK);
+                    g2.draw(at.createTransformedShape(strShape));
+                    g2.setColor(Color.ORANGE);
+                    g2.fill(at.createTransformedShape(strShape));
+                    i++;
+                }
+            }
+        }
 
-	}
+    }
    
     void drawOCRShapes (Graphics2D g2) {
     	g2.setPaint(makeColorAlpha(Color.ORANGE,.5f));
     	for (Shape a : polygons) {
-    		if(ocrAttmept.containsKey(a)){
+            if(ocrAttmept.containsKey(a)){
     		if(ocrAttmept.get(a).get(0).getValue().doubleValue()>ocrCutoff){
-    	    g2.fill(a);
-    		}
+                    g2.fill(a);
     		}
             }
         }
+    }
     
     void drawPolygons (Graphics2D g2) {
 	g2.setPaint(Color.red);
@@ -545,6 +593,12 @@ public class Viewer extends JPanel
         }
     }
 
+    void drawZones (Graphics2D g2) {
+        g2.setPaint(ZONE_COLOR);
+        for (Shape z : zones) {
+            g2.fill(z);
+        }
+    }
 
     void drawNearestNeighbor (Graphics2D g2, Collection<Shape> polygons) {
         ArrayList<Line2D> lines = new ArrayList<Line2D>();
@@ -634,8 +688,8 @@ public class Viewer extends JPanel
 		switch (type) {
 		case PathIterator.SEG_LINETO:
 		case PathIterator.SEG_MOVETO:
-			g2.draw(new Ellipse2D.Double((seg[0]-2f/sx), (seg[1]-2f/sx), 4f/sx, 4f/sx));
-			//g2.drawOval((int)(seg[0]-2), (int)(seg[1]-2), 4, 4);
+                    g2.draw(new Ellipse2D.Double((seg[0]-2f/sx), (seg[1]-2f/sx), 4f/sx, 4f/sx));
+                    //g2.drawOval((int)(seg[0]-2), (int)(seg[1]-2), 4, 4);
 		    break;
 		}
 		pi.next();
@@ -670,9 +724,9 @@ public class Viewer extends JPanel
     }
     private static Color makeColorAlpha(Color c,float alpha){
     	return new Color(c.getRed(),
-				c.getGreen(),
-				c.getBlue(),
-				(int)(c.getAlpha() * alpha));
+                         c.getGreen(),
+                         c.getBlue(),
+                         (int)(c.getAlpha() * alpha));
     }
     //simple component to display a histogram of values
 

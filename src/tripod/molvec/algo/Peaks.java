@@ -59,8 +59,7 @@ public class Peaks {
 
     public int[] detect (int[] signal) {
         if (signal.length <= window || signal.length == 0) {
-            throw new IllegalArgumentException
-                ("Signal is smaller than window size!");
+            return new int[0];
         }
         
         double[] smoothed = new double[signal.length];

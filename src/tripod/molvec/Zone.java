@@ -3,10 +3,12 @@ package tripod.molvec;
 import java.io.Serializable;
 import java.util.*;
 import java.awt.geom.*;
+import java.awt.Shape;
 
 /**
  * A zone encapsulates a collection of connected components
- * as a coherent unit such as word, line, paragraph, graphic.
+ * as a coherent unit such as character, word, line, paragraph, 
+ * graphic, etc.
  */
 public class Zone implements Serializable {
     private static final long serialVersionUID = 0xa874cc00c159c356l;
@@ -15,6 +17,9 @@ public class Zone implements Serializable {
     protected List<Zone> children = new ArrayList<Zone>();
 
     public Zone () {
+    }
+    public Zone (Shape s) {
+        bounds = new Area (s);
     }
     
     public Rectangle2D getBounds () { return bounds.getBounds2D(); }

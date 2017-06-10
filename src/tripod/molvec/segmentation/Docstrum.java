@@ -32,9 +32,13 @@ public class Docstrum implements Segmentation {
         DEBUG = debug;
     }
 
+    interface Closure<T> {
+        boolean connected (T v1, T v2);
+    }
+
     static final int DEFAULT_K = 5;
     
-    protected List<Zone> zones = new ArrayList<Zone>();
+    protected Collection<Shape> zones = new ArrayList<Shape>();
     protected int[] angle = new int[181]; // [0, 180]
     protected int[] dist;
     protected int[] docstrum;
@@ -98,6 +102,14 @@ public class Docstrum implements Segmentation {
         return (int)(Math.toDegrees(GeomUtil.angle(x0, y0, x1, y1))+.5);
     }
 
+    static double toDegrees (Shape s1, Shape s2) {
+        int x0 = (int)s1.getBounds2D().getCenterX();
+        int y0 = (int)s1.getBounds2D().getCenterY();
+        int x1 = (int)s2.getBounds2D().getCenterX();
+        int y1 = (int)s2.getBounds2D().getCenterY();
+        return Math.toDegrees(GeomUtil.angle(x0, y0, x1, y1));
+    }
+
     public void estimateParameters (NearestNeighbors<Shape> knn) {
         for (int i = 0; i < angle.length; ++i) angle[i] = 0;
         /*
@@ -134,23 +146,93 @@ public class Docstrum implements Segmentation {
 
         Peaks p = new Peaks (5, 1.);
         int[] peaks = p.detect(dist);
-        System.out.print("** NNDist: "+peaks.length+" peaks detected;");
+        //System.out.print("** NNDist: "+peaks.length+" peaks detected;");
         for (int i = 0; i < peaks.length; ++i) {
             System.out.print(" "+peaks[i]);
         }
         System.out.println();
 
         /**
-         * estimate skew
+         * estimated skew
          */
         peaks = p.detect(angle);
-        System.out.print("** NNAngle: "+peaks.length+" peaks detected;");
+        skew = peaks[0];
+        if (skew < 0) {
+            skew = 90 + skew;
+        }
+
+        //System.out.print("** NNAngle: "+peaks.length+" peaks detected;");
         for (int i = 0; i < peaks.length; ++i) {
             System.out.print(" "+(peaks[i] -90));
         }
         System.out.println();
 
+        zones = transitiveClosure 
+            (knn, new Closure<Shape> () {
+                public boolean connected (Shape s1, Shape s2) {
+                    if (s1 != null && s2 != null) {
+                        int r = bound ((int)(toDegrees (s1, s2) + .5));
+                        return Math.abs(r) <= 35;
+                    }
+                    return false;
+                }
+            });
+
         debug ();
+    }
+
+    /**
+     * transitive closure based on nearest neighbor pairs within
+     * designed lower and upper bounds on angle
+     */
+    Collection<Shape> transitiveClosure (NearestNeighbors<Shape> knn, 
+                                         Closure<Shape> closure) {
+        Map<Shape, Integer> g = new HashMap<Shape, Integer>();
+        Map<Integer, Shape> ig = new HashMap<Integer, Shape>();
+
+        int id = 0;
+        UnionFind eqv = new UnionFind (knn.size());
+
+        for (Shape s : knn.entries()) {
+            Integer v0 = g.get(s);
+            if (v0 == null) {
+                g.put(s, v0 = id++);
+                ig.put(v0, s);
+            }
+
+            Shape nb = knn.nearest(s);
+            Integer v1 = g.get(nb);
+            if (v1 == null) {
+                g.put(nb, v1 = id++);
+                ig.put(v1, nb);
+            }
+
+            if (closure.connected(s, nb)) {
+                eqv.union(v0, v1);
+            }
+        }
+
+        int[][] comps = eqv.getComponents();
+        //logger.info(comps.length+" equivalence classes out of "+knn.size());
+
+        Shape[] areas = new Shape[comps.length];
+        for (int i = 0; i < comps.length; ++i) {
+            Rectangle2D a = null;
+            for (int j = 0; j < comps[i].length; ++j) {
+                Rectangle2D r = ig.get(comps[i][j]).getBounds();
+                if (a == null) {
+                    a = r;
+                }
+                else {
+                    a.add(r);
+                }
+                //System.out.println("  "+comps[i][j]+": "+a.getBounds());
+            }
+            areas[i] = a;
+            //logger.info("## Component "+i+" "+a);
+        }
+
+        return Arrays.asList(areas);
     }
 
     void debug () {
@@ -189,7 +271,7 @@ public class Docstrum implements Segmentation {
     /**
      * Segmentation interface
      */
-    public Collection<Zone> getZones () {
+    public Collection<Shape> getZones () {
         return zones;
     }
 }

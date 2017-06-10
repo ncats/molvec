@@ -70,7 +70,8 @@
      <echo message="=== we're currently testing out...."/>
      <java classname="tripod.molvec.ui.Viewer" maxmemory="256m"
             classpathref="lib.classpath" fork="true">
-         <arg value="test/hand-drawn.tif"/>
+         <!--arg value="test/hand-drawn.tif"/-->
+         <arg value="test/jm050115j_p4655.png"/>
          <!--arg value="test/ml-2011-00100t_0002.tif"/-->
          <!--arg value="2"/-->
      </java>

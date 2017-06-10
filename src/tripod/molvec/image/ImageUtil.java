@@ -17,12 +17,11 @@ public class ImageUtil implements TiffTags {
     private static final Logger logger = Logger.getLogger
 	(ImageUtil.class.getName());
     
-    public static BufferedImage decode (File file) throws IOException {
+    public static BufferedImage decodeTIFF (File file) throws IOException {
 	ImageDecoder decoder = ImageCodec.createImageDecoder
 	    ("TIFF", file, new TIFFDecodeParam ());
 
 	int ndirs = decoder.getNumPages();
-
 	TIFFDirectory tif = new TIFFDirectory 
 	    (decoder.getInputStream(), 0);
 	TIFFField[] fields = tif.getFields();
@@ -30,53 +29,60 @@ public class ImageUtil implements TiffTags {
 	double width = 0, height = 0;
 	String unit = "";
 	double xres = 0., yres = 0.;
-	int rows = -1, photometric = -1, bpp = -1;
+        double rows = -1;
+	int photometric = -1, bpp = -1;
 	for (int j = 0; j < fields.length; ++j) {
 	    TIFFField f = fields[j];
 	    int tag = f.getTag();
-	    switch (tag) {
-	    case TAG_RESOLUTIONUNIT:
-		{
-		    int u = f.getAsInt(0);
-		    if (u == RESOLUTIONUNIT_NONE) {
-		    }
-		    else if (u == RESOLUTIONUNIT_INCH) {
-			unit = "in";
-		    }
-		    else if (u == RESOLUTIONUNIT_CENT) {
-			unit = "cm";
-		    }
-		}
+            try {
+                switch (tag) {
+                case TAG_RESOLUTIONUNIT:
+                    {
+                        int u = f.getAsInt(0);
+                        if (u == RESOLUTIONUNIT_NONE) {
+                        }
+                        else if (u == RESOLUTIONUNIT_INCH) {
+                            unit = "in";
+                        }
+                        else if (u == RESOLUTIONUNIT_CENT) {
+                            unit = "cm";
+                        }
+                    }
+                    break;
+                    
+                case TAG_XRESOLUTION:
+                    xres = f.getAsFloat(0);
+                    break;
+                    
+                case TAG_YRESOLUTION:
+                    yres = f.getAsFloat(0);
 		break;
-		
-	    case TAG_XRESOLUTION:
-		xres = f.getAsFloat(0);
-		break;
-
-	    case TAG_YRESOLUTION:
-		yres = f.getAsFloat(0);
-		break;
-
-	    case TAG_ROWSPERSTRIP:
-		rows = f.getAsInt(0);
-		break;
-
-	    case TAG_PHOTOMETRIC:
-		photometric = f.getAsInt(0);
-		break;
-
-	    case TAG_BITSPERSAMPLE:
-		bpp = f.getAsInt(0);
-		break;
-
-	    case TAG_IMAGEWIDTH: 
-		width = f.getAsFloat(0);
-		break;
-
-	    case TAG_IMAGELENGTH:	
-		height = f.getAsFloat(0);
-		break;
-	    }
+                
+                case TAG_ROWSPERSTRIP:
+                    rows = f.getAsFloat(0);
+                    break;
+                    
+                case TAG_PHOTOMETRIC:
+                    photometric = f.getAsInt(0);
+                    break;
+                    
+                case TAG_BITSPERSAMPLE:
+                    bpp = f.getAsInt(0);
+                    break;
+                    
+                case TAG_IMAGEWIDTH: 
+                    width = f.getAsFloat(0);
+                    break;
+                    
+                case TAG_IMAGELENGTH:	
+                    height = f.getAsFloat(0);
+                    break;
+                }
+            }
+            catch (Exception ex) {
+                logger.warning("## TIFF decoder tag="
+                               +tag+"; "+ex.getMessage());
+            }
 	}
 
 	/*
@@ -88,6 +94,11 @@ public class ImageUtil implements TiffTags {
 	}
 	*/
 
+	logger.info(file + " has " + ndirs + " image; width="+width
+                    +" height="+height +" xres="+xres+unit
+                    +" yres="+yres+unit+" bpp="+bpp
+                    +" photometric="+photometric+" rows="+rows);
+
 	RenderedImage decodedImage = decoder.decodeAsRenderedImage();
 	Raster raster = decodedImage.getData();
 	/*
@@ -97,77 +108,71 @@ public class ImageUtil implements TiffTags {
 	}
 	*/
 
-	logger.info(file + " has " + ndirs + " image; width="+width+" height="+height+" nbands="+raster.getNumBands()+" xres="+xres+unit+" yres="+yres+unit+" bpp="+bpp+" photometric="+photometric+" rows="+rows);
-
-	logger.info("sample model: "+raster.getSampleModel().getClass());
+	logger.info("sample model: nbands="+raster.getNumBands()
+                    +" "+raster.getSampleModel().getClass());
+        /*
 	MultiPixelPackedSampleModel packed = 
 	    (MultiPixelPackedSampleModel)raster.getSampleModel();
 	logger.info("scanline: "+packed.getScanlineStride());
 	logger.info("bit stride: "+packed.getPixelBitStride());
+        */
 
-	int max = 0;
-	int min = Integer.MAX_VALUE;
-	for (int i = 0; i < raster.getWidth(); ++i) {
-	    for (int j = 0; j < raster.getHeight(); ++j) {
-		int pixel = raster.getSample(i, j, 0);
-		if (pixel > max) max = pixel;
-		if (pixel < min) min = pixel;
-	    }
-	}
-
-	// rescale to 8-bit
-	double scale = 256./(max-min+1);
-	RescaleOp rescale = new RescaleOp 
-	    ((float)scale, (float)-scale*min, null);
-	Raster scaled = rescale.filter(raster, null);
-	BufferedImage image = new BufferedImage 
-	    (raster.getWidth(), raster.getHeight(), 
-	     BufferedImage.TYPE_BYTE_GRAY);
-	image.setData(scaled);
-
-	return image;
+        Grayscale grayscale = new Grayscale (raster);
+        return grayscale.getImage();
     }
-    public static BufferedImage decodeAny (BufferedImage bi){
-    	BufferedImage gImage = new BufferedImage 
-        	    (bi.getWidth(), bi.getHeight(), 
-        	     BufferedImage.TYPE_BYTE_GRAY);
-    	Graphics graph = gImage.getGraphics();
-    	graph.setColor(Color.white);
-    	graph.fillRect(0,0, bi.getWidth(), bi.getHeight());
-    	
-    	gImage.getGraphics().drawImage(bi, 0, 0, null);
-    	Raster raster = gImage.getData();
-    	
+
+    public static BufferedImage decode (BufferedImage bi) {    	
+        Raster raster = bi.getData();
+
     	int max = 0;
     	int min = Integer.MAX_VALUE;
     	for (int i = 0; i < raster.getWidth(); ++i) {
     	    for (int j = 0; j < raster.getHeight(); ++j) {
-	    		int pixel = raster.getSample(i, j, 0);
-	    		//System.out.print(pixel%10);
-	    		if (pixel > max) max = pixel;
-	    		if (pixel < min) min = pixel;
+                int pixel = raster.getSample(i, j, 0);
+                //System.out.print(pixel%10);
+                if (pixel > max) max = pixel;
+                if (pixel < min) min = pixel;
     	    }
     	    //System.out.println();
     	}
 
-    	// rescale to 8-bit
-    	double scale = Math.max(256./(max-min+1),1);
-    	RescaleOp rescale = new RescaleOp 
-    	    ((float)scale, -(float)scale*min, null);
-    	Raster scaled = rescale.filter(raster, null);
-    	rescale = new RescaleOp 
-        	    (-1, 255, null);
-        scaled = rescale.filter(scaled, null);
-        	
+        logger.info("## dynamic range: "+(max-min)+" color model: "+bi.getColorModel());
+        
+        // rescale to 8-bit
+        double scale = Math.max(256./(max-min+1),1);
+        RescaleOp rescale = new RescaleOp 
+            ((float)scale, -(float)scale*min, null);
+        Raster scaled = rescale.filter(raster, null);
+        rescale = new RescaleOp (-1, 255, null);
+        raster = rescale.filter(scaled, null);
+
+        Grayscale grayscale = new Grayscale (raster);
+    	return grayscale.getImage();
+    }
+
+    public static BufferedImage grayscale (BufferedImage bi) {
+        Grayscale grayscale = new Grayscale (bi.getData());
+    	Raster raster = grayscale.getRaster();
     	BufferedImage image = new BufferedImage 
     	    (raster.getWidth(), raster.getHeight(), 
     	     BufferedImage.TYPE_BYTE_GRAY);
-    	
-    	image.setData(scaled);
-    	return image;
+    	image.setData(raster);
+        return image;
     }
-    public static BufferedImage decodeAny (File file) throws IOException {
-    	return decodeAny(ImageIO.read(file));
+
+    public static BufferedImage grayscale (File file) throws IOException {
+        try {
+            return decodeTIFF (file);
+        }
+        catch (Exception ex) {
+            logger.info("## "+file.getName()+" not a TIFF image ("
+                        +ex.getMessage()+"); trying generic decoding... ");
+            return decode (ImageIO.read(file));
+        }
+    }
+
+    public static BufferedImage decode (File file) throws IOException {
+        return ImageIO.read(file);
     }
 
     public static BufferedImage fuse (BufferedImage img0, BufferedImage img1) {

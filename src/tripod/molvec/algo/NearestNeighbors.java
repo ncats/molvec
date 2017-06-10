@@ -4,6 +4,9 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 
+/**
+ * K-Nearest neighbor class
+ */
 public class NearestNeighbors<T> {
     private static final Logger logger = 
         Logger.getLogger(NearestNeighbors.class.getName());
@@ -122,6 +125,15 @@ public class NearestNeighbors<T> {
         if (q != null) {
             Neighbor<T> nb = q.peek();
             return nb.getNeighbor();
+        }
+        return null;
+    }
+
+    public T nearest (T entry) {
+        Queue<Neighbor<T>> q = neighbors.get(entry);
+        if (q != null) {
+            Neighbor<T> nb = q.peek();
+            return nb != null ? nb.getNeighbor() : null;
         }
         return null;
     }

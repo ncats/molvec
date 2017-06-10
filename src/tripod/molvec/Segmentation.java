@@ -1,11 +1,12 @@
 package tripod.molvec;
 
 import java.util.Collection;
-import tripod.molvec.*;
+import java.awt.Shape;
+
 
 /**
  * A generic segmentation interface
  */
 public interface Segmentation {
-    Collection<Zone> getZones ();
+    Collection<Shape> getZones ();
 }
