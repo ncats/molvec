@@ -142,7 +142,7 @@ public class Viewer extends JPanel
 
     JPopupMenu popupMenu;
 
-    int show = SEGMENTS|THINNING|BITMAP;
+    int show = SEGMENTS|THINNING|BITMAP|LINE_ORDERS;
     int available;
     
     float ocrCutoff=.6f;

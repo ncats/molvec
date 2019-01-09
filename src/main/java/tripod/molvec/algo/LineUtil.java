@@ -41,7 +41,26 @@ public class LineUtil {
 	}
 	
 	
-	public static List<Tuple<Line2D, Integer>> reduceMultiBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minIntersectionRatio){
+	public static double length(Line2D l){
+		return l.getP1().distance(l.getP2());
+	}
+	
+	/**
+	 * <p>Currently, this method takes in a set of lines and attempts to group the lines based on being</p>
+	 * <ol>
+	 * <li>Sufficiently parallel</li>
+	 * <li>Sufficiently close together</li>
+	 * <li>Sufficiently "overlapping"</li> 
+	 * </ol>
+	 * 
+	 * 
+	 * @param lines
+	 * @param maxDeltaTheta
+	 * @param maxDeltaOffset
+	 * @param minIntersectionRatio
+	 * @return
+	 */
+	public static List<List<Line2D>> groupMultipleBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minIntersectionRatio){
 		double[] recipLengths=new double[lines.size()];
 		Map<Integer,Integer> groups = new HashMap<>();
 		for(int i=0;i<lines.size();i++){
@@ -103,16 +122,43 @@ public class LineUtil {
 		
 		return groups.entrySet().stream()
 		      .map(Tuple::of)
-		      .map(Tuple.kmap(i->Tuple.of(lines.get(i),recipLengths[i]).withVComparator()))
+		      .map(Tuple.kmap(i->lines.get(i)))
 		      .map(t->t.swap())
 		      .collect(Tuple.toGroupedMap())
 		      .entrySet()
 		      .stream()
 		      .map(Tuple::of)
-		      .map(t->Tuple.of(t.v().size(),t.v()))
-		      .map(Tuple.vmap(t->t.stream().sorted().findFirst().get().k()))
-		      .map(t->t.swap())
+		      .map(t->t.v())
 		      .collect(Collectors.toList());
+		
+		
+	}
+	
+	/**
+	 * This method, like {@link #groupMultipleBonds(List, double, double, double)}, attempts to group bonds, but also 
+	 * goes one step further to select the longest line from each group while also returning the count of lines
+	 * found in the group. This is an estimate of the bond order.
+	 * 
+	 * @param lines
+	 * @param maxDeltaTheta
+	 * @param maxDeltaOffset
+	 * @param minIntersectionRatio
+	 * @return
+	 */
+	public static List<Tuple<Line2D, Integer>> reduceMultiBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minIntersectionRatio){
+		
+		return groupMultipleBonds(lines,maxDeltaTheta,maxDeltaOffset,minIntersectionRatio)
+				.stream()
+				.map(l->Tuple.of(l,l.size()))
+				.map(Tuple.kmap(l->l.stream()
+								   .map(s->Tuple.of(s,-length(s)).withVComparator())
+								   .sorted()
+								   .findFirst()
+						           .get()
+						           .k()
+						           ))
+				.collect(Collectors.toList());
+		
 		
 		
 	}
