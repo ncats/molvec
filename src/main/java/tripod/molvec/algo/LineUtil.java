@@ -1,5 +1,6 @@
 package tripod.molvec.algo;
 
+import java.awt.geom.GeneralPath;
 import java.awt.geom.Line2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.PathIterator;
@@ -39,6 +40,18 @@ public class LineUtil {
         }
         return lines;
 	}
+	
+	public static Path2D fromLine(Line2D line){
+		GeneralPath gp = new GeneralPath();
+		gp.moveTo(line.getX1(),line.getY1());
+		gp.lineTo(line.getX2(),line.getY2());
+		return gp;
+	}
+	
+	public static List<Path2D> fromLines(List<Line2D> lines){
+		return lines.stream().map(l->fromLine(l)).collect(Collectors.toList());
+	}
+	
 	
 	
 	public static double length(Line2D l){

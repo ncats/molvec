@@ -1,26 +1,60 @@
 package tripod.molvec;
 
-import java.io.*;
-
-import java.awt.geom.*;
-import java.util.*;
-import java.util.logging.Logger;
-import java.util.logging.Level;
-
-import java.awt.Shape;
-import java.awt.Rectangle;
 import java.awt.Point;
 import java.awt.Polygon;
-import java.awt.image.*;
+import java.awt.Rectangle;
+import java.awt.Shape;
+import java.awt.geom.GeneralPath;
+import java.awt.geom.Line2D;
+import java.awt.geom.Path2D;
+import java.awt.geom.Point2D;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBuffer;
+import java.awt.image.MultiPixelPackedSampleModel;
+import java.awt.image.Raster;
+import java.awt.image.RenderedImage;
+import java.awt.image.SampleModel;
+import java.awt.image.WritableRaster;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
-import javax.imageio.*;
-import com.sun.media.jai.codec.*;
+import javax.imageio.ImageIO;
 
-import tripod.molvec.util.GeomUtil;
+import com.sun.media.jai.codec.ImageCodec;
+import com.sun.media.jai.codec.ImageDecoder;
+import com.sun.media.jai.codec.ImageEncoder;
+import com.sun.media.jai.codec.TIFFDecodeParam;
+import com.sun.media.jai.codec.TIFFDirectory;
+import com.sun.media.jai.codec.TIFFEncodeParam;
+import com.sun.media.jai.codec.TIFFField;
+
+import tripod.molvec.algo.LineUtil;
+import tripod.molvec.algo.Tuple;
 import tripod.molvec.image.ImageUtil;
 import tripod.molvec.image.TiffTags;
-import tripod.molvec.image.Grayscale;
-import tripod.molvec.image.binarization.*;
+import tripod.molvec.image.binarization.AdaptiveThreshold;
+import tripod.molvec.util.GeomUtil;
+import tripod.molvec.util.GeomUtil.LineDistanceCalculator;
 
 /**
  * A bitmap image
@@ -402,10 +436,101 @@ public class Bitmap implements Serializable, TiffTags {
     }
 
     private byte[] data; // pixel values
+
+    
+    
+    
     private int width, height;
     private int scanline;
     private SampleModel sampleModel;
-
+    
+    private CachedSupplier<byte[]> distanceData = CachedSupplier.of(()->{
+    	byte[] distanceX=new byte[data.length*8];
+    	byte[] distanceY=new byte[data.length*8];
+    	
+    	int nscan=scanline*8;
+    	
+    	for (int y = 0; y < this.height; ++y) {
+             for (int x = 0; x < this.width; ++x) {
+            	 int loc = y * nscan + x;
+            	 if(get(x,y)){
+            		 distanceX[loc] =0;
+            		 distanceY[loc] =0;
+            	 }else{
+            		 
+            		 distanceX[loc] =Byte.MAX_VALUE;
+            		 distanceY[loc] =Byte.MAX_VALUE;
+            	 }
+             }
+        }
+    	
+    	BiFunction<Integer,Integer,Integer> translate = (x,y)->{
+    		int yoff=y*nscan;
+    		return  yoff + x;
+    	};
+    	
+    	int[] dx = new int[]{-1, 0, 1,-1,1,-1,0,1};
+    	int[] dy = new int[]{-1,-1,-1, 0,0, 1,1,1};
+    	
+    	
+    	
+    	for (int r = 0; r<5;r++){
+	    	for (int y = 0; y < this.height; ++y) {
+	    		int yoff=y*nscan;
+	    		
+	            for (int x = 0; x < this.width; ++x) {
+	          		 int loc = yoff + x;
+	          		 
+	          		 if(distanceX[loc]==Byte.MAX_VALUE && distanceY[loc] == Byte.MAX_VALUE){
+	          			 //It's unset
+	          			 int mini=-1;
+	          			 byte ndx=0;
+	          			 byte ndy=0;
+	     				 double minsqdist=Byte.MAX_VALUE*Byte.MAX_VALUE+Byte.MAX_VALUE*Byte.MAX_VALUE;
+	          			 for(int i=0;i<dx.length;i++){
+	          				 int nx = dx[i]+x;
+	          				 int ny = dy[i]+y;
+	          				 if(nx<this.width && nx>=0 && ny<this.height && ny>=0){
+	          					int nloc=translate.apply(nx, ny);
+	          					double bdx=distanceX[nloc]*1.0 + Math.abs(dx[i]);
+	          					double bdy=distanceY[nloc]*1.0 + Math.abs(dy[i]);
+	          					
+	          					double d = bdx*bdx+bdy*bdy;
+	          					if(d<minsqdist){
+	          						minsqdist=d;
+	          						mini=i;
+	          						ndx=(byte) Math.min(Byte.MAX_VALUE, bdx);
+	          						ndy=(byte) Math.min(Byte.MAX_VALUE, bdy);
+	          					}
+	          				 }	 
+	          			 }
+	          			 if(mini>=0){
+	          				distanceX[loc] =ndx;
+	      					distanceY[loc] =ndy;
+	          			 }
+	          		 }else{
+	          		 }
+	            }
+	       }
+    	}
+    	for (int y = 0; y < this.height; ++y) {
+    		int yoff=y*nscan;
+    		
+            for (int x = 0; x < this.width; ++x) {
+          		 int loc = yoff + x;
+          		 byte ddx=distanceX[loc];
+          		 byte ddy=distanceY[loc];
+          		 double dist = Math.sqrt(ddx*ddx+ddy*ddy);
+          		 distanceX[loc] = (byte)Math.min(Byte.MAX_VALUE, Math.round(dist*4));
+//          		 System.out.println(distanceX[loc]);
+            }
+       }
+    	
+    	
+    	return distanceX;
+    }); //distance to nearest pixel*4
+    
+    
     public static Bitmap createBitmap (Raster raster) {
         SampleModel model = raster.getSampleModel();
         int band = model.getNumBands ();
@@ -1287,6 +1412,84 @@ public class Bitmap implements Serializable, TiffTags {
     public List<Path2D> segments () {
         return segments (2, DEFAULT_AEV_THRESHOLD);
     }
+    
+    
+    public List<Line2D> combineLines(List<Line2D> ilines, double maxMinDistance, double maxAvgDeviation){
+    	byte[] distMet=distanceData.get();
+    	
+    	List<Line2D> lines = new ArrayList<Line2D>(ilines);
+    	
+    	BiFunction<Double,Double,Double> sample = (x,y)->{
+    		//do interp eventually
+    		int ix=(int)Math.round(x);
+    		int iy=(int)Math.round(y);
+    		return (double) (distMet[iy*scanline*8+ix]/4);    		
+    	};
+    	
+    	Map<Integer,Integer> bestLines = new HashMap<Integer,Integer>();
+    	
+    	for(int i=0;i<lines.size();i++){
+    		bestLines.put(i, i);
+    	}
+    	int combinedNum=0;
+    	for(int i=0;i<lines.size();i++){
+    		Line2D line1=lines.get(i);
+    		for(int j=i+1;j<lines.size();j++){
+    			Line2D line2=lines.get(j);
+    			LineDistanceCalculator ldc=LineDistanceCalculator.from(line1, line2);
+    			if(ldc.getSmallestPointDistance()<maxMinDistance){
+    				System.out.println("Might work");
+    				Line2D combined = ldc.getLineFromFarthestPoints();
+    				double sx=combined.getX1();
+    				double sy=combined.getY1();
+    				double dx=combined.getX2()-combined.getX1();
+    				double dy=combined.getY2()-combined.getY1();
+    				double len=LineUtil.length(combined);
+    				
+    				double mult=1/len;
+    				
+    				double sumSqDist = 0;
+    				for(int d=0;d<len;d++){
+    					double ddx = mult*d*dx+sx;
+    					double ddy = mult*d*dy+sy;
+    					double dist=sample.apply(ddx, ddy);
+    					sumSqDist+=dist*dist;
+    				}
+    				double sqrtSTDErr = Math.sqrt(sumSqDist/len);
+    				if(sqrtSTDErr<maxAvgDeviation){
+    					combinedNum++;
+    					//A keeper, probably
+    					System.out.println("A keeper:" + sqrtSTDErr);
+    					lines.set(i, combined);
+    					lines.set(j, combined);
+    					int li=Math.min(bestLines.get(i),bestLines.get(j));
+    					int oli=Math.max(bestLines.get(i),bestLines.get(j));
+    					bestLines.put(i, li);
+    					bestLines.put(j, li);
+    					bestLines.put(li, li);
+    					bestLines.put(oli, li);
+    					bestLines.entrySet().stream()
+    					.map(Tuple::of)
+    					.filter(t->t.v().equals(oli))
+    					.forEach(t->{
+    						bestLines.put(t.k(), li);
+    						lines.set(t.k(), combined);
+    					});
+    					
+    					lines.set(li, combined);
+    					lines.set(oli, combined);
+    					line1=combined;
+    				}else{
+    					System.out.println("No good:" + sqrtSTDErr);
+    				}
+    			}
+    		}
+    	}
+    	
+    	
+    	return bestLines.values().stream().distinct().map(vi->lines.get(vi)).collect(Collectors.toList());
+    }
+    
 
     public List<Path2D> segments (int minsize, double threshold) {
         List<Path2D> segs = new ArrayList<Path2D> ();

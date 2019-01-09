@@ -266,6 +266,62 @@ public class GeomUtil {
           return null;
         */
     }
+    
+    
+    public static class LineDistanceCalculator{
+    	private Line2D line1;
+    	private Line2D line2;
+    	
+    	private int line1CloserPoint=-1;
+    	private int line2CloserPoint=-1;
+    	
+    	private double[] lens = new double[4];
+    	
+    	public boolean isProcessed(){
+    		return line1CloserPoint!=-1;
+    	}
+    	public LineDistanceCalculator process(){
+    		double[] lens = new double[4];
+    		lens[0]=line1.getP1().distance(line2.getP1());
+    		lens[1]=line1.getP1().distance(line2.getP2());
+    		lens[2]=line1.getP2().distance(line2.getP1());
+    		lens[3]=line1.getP2().distance(line2.getP2());
+    		
+    		double min=Double.POSITIVE_INFINITY;
+    		int mini=0;
+    		for(int i=0;i<lens.length;i++){
+    			if(lens[i]<min){
+    				min=lens[i];
+    				mini=0;
+    			}
+    		}
+    		
+    		line1CloserPoint=(mini&2)>>1;
+    		line2CloserPoint=(mini&1);
+    		return this;
+    	}
+    	
+    	public double getSmallestPointDistance(){
+    		if(!isProcessed())process();
+    		return lens[(line1CloserPoint<<1) | line2CloserPoint];
+    	}
+    	
+    	public Line2D getLineFromFarthestPoints(){
+    		if(!isProcessed())process();
+    		Point2D p1 = (line1CloserPoint==0)?line1.getP1():line1.getP2();
+    		Point2D p2 = (line2CloserPoint==0)?line2.getP1():line2.getP2();
+    		return new Line2D.Double(p1,p2);
+    	}
+    	
+    	public static LineDistanceCalculator from(Line2D line1, Line2D line2){
+    		LineDistanceCalculator ldc = new LineDistanceCalculator();
+    		ldc.line1=line1;
+    		ldc.line2=line2;
+    		return ldc;
+    	}
+    	
+    }
+    
 
     // calculate line parameters (slope & intercept) of a line
     public static double[] calcLineParams (Line2D line) {

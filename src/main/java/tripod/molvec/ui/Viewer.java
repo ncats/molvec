@@ -46,6 +46,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.swing.AbstractButton;
 import javax.swing.Box;
@@ -360,6 +361,16 @@ public class Viewer extends JPanel
         }
         
         lines= LineUtil.asLines(segments);
+        List<Line2D> smallLines=lines.stream().filter(l->LineUtil.length(l)<4).collect(Collectors.toList());
+        List<Line2D> bigLines=lines.stream().filter(l->LineUtil.length(l)>=4).collect(Collectors.toList());
+        
+        smallLines= thin.combineLines(smallLines, 3, 2);
+        lines=Stream.concat(bigLines.stream(),smallLines.stream()).collect(Collectors.toList());
+        
+        segments=LineUtil.fromLines(lines);
+        
+        
+        
         lineLengths = lines.stream()
         		           .map(l->l.getP1().distance(l.getP2()))
         		           .collect(Collectors.toList());
