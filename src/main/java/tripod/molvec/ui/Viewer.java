@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import javax.swing.AbstractButton;
 import javax.swing.Box;
@@ -88,16 +89,22 @@ public class Viewer extends JPanel
     static final int BITMAP = 1<<3;
     static final int COMPOSITE = 1<<4;
     static final int HISTOGRAM = 1<<5;
-    static final int OCR_SHAPES = 1<<6;    
-    static final int ALL = SEGMENTS|POLYGONS|THINNING|BITMAP|COMPOSITE|HISTOGRAM|OCR_SHAPES;
+    static final int OCR_SHAPES = 1<<6;
+    static final int LINE_ORDERS = 1<<7;    
+    static final int ALL = SEGMENTS|POLYGONS|THINNING|BITMAP|COMPOSITE|HISTOGRAM|OCR_SHAPES|LINE_ORDERS;
 
     static final Color HL_COLOR = new Color (0xdd, 0xdd, 0xdd, 120);
     static final Color KNN_COLOR = new Color (0x70, 0x5a, 0x9c, 120);
     static final Color ZONE_COLOR = new Color (0x9e, 0xe6, 0xcd, 120);
 
     static Color[] colors = new Color[]{
-        //Color.green
-        Color.blue
+    		Color.black,
+    		Color.RED,
+    		Color.GREEN,
+    		Color.BLUE,
+    		Color.YELLOW,
+    		Color.MAGENTA,
+    		Color.ORANGE
         //Color.red, Color.blue, Color.black
     };
 
@@ -123,7 +130,8 @@ public class Viewer extends JPanel
         (5, new CentroidEuclideanMetric<Shape>());
     
     List<Double> lineLengths;
-    List<Line2D> lines;   
+    List<Line2D> lines;
+    List<Tuple<Line2D,Integer>> linesOrder;   
     
     java.util.List<Shape> highlights = new ArrayList<Shape>();
     Map<Shape,List<Entry<Character,Number>>> ocrAttmept = new HashMap<Shape,List<Entry<Character,Number>>>();
@@ -351,29 +359,14 @@ public class Viewer extends JPanel
             segments.clear();
         }
         
-        lineLengths = new ArrayList<Double>();
-        lines= new ArrayList<Line2D>();
-        for(Path2D p2:segments){
-            PathIterator pi=p2.getPathIterator(null);
-            double[] prevPt=null;
-            while(!pi.isDone()){
-        		
-                double[] coord= new double[2];
-                pi.currentSegment(coord);
-                if(prevPt!=null){
-                    Line2D line = new Line2D.Double
-                        (coord[0], coord[1], prevPt[0], prevPt[1]);
-                    double lineLength=Math.sqrt
-                        ((coord[0]-prevPt[0])*(coord[0]-prevPt[0])
-                         +(coord[1]-prevPt[1])*(coord[1]-prevPt[1]));
-                    lineLengths.add(lineLength);
-                    lines.add(line);
-                    //System.out.println(lineLength);
-                }
-                prevPt=coord;
-                pi.next();
-            }
-        }
+        lines= LineUtil.asLines(segments);
+        lineLengths = lines.stream()
+        		           .map(l->l.getP1().distance(l.getP2()))
+        		           .collect(Collectors.toList());
+        double avg=lineLengths.stream().mapToDouble(d->d).max().getAsDouble();
+        
+        linesOrder=LineUtil.reduceMultiBonds(lines, 5 * Math.PI/180.0, avg/3, .5);
+        
         available |=HISTOGRAM;
 
         Dimension dim = new Dimension ((int)(sx*bitmap.width()+.5),
@@ -397,8 +390,11 @@ public class Viewer extends JPanel
                                                       bitmap.crop(s).createRaster(),
                                                       thin.crop(s).createRaster()
                                                       ));
+                
             }
         }
+        // We're going to start by just finding all lines that are not in good OCR candidates
+        // we're going to use the longest 5
     }
     
 
@@ -537,6 +533,10 @@ public class Viewer extends JPanel
 
         if (segments != null && (show & SEGMENTS) != 0) {
             drawSegments (g2);
+            
+        }
+        if(linesOrder!=null && (show & LINE_ORDERS) !=0){
+        	drawLines (g2);
         }
 
         if (zones != null) {
@@ -698,6 +698,19 @@ public class Viewer extends JPanel
 	}
 	
     }
+    void drawLines (Graphics2D g2) {
+    	Stroke s = g2.getStroke();
+    	g2.setStroke(new BasicStroke(5.0f));
+    	for (Tuple<Line2D,Integer> l : linesOrder) {
+    		Line2D p = l.k();
+    		
+    	    g2.setPaint(colors[l.v()%colors.length]);
+    	    g2.draw(p);
+    	    g2.draw(new Ellipse2D.Double((p.getX1()-2f/sx), (p.getY1()-2f/sx), 4f/sx, 4f/sx));
+    	    g2.draw(new Ellipse2D.Double((p.getX2()-2f/sx), (p.getY2()-2f/sx), 4f/sx, 4f/sx));
+    	}
+    	
+        }
 
     void saveHighlightedPolygon () {
         if (highlights.isEmpty()) {
@@ -901,6 +914,12 @@ public class Viewer extends JPanel
             ab.setSelected(true);
             ab.setToolTipText("Show line segments");
             ab.addActionListener(this);
+            
+            toolbar.add(ab = new JCheckBox ("Line Orders"));
+            ab.putClientProperty("MASK", LINE_ORDERS);
+            ab.setSelected(true);
+            ab.setToolTipText("Show line orders");
+            ab.addActionListener(this);
 
             toolbar.add(ab = new JCheckBox ("Thinning"));
             ab.putClientProperty("MASK", THINNING);
@@ -991,6 +1010,9 @@ public class Viewer extends JPanel
             }
             else if (cmd.equalsIgnoreCase("segments")) {
                 viewer.setVisible(SEGMENTS, show);
+            }
+            else if (cmd.equalsIgnoreCase("line orders")) {
+                viewer.setVisible(LINE_ORDERS, show);
             }
             else if (cmd.equalsIgnoreCase("thinning")) {
                 viewer.setVisible(THINNING, show);

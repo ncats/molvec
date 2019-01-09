@@ -1281,6 +1281,9 @@ public class Bitmap implements Serializable, TiffTags {
         return dps;
     }
 
+    
+    
+    
     public List<Path2D> segments () {
         return segments (2, DEFAULT_AEV_THRESHOLD);
     }
