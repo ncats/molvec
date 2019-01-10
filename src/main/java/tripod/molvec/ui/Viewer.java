@@ -39,9 +39,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -148,7 +150,7 @@ public class Viewer extends JPanel
 
     JPopupMenu popupMenu;
 
-    int show = SEGMENTS|THINNING|BITMAP|LINE_ORDERS;
+    int show = SEGMENTS|THINNING|BITMAP|LINE_ORDERS|CTAB;
     int available;
     
     float ocrCutoff=.6f;
@@ -422,7 +424,7 @@ public class Viewer extends JPanel
         
         
         
-        ctab = LineUtil.getConnectionTable(linesOrder, likelyOCR, 1.2, 1.5,(l)->{
+        ctab = LineUtil.getConnectionTable(linesOrder, likelyOCR, 1.2, 1.7,(l)->{
         	//linesOrder=l;
         }).mergeNodesCloserThan(4);
         
@@ -449,8 +451,21 @@ public class Viewer extends JPanel
         	return e2;
         });
         
+        Set<String> accept = new HashSet<String>();
+        accept.add("C");
+        accept.add("N");
+        accept.add("O");
+        accept.add("H");
+        accept.add("S");
+        accept.add("P");
+        accept.add("B");
+        
         for(Shape s: likelyOCR){
-        	ctab.setNodeToSymbol(s, (ocrAttmept.get(s).get(0).getKey() + "").toUpperCase());
+        	String sym=(ocrAttmept.get(s).get(0).getKey() + "").toUpperCase();
+        	if(accept.contains(sym)){
+        		ctab.setNodeToSymbol(s, sym);
+        	}
+        	
         }
         Chemical c=ctab.toChemical();
         System.out.println(c.toMol());
