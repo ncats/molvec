@@ -65,6 +65,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import gov.nih.ncats.chemkit.api.Chemical;
 import tripod.molvec.Bitmap;
 import tripod.molvec.algo.CentroidEuclideanMetric;
 import tripod.molvec.algo.LineUtil;
@@ -92,8 +93,9 @@ public class Viewer extends JPanel
     static final int COMPOSITE = 1<<4;
     static final int HISTOGRAM = 1<<5;
     static final int OCR_SHAPES = 1<<6;
-    static final int LINE_ORDERS = 1<<7;    
-    static final int ALL = SEGMENTS|POLYGONS|THINNING|BITMAP|COMPOSITE|HISTOGRAM|OCR_SHAPES|LINE_ORDERS;
+    static final int LINE_ORDERS = 1<<7;
+    static final int CTAB = 1<<8;    
+    static final int ALL = SEGMENTS|POLYGONS|THINNING|BITMAP|COMPOSITE|HISTOGRAM|OCR_SHAPES|LINE_ORDERS|CTAB;
 
     static final Color HL_COLOR = new Color (0xdd, 0xdd, 0xdd, 120);
     static final Color KNN_COLOR = new Color (0x70, 0x5a, 0x9c, 120);
@@ -401,6 +403,8 @@ public class Viewer extends JPanel
         /*
          * Looks at each polygon, and gets the likely OCR chars.
          */
+        double cutoffCosine=0.6;
+        
         for (Shape s : polygons) {
             if(s.getBounds2D().getWidth()>0 && s.getBounds2D().getHeight()>0){
             	List<Entry<Character,Number>> potential = OCR.getNBestMatches(4,
@@ -408,21 +412,26 @@ public class Viewer extends JPanel
                         thin.crop(s).createRaster()
                         );
                 ocrAttmept.put(s, potential);
-                if(potential.stream().filter(e->e.getValue().doubleValue()>.6).findAny().isPresent()){
-                	likelyOCR.add(s);
+                if(potential.stream().filter(e->e.getValue().doubleValue()>cutoffCosine).findAny().isPresent()){
+                	if(!"I".equalsIgnoreCase(potential.get(0).getKey()+"")){
+                		likelyOCR.add(s);
+                	}
                 }
             }
         }
         
-        ctab = LineUtil.getConnectionTable(linesOrder, likelyOCR, 1.3, 2).mergeNodesCloserThan(5);
+        
+        
+        ctab = LineUtil.getConnectionTable(linesOrder, likelyOCR, 1.2, 1.5,(l)->{
+        	//linesOrder=l;
+        }).mergeNodesCloserThan(4);
         
         for(Shape s: likelyOCR){
         	ctab.mergeAllNodesInside(s, 2);
         }
         double bl1=ctab.getAverageBondLength();
-        ctab.mergeNodesCloserThan(bl1/2);
+        ctab.mergeNodesCloserThan(bl1/2.5);
         ctab.mergeAllNodesOnParLines();
-        ctab.mergeNodesCloserThan(bl1/2);
         ctab.cleanMeaninglessEdges();
         ctab.cleanDuplicateEdges((e1,e2)->{
         	if(e1.getOrder()>e2.getOrder()){
@@ -430,6 +439,21 @@ public class Viewer extends JPanel
         	}
         	return e2;
         });
+        ctab.createNodesOnIntersectingLines();
+        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()/2.5);
+        ctab.cleanMeaninglessEdges();
+        ctab.cleanDuplicateEdges((e1,e2)->{
+        	if(e1.getOrder()>e2.getOrder()){
+        		return e1;
+        	}
+        	return e2;
+        });
+        
+        for(Shape s: likelyOCR){
+        	ctab.setNodeToSymbol(s, (ocrAttmept.get(s).get(0).getKey() + "").toUpperCase());
+        }
+        Chemical c=ctab.toChemical();
+        System.out.println(c.toMol());
         
         // We're going to start by just finding all lines that are not in good OCR candidates
         // we're going to use the longest 5
@@ -586,8 +610,10 @@ public class Viewer extends JPanel
         if ((show & OCR_SHAPES) != 0) {
             drawOCRShapes(g2);
         }
+        if ((show & CTAB) !=0) {
+        	 drawCT(g2);
+        }
         
-        drawCT(g2);
     }
 
     void drawOCRStats(Graphics2D g2) {
@@ -746,7 +772,7 @@ public class Viewer extends JPanel
     }
     void drawLines (Graphics2D g2) {
     	Stroke s = g2.getStroke();
-    	g2.setStroke(new BasicStroke(5.0f));
+    	g2.setStroke(new BasicStroke(3.0f));
     	for (Tuple<Line2D,Integer> l : linesOrder) {
     		Line2D p = l.k();
     		
@@ -755,7 +781,7 @@ public class Viewer extends JPanel
     	    g2.draw(new Ellipse2D.Double((p.getX1()-2f/sx), (p.getY1()-2f/sx), 4f/sx, 4f/sx));
     	    g2.draw(new Ellipse2D.Double((p.getX2()-2f/sx), (p.getY2()-2f/sx), 4f/sx, 4f/sx));
     	}
-    	
+    	g2.setStroke(s);
         }
 
     void saveHighlightedPolygon () {
@@ -989,6 +1015,13 @@ public class Viewer extends JPanel
             ab.setToolTipText
                 ("Show colored polygons for likely characters");
             ab.addActionListener(this);
+            
+            toolbar.add(ab = new JCheckBox ("Connection Tab"));
+            ab.putClientProperty("MASK", CTAB);
+            ab.setSelected(true);
+            ab.setToolTipText("Show line orders");
+            ab.addActionListener(this);
+            
 
             toolbar.addSeparator();
             Box hbox = Box.createHorizontalBox();
@@ -1059,6 +1092,9 @@ public class Viewer extends JPanel
             }
             else if (cmd.equalsIgnoreCase("line orders")) {
                 viewer.setVisible(LINE_ORDERS, show);
+            }
+            else if (cmd.equalsIgnoreCase("connection tab")) {
+                viewer.setVisible(CTAB, show);
             }
             else if (cmd.equalsIgnoreCase("thinning")) {
                 viewer.setVisible(THINNING, show);

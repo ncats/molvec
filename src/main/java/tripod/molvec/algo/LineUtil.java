@@ -13,15 +13,21 @@ import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BinaryOperator;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import gov.nih.ncats.chemkit.api.Atom;
+import gov.nih.ncats.chemkit.api.Bond.BondType;
+import gov.nih.ncats.chemkit.api.Chemical;
+import gov.nih.ncats.chemkit.api.ChemicalBuilder;
 import tripod.molvec.util.GeomUtil;
 
 public class LineUtil {
@@ -193,10 +199,50 @@ public class LineUtil {
 		
 	}
 
+	
+	
 	public static class ConnectionTable{
-		List<Point2D> nodes = new ArrayList<Point2D>();
+		List<Node> nodes = new ArrayList<Node>();
 		List<Edge> edges = new ArrayList<Edge>();
 		
+		
+		public ConnectionTable addNode(Point2D p){
+			nodes.add(new Node(p,"C"));
+			return this;
+		}
+		
+		public ConnectionTable setNodeToSymbol(Shape s, String sym){
+			nodes.stream()
+			.filter(n->s.contains(n.point.getX(),n.point.getY()))
+			.forEach(n->{
+				n.symbol=sym;
+			});
+			return this;
+			
+		}
+		
+		
+		public Chemical toChemical(){
+			ChemicalBuilder cb = new ChemicalBuilder();
+			Atom[] atoms = new Atom[nodes.size()];
+			
+			for(int i=0;i<nodes.size();i++){
+				Node n = nodes.get(i);
+				atoms[i]=cb.addAtom(n.symbol,n.point.getX(),-n.point.getY());
+			}
+			for(Edge e : edges){
+				if(e.order==1){
+					cb.addBond(atoms[e.n1],atoms[e.n2],BondType.SINGLE);
+				}else if(e.order==2){
+					cb.addBond(atoms[e.n1],atoms[e.n2],BondType.DOUBLE);
+				}else if(e.order==3){
+					cb.addBond(atoms[e.n1],atoms[e.n2],BondType.TRIPLE);
+				}else{
+					cb.addBond(atoms[e.n1],atoms[e.n2],BondType.SINGLE);
+				}
+			}
+			return cb.build();
+		}
 		
 		public ConnectionTable mergeNodesAverage(int n1, int n2){
 			return mergeNodes(n1,n2,(node1,node2)->new Point2D.Double((node1.getX()+node2.getX())/2,(node1.getY()+node2.getY())/2));
@@ -208,14 +254,14 @@ public class LineUtil {
 		}
 		
 		public Map<Integer,Integer> mergeNodesGetTransform(int n1, int n2, BinaryOperator<Point2D> op){
-			Point2D node1=nodes.get(n1);
-			Point2D node2=nodes.get(n2);
+			Point2D node1=nodes.get(n1).point;
+			Point2D node2=nodes.get(n2).point;
 			Point2D np = op.apply(node1, node2);
 			int oldMax=nodes.size();
 			
 			int remNode=Math.max(n1, n2);
 			int keepNode=Math.min(n1, n2);
-			nodes.set(keepNode,np);
+			nodes.set(keepNode,new Node(np,nodes.get(n1).symbol));
 			
 			nodes.remove(remNode);
 			for(Edge e: edges){
@@ -248,18 +294,17 @@ public class LineUtil {
 		}
 		
 		public ConnectionTable mergeNodes(List<Integer> nlist, Function<List<Point2D>, Point2D> op){
-			Point2D p = op.apply(nlist.stream().map(i->nodes.get(i)).collect(Collectors.toList()));
+			Point2D p = op.apply(nlist.stream().map(i->nodes.get(i).point).collect(Collectors.toList()));
 			
 			nlist=nlist.stream().sorted().collect(Collectors.toList());
 			
 			if(nlist.size()==1){
-				nodes.set(nlist.get(0),p);
+				int ni=nlist.get(0);
+				nodes.get(ni).point=p;
 			}else{
 				for(int i=nlist.size()-1;i>=1;i--){
-					
 					int ni1=nlist.get(i);
 					int ni2=nlist.get(i-1);
-					System.out.println(ni1);
 					mergeNodes(ni1,ni2,(p1,p2)->p);
 				}
 			}
@@ -269,7 +314,7 @@ public class LineUtil {
 		}
 		
 		public Map<Integer,Integer> mergeNodesGetTransform(List<Integer> nlist, Function<List<Point2D>, Point2D> op){
-			Point2D p = op.apply(nlist.stream().map(i->nodes.get(i)).collect(Collectors.toList()));
+			Point2D p = op.apply(nlist.stream().map(i->nodes.get(i).point).collect(Collectors.toList()));
 			
 			nlist=nlist.stream().sorted().collect(Collectors.toList());
 			
@@ -280,7 +325,7 @@ public class LineUtil {
 			
 			System.out.println("Start merge");
 			if(nlist.size()==1){
-				nodes.set(nlist.get(0),p);
+				nodes.get(nlist.get(0)).point=p;
 			}else{
 				for(int i=nlist.size()-1;i>=1;i--){
 					
@@ -322,9 +367,9 @@ public class LineUtil {
 			while(mergedOne){
 				mergedOne=false;
 				for(int i=0;i<nodes.size();i++){
-					Point2D pnti=nodes.get(i);
+					Point2D pnti=nodes.get(i).point;
 					for(int j=i+1;j<nodes.size();j++){
-						Point2D pntj = nodes.get(j);
+						Point2D pntj = nodes.get(j).point;
 						if(pnti.distance(pntj)<maxDistance){
 							mergeNodesAverage(i,j);
 							System.out.println("Merged");
@@ -349,7 +394,7 @@ public class LineUtil {
 			
 			List<Integer> toMerge = new ArrayList<Integer>();
 			for(int i=nodes.size()-1;i>=0;i--){
-				Point2D pn = nodes.get(i);
+				Point2D pn = nodes.get(i).point;
 				if(GeomUtil.distanceTo(s,pn)<tol){
 					toMerge.add(i);
 				}
@@ -414,7 +459,7 @@ public class LineUtil {
 			mergeNodes.forEach(ls->{
 				List<Integer> toMerge=ls.stream().map(i->oldToNewMap.get(i)).collect(Collectors.toList());
 				
-				Point2D keeper=this.nodes.get(toMerge.get(0));
+				Point2D keeper=this.nodes.get(toMerge.get(0)).point;
 				toMerge=toMerge.stream().distinct().collect(Collectors.toList());
 				if(toMerge.size()<=1)return;
 				System.out.println(toMerge.toString());
@@ -430,8 +475,55 @@ public class LineUtil {
 			return this;
 		}
 		
+		public ConnectionTable createNodesOnIntersectingLines(){
+			
+			boolean splitOne =true;
+			while(splitOne){
+				splitOne=false;
+			
+				for(int i=0;i<edges.size();i++){
+					Edge e1=edges.get(i);
+					Set<Integer> i1set=e1.getNodeSet();
+					for(int j=0;j<edges.size();j++){
+						Edge e2=edges.get(j);
+						if(i1set.contains(e2.n1) || i1set.contains(e2.n2)){
+							continue;
+						}
+						if(e1.getLine().intersectsLine(e2.getLine())){
+							Point2D np=GeomUtil.intersection(e1.getLine(),e2.getLine());
+							int nodeNew = this.nodes.size();
+							this.addNode(np);
+							Edge nedge1 = new Edge(e1.n1, nodeNew, 1);
+							Edge nedge2 = new Edge(e1.n2, nodeNew, 1);
+							Edge nedge3 = new Edge(e2.n1, nodeNew, 1);
+							Edge nedge4 = new Edge(e2.n2, nodeNew, 1);
+							edges.set(i, nedge1);
+							edges.set(j, nedge2);
+							edges.add(nedge3);
+							edges.add(nedge4);
+							splitOne=true;
+							break;
+						}
+					}
+					if(splitOne)break;
+				}
+			}
+			
+			return this;
+		}
+		
 		public double getAverageBondLength(){
 			return edges.stream().mapToDouble(e->e.getBondDistance()).average().getAsDouble();
+		}
+		public class Node{
+			Point2D point;
+			String symbol="C";
+			public Node(Point2D p, String s){
+				this.point=p;
+				this.symbol=s;				
+			}
+			
+			
 		}
 		public class Edge{
 			int n1;
@@ -443,7 +535,7 @@ public class LineUtil {
 				this.order=o;
 			}
 			public double getBondDistance(){
-				return ConnectionTable.this.nodes.get(n1).distance(ConnectionTable.this.nodes.get(n2));
+				return ConnectionTable.this.nodes.get(n1).point.distance(ConnectionTable.this.nodes.get(n2).point);
 			}
 			public Edge standardize(){
 				if(n2<n1){
@@ -453,16 +545,23 @@ public class LineUtil {
 				}
 				return this;
 			}
+			public Set<Integer> getNodeSet(){
+				Set<Integer> iset = new HashSet<Integer>();
+				iset.add(n1);
+				iset.add(n2);
+				return iset;
+				
+			}
 			public Line2D getLine(){
-				Point2D p1 = ConnectionTable.this.nodes.get(n1);
-				Point2D p2 = ConnectionTable.this.nodes.get(n2);
+				Point2D p1 = ConnectionTable.this.nodes.get(n1).point;
+				Point2D p2 = ConnectionTable.this.nodes.get(n2).point;
 				return new Line2D.Double(p1, p2);
 			}
 			public Point2D getNode1(){
-				return ConnectionTable.this.nodes.get(n1);
+				return ConnectionTable.this.nodes.get(n1).point;
 			}
 			public Point2D getNode2(){
-				return ConnectionTable.this.nodes.get(n2);
+				return ConnectionTable.this.nodes.get(n2).point;
 			}
 			public int getOrder() {
 				
@@ -473,9 +572,10 @@ public class LineUtil {
 		public void draw(Graphics2D g2) {
 			int sx=1;
 			
-			for(Point2D p:nodes){
+			nodes.stream().map(n->n.point)
+			.forEach(p->{
 				g2.draw(new Ellipse2D.Double((p.getX()-2f/sx), (p.getY()-2f/sx), 4f/sx, 4f/sx));
-			}
+			});
 			
 			edges.forEach(l->{
 				if(l.order==1){
@@ -503,64 +603,69 @@ public class LineUtil {
 			return new Line2D.Double(line.getP2(), pnt);
 		}
 	}
-	
-	public static ConnectionTable getConnectionTable(List<Tuple<Line2D,Integer>> linest, List<Shape> likelyNodes, double maxDistanceRatioNonLikely,double maxDistanceRatioLikely){
+	public static ConnectionTable getConnectionTable(List<Tuple<Line2D,Integer>> linest, List<Shape> likelyNodes, double maxDistanceRatioNonLikely,double maxDistanceRatioLikely, Consumer<List<Tuple<Line2D,Integer>>> whenDone){
 		//This will find the likely intersection points between lines.
-		//If 2 lines would intersect 
-		List<Tuple<Line2D,Integer>> lines = new ArrayList<>(linest);
-		
-		for(int i=0;i<lines.size();i++){
-			Tuple<Line2D, Integer> lineOrder1=lines.get(i);
-			double distance1 = LineUtil.length(lineOrder1.k());
-			for(int j=i+1;j<lines.size();j++){
+				//If 2 lines would intersect 
+				List<Tuple<Line2D,Integer>> lines = new ArrayList<>(linest);
 				
-				Tuple<Line2D, Integer> lineOrder2=lines.get(j);
-				double distance2 = LineUtil.length(lineOrder2.k());
-				double totalDistance = distance1+distance2;
-				
-				Point2D intersect = GeomUtil.intersection(lineOrder1.k(),lineOrder2.k());
-				if(intersect==null)continue;
-				double ndistance1 = Math.max(intersect.distance(lineOrder1.k().getP1()), intersect.distance(lineOrder1.k().getP2()));
-				double ndistance2 = Math.max(intersect.distance(lineOrder2.k().getP1()), intersect.distance(lineOrder2.k().getP2()));
-				double totalDistanceAfter = ndistance1+ndistance2;
-				
-				double ratio = Math.max(totalDistanceAfter,totalDistance)/Math.min(totalDistanceAfter, totalDistance);
-				
-				boolean merge = false;
-				
-				if(ratio<maxDistanceRatioLikely){
-					if(ratio<maxDistanceRatioNonLikely){
-						merge=true;
-					}else{
-						boolean inLikelyNode=likelyNodes.stream().filter(s->s.contains(intersect)).findAny().isPresent();
-						if(inLikelyNode){
-							merge=true;
+				for(int i=0;i<lines.size();i++){
+					Tuple<Line2D, Integer> lineOrder1=lines.get(i);
+					double distance1 = LineUtil.length(lineOrder1.k());
+					for(int j=i+1;j<lines.size();j++){
+						
+						Tuple<Line2D, Integer> lineOrder2=lines.get(j);
+						double distance2 = LineUtil.length(lineOrder2.k());
+						double totalDistance = distance1+distance2;
+						
+						Point2D intersect = GeomUtil.intersection(lineOrder1.k(),lineOrder2.k());
+						if(intersect==null)continue;
+						double ndistance1 = Math.max(intersect.distance(lineOrder1.k().getP1()), intersect.distance(lineOrder1.k().getP2()));
+						double ndistance2 = Math.max(intersect.distance(lineOrder2.k().getP1()), intersect.distance(lineOrder2.k().getP2()));
+						double totalDistanceAfter = ndistance1+ndistance2;
+						
+						double ratio = Math.max(totalDistanceAfter,totalDistance)/Math.min(totalDistanceAfter, totalDistance);
+						
+						boolean merge = false;
+						
+						if(ratio<maxDistanceRatioLikely){
+							if(ratio<maxDistanceRatioNonLikely){
+								System.out.println(totalDistanceAfter +  "vs" + totalDistance);
+								merge=true;
+							}else{
+								boolean inLikelyNode=likelyNodes.stream().filter(s->s.contains(intersect)).findAny().isPresent();
+								if(inLikelyNode){
+									merge=true;
+								}
+							}
 						}
+						
+						if(merge){
+							Line2D newLine1 = longestLineFromOneVertexToPoint(lineOrder1.k(),intersect);
+							Line2D newLine2 = longestLineFromOneVertexToPoint(lineOrder2.k(),intersect);
+							Tuple<Line2D,Integer> norder1 = Tuple.of(newLine1,lineOrder1.v());
+							Tuple<Line2D,Integer> norder2 = Tuple.of(newLine2,lineOrder2.v());
+							lines.set(i, norder1);
+							lines.set(j, norder2);
+							lineOrder1 = norder1;
+						}				
 					}
 				}
+					
+				ConnectionTable ct=new ConnectionTable();
 				
-				if(merge){
-					Line2D newLine1 = longestLineFromOneVertexToPoint(lineOrder1.k(),intersect);
-					Line2D newLine2 = longestLineFromOneVertexToPoint(lineOrder2.k(),intersect);
-					Tuple<Line2D,Integer> norder1 = Tuple.of(newLine1,lineOrder1.v());
-					Tuple<Line2D,Integer> norder2 = Tuple.of(newLine2,lineOrder2.v());
-					lines.set(i, norder1);
-					lines.set(j, norder2);
-					lineOrder1 = norder1;
-				}				
-			}
-		}
-			
-		ConnectionTable ct=new ConnectionTable();
-		
-		for(int i=0;i<lines.size();i++){
-			Tuple<Line2D, Integer> lineOrder1=lines.get(i);
-			ct.nodes.add(lineOrder1.k().getP1());
-			ct.nodes.add(lineOrder1.k().getP2());
-			ct.addEdge(i*2, i*2+1, lineOrder1.v());
-		}
-		return ct;
-		
+				for(int i=0;i<lines.size();i++){
+					Tuple<Line2D, Integer> lineOrder1=lines.get(i);
+					ct.addNode(lineOrder1.k().getP1());
+					ct.addNode(lineOrder1.k().getP2());
+					ct.addEdge(i*2, i*2+1, lineOrder1.v());
+				}
+				whenDone.accept(lines);
+				return ct;
+				
+				
+	}
+	public static ConnectionTable getConnectionTable(List<Tuple<Line2D,Integer>> linest, List<Shape> likelyNodes, double maxDistanceRatioNonLikely,double maxDistanceRatioLikely){
+		return getConnectionTable(linest,likelyNodes,maxDistanceRatioNonLikely, maxDistanceRatioLikely);
 		
 	}
 	

@@ -1431,14 +1431,14 @@ public class Bitmap implements Serializable, TiffTags {
     	for(int i=0;i<lines.size();i++){
     		bestLines.put(i, i);
     	}
-    	int combinedNum=0;
+    	
     	for(int i=0;i<lines.size();i++){
     		Line2D line1=lines.get(i);
     		for(int j=i+1;j<lines.size();j++){
     			Line2D line2=lines.get(j);
     			LineDistanceCalculator ldc=LineDistanceCalculator.from(line1, line2);
     			if(ldc.getSmallestPointDistance()<maxMinDistance){
-    				System.out.println("Might work");
+    				//System.out.println("Might work");
     				Line2D combined = ldc.getLineFromFarthestPoints();
     				double sx=combined.getX1();
     				double sy=combined.getY1();
@@ -1457,9 +1457,8 @@ public class Bitmap implements Serializable, TiffTags {
     				}
     				double sqrtSTDErr = Math.sqrt(sumSqDist/len);
     				if(sqrtSTDErr<maxAvgDeviation){
-    					combinedNum++;
     					//A keeper, probably
-    					System.out.println("A keeper:" + sqrtSTDErr);
+    					//System.out.println("A keeper:" + sqrtSTDErr);
     					lines.set(i, combined);
     					lines.set(j, combined);
     					int li=Math.min(bestLines.get(i),bestLines.get(j));
@@ -1480,7 +1479,7 @@ public class Bitmap implements Serializable, TiffTags {
     					lines.set(oli, combined);
     					line1=combined;
     				}else{
-    					System.out.println("No good:" + sqrtSTDErr);
+    					//System.out.println("No good:" + sqrtSTDErr);
     				}
     			}
     		}
