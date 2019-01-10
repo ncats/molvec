@@ -1,5 +1,9 @@
 package tripod.molvec.algo;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.Shape;
+import java.awt.geom.Ellipse2D;
 import java.awt.geom.GeneralPath;
 import java.awt.geom.Line2D;
 import java.awt.geom.Path2D;
@@ -8,11 +12,13 @@ import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
+
+import tripod.molvec.algo.LineUtil.ConnectionTable.Edge;
+import tripod.molvec.util.GeomUtil;
 
 public class LineUtil {
 
@@ -182,21 +188,203 @@ public class LineUtil {
 		return new double[]{dx,dy};
 		
 	}
-	
-//	public static ConnectionTable getConnectionTable(List<Tuple<Line2D,Integer>> lines, List<Point2D> likelyNodes, double){
-//		//This will find the likely intersection points between lines.
-//		//If 2 lines would intersect 
-//	}
-	
+
 	public static class ConnectionTable{
-		Point2D[] nodes;
-		List<Edge> edges;
+		List<Point2D> nodes = new ArrayList<Point2D>();
+		List<Edge> edges = new ArrayList<Edge>();
+		
+		
+		public ConnectionTable mergeNodesAverage(int n1, int n2){
+			Point2D node1=nodes.get(n1);
+			Point2D node2=nodes.get(n2);
+			Point2D np = new Point2D.Double((node1.getX()+node2.getX())/2,(node1.getY()+node2.getY())/2);
+			
+			int remNode=Math.max(n1, n2);
+			int keepNode=Math.min(n1, n2);
+			nodes.set(keepNode,np);
+			
+			nodes.remove(remNode);
+			for(Edge e: edges){
+				if(e.n1==remNode){
+					e.n1=keepNode;
+				}
+				if(e.n2==remNode){
+					e.n2=keepNode;
+				}
+				if(e.n1>remNode){
+					e.n1=e.n1-1;
+				}
+				if(e.n2>remNode){
+					e.n2=e.n2-1;
+				}
+			}
+			return this;
+		}
+		
+		public ConnectionTable cleanMeaninglessEdges(){
+			this.edges=edges.stream().filter(e->e.n1!=e.n2).collect(Collectors.toList());
+			return this;
+		}
+		
+		public ConnectionTable cleanDuplicateEdges(BinaryOperator<Edge> combiner){
+			edges=edges.stream().map(e->e.standardize())
+			              .map(e->Tuple.of(e,e.n1+"_" + e.n2))
+			              .collect(Collectors.toMap(t->t.v(),t-> t.k(), combiner))
+			              .values()
+			              .stream()
+			              .collect(Collectors.toList());
+			return this;
+		}
+		
+		public ConnectionTable mergeNodesCloserThan(double maxDistance){
+			boolean mergedOne = true;
+			
+			while(mergedOne){
+				mergedOne=false;
+				for(int i=0;i<nodes.size();i++){
+					Point2D pnti=nodes.get(i);
+					for(int j=i+1;j<nodes.size();j++){
+						Point2D pntj = nodes.get(j);
+						if(pnti.distance(pntj)<maxDistance){
+							mergeNodesAverage(i,j);
+							System.out.println("Merged");
+							mergedOne=true;
+							break;
+						}
+					}
+					if(mergedOne)break;
+				}
+			}
+			return this;
+		}
+		
+		public ConnectionTable addEdge(int n1, int n2, int o){
+			this.edges.add(new Edge(n1,n2,o));
+			return this;
+		}
+		
+		public double getAverageBondLength(){
+			return edges.stream().mapToDouble(e->e.getBondDistance()).average().getAsDouble();
+		}
+		public class Edge{
+			int n1;
+			int n2;
+			int order;
+			public Edge(int n1, int n2, int o){
+				this.n1=n1;
+				this.n2=n2;
+				this.order=o;
+			}
+			public double getBondDistance(){
+				return ConnectionTable.this.nodes.get(n1).distance(ConnectionTable.this.nodes.get(n2));
+			}
+			public Edge standardize(){
+				if(n2<n1){
+					int t=this.n1;
+					this.n1=this.n2;
+					this.n2=t;
+				}
+				return this;
+			}
+			public Line2D getLine(){
+				Point2D p1 = ConnectionTable.this.nodes.get(n1);
+				Point2D p2 = ConnectionTable.this.nodes.get(n2);
+				return new Line2D.Double(p1, p2);
+			}
+			
+		}
+		public void draw(Graphics2D g2) {
+			int sx=1;
+			
+			for(Point2D p:nodes){
+				g2.draw(new Ellipse2D.Double((p.getX()-2f/sx), (p.getY()-2f/sx), 4f/sx, 4f/sx));
+			}
+			
+			edges.forEach(l->{
+				if(l.order==1){
+					g2.setPaint(Color.BLACK);
+				}else if(l.order==2){
+					g2.setPaint(Color.RED);
+				}else if(l.order==3){
+					g2.setPaint(Color.GREEN);
+				}
+				g2.draw(l.getLine());
+			});
+			
+		}
 		
 		
 	}
-	public static class Edge{
-		int n1;
-		int n2;
-		int order;
+	
+	
+	public static Line2D longestLineFromOneVertexToPoint(Line2D line, Point2D pnt){
+		double d1= pnt.distance(line.getP1());
+		double d2= pnt.distance(line.getP2());
+		if(d1>d2){
+			return new Line2D.Double(line.getP1(), pnt);
+		}else{
+			return new Line2D.Double(line.getP2(), pnt);
+		}
 	}
+	
+	public static ConnectionTable getConnectionTable(List<Tuple<Line2D,Integer>> linest, List<Shape> likelyNodes, double maxDistanceRatioNonLikely,double maxDistanceRatioLikely){
+		//This will find the likely intersection points between lines.
+		//If 2 lines would intersect 
+		List<Tuple<Line2D,Integer>> lines = new ArrayList<>(linest);
+		
+		for(int i=0;i<lines.size();i++){
+			Tuple<Line2D, Integer> lineOrder1=lines.get(i);
+			double distance1 = LineUtil.length(lineOrder1.k());
+			for(int j=i+1;j<lines.size();j++){
+				
+				Tuple<Line2D, Integer> lineOrder2=lines.get(j);
+				double distance2 = LineUtil.length(lineOrder2.k());
+				double totalDistance = distance1+distance2;
+				
+				Point2D intersect = GeomUtil.intersection(lineOrder1.k(),lineOrder2.k());
+				if(intersect==null)continue;
+				double ndistance1 = Math.max(intersect.distance(lineOrder1.k().getP1()), intersect.distance(lineOrder1.k().getP2()));
+				double ndistance2 = Math.max(intersect.distance(lineOrder2.k().getP1()), intersect.distance(lineOrder2.k().getP2()));
+				double totalDistanceAfter = ndistance1+ndistance2;
+				
+				double ratio = Math.max(totalDistanceAfter,totalDistance)/Math.min(totalDistanceAfter, totalDistance);
+				
+				boolean merge = false;
+				
+				if(ratio<maxDistanceRatioLikely){
+					if(ratio<maxDistanceRatioNonLikely){
+						merge=true;
+					}else{
+						boolean inLikelyNode=likelyNodes.stream().filter(s->s.contains(intersect)).findAny().isPresent();
+						if(inLikelyNode){
+							merge=true;
+						}
+					}
+				}
+				
+				if(merge){
+					Line2D newLine1 = longestLineFromOneVertexToPoint(lineOrder1.k(),intersect);
+					Line2D newLine2 = longestLineFromOneVertexToPoint(lineOrder2.k(),intersect);
+					Tuple<Line2D,Integer> norder1 = Tuple.of(newLine1,lineOrder1.v());
+					Tuple<Line2D,Integer> norder2 = Tuple.of(newLine2,lineOrder2.v());
+					lines.set(i, norder1);
+					lines.set(j, norder2);
+					lineOrder1 = norder1;
+				}				
+			}
+		}
+			
+		ConnectionTable ct=new ConnectionTable();
+		
+		for(int i=0;i<lines.size();i++){
+			Tuple<Line2D, Integer> lineOrder1=lines.get(i);
+			ct.nodes.add(lineOrder1.k().getP1());
+			ct.nodes.add(lineOrder1.k().getP2());
+			ct.addEdge(i*2, i*2+1, lineOrder1.v());
+		}
+		return ct;
+		
+		
+	}
+	
 }

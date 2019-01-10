@@ -1,9 +1,11 @@
 package tripod.molvec.ui;
 
+import java.awt.AlphaComposite;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Composite;
 import java.awt.Dimension;
 import java.awt.FileDialog;
 import java.awt.Font;
@@ -15,19 +17,15 @@ import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Shape;
 import java.awt.Stroke;
-import java.awt.Window;
-import java.awt.AlphaComposite;
-import java.awt.Composite;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
+import java.awt.event.HierarchyBoundsListener;
 import java.awt.event.HierarchyEvent;
-import java.awt.event.HierarchyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
-import java.awt.event.HierarchyBoundsListener;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
@@ -48,11 +46,11 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.imageio.ImageIO;
 import javax.swing.AbstractButton;
 import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
-import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
@@ -66,13 +64,16 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import javax.swing.plaf.basic.BasicToolBarUI;
-import javax.imageio.ImageIO;
 
-import tripod.molvec.*;
-import tripod.molvec.segmentation.*;
-import tripod.molvec.algo.*;
-import tripod.molvec.util.*;
+import tripod.molvec.Bitmap;
+import tripod.molvec.algo.CentroidEuclideanMetric;
+import tripod.molvec.algo.LineUtil;
+import tripod.molvec.algo.LineUtil.ConnectionTable;
+import tripod.molvec.algo.NearestNeighbors;
+import tripod.molvec.algo.Tuple;
+import tripod.molvec.segmentation.Docstrum;
+import tripod.molvec.util.GeomStats;
+import tripod.molvec.util.GeomUtil;
 
 
 public class Viewer extends JPanel 
@@ -126,6 +127,8 @@ public class Viewer extends JPanel
     Collection<Shape> polygons = new ArrayList<Shape>();
     Collection<Path2D> segments = new ArrayList<Path2D>();
     Collection<Shape> zones = new ArrayList<Shape>();
+    
+    ConnectionTable ctab = null;
 
     NearestNeighbors<Shape> knn = new NearestNeighbors<Shape>
         (5, new CentroidEuclideanMetric<Shape>());
@@ -378,6 +381,7 @@ public class Viewer extends JPanel
         
         linesOrder=LineUtil.reduceMultiBonds(lines, 5 * Math.PI/180.0, avg/3, .5);
         
+      
         available |=HISTOGRAM;
 
         Dimension dim = new Dimension ((int)(sx*bitmap.width()+.5),
@@ -392,18 +396,28 @@ public class Viewer extends JPanel
 
         resetAndRepaint ();
         
+        
+        List<Shape> likelyOCR=new ArrayList<Shape>();
         /*
          * Looks at each polygon, and gets the likely OCR chars.
          */
         for (Shape s : polygons) {
             if(s.getBounds2D().getWidth()>0 && s.getBounds2D().getHeight()>0){
-                ocrAttmept.put(s, OCR.getNBestMatches(4,
-                                                      bitmap.crop(s).createRaster(),
-                                                      thin.crop(s).createRaster()
-                                                      ));
-                
+            	List<Entry<Character,Number>> potential = OCR.getNBestMatches(4,
+                        bitmap.crop(s).createRaster(),
+                        thin.crop(s).createRaster()
+                        );
+                ocrAttmept.put(s, potential);
+                if(potential.stream().filter(e->e.getValue().doubleValue()>.6).findAny().isPresent()){
+                	likelyOCR.add(s);
+                }
             }
         }
+        
+        ctab = LineUtil.getConnectionTable(linesOrder, likelyOCR, 1.2, 2).mergeNodesCloserThan(5);
+        
+        
+        
         // We're going to start by just finding all lines that are not in good OCR candidates
         // we're going to use the longest 5
     }
@@ -414,6 +428,8 @@ public class Viewer extends JPanel
         revalidate ();
         repaint ();
     }
+    
+    
 
     @Override
     protected void paintComponent (Graphics g) {
@@ -557,6 +573,8 @@ public class Viewer extends JPanel
         if ((show & OCR_SHAPES) != 0) {
             drawOCRShapes(g2);
         }
+        
+        drawCT(g2);
     }
 
     void drawOCRStats(Graphics2D g2) {
@@ -595,6 +613,10 @@ public class Viewer extends JPanel
     		}
             }
         }
+    }
+    
+    void drawCT(Graphics2D g2){
+    	ctab.draw(g2);
     }
     
     void drawPolygons (Graphics2D g2) {
