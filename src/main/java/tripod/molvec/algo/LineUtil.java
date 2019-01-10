@@ -9,15 +9,16 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.PathIterator;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BinaryOperator;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import tripod.molvec.algo.LineUtil.ConnectionTable.Edge;
 import tripod.molvec.util.GeomUtil;
 
 public class LineUtil {
@@ -195,9 +196,13 @@ public class LineUtil {
 		
 		
 		public ConnectionTable mergeNodesAverage(int n1, int n2){
+			return mergeNodes(n1,n2,(node1,node2)->new Point2D.Double((node1.getX()+node2.getX())/2,(node1.getY()+node2.getY())/2));
+		}
+		
+		public ConnectionTable mergeNodes(int n1, int n2, BinaryOperator<Point2D> op){
 			Point2D node1=nodes.get(n1);
 			Point2D node2=nodes.get(n2);
-			Point2D np = new Point2D.Double((node1.getX()+node2.getX())/2,(node1.getY()+node2.getY())/2);
+			Point2D np = op.apply(node1, node2);
 			
 			int remNode=Math.max(n1, n2);
 			int keepNode=Math.min(n1, n2);
@@ -218,6 +223,28 @@ public class LineUtil {
 					e.n2=e.n2-1;
 				}
 			}
+			return this;
+		}
+		
+		public ConnectionTable mergeNodes(List<Integer> nlist, Function<List<Point2D>, Point2D> op){
+			Point2D p = op.apply(nlist.stream().map(i->nodes.get(i)).collect(Collectors.toList()));
+			
+			nlist=nlist.stream().sorted().collect(Collectors.toList());
+			
+			if(nlist.size()==1){
+				nodes.set(nlist.get(0),p);
+			}else{
+				for(int i=nlist.size()-1;i>=1;i--){
+					
+					int ni1=nlist.get(i);
+					int ni2=nlist.get(i-1);
+					System.out.println(ni1);
+					mergeNodes(ni1,ni2,(p1,p2)->p);
+				}
+			}
+			System.out.println("Done");
+			
+			
 			return this;
 		}
 		
@@ -261,6 +288,20 @@ public class LineUtil {
 		public ConnectionTable addEdge(int n1, int n2, int o){
 			this.edges.add(new Edge(n1,n2,o));
 			return this;
+		}
+		
+		public ConnectionTable mergeAllNodesInside(Shape s){
+			Rectangle2D r=s.getBounds2D();
+			Point2D p = new Point2D.Double(r.getCenterX(),r.getCenterY());
+			
+			List<Integer> toMerge = new ArrayList<Integer>();
+			for(int i=nodes.size()-1;i>=0;i--){
+				Point2D pn = nodes.get(i);
+				if(s.contains(pn)){
+					toMerge.add(i);
+				}
+			}
+			return this.mergeNodes(toMerge, (l)->p);
 		}
 		
 		public double getAverageBondLength(){

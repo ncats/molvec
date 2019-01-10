@@ -414,9 +414,11 @@ public class Viewer extends JPanel
             }
         }
         
-        ctab = LineUtil.getConnectionTable(linesOrder, likelyOCR, 1.2, 2).mergeNodesCloserThan(5);
+        ctab = LineUtil.getConnectionTable(linesOrder, likelyOCR, 1.3, 2).mergeNodesCloserThan(5);
         
-        
+        for(Shape s: likelyOCR){
+        	ctab.mergeAllNodesInside(s);
+        }
         
         // We're going to start by just finding all lines that are not in good OCR candidates
         // we're going to use the longest 5
