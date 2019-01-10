@@ -390,6 +390,16 @@ public class GeomUtil {
 
         return new Point2D[]{p1, p2};
     }
+    
+    public static double distanceTo(Shape s, Point2D pt){
+    	if(s.contains(pt)){
+    		return 0;
+    	}
+    	return Arrays.stream(lines(s))
+    	      .mapToDouble(l->l.ptSegDist(pt))
+    	      .min()
+    	      .getAsDouble();
+    }
 
     /**
      * Euclidean distance between two points

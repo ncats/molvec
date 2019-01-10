@@ -13,11 +13,14 @@ import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import tripod.molvec.util.GeomUtil;
 
@@ -200,9 +203,15 @@ public class LineUtil {
 		}
 		
 		public ConnectionTable mergeNodes(int n1, int n2, BinaryOperator<Point2D> op){
+			mergeNodesGetTransform(n1,n2,op);
+			return this;
+		}
+		
+		public Map<Integer,Integer> mergeNodesGetTransform(int n1, int n2, BinaryOperator<Point2D> op){
 			Point2D node1=nodes.get(n1);
 			Point2D node2=nodes.get(n2);
 			Point2D np = op.apply(node1, node2);
+			int oldMax=nodes.size();
 			
 			int remNode=Math.max(n1, n2);
 			int keepNode=Math.min(n1, n2);
@@ -223,7 +232,19 @@ public class LineUtil {
 					e.n2=e.n2-1;
 				}
 			}
-			return this;
+			Map<Integer,Integer> oldToNew =new HashMap<>();
+			for(int i=0;i<oldMax;i++){
+				if(i<remNode){
+					oldToNew.put(i, i);
+				}
+				if(i==remNode){
+					oldToNew.put(i, keepNode);
+				}
+				if(i>remNode){
+					oldToNew.put(i, i-1);
+				}
+			}
+			return oldToNew;
 		}
 		
 		public ConnectionTable mergeNodes(List<Integer> nlist, Function<List<Point2D>, Point2D> op){
@@ -242,10 +263,42 @@ public class LineUtil {
 					mergeNodes(ni1,ni2,(p1,p2)->p);
 				}
 			}
-			System.out.println("Done");
 			
 			
 			return this;
+		}
+		
+		public Map<Integer,Integer> mergeNodesGetTransform(List<Integer> nlist, Function<List<Point2D>, Point2D> op){
+			Point2D p = op.apply(nlist.stream().map(i->nodes.get(i)).collect(Collectors.toList()));
+			
+			nlist=nlist.stream().sorted().collect(Collectors.toList());
+			
+			Map<Integer,Integer> oldToNewMap=new HashMap<>();
+			for(int i=0;i<this.nodes.size();i++){
+				oldToNewMap.put(i, i);
+			}
+			
+			System.out.println("Start merge");
+			if(nlist.size()==1){
+				nodes.set(nlist.get(0),p);
+			}else{
+				for(int i=nlist.size()-1;i>=1;i--){
+					
+					int ni1=nlist.get(i);
+					int ni2=nlist.get(i-1);
+					System.out.println("Merging:" + ni1 + " and " + ni2);
+					Map<Integer,Integer> oldNewNew=mergeNodesGetTransform(ni1,ni2,(p1,p2)->p);
+					oldToNewMap=oldToNewMap.entrySet().stream()
+					   .map(Tuple::of)
+					   .peek(t->System.out.println("PFrom:"+t.k() + " to "+t.v()))
+					   .map(Tuple.vmap(oi->oldNewNew.get(oi)))
+					   .peek(t->System.out.println("From:"+t.k() + " to "+t.v()))
+					   .collect(Tuple.toMap());
+					
+				}
+			}
+			System.out.println("End merge");
+			return oldToNewMap;
 		}
 		
 		public ConnectionTable cleanMeaninglessEdges(){
@@ -290,18 +343,91 @@ public class LineUtil {
 			return this;
 		}
 		
-		public ConnectionTable mergeAllNodesInside(Shape s){
+		public ConnectionTable mergeAllNodesInside(Shape s, double tol){
 			Rectangle2D r=s.getBounds2D();
 			Point2D p = new Point2D.Double(r.getCenterX(),r.getCenterY());
 			
 			List<Integer> toMerge = new ArrayList<Integer>();
 			for(int i=nodes.size()-1;i>=0;i--){
 				Point2D pn = nodes.get(i);
-				if(s.contains(pn)){
+				if(GeomUtil.distanceTo(s,pn)<tol){
 					toMerge.add(i);
 				}
 			}
 			return this.mergeNodes(toMerge, (l)->p);
+		}
+		
+		public ConnectionTable mergeAllNodesOnParLines(){
+			Map<Line2D,Edge> edgeMap = this.edges.stream().collect(Collectors.toMap(e->e.getLine(),e->e ));
+			
+			Map<Integer,Integer> oldToNewMap = IntStream.range(0,this.nodes.size())
+			         .mapToObj(i->i)
+			         .collect(Collectors.toMap(i->i, i->i));
+			
+			List<LinkedHashSet<Integer>> mergeNodes=groupMultipleBonds(edgeMap.keySet().stream().collect(Collectors.toList()),5*Math.PI/180, 2, .8)
+			.stream()
+			.filter(l->l.size()>1)
+			.map(l->{
+				Line2D keep=l.stream()
+				 .map(l1->Tuple.of(-LineUtil.length(l1),l1).withKComparator())
+				 .sorted()
+				 .findFirst()
+				 .get()
+				 .v();
+				Edge keepEdge=edgeMap.get(keep);
+				LinkedHashSet<Integer> mergeNode1 = new LinkedHashSet<Integer>();
+				LinkedHashSet<Integer> mergeNode2 = new LinkedHashSet<Integer>();
+				mergeNode1.add(keepEdge.n1);
+				mergeNode2.add(keepEdge.n2);
+				
+				Point2D node1Point = keepEdge.getNode1();
+				Point2D node2Point = keepEdge.getNode2();
+				
+				l.stream()
+				 .map(l1->edgeMap.get(l1))
+				 .filter(e->e!=keepEdge)
+				 .forEach(me->{
+					 double distance1to1=me.getNode1().distance(node1Point);
+					 double distance1to2=me.getNode1().distance(node2Point);
+					 double distance2to1=me.getNode2().distance(node1Point);
+					 double distance2to2=me.getNode2().distance(node2Point);
+					 if(distance1to1<distance1to2){
+						 mergeNode1.add(me.n1);
+					 }else{
+						 mergeNode2.add(me.n1);
+					 }
+					 if(distance2to1<distance2to2){
+						 mergeNode1.add(me.n2);
+					 }else{
+						 mergeNode2.add(me.n2);
+					 }					 
+				 });				
+				List<LinkedHashSet<Integer>> toMerge=new ArrayList<LinkedHashSet<Integer>>();
+				toMerge.add(mergeNode1);
+				toMerge.add(mergeNode2);
+				return toMerge;
+			})
+			.flatMap(l->l.stream())
+			.filter(l->l.size()>1)
+			.collect(Collectors.toList());
+			
+			mergeNodes.forEach(ls->{
+				List<Integer> toMerge=ls.stream().map(i->oldToNewMap.get(i)).collect(Collectors.toList());
+				
+				Point2D keeper=this.nodes.get(toMerge.get(0));
+				toMerge=toMerge.stream().distinct().collect(Collectors.toList());
+				if(toMerge.size()<=1)return;
+				System.out.println(toMerge.toString());
+				Map<Integer,Integer> newTrans=mergeNodesGetTransform(toMerge,(pts)->keeper);
+				for(int i : oldToNewMap.keySet()){
+					int oldMap=oldToNewMap.get(i);
+					System.out.println(i+"=>" + oldMap);
+					//System.out.println(newTrans.toString());
+					int newMap=newTrans.get(oldMap);
+					oldToNewMap.put(i, newMap);
+				}
+			});
+			return this;
 		}
 		
 		public double getAverageBondLength(){
@@ -331,6 +457,16 @@ public class LineUtil {
 				Point2D p1 = ConnectionTable.this.nodes.get(n1);
 				Point2D p2 = ConnectionTable.this.nodes.get(n2);
 				return new Line2D.Double(p1, p2);
+			}
+			public Point2D getNode1(){
+				return ConnectionTable.this.nodes.get(n1);
+			}
+			public Point2D getNode2(){
+				return ConnectionTable.this.nodes.get(n2);
+			}
+			public int getOrder() {
+				
+				return this.order;
 			}
 			
 		}
