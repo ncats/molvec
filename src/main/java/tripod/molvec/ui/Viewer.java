@@ -381,9 +381,9 @@ public class Viewer extends JPanel
         lineLengths = lines.stream()
         		           .map(l->l.getP1().distance(l.getP2()))
         		           .collect(Collectors.toList());
-        double avg=lineLengths.stream().mapToDouble(d->d).max().getAsDouble();
+        double largestBond=lineLengths.stream().mapToDouble(d->d).max().getAsDouble();
         
-        linesOrder=LineUtil.reduceMultiBonds(lines, 5 * Math.PI/180.0, avg/3, .5);
+        linesOrder=LineUtil.reduceMultiBonds(lines, 5 * Math.PI/180.0, largestBond/3, .5);
         
       
         available |=HISTOGRAM;
@@ -401,55 +401,77 @@ public class Viewer extends JPanel
         resetAndRepaint ();
         
         
+     
+        
+        double cutoffCosine=0.6;
+        double maxLongerThanAverage = 1.6;
+        double mergeCloserThan = 4.0;
+        double maxRatioForIntersection = 1.2;
+        double maxCandidateRatioForIntersection = 1.7;
+        
+        double[] initialMaxBondLength=new double[]{Double.MAX_VALUE};
+        
         List<Shape> likelyOCR=new ArrayList<Shape>();
         /*
          * Looks at each polygon, and gets the likely OCR chars.
-         */
-        double cutoffCosine=0.6;
-        
+         */   
         for (Shape s : polygons) {
-            if(s.getBounds2D().getWidth()>0 && s.getBounds2D().getHeight()>0){
-            	List<Entry<Character,Number>> potential = OCR.getNBestMatches(4,
-                        bitmap.crop(s).createRaster(),
-                        thin.crop(s).createRaster()
-                        );
-                ocrAttmept.put(s, potential);
-                if(potential.stream().filter(e->e.getValue().doubleValue()>cutoffCosine).findAny().isPresent()){
-                	if(!"I".equalsIgnoreCase(potential.get(0).getKey()+"")){
-                		likelyOCR.add(s);
-                	}
-                }
-            }
+             if(s.getBounds2D().getWidth()>0 && s.getBounds2D().getHeight()>0){
+             	List<Entry<Character,Number>> potential = OCR.getNBestMatches(4,
+                         bitmap.crop(s).createRaster(),
+                         thin.crop(s).createRaster()
+                         );
+                 ocrAttmept.put(s, potential);
+                 if(potential.stream().filter(e->e.getValue().doubleValue()>cutoffCosine).findAny().isPresent()){
+                	 String t=potential.get(0).getKey()+"";
+                 	if(!"I".equalsIgnoreCase(t) && 
+                 	   !"L".equalsIgnoreCase(t) &&
+                 	   !"1".equalsIgnoreCase(t)){
+                 		likelyOCR.add(s);
+                 	}
+                 }
+             }
+         }
+        
+     
+        
+        boolean tooLongBond=true;
+        while(tooLongBond){
+	        ctab = LineUtil.getConnectionTable(linesOrder, likelyOCR, maxRatioForIntersection, maxCandidateRatioForIntersection,l-> (LineUtil.length(l) < initialMaxBondLength[0]))
+	        		       .mergeNodesCloserThan(mergeCloserThan);
+	        
+	        for(Shape s: likelyOCR){
+	        	ctab.mergeAllNodesInside(s, 2);
+	        }
+	        double bl1=ctab.getAverageBondLength();
+	        ctab.mergeNodesCloserThan(bl1/2.5);
+	        ctab.mergeAllNodesOnParLines();
+	        ctab.cleanMeaninglessEdges();
+	        ctab.cleanDuplicateEdges((e1,e2)->{
+	        	if(e1.getOrder()>e2.getOrder()){
+	        		return e1;
+	        	}
+	        	return e2;
+	        });
+	        
+	        
+	        ctab.createNodesOnIntersectingLines();
+	        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()/2.5);
+	        ctab.cleanMeaninglessEdges();
+	        ctab.cleanDuplicateEdges((e1,e2)->{
+	        	if(e1.getOrder()>e2.getOrder()){
+	        		return e1;
+	        	}
+	        	return e2;
+	        });
+	        ctab.mergeNodesExtendingTo(likelyOCR);
+	        
+	        double avgBondLength=ctab.getAverageBondLength();
+	        initialMaxBondLength[0]=avgBondLength*maxLongerThanAverage;
+	        tooLongBond = ctab.getEdges().stream().filter(e->e.getBondDistance()>initialMaxBondLength[0]).findAny().isPresent();
         }
         
         
-        
-        ctab = LineUtil.getConnectionTable(linesOrder, likelyOCR, 1.2, 1.7,(l)->{
-        	//linesOrder=l;
-        }).mergeNodesCloserThan(4);
-        
-        for(Shape s: likelyOCR){
-        	ctab.mergeAllNodesInside(s, 2);
-        }
-        double bl1=ctab.getAverageBondLength();
-        ctab.mergeNodesCloserThan(bl1/2.5);
-        ctab.mergeAllNodesOnParLines();
-        ctab.cleanMeaninglessEdges();
-        ctab.cleanDuplicateEdges((e1,e2)->{
-        	if(e1.getOrder()>e2.getOrder()){
-        		return e1;
-        	}
-        	return e2;
-        });
-        ctab.createNodesOnIntersectingLines();
-        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()/2.5);
-        ctab.cleanMeaninglessEdges();
-        ctab.cleanDuplicateEdges((e1,e2)->{
-        	if(e1.getOrder()>e2.getOrder()){
-        		return e1;
-        	}
-        	return e2;
-        });
         
         Set<String> accept = new HashSet<String>();
         accept.add("C");

@@ -19,8 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BinaryOperator;
-import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -401,6 +401,58 @@ public class LineUtil {
 			return this.mergeNodes(toMerge, (l)->p);
 		}
 		
+		public ConnectionTable mergeNodesExtendingTo(List<Shape> shapes){
+			double avg = this.getAverageBondLength();
+			edges.stream()
+			     .filter(e->e.getBondDistance()<avg)
+			     .forEach(e->{
+			    	 Point2D p1=e.getNode1();
+			    	 Point2D p2=e.getNode2();
+			    	 double minDistp1=Double.MAX_VALUE;
+			    	 double minDistp2=Double.MAX_VALUE;
+			    	 Shape closest1=null;
+			    	 Shape closest2=null;
+			    	 
+			    	 for(Shape s: shapes){
+			    		 double d1=GeomUtil.distanceTo(s, p1);
+			    		 double d2=GeomUtil.distanceTo(s, p2);
+			    		 if(d1<minDistp1){
+			    			 minDistp1=d1;
+			    			 closest1=s;
+			    		 }
+			    		 if(d2<minDistp2){
+			    			 minDistp2=d2;
+			    			 closest2=s;
+			    		 }
+			    	 }
+			    	 if(minDistp1>avg/2 && minDistp2>avg/2){
+			    		 return;
+			    	 }
+			    	 System.out.println("Found one, at least");
+			    	 Node closestNode = this.nodes.get(e.n1);
+			    	 Point2D newPoint = null;
+			    	 Line2D newLine = null;
+			    	 if(minDistp1>minDistp2){
+			    		 closestNode = this.nodes.get(e.n2);
+			    		 newPoint=new Point2D.Double(closest2.getBounds2D().getCenterX(),closest2.getBounds2D().getCenterY());
+			    		 newLine=new Line2D.Double(p1,newPoint);
+			    	 }else{
+			    		 newPoint=new Point2D.Double(closest1.getBounds2D().getCenterX(),closest1.getBounds2D().getCenterY());
+			    		 newLine=new Line2D.Double(p2,newPoint);
+			    	 }
+			    	 if(LineUtil.length(newLine)> 1.5*avg){
+			    		 return;
+			    	 }
+			    	 double cosTheta = Math.abs(cosTheta(newLine,e.getLine()));
+			    	 if(cosTheta<Math.cos(20.0*Math.PI/180.0)){
+			    		 return;
+			    	 }
+			    	 closestNode.point=newPoint;
+			     });
+			this.mergeNodesCloserThan(avg/20);
+			return this;
+		}
+		
 		public ConnectionTable mergeAllNodesOnParLines(){
 			Map<Line2D,Edge> edgeMap = this.edges.stream().collect(Collectors.toMap(e->e.getLine(),e->e ));
 			
@@ -492,10 +544,10 @@ public class LineUtil {
 							Point2D np=GeomUtil.intersection(e1.getLine(),e2.getLine());
 							int nodeNew = this.nodes.size();
 							this.addNode(np);
-							Edge nedge1 = new Edge(e1.n1, nodeNew, 1);
-							Edge nedge2 = new Edge(e1.n2, nodeNew, 1);
-							Edge nedge3 = new Edge(e2.n1, nodeNew, 1);
-							Edge nedge4 = new Edge(e2.n2, nodeNew, 1);
+							Edge nedge1 = new Edge(e1.n1, nodeNew, e1.order);
+							Edge nedge2 = new Edge(e1.n2, nodeNew, e1.order);
+							Edge nedge3 = new Edge(e2.n1, nodeNew, e2.order);
+							Edge nedge4 = new Edge(e2.n2, nodeNew, e2.order);
 							edges.set(i, nedge1);
 							edges.set(j, nedge2);
 							edges.add(nedge3);
@@ -588,10 +640,20 @@ public class LineUtil {
 			});
 			
 		}
+
+		public List<Edge> getEdges() {
+			return this.edges;
+		}
 		
 		
 	}
-	
+	public static double cosTheta(Line2D l1, Line2D l2){
+		double[] vec1=asVector(l1);
+		double[] vec2=asVector(l2);
+		double dot=vec1[0]*vec2[0]+vec1[1]*vec2[1];
+		double cosTheta=Math.abs(dot/(length(l1)*length(l2)));
+		return cosTheta;
+	}
 	
 	public static Line2D longestLineFromOneVertexToPoint(Line2D line, Point2D pnt){
 		double d1= pnt.distance(line.getP1());
@@ -602,7 +664,7 @@ public class LineUtil {
 			return new Line2D.Double(line.getP2(), pnt);
 		}
 	}
-	public static ConnectionTable getConnectionTable(List<Tuple<Line2D,Integer>> linest, List<Shape> likelyNodes, double maxDistanceRatioNonLikely,double maxDistanceRatioLikely, Consumer<List<Tuple<Line2D,Integer>>> whenDone){
+	public static ConnectionTable getConnectionTable(List<Tuple<Line2D,Integer>> linest, List<Shape> likelyNodes, double maxDistanceRatioNonLikely,double maxDistanceRatioLikely, Predicate<Line2D> acceptNewLine){
 		//This will find the likely intersection points between lines.
 				//If 2 lines would intersect 
 				List<Tuple<Line2D,Integer>> lines = new ArrayList<>(linest);
@@ -640,11 +702,13 @@ public class LineUtil {
 						if(merge){
 							Line2D newLine1 = longestLineFromOneVertexToPoint(lineOrder1.k(),intersect);
 							Line2D newLine2 = longestLineFromOneVertexToPoint(lineOrder2.k(),intersect);
-							Tuple<Line2D,Integer> norder1 = Tuple.of(newLine1,lineOrder1.v());
-							Tuple<Line2D,Integer> norder2 = Tuple.of(newLine2,lineOrder2.v());
-							lines.set(i, norder1);
-							lines.set(j, norder2);
-							lineOrder1 = norder1;
+							if(acceptNewLine.test(newLine1) && acceptNewLine.test(newLine2)){
+								Tuple<Line2D,Integer> norder1 = Tuple.of(newLine1,lineOrder1.v());
+								Tuple<Line2D,Integer> norder2 = Tuple.of(newLine2,lineOrder2.v());
+								lines.set(i, norder1);
+								lines.set(j, norder2);
+								lineOrder1 = norder1;
+							}
 						}				
 					}
 				}
@@ -657,14 +721,10 @@ public class LineUtil {
 					ct.addNode(lineOrder1.k().getP2());
 					ct.addEdge(i*2, i*2+1, lineOrder1.v());
 				}
-				whenDone.accept(lines);
 				return ct;
 				
 				
 	}
-	public static ConnectionTable getConnectionTable(List<Tuple<Line2D,Integer>> linest, List<Shape> likelyNodes, double maxDistanceRatioNonLikely,double maxDistanceRatioLikely){
-		return getConnectionTable(linest,likelyNodes,maxDistanceRatioNonLikely, maxDistanceRatioLikely);
-		
-	}
+	
 	
 }
