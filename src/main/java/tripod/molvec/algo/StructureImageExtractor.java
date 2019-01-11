@@ -77,7 +77,7 @@ public class StructureImageExtractor {
     	double[] maxBondLength=new double[]{INITIAL_MAX_BOND_LENGTH};    
         
         
-        bitmap = Bitmap.read(file);
+        bitmap = Bitmap.read(file).clean();
 
         polygons = bitmap.connectedComponents(Bitmap.Bbox.Polygon);
 

@@ -46,17 +46,17 @@
  <dependency>
         <groupId>gov.nih.ncats</groupId>
         <artifactId>chemkit-api</artifactId>
-        <version>0.8</version>
+        <version>0.8.1</version>
 </dependency>
 <dependency>
         <groupId>gov.nih.ncats</groupId>
         <artifactId>chemkit-cdk</artifactId>
-        <version>0.8</version>
+        <version>0.8.1</version>
 </dependency>
 <dependency>
         <groupId>gov.nih.ncats</groupId>
         <artifactId>chemkit-renderer</artifactId>
-        <version>0.8</version>
+        <version>0.8.1</version>
 </dependency>
 
 <!--<dependency>

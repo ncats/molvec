@@ -30,6 +30,7 @@ import java.util.stream.IntStream;
 import gov.nih.ncats.chemkit.api.Atom;
 import gov.nih.ncats.chemkit.api.Bond;
 import gov.nih.ncats.chemkit.api.Bond.BondType;
+import gov.nih.ncats.chemkit.api.Bond.Stereo;
 import gov.nih.ncats.chemkit.api.Chemical;
 import gov.nih.ncats.chemkit.api.ChemicalBuilder;
 import tripod.molvec.Bitmap;
@@ -245,16 +246,10 @@ public class LineUtil {
 				if(e.order==1){
 					Bond b=cb.addBond(atoms[e.n1],atoms[e.n2],BondType.SINGLE);
 					if(e.getDashed()){
-						//IDK?
-//						while(b.getStereo()!=Stereo.DOWN){
-//							b.switchParity();
-//						}
+						b.setStereo(Stereo.DOWN);
 					}
 					if(e.getWedge()){
-						//IDK?
-//						while(b.getStereo()!=Stereo.UP){
-//							b.switchParity();
-//						}
+						b.setStereo(Stereo.UP);
 					}
 					
 				}else if(e.order==2){

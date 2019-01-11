@@ -25,6 +25,7 @@ import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -629,7 +630,9 @@ public class Bitmap implements Serializable, TiffTags {
             }
         }
         
+        
         if (photometric == PHOTOMETRIC_BLACKISZERO) {
+        	
             // flip
             /*
               for (int i = 0; i < bm.data.length; ++i) {
@@ -637,9 +640,34 @@ public class Bitmap implements Serializable, TiffTags {
               }
             */
         }
+        
+        
 
         return bm;
     }
+    
+    
+    public Bitmap clean(){
+    	if(probabilityOfOn()>.5){
+    		return this.invert();
+    	}else{
+    		return this;
+    	}
+    }
+    
+    public double probabilityOfOn(){
+       int on=BitSet.valueOf(data).cardinality();
+       return ((double)on) / data.length;
+    }
+    
+    public Bitmap invert(){
+    	Bitmap clone = new Bitmap(this);
+    	for (int i = 0; i < clone.data.length; ++i) {
+    		 clone.data[i] = (byte) (~clone.data[i] & 0xff);
+        }
+    	return clone;
+    }
+    
 
     public static Bitmap read (File file) throws IOException {
         try {
@@ -1424,6 +1452,7 @@ public class Bitmap implements Serializable, TiffTags {
 		double dy=line.getY2()-line.getY1();
 		
     	double len=LineUtil.length(line);
+    	if(len<1)return 0;
     	double mult=1/len;
     	
     	int widthDistance=(int)(Math.round(len/3));
@@ -1454,7 +1483,9 @@ public class Bitmap implements Serializable, TiffTags {
     		//TODO: do interp eventually
     		int ix=(int)Math.round(x);
     		int iy=(int)Math.round(y);
-    		return (double) (distMet[iy*scanline*8+ix]/4);    		
+    		int ni=iy*scanline*8+ix;
+    		if(ni>distMet.length || ni<0)return (double)Byte.MAX_VALUE/4;
+    		return (double) (distMet[ni]/4);    		
     	};
     	double sx=line.getX1();
 		double sy=line.getY1();
