@@ -337,6 +337,22 @@ public class LineUtil {
 			return this;
 		}
 		
+		public ConnectionTable removeNode(int remNode){
+			this.nodes.remove(remNode);
+			for(Edge e: edges){
+				if(e.n1==remNode || e.n2==remNode){
+					throw new IllegalStateException("Can't remove a node that is used in an edge");
+				}
+				if(e.n1>remNode){
+					e.n1=e.n1-1;
+				}
+				if(e.n2>remNode){
+					e.n2=e.n2-1;
+				}
+			}
+			return this;
+		}
+		
 		public Map<Integer,Integer> mergeNodesGetTransform(List<Integer> nlist, Function<List<Point2D>, Point2D> op){
 			Point2D p = op.apply(nlist.stream().map(i->nodes.get(i).point).collect(Collectors.toList()));
 			
@@ -461,7 +477,7 @@ public class LineUtil {
 			    		 newPoint=new Point2D.Double(closest1.getBounds2D().getCenterX(),closest1.getBounds2D().getCenterY());
 			    		 newLine=new Line2D.Double(p2,newPoint);
 			    	 }
-			    	 if(LineUtil.length(newLine)> 1.5*avg){
+			    	 if(LineUtil.length(newLine)> 1.3*avg){
 			    		 return;
 			    	 }
 			    	 double cosTheta = Math.abs(cosTheta(newLine,e.getLine()));
@@ -735,6 +751,20 @@ public class LineUtil {
 				}
 			}
 			
+			return this;
+		}
+
+		public ConnectionTable removeOrphanNodes() {
+			Map<Integer,Set<Integer>> nmap = new HashMap<>();
+			edges.forEach(e->{
+				nmap.computeIfAbsent(e.n1,k->new HashSet<>()).add(e.n2);
+				nmap.computeIfAbsent(e.n2,k->new HashSet<>()).add(e.n1);
+			});
+			for(int i =nodes.size()-1;i>=0;i--){
+				if(nmap.get(i)==null){
+					removeNode(i);
+				}
+			}
 			return this;
 		}
 		

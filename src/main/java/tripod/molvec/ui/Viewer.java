@@ -408,7 +408,7 @@ public class Viewer extends JPanel
      
         
         double cutoffCosine=0.6;
-        double maxLongerThanAverage = 1.6;
+        double maxLongerThanAverage = 1.5;
         double mergeCloserThan = 4.0;
         double maxRatioForIntersection = 1.2;
         double maxCandidateRatioForIntersection = 1.7;
@@ -438,6 +438,7 @@ public class Viewer extends JPanel
          }
         
      
+        int reps=0;
         
         boolean tooLongBond=true;
         while(tooLongBond){
@@ -459,7 +460,7 @@ public class Viewer extends JPanel
 	        });
 	        
 	        
-	        ctab.createNodesOnIntersectingLines();
+	        //ctab.createNodesOnIntersectingLines();
 	        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()/2.5);
 	        ctab.cleanMeaninglessEdges();
 	        ctab.cleanDuplicateEdges((e1,e2)->{
@@ -469,12 +470,25 @@ public class Viewer extends JPanel
 	        	return e2;
 	        });
 	        ctab.mergeNodesExtendingTo(likelyOCR);
-	        
+	        ctab.removeOrphanNodes();
 	        ctab.makeDashBondsToNeighbors(bitmap,1.3,1);
+	        
 	        
 	        double avgBondLength=ctab.getAverageBondLength();
 	        initialMaxBondLength[0]=avgBondLength*maxLongerThanAverage;
-	        tooLongBond = ctab.getEdges().stream().filter(e->e.getBondDistance()>initialMaxBondLength[0]).findAny().isPresent();
+	        System.out.println("Average bond length:" + avgBondLength);
+	        
+	        tooLongBond = ctab.getEdges()
+	        		          .stream()
+	        		          .peek(e->System.out.println(e.getBondDistance()))
+	        		          .filter(e->e.getBondDistance()>initialMaxBondLength[0])
+	        		          .findAny()
+	        		          .isPresent();
+	        if(tooLongBond){
+	        	System.out.println("No good, try again");
+	        	reps++;
+	        }
+	        if(reps>10)break;
         }
         ctab.getEdges()
         .forEach(e->{
