@@ -383,7 +383,11 @@ public class Viewer extends JPanel
         		           .collect(Collectors.toList());
         double largestBond=lineLengths.stream().mapToDouble(d->d).max().getAsDouble();
         
-        linesOrder=LineUtil.reduceMultiBonds(lines, 5 * Math.PI/180.0, largestBond/3, .5);
+        List<Line2D> preprocess= LineUtil.reduceMultiBonds(lines, 5 * Math.PI/180.0, 2, .5)
+        		                         .stream()
+        		                         .map(t->t.k())
+        		                         .collect(Collectors.toList());
+        linesOrder=LineUtil.reduceMultiBonds(preprocess, 5 * Math.PI/180.0, largestBond/3, .5);
         
       
         available |=HISTOGRAM;
@@ -466,11 +470,24 @@ public class Viewer extends JPanel
 	        });
 	        ctab.mergeNodesExtendingTo(likelyOCR);
 	        
+	        ctab.makeDashBondsToNeighbors(bitmap,1.3,1);
+	        
 	        double avgBondLength=ctab.getAverageBondLength();
 	        initialMaxBondLength[0]=avgBondLength*maxLongerThanAverage;
 	        tooLongBond = ctab.getEdges().stream().filter(e->e.getBondDistance()>initialMaxBondLength[0]).findAny().isPresent();
         }
-        
+        ctab.getEdges()
+        .forEach(e->{
+        	double wl=bitmap.getWedgeLikeScore(e.getLine());
+        	//System.out.println("WL:" + wl);
+        	if(wl>.8){
+        		e.setWedge(true);            		
+        	}
+        	else if(wl<-.8){
+        		e.setWedge(true);
+        		e.switchNodes();
+        	}            	
+        });
         
         
         Set<String> accept = new HashSet<String>();

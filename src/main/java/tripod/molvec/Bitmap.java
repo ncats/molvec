@@ -1413,6 +1413,65 @@ public class Bitmap implements Serializable, TiffTags {
         return segments (2, DEFAULT_AEV_THRESHOLD);
     }
     
+    //0 means not wedge like
+    //+1 means perfect wedge-like from A to B, with B being wider
+    //-1 means perfect wedge-like from B to A, with A being wider
+    public double getWedgeLikeScore(Line2D line){
+    	
+    	double sx=line.getX1();
+		double sy=line.getY1();
+		double dx=line.getX2()-line.getX1();
+		double dy=line.getY2()-line.getY1();
+		
+    	double len=LineUtil.length(line);
+    	double mult=1/len;
+    	
+    	int widthDistance=(int)(Math.round(len/3));
+    	
+    	double stepX=dx*mult;
+    	double stepY=dy*mult;
+    	
+    	int[] c = new int[(int)len];
+		for(int d=0;d<c.length;d++){
+			double ddx = stepX*d+sx;
+			double ddy = stepY*d+sy;
+			
+			for(int i=-widthDistance;i<widthDistance;i++){
+				double iddx = i*stepY+ddx;
+				double iddy = -i*stepX+ddy;
+				if(this.get((int)Math.round(iddx), (int)Math.round(iddy))){
+					c[d]++;
+				}
+			}
+		}
+		
+		return GeomUtil.ordinalCorrel(c);
+    }
+    
+    public double getLineLikeScore(Line2D line){
+    	byte[] distMet=distanceData.get();
+    	BiFunction<Double,Double,Double> sample = (x,y)->{
+    		//TODO: do interp eventually
+    		int ix=(int)Math.round(x);
+    		int iy=(int)Math.round(y);
+    		return (double) (distMet[iy*scanline*8+ix]/4);    		
+    	};
+    	double sx=line.getX1();
+		double sy=line.getY1();
+		double dx=line.getX2()-line.getX1();
+		double dy=line.getY2()-line.getY1();
+		
+    	double len=LineUtil.length(line);
+    	double mult=1/len;
+    	double sumDist = 0;
+		for(int d=0;d<len;d++){
+			double ddx = mult*d*dx+sx;
+			double ddy = mult*d*dy+sy;
+			double dist=sample.apply(ddx, ddy);
+			sumDist+=dist;
+		}
+		return sumDist/len;
+    }
     
     public List<Line2D> combineLines(List<Line2D> ilines, double maxMinDistance, double maxAvgDeviation){
     	byte[] distMet=distanceData.get();

@@ -1,13 +1,22 @@
 package tripod.molvec.util;
 
-import java.util.*;
-import java.awt.Shape;
-import java.awt.Polygon;
 import java.awt.Point;
-import java.awt.geom.*;
-
+import java.awt.Polygon;
+import java.awt.Shape;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Line2D;
+import java.awt.geom.PathIterator;
+import java.awt.geom.Point2D;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
 import java.util.logging.Logger;
-import java.util.logging.Level;
+import java.util.stream.IntStream;
+
+import tripod.molvec.algo.Tuple;
 
 
 public class GeomUtil {
@@ -416,4 +425,54 @@ public class GeomUtil {
         Point2D[] vertex = nearestNeighborVertices (s1, s2);
         return length (vertex[0], vertex[1]);
     }
+    
+    public static double[] centerVector(double[] v){
+    	double a1=(IntStream.range(0,v.length)
+   			 .mapToDouble(i->v[i])
+   			 .average()
+   			 .getAsDouble());
+    	
+    	
+    	return IntStream.range(0,v.length)
+			 .mapToDouble(i->v[i]-a1)
+			 .toArray();
+    }
+    
+    public static double l2Norm(double[] v){
+    	return Math.sqrt(IntStream.range(0,v.length)
+   			 .mapToDouble(i->v[i])
+   			 .map(d->d*d)
+   			 .sum());
+    }
+    public static double dot(double[] a, double[] b){
+    	return IntStream.range(0,a.length)
+      			 .mapToDouble(i->a[i]*b[i])
+      			 .sum();
+    }
+    
+    public static double pearsonCorrel(double[] l1, double[] l2){
+    	l1=centerVector(l1);
+    	l2=centerVector(l2);
+    	return dot(l1,l2)/(l2Norm(l1)*l2Norm(l2));
+    }
+    public static double pearsonCorrel(int[] l1, int[] l2){
+    	return pearsonCorrel(Arrays.stream(l1).mapToDouble(i->i).toArray(),
+    						 Arrays.stream(l2).mapToDouble(i->i).toArray());
+    }
+    
+    public static double ordinalCorrel(int[] l1){
+    	return pearsonCorrel(IntStream.range(0, l1.length).toArray(),
+    						 l1);
+    }
+    
+    public static double rankedCorrel(int[] l1){
+    	int[] rank=IntStream.range(0, l1.length)
+    	         .mapToObj(i->Tuple.of(i,l1[i]).withVComparator())
+    	         .sorted()
+    	         .mapToInt(t->t.k())
+    	         .toArray();
+    	return ordinalCorrel(rank);
+    }
+    
+    
 }

@@ -1,8 +1,10 @@
 package tripod.molvec.algo;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Shape;
+import java.awt.Stroke;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.GeneralPath;
 import java.awt.geom.Line2D;
@@ -25,9 +27,12 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import gov.nih.ncats.chemkit.api.Atom;
+import gov.nih.ncats.chemkit.api.Bond;
 import gov.nih.ncats.chemkit.api.Bond.BondType;
+import gov.nih.ncats.chemkit.api.Bond.Stereo;
 import gov.nih.ncats.chemkit.api.Chemical;
 import gov.nih.ncats.chemkit.api.ChemicalBuilder;
+import tripod.molvec.Bitmap;
 import tripod.molvec.util.GeomUtil;
 
 public class LineUtil {
@@ -74,6 +79,12 @@ public class LineUtil {
 		return l.getP1().distance(l.getP2());
 	}
 	
+	
+	public static class LineSet{
+		List<Line2D> lines;
+		
+	}
+	
 	/**
 	 * <p>Currently, this method takes in a set of lines and attempts to group the lines based on being</p>
 	 * <ol>
@@ -89,7 +100,7 @@ public class LineUtil {
 	 * @param minIntersectionRatio
 	 * @return
 	 */
-	public static List<List<Line2D>> groupMultipleBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minIntersectionRatio){
+	public static List<List<Line2D>> groupMultipleBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio){
 		double[] recipLengths=new double[lines.size()];
 		Map<Integer,Integer> groups = new HashMap<>();
 		for(int i=0;i<lines.size();i++){
@@ -118,6 +129,7 @@ public class LineUtil {
 					double rej=Math.abs(antiDot*recipLengths[i]);
 					//Sufficiently close to line
 					if(rej<maxDeltaOffset){
+						
 						double len1=1/recipLengths[i];
 						double proj1=0;
 						double proj2=0;
@@ -137,8 +149,8 @@ public class LineUtil {
 							proj2=len1;
 						}
 						double intersectLength=Math.abs(proj1-proj2);
-						double cutoffRat=Math.max(recipLengths[i], recipLengths[j]);
-						if(intersectLength*cutoffRat>minIntersectionRatio){
+						double cutoffRat1=Math.max(recipLengths[i], recipLengths[j]);
+						if(intersectLength*cutoffRat1>minProjectionRatio){
 							int g1=groups.get(i);
 							int g2=groups.get(j);
 							groups.put(i, Math.min(g1, g2));
@@ -174,9 +186,9 @@ public class LineUtil {
 	 * @param minIntersectionRatio
 	 * @return
 	 */
-	public static List<Tuple<Line2D, Integer>> reduceMultiBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minIntersectionRatio){
+	public static List<Tuple<Line2D, Integer>> reduceMultiBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio){
 		
-		return groupMultipleBonds(lines,maxDeltaTheta,maxDeltaOffset,minIntersectionRatio)
+		return groupMultipleBonds(lines,maxDeltaTheta,maxDeltaOffset,minProjectionRatio)
 				.stream()
 				.map(l->Tuple.of(l,l.size()))
 				.map(Tuple.kmap(l->l.stream()
@@ -187,9 +199,6 @@ public class LineUtil {
 						           .k()
 						           ))
 				.collect(Collectors.toList());
-		
-		
-		
 	}
 	
 	public static double[] asVector(Line2D line){
@@ -232,11 +241,26 @@ public class LineUtil {
 			}
 			for(Edge e : edges){
 				if(e.order==1){
-					cb.addBond(atoms[e.n1],atoms[e.n2],BondType.SINGLE);
+					Bond b=cb.addBond(atoms[e.n1],atoms[e.n2],BondType.SINGLE);
+					if(e.getDashed()){
+						//IDK?
+						while(b.getStereo()!=Stereo.DOWN){
+							b.switchParity();
+						}
+					}
+					if(e.getWedge()){
+						//IDK?
+						while(b.getStereo()!=Stereo.UP){
+							b.switchParity();
+						}
+					}
+					
 				}else if(e.order==2){
 					cb.addBond(atoms[e.n1],atoms[e.n2],BondType.DOUBLE);
 				}else if(e.order==3){
 					cb.addBond(atoms[e.n1],atoms[e.n2],BondType.TRIPLE);
+					
+					
 				}else{
 					cb.addBond(atoms[e.n1],atoms[e.n2],BondType.SINGLE);
 				}
@@ -323,7 +347,7 @@ public class LineUtil {
 				oldToNewMap.put(i, i);
 			}
 			
-			System.out.println("Start merge");
+			
 			if(nlist.size()==1){
 				nodes.get(nlist.get(0)).point=p;
 			}else{
@@ -331,18 +355,16 @@ public class LineUtil {
 					
 					int ni1=nlist.get(i);
 					int ni2=nlist.get(i-1);
-					System.out.println("Merging:" + ni1 + " and " + ni2);
 					Map<Integer,Integer> oldNewNew=mergeNodesGetTransform(ni1,ni2,(p1,p2)->p);
 					oldToNewMap=oldToNewMap.entrySet().stream()
 					   .map(Tuple::of)
-					   .peek(t->System.out.println("PFrom:"+t.k() + " to "+t.v()))
+			//		   .peek(t->System.out.println("PFrom:"+t.k() + " to "+t.v()))
 					   .map(Tuple.vmap(oi->oldNewNew.get(oi)))
-					   .peek(t->System.out.println("From:"+t.k() + " to "+t.v()))
+			//		   .peek(t->System.out.println("From:"+t.k() + " to "+t.v()))
 					   .collect(Tuple.toMap());
 					
 				}
 			}
-			System.out.println("End merge");
 			return oldToNewMap;
 		}
 		
@@ -428,7 +450,6 @@ public class LineUtil {
 			    	 if(minDistp1>avg/2 && minDistp2>avg/2){
 			    		 return;
 			    	 }
-			    	 System.out.println("Found one, at least");
 			    	 Node closestNode = this.nodes.get(e.n1);
 			    	 Point2D newPoint = null;
 			    	 Line2D newLine = null;
@@ -513,11 +534,11 @@ public class LineUtil {
 				Point2D keeper=this.nodes.get(toMerge.get(0)).point;
 				toMerge=toMerge.stream().distinct().collect(Collectors.toList());
 				if(toMerge.size()<=1)return;
-				System.out.println(toMerge.toString());
+
 				Map<Integer,Integer> newTrans=mergeNodesGetTransform(toMerge,(pts)->keeper);
 				for(int i : oldToNewMap.keySet()){
 					int oldMap=oldToNewMap.get(i);
-					System.out.println(i+"=>" + oldMap);
+
 					//System.out.println(newTrans.toString());
 					int newMap=newTrans.get(oldMap);
 					oldToNewMap.put(i, newMap);
@@ -573,18 +594,41 @@ public class LineUtil {
 				this.point=p;
 				this.symbol=s;				
 			}
-			
+			public double distanceTo(Node n2){
+				return this.point.distance(n2.point);
+			}
 			
 		}
 		public class Edge{
 			int n1;
 			int n2;
 			int order;
+			boolean isWedge=false;
+			boolean isDash=false;
 			public Edge(int n1, int n2, int o){
 				this.n1=n1;
 				this.n2=n2;
 				this.order=o;
 			}
+			
+			public Edge setDashed(boolean d){
+				this.isDash=d;
+				return this;
+			}
+			public Edge setWedge(boolean d){
+				this.isWedge=d;
+				return this;
+			}
+			
+			public boolean getDashed(){
+				return this.isDash;
+			}
+			public boolean getWedge(){
+				return this.isWedge;
+			}
+			
+			
+			
 			public double getBondDistance(){
 				return ConnectionTable.this.nodes.get(n1).point.distance(ConnectionTable.this.nodes.get(n2).point);
 			}
@@ -618,10 +662,23 @@ public class LineUtil {
 				
 				return this.order;
 			}
+
+			public Edge switchNodes() {
+				int t=this.n1;
+				this.n1=this.n2;
+				this.n2=t;
+				return this;
+				
+			}
 			
 		}
 		public void draw(Graphics2D g2) {
 			int sx=1;
+			Stroke old = g2.getStroke();
+			
+			Stroke dashed = new BasicStroke(3, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{3}, 0);
+			Stroke wedge = new BasicStroke(5f);
+	        
 			
 			nodes.stream().map(n->n.point)
 			.forEach(p->{
@@ -631,18 +688,54 @@ public class LineUtil {
 			edges.forEach(l->{
 				if(l.order==1){
 					g2.setPaint(Color.BLACK);
+					if(l.isDash){
+						g2.setStroke(dashed);						
+					}
+					if(l.isWedge){
+						g2.setStroke(wedge);
+					}
+					
 				}else if(l.order==2){
 					g2.setPaint(Color.RED);
 				}else if(l.order==3){
 					g2.setPaint(Color.GREEN);
 				}
+				
 				g2.draw(l.getLine());
+				g2.setStroke(old);
 			});
 			
 		}
 
 		public List<Edge> getEdges() {
 			return this.edges;
+		}
+
+		public ConnectionTable makeDashBondsToNeighbors(Bitmap bm, double d, double tol) {
+			double avg=this.getAverageBondLength();
+			Map<Integer,Set<Integer>> nmap = new HashMap<>();
+			edges.forEach(e->{
+				nmap.computeIfAbsent(e.n1,k->new HashSet<>()).add(e.n2);
+				nmap.computeIfAbsent(e.n2,k->new HashSet<>()).add(e.n1);
+			});
+			for(int i =0 ;i<this.nodes.size();i++){
+				Node n1=nodes.get(i);
+				for(int j =i+1 ;j<this.nodes.size();j++){
+					if(!nmap.get(i).contains(j)){
+						Node n2=nodes.get(j);
+						if(n1.distanceTo(n2)<avg*d){
+							Edge e= new Edge(i,j,1).setDashed(true);
+							double score=bm.getLineLikeScore(e.getLine());
+							//System.out.println("Score:" + score);
+							if(score<tol){
+								this.edges.add(e);
+							}
+						}
+					}
+				}
+			}
+			
+			return this;
 		}
 		
 		
