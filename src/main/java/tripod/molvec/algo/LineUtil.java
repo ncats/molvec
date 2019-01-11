@@ -372,7 +372,6 @@ public class LineUtil {
 						Point2D pntj = nodes.get(j).point;
 						if(pnti.distance(pntj)<maxDistance){
 							mergeNodesAverage(i,j);
-							System.out.println("Merged");
 							mergedOne=true;
 							break;
 						}
@@ -629,7 +628,6 @@ public class LineUtil {
 						
 						if(ratio<maxDistanceRatioLikely){
 							if(ratio<maxDistanceRatioNonLikely){
-								System.out.println(totalDistanceAfter +  "vs" + totalDistance);
 								merge=true;
 							}else{
 								boolean inLikelyNode=likelyNodes.stream().filter(s->s.contains(intersect)).findAny().isPresent();
