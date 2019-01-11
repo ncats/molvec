@@ -10,13 +10,13 @@
   <version>0.1</version>
   <name>MolVec</name>
 
-<repositories>
+
+  <repositories>
     <repository>
-<id>jboss-repo</id>
+      <id>jboss-repo</id>
       <url>https://repository.jboss.org/nexus/content/repositories/thirdparty-releases/</url>
     </repository>
   </repositories>
-
   <properties>
     <java.version>1.8</java.version>
     <maven.compiler.plugin.version>2.3.2</maven.compiler.plugin.version>

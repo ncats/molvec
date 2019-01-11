@@ -1,9 +1,7 @@
 package tripod.molvec.algo;
 
-import java.awt.Dimension;
 import java.awt.Shape;
 import java.awt.geom.Line2D;
-import java.awt.geom.Path2D;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -12,7 +10,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -65,6 +62,8 @@ public class StructureImageExtractor {
 		keepers.add("S");
 		keepers.add("P");
 		keepers.add("B");
+		keepers.add("F");
+		
 	    return keepers;
 	}).get();
     
@@ -171,7 +170,7 @@ public class StructureImageExtractor {
 	        });
 	        
 	        
-	        //ctab.createNodesOnIntersectingLines();
+	        ctab.createNodesOnIntersectingLines();
 	        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO);
 	        ctab.cleanMeaninglessEdges();
 	        ctab.cleanDuplicateEdges((e1,e2)->{
@@ -216,6 +215,13 @@ public class StructureImageExtractor {
         		e.switchNodes();
         	}            	
         });
+        
+        double shortestRealBondRatio = .3;
+        ctab.fixBondOrders(likelyOCR,shortestRealBondRatio, e->{
+        	System.out.println("Fixing bond order");
+        	e.order=1;
+        });
+        
         
         
         

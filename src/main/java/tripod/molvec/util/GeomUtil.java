@@ -13,8 +13,11 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Set;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import tripod.molvec.algo.Tuple;
 
@@ -241,6 +244,14 @@ public class GeomUtil {
         return lines.toArray (new Line2D[0]);
     }
 
+    public static Point2D segmentIntersection(Line2D l1, Line2D l2){
+    	 Point2D pt = intersection (l1, l2);
+         if (pt != null && intersects (l1, pt) && intersects (l2, pt)) {
+             return pt;
+         }
+         return null;
+    }
+    
     /**
      * return the intersection point (if any) between two lines
      */
@@ -363,6 +374,15 @@ public class GeomUtil {
         }
         return false;
     }
+    
+    public static Point2D getIntersection(Shape s1, Line2D l1){
+    	
+    	return Arrays.stream(lines(s1))
+    	      .map(l->segmentIntersection(l,l1))
+    	      .filter(p->p!=null)
+    	      .findFirst()
+    	      .orElse(null);
+    }
 
     /**
      * Test whether s2 is contained within s1
@@ -409,6 +429,7 @@ public class GeomUtil {
     	      .min()
     	      .getAsDouble();
     }
+  
 
     /**
      * Euclidean distance between two points

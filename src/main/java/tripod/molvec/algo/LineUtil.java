@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BinaryOperator;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -29,10 +30,10 @@ import java.util.stream.IntStream;
 import gov.nih.ncats.chemkit.api.Atom;
 import gov.nih.ncats.chemkit.api.Bond;
 import gov.nih.ncats.chemkit.api.Bond.BondType;
-import gov.nih.ncats.chemkit.api.Bond.Stereo;
 import gov.nih.ncats.chemkit.api.Chemical;
 import gov.nih.ncats.chemkit.api.ChemicalBuilder;
 import tripod.molvec.Bitmap;
+import tripod.molvec.CachedSupplier;
 import tripod.molvec.util.GeomUtil;
 
 public class LineUtil {
@@ -211,12 +212,13 @@ public class LineUtil {
 	
 	
 	public static class ConnectionTable{
-		List<Node> nodes = new ArrayList<Node>();
-		List<Edge> edges = new ArrayList<Edge>();
+		private List<Node> nodes = new ArrayList<Node>();
+		private List<Edge> edges = new ArrayList<Edge>();
 		
 		
 		public ConnectionTable addNode(Point2D p){
 			nodes.add(new Node(p,"C"));
+			resetCaches();
 			return this;
 		}
 		
@@ -244,15 +246,15 @@ public class LineUtil {
 					Bond b=cb.addBond(atoms[e.n1],atoms[e.n2],BondType.SINGLE);
 					if(e.getDashed()){
 						//IDK?
-						while(b.getStereo()!=Stereo.DOWN){
-							b.switchParity();
-						}
+//						while(b.getStereo()!=Stereo.DOWN){
+//							b.switchParity();
+//						}
 					}
 					if(e.getWedge()){
 						//IDK?
-						while(b.getStereo()!=Stereo.UP){
-							b.switchParity();
-						}
+//						while(b.getStereo()!=Stereo.UP){
+//							b.switchParity();
+//						}
 					}
 					
 				}else if(e.order==2){
@@ -314,6 +316,7 @@ public class LineUtil {
 					oldToNew.put(i, i-1);
 				}
 			}
+			resetCaches();
 			return oldToNew;
 		}
 		
@@ -350,6 +353,7 @@ public class LineUtil {
 					e.n2=e.n2-1;
 				}
 			}
+			resetCaches();
 			return this;
 		}
 		
@@ -385,7 +389,12 @@ public class LineUtil {
 		}
 		
 		public ConnectionTable cleanMeaninglessEdges(){
-			this.edges=edges.stream().filter(e->e.n1!=e.n2).collect(Collectors.toList());
+			this.edges=edges.stream()
+					 		.filter(e->e.n1!=e.n2)
+							.collect(Collectors.toList());
+
+			resetCaches();
+			
 			return this;
 		}
 		
@@ -396,6 +405,7 @@ public class LineUtil {
 			              .values()
 			              .stream()
 			              .collect(Collectors.toList());
+			resetCaches();
 			return this;
 		}
 		
@@ -422,6 +432,7 @@ public class LineUtil {
 		
 		public ConnectionTable addEdge(int n1, int n2, int o){
 			this.edges.add(new Edge(n1,n2,o));
+			resetCaches();
 			return this;
 		}
 		
@@ -487,6 +498,7 @@ public class LineUtil {
 			    	 closestNode.point=newPoint;
 			     });
 			this.mergeNodesCloserThan(avg/20);
+			
 			return this;
 		}
 		
@@ -596,8 +608,14 @@ public class LineUtil {
 					if(splitOne)break;
 				}
 			}
-			
+			resetCaches();
 			return this;
+		}
+		
+		private void resetCaches(){
+			_bondMap.resetCache();
+			_nodeMap.resetCache();
+			
 		}
 		
 		public double getAverageBondLength(){
@@ -606,12 +624,33 @@ public class LineUtil {
 		public class Node{
 			Point2D point;
 			String symbol="C";
+			
 			public Node(Point2D p, String s){
 				this.point=p;
 				this.symbol=s;				
 			}
 			public double distanceTo(Node n2){
 				return this.point.distance(n2.point);
+			}
+			
+			public List<Edge> getEdges(){
+				return getEdgeMap().getOrDefault(getIndex(), new ArrayList<>());
+			}
+			
+			public int getIndex(){
+				Integer ind=getNodeMap().get(this);
+				if(ind==null)return -1;
+				return ind;
+			}
+			
+			public boolean equals(Object o){
+				if(o==null)return false;
+				if(!(o instanceof Node))return false;
+				return o==this;
+			}
+			
+			public int hashCode(){
+				return point.hashCode() ^ symbol.hashCode();
 			}
 			
 		}
@@ -750,16 +789,13 @@ public class LineUtil {
 					}
 				}
 			}
-			
+			resetCaches();
 			return this;
 		}
 
 		public ConnectionTable removeOrphanNodes() {
-			Map<Integer,Set<Integer>> nmap = new HashMap<>();
-			edges.forEach(e->{
-				nmap.computeIfAbsent(e.n1,k->new HashSet<>()).add(e.n2);
-				nmap.computeIfAbsent(e.n2,k->new HashSet<>()).add(e.n1);
-			});
+			Map<Integer,List<Edge>> nmap = getEdgeMap();
+			
 			for(int i =nodes.size()-1;i>=0;i--){
 				if(nmap.get(i)==null){
 					removeNode(i);
@@ -768,8 +804,69 @@ public class LineUtil {
 			return this;
 		}
 		
+		private Map<Integer,List<Edge>> _getEdgeMap(){
+			Map<Integer,List<Edge>> nmap = new HashMap<>();
+			edges.forEach(e->{
+				nmap.computeIfAbsent(e.n1,k->new ArrayList<>()).add(e);
+				nmap.computeIfAbsent(e.n2,k->new ArrayList<>()).add(e);
+			});
+			return nmap;
+		}
+		public Map<Integer,List<Edge>> getEdgeMap(){
+			return _bondMap.get();
+		}
+		public Map<Node,Integer> getNodeMap(){
+			return _nodeMap.get();
+		}
+		public Map<Node,Integer> _getNodeMap(){
+			return IntStream.range(0, nodes.size())
+					 .mapToObj(i->i)
+			         .collect(Collectors.toMap(i->nodes.get(i), i->i));
+		}
+		
+		CachedSupplier<Map<Integer,List<Edge>>> _bondMap = CachedSupplier.of(()->_getEdgeMap());
+		CachedSupplier<Map<Node,Integer>> _nodeMap = CachedSupplier.of(()->_getNodeMap());
+		
+
+		public ConnectionTable fixBondOrders(List<Shape> likelyOCR, double shortestRealBondRatio, Consumer<Edge> edgeCons) {
+			// TODO Auto-generated method stub
+			this.edges
+			    .stream()
+			    .forEach(e->{
+			    	Shape s1=getClosestShapeTo(likelyOCR,e.getNode1());
+			    	Shape s2=getClosestShapeTo(likelyOCR,e.getNode2());
+			    	if(s1!=s2){
+			    		if(s1.contains(e.getNode1())){
+			    			if(s2.contains(e.getNode2())){
+			    				Line2D line = e.getLine();
+			    				
+			    				Point2D pn1=GeomUtil.getIntersection(s1,line);
+			    				Point2D pn2=GeomUtil.getIntersection(s2,line);
+			    				if(pn1!=null && pn2!=null){
+			    					double realDistance=pn1.distance(pn2);
+			    					if(realDistance/e.getBondDistance()<shortestRealBondRatio){
+			    						edgeCons.accept(e);
+			    					}
+			    				}
+			    			}
+			    		}
+			    	}
+			    });
+			return this;
+		}
+		
 		
 	}
+	
+	public static Shape getClosestShapeTo(List<Shape> shapes, Point2D pnt){
+		return shapes.stream()
+				      .map(s->Tuple.of(s,GeomUtil.distanceTo(s, pnt)).withVComparator())
+				      .sorted()
+				      .findFirst()
+				      .map(t->t.k())
+				      .get();
+	}
+	
 	public static double cosTheta(Line2D l1, Line2D l2){
 		double[] vec1=asVector(l1);
 		double[] vec2=asVector(l2);

@@ -323,6 +323,9 @@ public class Viewer extends JPanel
         ctab=sie.getCtab();
         ocrAttmept=sie.getOcrAttmept();
         
+        System.out.println("Loaded");
+        
+        System.out.println(sie.getChemical().toMol());
         
 //
 //        long start = System.currentTimeMillis();
