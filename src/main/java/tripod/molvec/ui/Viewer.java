@@ -39,14 +39,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
 import javax.swing.AbstractButton;
@@ -67,15 +63,13 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import gov.nih.ncats.chemkit.api.Chemical;
 import tripod.molvec.Bitmap;
 import tripod.molvec.algo.CentroidEuclideanMetric;
 import tripod.molvec.algo.LineUtil;
 import tripod.molvec.algo.LineUtil.ConnectionTable;
 import tripod.molvec.algo.NearestNeighbors;
+import tripod.molvec.algo.StructureImageExtractor;
 import tripod.molvec.algo.Tuple;
-import tripod.molvec.segmentation.Docstrum;
-import tripod.molvec.util.GeomStats;
 import tripod.molvec.util.GeomUtil;
 
 
@@ -137,8 +131,6 @@ public class Viewer extends JPanel
     NearestNeighbors<Shape> knn = new NearestNeighbors<Shape>
         (5, new CentroidEuclideanMetric<Shape>());
     
-    List<Double> lineLengths;
-    List<Line2D> lines;
     List<Tuple<Line2D,Integer>> linesOrder;   
     
     java.util.List<Shape> highlights = new ArrayList<Shape>();
@@ -266,7 +258,7 @@ public class Viewer extends JPanel
             
             Dimension dim = new Dimension ((int)(sx*bitmap.width()+.5),
                                            (int)(sy*bitmap.height()+.5));
-            lineHistogram.setWidth(dim.width);
+            
             setPreferredSize (dim);
             resetAndRepaint ();
         }
@@ -318,213 +310,227 @@ public class Viewer extends JPanel
         sy = scale;
 
         available = ALL;
-
-        long start = System.currentTimeMillis();
-        bitmap = Bitmap.read(file);
-        logger.info("## load image "+bitmap.width()+"x"+bitmap.height()+" in "
-                    +String.format("%1$.3fs", 
-                                   (System.currentTimeMillis()-start)*1e-3));
-
-        start = System.currentTimeMillis();
-        polygons = bitmap.connectedComponents(Bitmap.Bbox.Polygon);
-        logger.info("## generated "+polygons.size()+" connected components in "
-                    +String.format("%1$.3fs", 
-                                   (System.currentTimeMillis()-start)*1e-3));
-
-        boolean isLarge = false;
-        if (!polygons.isEmpty()) {
-            knn.clear();
-            knn.addAll(polygons);
-            GeomStats stats = new GeomStats (polygons);
-            logger.info("## connected components: "+stats);
-
-            Docstrum docstrum = new Docstrum (knn);
-            //zones = docstrum.getZones();
-            start = System.currentTimeMillis();
-
-            isLarge = polygons.size() > 4000;
-        }
-
-        start = System.currentTimeMillis();
-        //thin = bitmap.skeleton();
-        thin = bitmap.thin();
-        logger.info("## thinning in "
-                    +String.format("%1$.3fs", 
-                                   (System.currentTimeMillis()-start)*1e-3));
-
-        start = System.currentTimeMillis();
-        // segments are generated for thinned bitmap only, since
-        //  it can quite noisy on normal bitmap!
-        if (!isLarge) {
-            segments = thin.segments();
-            logger.info("## generated "+segments.size()+" segments in "
-                        +String.format("%1$.3fs", 
-                                       (System.currentTimeMillis()-start)*1e-3));
-            available |= SEGMENTS;
-        }
-        else {
-            available &=~SEGMENTS;
-            segments.clear();
-        }
         
-        lines= LineUtil.asLines(segments);
-        List<Line2D> smallLines=lines.stream().filter(l->LineUtil.length(l)<4).collect(Collectors.toList());
-        List<Line2D> bigLines=lines.stream().filter(l->LineUtil.length(l)>=4).collect(Collectors.toList());
+        StructureImageExtractor sie = new StructureImageExtractor();
         
-        smallLines= thin.combineLines(smallLines, 3, 2);
-        lines=Stream.concat(bigLines.stream(),smallLines.stream()).collect(Collectors.toList());
+        sie.load(file);
         
-        segments=LineUtil.fromLines(lines);
+        bitmap=sie.getBitmap();
+        thin=sie.getThin();
+        segments=LineUtil.fromLines(sie.getLines());
+        linesOrder=sie.getLinesOrder();
+        polygons=sie.getPolygons();
+        ctab=sie.getCtab();
+        ocrAttmept=sie.getOcrAttmept();
         
         
-        
-        lineLengths = lines.stream()
-        		           .map(l->l.getP1().distance(l.getP2()))
-        		           .collect(Collectors.toList());
-        double largestBond=lineLengths.stream().mapToDouble(d->d).max().getAsDouble();
-        
-        List<Line2D> preprocess= LineUtil.reduceMultiBonds(lines, 5 * Math.PI/180.0, 2, .5)
-        		                         .stream()
-        		                         .map(t->t.k())
-        		                         .collect(Collectors.toList());
-        linesOrder=LineUtil.reduceMultiBonds(preprocess, 5 * Math.PI/180.0, largestBond/3, .5);
-        
-      
-        available |=HISTOGRAM;
-
-        Dimension dim = new Dimension ((int)(sx*bitmap.width()+.5),
-                                       (int)(sy*bitmap.height()+.5));
-        setPreferredSize (dim);
-        if (lineHistogram == null){
-            lineHistogram = new HistogramChart ();
-        }
-
-        lineHistogram.setWidth(dim.width);
-        lineHistogram.loadData(lineLengths);
-
-        resetAndRepaint ();
-        
-        
-     
-        
-        double cutoffCosine=0.6;
-        double maxLongerThanAverage = 1.5;
-        double mergeCloserThan = 4.0;
-        double maxRatioForIntersection = 1.2;
-        double maxCandidateRatioForIntersection = 1.7;
-        
-        double[] initialMaxBondLength=new double[]{Double.MAX_VALUE};
-        
-        List<Shape> likelyOCR=new ArrayList<Shape>();
-        /*
-         * Looks at each polygon, and gets the likely OCR chars.
-         */   
-        for (Shape s : polygons) {
-             if(s.getBounds2D().getWidth()>0 && s.getBounds2D().getHeight()>0){
-             	List<Entry<Character,Number>> potential = OCR.getNBestMatches(4,
-                         bitmap.crop(s).createRaster(),
-                         thin.crop(s).createRaster()
-                         );
-                 ocrAttmept.put(s, potential);
-                 if(potential.stream().filter(e->e.getValue().doubleValue()>cutoffCosine).findAny().isPresent()){
-                	 String t=potential.get(0).getKey()+"";
-                 	if(!"I".equalsIgnoreCase(t) && 
-                 	   !"L".equalsIgnoreCase(t) &&
-                 	   !"1".equalsIgnoreCase(t)){
-                 		likelyOCR.add(s);
-                 	}
-                 }
-             }
-         }
-        
-     
-        int reps=0;
-        
-        boolean tooLongBond=true;
-        while(tooLongBond){
-	        ctab = LineUtil.getConnectionTable(linesOrder, likelyOCR, maxRatioForIntersection, maxCandidateRatioForIntersection,l-> (LineUtil.length(l) < initialMaxBondLength[0]))
-	        		       .mergeNodesCloserThan(mergeCloserThan);
-	        
-	        for(Shape s: likelyOCR){
-	        	ctab.mergeAllNodesInside(s, 2);
-	        }
-	        double bl1=ctab.getAverageBondLength();
-	        ctab.mergeNodesCloserThan(bl1/2.5);
-	        ctab.mergeAllNodesOnParLines();
-	        ctab.cleanMeaninglessEdges();
-	        ctab.cleanDuplicateEdges((e1,e2)->{
-	        	if(e1.getOrder()>e2.getOrder()){
-	        		return e1;
-	        	}
-	        	return e2;
-	        });
-	        
-	        
-	        //ctab.createNodesOnIntersectingLines();
-	        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()/2.5);
-	        ctab.cleanMeaninglessEdges();
-	        ctab.cleanDuplicateEdges((e1,e2)->{
-	        	if(e1.getOrder()>e2.getOrder()){
-	        		return e1;
-	        	}
-	        	return e2;
-	        });
-	        ctab.mergeNodesExtendingTo(likelyOCR);
-	        ctab.removeOrphanNodes();
-	        ctab.makeDashBondsToNeighbors(bitmap,1.3,1);
-	        
-	        
-	        double avgBondLength=ctab.getAverageBondLength();
-	        initialMaxBondLength[0]=avgBondLength*maxLongerThanAverage;
-	        System.out.println("Average bond length:" + avgBondLength);
-	        
-	        tooLongBond = ctab.getEdges()
-	        		          .stream()
-	        		          .peek(e->System.out.println(e.getBondDistance()))
-	        		          .filter(e->e.getBondDistance()>initialMaxBondLength[0])
-	        		          .findAny()
-	        		          .isPresent();
-	        if(tooLongBond){
-	        	System.out.println("No good, try again");
-	        	reps++;
-	        }
-	        if(reps>10)break;
-        }
-        ctab.getEdges()
-        .forEach(e->{
-        	double wl=bitmap.getWedgeLikeScore(e.getLine());
-        	//System.out.println("WL:" + wl);
-        	if(wl>.8){
-        		e.setWedge(true);            		
-        	}
-        	else if(wl<-.8){
-        		e.setWedge(true);
-        		e.switchNodes();
-        	}            	
-        });
-        
-        
-        Set<String> accept = new HashSet<String>();
-        accept.add("C");
-        accept.add("N");
-        accept.add("O");
-        accept.add("H");
-        accept.add("S");
-        accept.add("P");
-        accept.add("B");
-        
-        for(Shape s: likelyOCR){
-        	String sym=(ocrAttmept.get(s).get(0).getKey() + "").toUpperCase();
-        	if(accept.contains(sym)){
-        		ctab.setNodeToSymbol(s, sym);
-        	}
-        	
-        }
-        Chemical c=ctab.toChemical();
-        System.out.println(c.toMol());
-        
-        // We're going to start by just finding all lines that are not in good OCR candidates
-        // we're going to use the longest 5
+//
+//        long start = System.currentTimeMillis();
+//        bitmap = Bitmap.read(file);
+//        logger.info("## load image "+bitmap.width()+"x"+bitmap.height()+" in "
+//                    +String.format("%1$.3fs", 
+//                                   (System.currentTimeMillis()-start)*1e-3));
+//
+//        start = System.currentTimeMillis();
+//        polygons = bitmap.connectedComponents(Bitmap.Bbox.Polygon);
+//        logger.info("## generated "+polygons.size()+" connected components in "
+//                    +String.format("%1$.3fs", 
+//                                   (System.currentTimeMillis()-start)*1e-3));
+//
+//        boolean isLarge = false;
+//        if (!polygons.isEmpty()) {
+//            knn.clear();
+//            knn.addAll(polygons);
+//            GeomStats stats = new GeomStats (polygons);
+//            logger.info("## connected components: "+stats);
+//
+//            Docstrum docstrum = new Docstrum (knn);
+//            //zones = docstrum.getZones();
+//            start = System.currentTimeMillis();
+//
+//            isLarge = polygons.size() > 4000;
+//        }
+//
+//        start = System.currentTimeMillis();
+//        //thin = bitmap.skeleton();
+//        thin = bitmap.thin();
+//        logger.info("## thinning in "
+//                    +String.format("%1$.3fs", 
+//                                   (System.currentTimeMillis()-start)*1e-3));
+//
+//        start = System.currentTimeMillis();
+//        // segments are generated for thinned bitmap only, since
+//        //  it can quite noisy on normal bitmap!
+//        if (!isLarge) {
+//            segments = thin.segments();
+//            logger.info("## generated "+segments.size()+" segments in "
+//                        +String.format("%1$.3fs", 
+//                                       (System.currentTimeMillis()-start)*1e-3));
+//            available |= SEGMENTS;
+//        }
+//        else {
+//            available &=~SEGMENTS;
+//            segments.clear();
+//        }
+//        
+//        lines= LineUtil.asLines(segments);
+//        List<Line2D> smallLines=lines.stream().filter(l->LineUtil.length(l)<4).collect(Collectors.toList());
+//        List<Line2D> bigLines=lines.stream().filter(l->LineUtil.length(l)>=4).collect(Collectors.toList());
+//        
+//        smallLines= thin.combineLines(smallLines, 3, 2);
+//        lines=Stream.concat(bigLines.stream(),smallLines.stream()).collect(Collectors.toList());
+//        
+//        segments=LineUtil.fromLines(lines);
+//        
+//        
+//        
+//        lineLengths = lines.stream()
+//        		           .map(l->l.getP1().distance(l.getP2()))
+//        		           .collect(Collectors.toList());
+//        double largestBond=lineLengths.stream().mapToDouble(d->d).max().getAsDouble();
+//        
+//        List<Line2D> preprocess= LineUtil.reduceMultiBonds(lines, 5 * Math.PI/180.0, 2, .5)
+//        		                         .stream()
+//        		                         .map(t->t.k())
+//        		                         .collect(Collectors.toList());
+//        linesOrder=LineUtil.reduceMultiBonds(preprocess, 5 * Math.PI/180.0, largestBond/3, .5);
+//        
+//      
+//        available |=HISTOGRAM;
+//
+//        Dimension dim = new Dimension ((int)(sx*bitmap.width()+.5),
+//                                       (int)(sy*bitmap.height()+.5));
+//        setPreferredSize (dim);
+//        if (lineHistogram == null){
+//            lineHistogram = new HistogramChart ();
+//        }
+//
+//        lineHistogram.setWidth(dim.width);
+//        lineHistogram.loadData(lineLengths);
+//
+//        resetAndRepaint ();
+//        
+//        
+//     
+//        
+//        double cutoffCosine=0.6;
+//        double maxLongerThanAverage = 1.5;
+//        double mergeCloserThan = 4.0;
+//        double maxRatioForIntersection = 1.2;
+//        double maxCandidateRatioForIntersection = 1.7;
+//        
+//        double[] initialMaxBondLength=new double[]{Double.MAX_VALUE};
+//        
+//        List<Shape> likelyOCR=new ArrayList<Shape>();
+//        /*
+//         * Looks at each polygon, and gets the likely OCR chars.
+//         */   
+//        for (Shape s : polygons) {
+//             if(s.getBounds2D().getWidth()>0 && s.getBounds2D().getHeight()>0){
+//             	List<Entry<Character,Number>> potential = OCR.getNBestMatches(4,
+//                         bitmap.crop(s).createRaster(),
+//                         thin.crop(s).createRaster()
+//                         );
+//                 ocrAttmept.put(s, potential);
+//                 if(potential.stream().filter(e->e.getValue().doubleValue()>cutoffCosine).findAny().isPresent()){
+//                	 String t=potential.get(0).getKey()+"";
+//                 	if(!"I".equalsIgnoreCase(t) && 
+//                 	   !"L".equalsIgnoreCase(t) &&
+//                 	   !"1".equalsIgnoreCase(t)){
+//                 		likelyOCR.add(s);
+//                 	}
+//                 }
+//             }
+//         }
+//        
+//     
+//        int reps=0;
+//        
+//        boolean tooLongBond=true;
+//        while(tooLongBond){
+//	        ctab = LineUtil.getConnectionTable(linesOrder, likelyOCR, maxRatioForIntersection, maxCandidateRatioForIntersection,l-> (LineUtil.length(l) < initialMaxBondLength[0]))
+//	        		       .mergeNodesCloserThan(mergeCloserThan);
+//	        
+//	        for(Shape s: likelyOCR){
+//	        	ctab.mergeAllNodesInside(s, 2);
+//	        }
+//	        double bl1=ctab.getAverageBondLength();
+//	        ctab.mergeNodesCloserThan(bl1/2.5);
+//	        ctab.mergeAllNodesOnParLines();
+//	        ctab.cleanMeaninglessEdges();
+//	        ctab.cleanDuplicateEdges((e1,e2)->{
+//	        	if(e1.getOrder()>e2.getOrder()){
+//	        		return e1;
+//	        	}
+//	        	return e2;
+//	        });
+//	        
+//	        
+//	        //ctab.createNodesOnIntersectingLines();
+//	        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()/2.5);
+//	        ctab.cleanMeaninglessEdges();
+//	        ctab.cleanDuplicateEdges((e1,e2)->{
+//	        	if(e1.getOrder()>e2.getOrder()){
+//	        		return e1;
+//	        	}
+//	        	return e2;
+//	        });
+//	        ctab.mergeNodesExtendingTo(likelyOCR);
+//	        ctab.removeOrphanNodes();
+//	        ctab.makeDashBondsToNeighbors(bitmap,1.3,1);
+//	        
+//	        
+//	        double avgBondLength=ctab.getAverageBondLength();
+//	        initialMaxBondLength[0]=avgBondLength*maxLongerThanAverage;
+//	        System.out.println("Average bond length:" + avgBondLength);
+//	        
+//	        tooLongBond = ctab.getEdges()
+//	        		          .stream()
+//	        		          .peek(e->System.out.println(e.getBondDistance()))
+//	        		          .filter(e->e.getBondDistance()>initialMaxBondLength[0])
+//	        		          .findAny()
+//	        		          .isPresent();
+//	        if(tooLongBond){
+//	        	System.out.println("No good, try again");
+//	        	reps++;
+//	        }
+//	        if(reps>10)break;
+//        }
+//        ctab.getEdges()
+//        .forEach(e->{
+//        	double wl=bitmap.getWedgeLikeScore(e.getLine());
+//        	//System.out.println("WL:" + wl);
+//        	if(wl>.8){
+//        		e.setWedge(true);            		
+//        	}
+//        	else if(wl<-.8){
+//        		e.setWedge(true);
+//        		e.switchNodes();
+//        	}            	
+//        });
+//        
+//        
+//        Set<String> accept = new HashSet<String>();
+//        accept.add("C");
+//        accept.add("N");
+//        accept.add("O");
+//        accept.add("H");
+//        accept.add("S");
+//        accept.add("P");
+//        accept.add("B");
+//        
+//        for(Shape s: likelyOCR){
+//        	String sym=(ocrAttmept.get(s).get(0).getKey() + "").toUpperCase();
+//        	if(accept.contains(sym)){
+//        		ctab.setNodeToSymbol(s, sym);
+//        	}
+//        	
+//        }
+//        Chemical c=ctab.toChemical();
+//        System.out.println(c.toMol());
+//        
+//        // We're going to start by just finding all lines that are not in good OCR candidates
+//        // we're going to use the longest 5
     }
     
 
@@ -635,9 +641,6 @@ public class Viewer extends JPanel
             }
         }
 
-        if (cutoffLength > 0 && (show & HISTOGRAM)!=0) {
-            drawColoredLines (g2);
-        }
     }
 
     void draw (Graphics2D g2) {
@@ -793,28 +796,28 @@ public class Viewer extends JPanel
             }
         }
     }
-    void drawColoredLines(Graphics2D g2){
-    	Stroke s = g2.getStroke();
-        Color rightColor = new Color(HistogramChart.rightColor.getRed(),
-                                     HistogramChart.rightColor.getGreen(),
-                                     HistogramChart.rightColor.getBlue(),
-                                     (int)(HistogramChart.rightColor.getAlpha() * .5));
-        Color leftColor = new Color(HistogramChart.leftColor.getRed(),
-                                    HistogramChart.leftColor.getGreen(),
-                                    HistogramChart.leftColor.getBlue(),
-                                    (int)(HistogramChart.leftColor.getAlpha() * .5));
-    	g2.setStroke(new BasicStroke(5.0f));
-    	for (int j=0;j<lines.size();j++) {
-    	    if (lineLengths.get(j) >= cutoffLength){
-    	    	g2.setColor(rightColor);
-    	    }
-            else {
-    	    	g2.setColor(leftColor);
-    	    }
-    	    g2.draw(lines.get(j));
-    	}
-    	g2.setStroke(s);
-    }
+//    void drawColoredLines(Graphics2D g2){
+//    	Stroke s = g2.getStroke();
+//        Color rightColor = new Color(HistogramChart.rightColor.getRed(),
+//                                     HistogramChart.rightColor.getGreen(),
+//                                     HistogramChart.rightColor.getBlue(),
+//                                     (int)(HistogramChart.rightColor.getAlpha() * .5));
+//        Color leftColor = new Color(HistogramChart.leftColor.getRed(),
+//                                    HistogramChart.leftColor.getGreen(),
+//                                    HistogramChart.leftColor.getBlue(),
+//                                    (int)(HistogramChart.leftColor.getAlpha() * .5));
+//    	g2.setStroke(new BasicStroke(5.0f));
+//    	for (int j=0;j<lines.size();j++) {
+//    	    if (lineLengths.get(j) >= cutoffLength){
+//    	    	g2.setColor(rightColor);
+//    	    }
+//            else {
+//    	    	g2.setColor(leftColor);
+//    	    }
+//    	    g2.draw(lines.get(j));
+//    	}
+//    	g2.setStroke(s);
+//    }
 
     void drawSegments (Graphics2D g2) {
 	int i = 0;
@@ -1072,11 +1075,11 @@ public class Viewer extends JPanel
             ab.setToolTipText("Show connected components");
             ab.addActionListener(this);
 
-            toolbar.add(ab = new JCheckBox ("Histogram"));
-            ab.putClientProperty("MASK", HISTOGRAM);
-            ab.setToolTipText
-                ("Show histogram coloring of lines");
-            ab.addActionListener(this);
+//            toolbar.add(ab = new JCheckBox ("Histogram"));
+//            ab.putClientProperty("MASK", HISTOGRAM);
+//            ab.setToolTipText
+//                ("Show histogram coloring of lines");
+//            ab.addActionListener(this);
             
             toolbar.add(ab = new JCheckBox ("OCR Candidates"));
             ab.putClientProperty("MASK", OCR_SHAPES);
