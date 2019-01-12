@@ -648,16 +648,29 @@ public class Bitmap implements Serializable, TiffTags {
     
     
     public Bitmap clean(){
-    	if(probabilityOfOn()>.5){
+    	double pon=fractionPixelsOn();
+    	
+    	if(pon>.5){
+    		System.out.println("It's bad:" + pon);
     		return this.invert();
     	}else{
     		return this;
     	}
     }
     
-    public double probabilityOfOn(){
-       int on=BitSet.valueOf(data).cardinality();
-       return ((double)on) / data.length;
+    private CachedSupplier<Double> fractionOn = CachedSupplier.of(()->{
+    	return this._fractionPixelsOn();
+    });
+    
+    public double fractionPixelsOn(){
+    	return this.fractionOn.get();
+    }
+    private double _fractionPixelsOn(){
+       int on=0;
+       for (int i = 0; i < data.length; ++i) {
+  		 on+= Integer.bitCount((data[i] & 0xff));
+      }
+       return ((double)on) / (data.length*8);
     }
     
     public Bitmap invert(){
@@ -1503,7 +1516,7 @@ public class Bitmap implements Serializable, TiffTags {
 		}
 		return sumDist/len;
     }
-    
+    private static int MAX_REPS=Integer.MAX_VALUE;
     public List<Line2D> combineLines(List<Line2D> ilines, double maxMinDistance, double maxAvgDeviation){
     	byte[] distMet=distanceData.get();
     	
@@ -1516,67 +1529,58 @@ public class Bitmap implements Serializable, TiffTags {
     		return (double) (distMet[iy*scanline*8+ix]/4);    		
     	};
     	
-    	Map<Integer,Integer> bestLines = new HashMap<Integer,Integer>();
+//    	Map<Integer,Integer> bestLines = new HashMap<Integer,Integer>();
+//    	
+//    	for(int i=0;i<lines.size();i++){
+//    		bestLines.put(i, i);
+//    	}
     	
-    	for(int i=0;i<lines.size();i++){
-    		bestLines.put(i, i);
-    	}
+    	int reps=0;
+//    	boolean gotone=true;
+//    	while(gotone){
+//    		gotone=false;
+	    	for(int i=0;i<lines.size();i++){
+	    		Line2D line1=lines.get(i);
+	    		for(int j=i+1;j<lines.size();j++){
+	    			Line2D line2=lines.get(j);
+	    			LineDistanceCalculator ldc=LineDistanceCalculator.from(line1, line2);
+	    			if(ldc.getSmallestPointDistance()<maxMinDistance){
+	    				//System.out.println("Might work");
+	    				Line2D combined = ldc.getLineFromFarthestPoints();
+	    				double sx=combined.getX1();
+	    				double sy=combined.getY1();
+	    				double dx=combined.getX2()-combined.getX1();
+	    				double dy=combined.getY2()-combined.getY1();
+	    				double len=LineUtil.length(combined);
+	    				
+	    				double mult=1/len;
+	    				
+	    				double sumSqDist = 0;
+	    				for(int d=0;d<len;d++){
+	    					double ddx = mult*d*dx+sx;
+	    					double ddy = mult*d*dy+sy;
+	    					double dist=sample.apply(ddx, ddy);
+	    					sumSqDist+=dist*dist;
+	    				}
+	    				double sqrtSTDErr = Math.sqrt(sumSqDist/len);
+	    				if(sqrtSTDErr<maxAvgDeviation){
+	    					System.out.println("Old line 1:" + LineUtil.length(line1));
+	    					System.out.println("Old line 2:" + LineUtil.length(line2));
+	    					System.out.println("New line:" + LineUtil.length(combined));
+	    					System.out.println("Dist:"+ldc.getSmallestPointDistance());
+	    					lines.set(i, combined);
+	    					lines.remove(j);
+	    					reps++;
+	    					i=i-1;
+	    					break;
+	    				}	
+	    			}
+	    		}
+	    		if(reps>MAX_REPS)break;
+	    	}
+	    	
     	
-    	for(int i=0;i<lines.size();i++){
-    		Line2D line1=lines.get(i);
-    		for(int j=i+1;j<lines.size();j++){
-    			Line2D line2=lines.get(j);
-    			LineDistanceCalculator ldc=LineDistanceCalculator.from(line1, line2);
-    			if(ldc.getSmallestPointDistance()<maxMinDistance){
-    				//System.out.println("Might work");
-    				Line2D combined = ldc.getLineFromFarthestPoints();
-    				double sx=combined.getX1();
-    				double sy=combined.getY1();
-    				double dx=combined.getX2()-combined.getX1();
-    				double dy=combined.getY2()-combined.getY1();
-    				double len=LineUtil.length(combined);
-    				
-    				double mult=1/len;
-    				
-    				double sumSqDist = 0;
-    				for(int d=0;d<len;d++){
-    					double ddx = mult*d*dx+sx;
-    					double ddy = mult*d*dy+sy;
-    					double dist=sample.apply(ddx, ddy);
-    					sumSqDist+=dist*dist;
-    				}
-    				double sqrtSTDErr = Math.sqrt(sumSqDist/len);
-    				if(sqrtSTDErr<maxAvgDeviation){
-    					//A keeper, probably
-    					//System.out.println("A keeper:" + sqrtSTDErr);
-    					lines.set(i, combined);
-    					lines.set(j, combined);
-    					int li=Math.min(bestLines.get(i),bestLines.get(j));
-    					int oli=Math.max(bestLines.get(i),bestLines.get(j));
-    					bestLines.put(i, li);
-    					bestLines.put(j, li);
-    					bestLines.put(li, li);
-    					bestLines.put(oli, li);
-    					bestLines.entrySet().stream()
-    					.map(Tuple::of)
-    					.filter(t->t.v().equals(oli))
-    					.forEach(t->{
-    						bestLines.put(t.k(), li);
-    						lines.set(t.k(), combined);
-    					});
-    					
-    					lines.set(li, combined);
-    					lines.set(oli, combined);
-    					line1=combined;
-    				}else{
-    					//System.out.println("No good:" + sqrtSTDErr);
-    				}
-    			}
-    		}
-    	}
-    	
-    	
-    	return bestLines.values().stream().distinct().map(vi->lines.get(vi)).collect(Collectors.toList());
+    	return lines;
     }
     
 

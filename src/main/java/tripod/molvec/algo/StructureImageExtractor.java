@@ -10,6 +10,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -19,12 +21,16 @@ import tripod.molvec.CachedSupplier;
 import tripod.molvec.algo.LineUtil.ConnectionTable;
 import tripod.molvec.ui.RasterCosineSCOCR;
 import tripod.molvec.ui.SCOCR;
+import tripod.molvec.util.GeomUtil;
 
 public class StructureImageExtractor {
 	static final SCOCR OCR=new RasterCosineSCOCR();
    
 	static{
-    	OCR.setAlphabet(SCOCR.SET_COMMON_CHEM_ALL());
+		Set<Character> alpha=SCOCR.SET_COMMON_CHEM_ALL();
+		alpha.add(Character.valueOf('/'));
+		alpha.add(Character.valueOf('\\'));
+    	OCR.setAlphabet(alpha);
     }
     
 	private Bitmap bitmap; // original bitmap
@@ -33,6 +39,7 @@ public class StructureImageExtractor {
     
     private List<Shape> polygons;
     private List<Line2D> lines;
+    private List<Line2D> linesJoined;
     private List<Tuple<Line2D,Integer>> linesOrder;    
     private Map<Shape,List<Entry<Character,Number>>> ocrAttmept = new HashMap<Shape,List<Entry<Character,Number>>>();
     
@@ -44,7 +51,7 @@ public class StructureImageExtractor {
     private final double MIN_BOND_TO_AVG_BOND_RATIO = 1/2.5;
     private final double MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 1.3;
     private final double MAX_TOLERANCE_FOR_DASH_BONDS = 1.0;
-	private final double cutoffCosine=0.6;
+	private final double cutoffCosine=0.65;
 	private final double MAX_BOND_TO_AVG_BOND_RATIO_TO_KEEP = 1.5;
 	private final double MIN_DISTANCE_BEFORE_MERGING_NODES = 4.0;
 	private final double maxRatioForIntersection = 1.2;
@@ -52,6 +59,14 @@ public class StructureImageExtractor {
 	private final double maxCandidateRatioForIntersection = 1.7;        
 	private final double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS = 2;
 	private final double MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS = 3;
+	private final double PROBABLY_TOO_SMALL_LINE = 4;
+	private final double MAX_ANGLE_FOR_PARALLEL=5 * Math.PI/180.0;
+	private final double MAX_DISTANCE_TO_MERGE_PARALLEL_LINES=2;
+	private final double MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS=.5;
+	//Parallel lines
+	
+	
+	
     
 	private final HashSet<String> accept = CachedSupplier.of(()->{
 		HashSet<String> keepers=new HashSet<String>();
@@ -93,39 +108,7 @@ public class StructureImageExtractor {
         if (isLarge) {
             throw new IllegalStateException("Cannot support images with over 4000 line segments at this time");
         }
-        
-        lines= LineUtil.asLines(thin.segments());
-        
-        List<Line2D> smallLines=lines.stream()
-        						     .filter(l->LineUtil.length(l)<4)
-        						     .collect(Collectors.toList());
-        
-        List<Line2D> bigLines=lines.stream()
-        		                   .filter(l->LineUtil.length(l)>=4)
-        		                   .collect(Collectors.toList());
-        
-        smallLines= thin.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS);
-        lines=Stream.concat(bigLines.stream(),
-        		            smallLines.stream())
-        		    .collect(Collectors.toList());
-        
-        
-        double largestBond=lines.stream()
-		           .mapToDouble(l->l.getP1().distance(l.getP2()))
-		           .max()
-		           .getAsDouble();
-        
-        List<Line2D> preprocess= LineUtil.reduceMultiBonds(lines, 5 * Math.PI/180.0, 2, .5)
-        		                         .stream()
-        		                         .map(t->t.k())
-        		                         .collect(Collectors.toList());
-        
-        
-        linesOrder=LineUtil.reduceMultiBonds(preprocess, 5 * Math.PI/180.0, largestBond/3, .5);
-        
-              
-        
-        
+
         List<Shape> likelyOCR=new ArrayList<Shape>();
         /*
          * Looks at each polygon, and gets the likely OCR chars.
@@ -141,18 +124,86 @@ public class StructureImageExtractor {
                 	 String t=potential.get(0).getKey()+"";
                  	if(!"I".equalsIgnoreCase(t) && 
                  	   !"L".equalsIgnoreCase(t) &&
-                 	   !"1".equalsIgnoreCase(t)){
+                 	   !"1".equalsIgnoreCase(t) &&
+                 	   !"-".equalsIgnoreCase(t) &&
+                 	   !"/".equalsIgnoreCase(t) &&
+                 	   !"\\".equalsIgnoreCase(t)){
                  		likelyOCR.add(s);
                  	}
                  }
              }
          }
         
+        lines= LineUtil.asLines(thin.segments());
+        double largestBond=lines.stream()
+		           .mapToDouble(l->l.getP1().distance(l.getP2()))
+		           .max()
+		           .getAsDouble();
+        
+        Predicate<Line2D> isInOCRShape = (l)->{
+        	 if(likelyOCR.isEmpty())return false;
+        	 Tuple<Shape,Double> shape1=GeomUtil.distanceTo(likelyOCR, l.getP1());
+	       	  if(shape1.v()>OCR_TO_BOND_MAX_DISTANCE){
+	       		  return false;
+	       	  }
+	       	  Tuple<Shape,Double> shape2=GeomUtil.distanceTo(likelyOCR, l.getP2());
+	       	  if(shape2.v()>OCR_TO_BOND_MAX_DISTANCE){
+	       		  return false;
+	       	  }
+	       	  if(shape1.k()==shape2.k()){
+	       		  return true;
+	       	  }
+	       	  return false;
+        };
+        
+        Predicate<Line2D> tryToMerge = isInOCRShape.negate().and((l)->{
+        	//if(true)return false;
+        	return LineUtil.length(l)<largestBond/2;
+        });
+        
+        
+        
+        List<Line2D> smallLines=lines.stream()
+        						     .filter(tryToMerge)
+        						     .collect(Collectors.toList());
+        
+        List<Line2D> bigLines=lines.stream()
+        		                   .filter(tryToMerge.negate())
+        		                   .collect(Collectors.toList());
+        
+        smallLines= bitmap.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS);
+        lines=Stream.concat(bigLines.stream(),
+        		            smallLines.stream())
+        		    .collect(Collectors.toList());
+        
+        
+       
+        
+        List<Line2D> preprocess= LineUtil.reduceMultiBonds(lines, MAX_ANGLE_FOR_PARALLEL, MAX_DISTANCE_TO_MERGE_PARALLEL_LINES, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS)
+        		                         .stream()
+        		                         .map(t->t.k())
+        		                         .collect(Collectors.toList());
+        
+        
+        linesOrder=LineUtil.reduceMultiBonds(preprocess, MAX_ANGLE_FOR_PARALLEL, largestBond/3, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS);
+        
+              
+        
+        
+        
      
         int reps=0;
         boolean tooLongBond=true;
+        
         while(tooLongBond){
-	        ctab = LineUtil.getConnectionTable(linesOrder, likelyOCR, maxRatioForIntersection, maxCandidateRatioForIntersection,l-> (LineUtil.length(l) < maxBondLength[0]))
+        	List<Tuple<Line2D,Integer>> linesOrderRestricted =linesOrder.stream()
+        	          .filter(t->{
+        	        	  Line2D l=t.k();
+        	        	  return isInOCRShape.negate().test(l);
+        	          })
+        	          .collect(Collectors.toList());
+        	
+	        ctab = LineUtil.getConnectionTable(linesOrderRestricted, likelyOCR, maxRatioForIntersection, maxCandidateRatioForIntersection,l-> (LineUtil.length(l) < maxBondLength[0]))
 	        		       .mergeNodesCloserThan(MIN_DISTANCE_BEFORE_MERGING_NODES);
 	        
 	        for(Shape s: likelyOCR){

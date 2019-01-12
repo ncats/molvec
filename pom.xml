@@ -10,7 +10,6 @@
   <version>0.1</version>
   <name>MolVec</name>
 
-
   <repositories>
     <repository>
       <id>jboss-repo</id>

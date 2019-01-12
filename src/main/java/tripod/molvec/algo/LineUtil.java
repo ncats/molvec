@@ -614,7 +614,7 @@ public class LineUtil {
 		}
 		
 		public double getAverageBondLength(){
-			return edges.stream().mapToDouble(e->e.getBondDistance()).average().getAsDouble();
+			return edges.stream().mapToDouble(e->e.getBondDistance()).average().orElse(0);
 		}
 		public class Node{
 			Point2D point;
@@ -859,7 +859,7 @@ public class LineUtil {
 				      .sorted()
 				      .findFirst()
 				      .map(t->t.k())
-				      .get();
+				      .orElse(null);
 	}
 	
 	public static double cosTheta(Line2D l1, Line2D l2){

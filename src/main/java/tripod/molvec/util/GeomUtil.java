@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import tripod.molvec.algo.LineUtil;
 import tripod.molvec.algo.Tuple;
 
 
@@ -301,7 +302,7 @@ public class GeomUtil {
     		return line1CloserPoint!=-1;
     	}
     	public LineDistanceCalculator process(){
-    		double[] lens = new double[4];
+    		
     		lens[0]=line1.getP1().distance(line2.getP1());
     		lens[1]=line1.getP1().distance(line2.getP2());
     		lens[2]=line1.getP2().distance(line2.getP1());
@@ -312,7 +313,7 @@ public class GeomUtil {
     		for(int i=0;i<lens.length;i++){
     			if(lens[i]<min){
     				min=lens[i];
-    				mini=0;
+    				mini=i;
     			}
     		}
     		
@@ -323,14 +324,27 @@ public class GeomUtil {
     	
     	public double getSmallestPointDistance(){
     		if(!isProcessed())process();
-    		return lens[(line1CloserPoint<<1) | line2CloserPoint];
+    		int i=(line1CloserPoint<<1) | line2CloserPoint;
+    		
+    		return lens[i];
     	}
     	
     	public Line2D getLineFromFarthestPoints(){
     		if(!isProcessed())process();
-    		Point2D p1 = (line1CloserPoint==0)?line1.getP1():line1.getP2();
-    		Point2D p2 = (line2CloserPoint==0)?line2.getP1():line2.getP2();
-    		return new Line2D.Double(p1,p2);
+    		//System.out.println("L1 close:" + line1CloserPoint + " and " + line2CloserPoint);
+    		Point2D p1 = (line1CloserPoint==0)?line1.getP2():line1.getP1();
+    		Point2D p2 = (line2CloserPoint==0)?line2.getP2():line2.getP1();
+    		Line2D nline= new Line2D.Double(p1,p2);
+    		double ol1=LineUtil.length(line1);
+    		double ol2=LineUtil.length(line2);
+    		double nl=LineUtil.length(nline);
+    		if(nl>ol1 && nl>ol2){
+    			return nline;
+    		}else{
+    			if(ol1>ol2)return line1;
+    			return line2;
+    		}
+    		
     	}
     	
     	public static LineDistanceCalculator from(Line2D line1, Line2D line2){
@@ -429,6 +443,16 @@ public class GeomUtil {
     	      .min()
     	      .getAsDouble();
     }
+    
+    public static Tuple<Shape,Double> distanceTo(List<Shape> shapes, Point2D pt){
+    	return shapes.stream()
+    	      .map(s->Tuple.of(s,distanceTo(s,pt)).withVComparator())
+    	      .sorted()
+    	      .findFirst()
+    	      .get();
+    }
+    
+  
   
 
     /**
