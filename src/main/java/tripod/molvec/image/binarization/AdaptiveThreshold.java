@@ -22,7 +22,7 @@ import tripod.molvec.image.Binarization;
  * UPDATE: Integral images calculated only for rows needed, on the fly
  */
 public class AdaptiveThreshold implements Binarization {
-    public static final double DEFAULT_SIGMA_THRESHOLD = 1.2;
+    public static final double DEFAULT_SIGMA_THRESHOLD = 1.1;
     public static final int DEFAULT_ADAPTIVE_BOX_RADIUS = 20;
     public static final int DEFAULT_ADAPTIVE_MIN_THRESHOLD = 20;
     public static final int DEFAULT_ADAPTIVE_MIN_STDDEV = 20;

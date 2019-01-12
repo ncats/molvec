@@ -91,7 +91,8 @@ public class Viewer extends JPanel
     static final int OCR_SHAPES = 1<<6;
     static final int LINE_ORDERS = 1<<7;
     static final int CTAB = 1<<8;    
-    static final int ALL = SEGMENTS|POLYGONS|THINNING|BITMAP|COMPOSITE|HISTOGRAM|OCR_SHAPES|LINE_ORDERS|CTAB;
+    static final int SEGMENTS_JOINED = 1<<9;
+    static final int ALL = SEGMENTS|POLYGONS|THINNING|BITMAP|COMPOSITE|HISTOGRAM|OCR_SHAPES|LINE_ORDERS|CTAB|SEGMENTS_JOINED;
 
     static final Color HL_COLOR = new Color (0xdd, 0xdd, 0xdd, 120);
     static final Color KNN_COLOR = new Color (0x70, 0x5a, 0x9c, 120);
@@ -115,6 +116,9 @@ public class Viewer extends JPanel
     	OCR.setAlphabet(SCOCR.SET_COMMON_CHEM_ALL());
     }
     
+    
+    File currentFile = null;
+    
     FileDialog fileDialog;
 
     Bitmap bitmap; // original bitmap
@@ -124,6 +128,7 @@ public class Viewer extends JPanel
 
     Collection<Shape> polygons = new ArrayList<Shape>();
     Collection<Path2D> segments = new ArrayList<Path2D>();
+    Collection<Path2D> segmentsJoined = new ArrayList<Path2D>();
     Collection<Shape> zones = new ArrayList<Shape>();
     
     ConnectionTable ctab = null;
@@ -142,7 +147,7 @@ public class Viewer extends JPanel
 
     JPopupMenu popupMenu;
 
-    int show = SEGMENTS|THINNING|BITMAP|LINE_ORDERS|CTAB;
+    int show = SEGMENTS|THINNING|BITMAP|SEGMENTS_JOINED|CTAB;
     int available;
     
     float ocrCutoff=.6f;
@@ -300,12 +305,18 @@ public class Viewer extends JPanel
         }
         return file;
     }
+    
+    public File reload () throws IOException {
+    	load(currentFile);
+        return this.currentFile;
+    }
 
     public void load (File file) throws IOException {
         load (file, Math.min(sx, sy));
     }
 
     public void load (File file, double scale) throws IOException {
+    	currentFile=file;
         sx = scale;
         sy = scale;
 
@@ -318,6 +329,7 @@ public class Viewer extends JPanel
         bitmap=sie.getBitmap();
         thin=sie.getThin();
         segments=LineUtil.fromLines(sie.getLines());
+        segmentsJoined=LineUtil.fromLines(sie.getLinesJoined());
         linesOrder=sie.getLinesOrder();
         polygons=sie.getPolygons();
         ctab=sie.getCtab();
@@ -326,7 +338,7 @@ public class Viewer extends JPanel
         System.out.println("Loaded");
         
         System.out.println(sie.getChemical().toMol());
-        
+        resetAndRepaint ();
 //
 //        long start = System.currentTimeMillis();
 //        bitmap = Bitmap.read(file);
@@ -673,6 +685,11 @@ public class Viewer extends JPanel
             drawSegments (g2);
             
         }
+
+        if (segmentsJoined != null && (show & SEGMENTS_JOINED) != 0) {
+            drawSegmentsJoined (g2);
+            
+        }
         if(linesOrder!=null && (show & LINE_ORDERS) !=0){
         	drawLines (g2);
         }
@@ -844,6 +861,29 @@ public class Viewer extends JPanel
 	}
 	
     }
+    
+    void drawSegmentsJoined (Graphics2D g2) {
+    	int i = 0;
+    	float[] seg = new float[6];
+    	for (Path2D p : segmentsJoined) {
+    	    g2.setPaint(colors[i%colors.length]);
+    	    g2.draw(p);
+    	    PathIterator pi = p.getPathIterator(null);
+    	    while (!pi.isDone()) {
+    		int type = pi.currentSegment(seg);
+    		switch (type) {
+    		case PathIterator.SEG_LINETO:
+    		case PathIterator.SEG_MOVETO:
+                        g2.draw(new Ellipse2D.Double((seg[0]-2f/sx), (seg[1]-2f/sx), 4f/sx, 4f/sx));
+                        //g2.drawOval((int)(seg[0]-2), (int)(seg[1]-2), 4, 4);
+    		    break;
+    		}
+    		pi.next();
+    	    }
+    	    ++i;
+    	}
+    	
+        }
     void drawLines (Graphics2D g2) {
     	Stroke s = g2.getStroke();
     	g2.setStroke(new BasicStroke(3.0f));
@@ -1047,6 +1087,11 @@ public class Viewer extends JPanel
             ab.setToolTipText("Load new file");
             ab.addActionListener(this);
             toolbar.addSeparator();
+            
+            toolbar.add(ab = new JButton ("reload"));
+            ab.setToolTipText("Reload current file");
+            ab.addActionListener(this);
+            toolbar.addSeparator();
 
             toolbar.add(ab = new JCheckBox ("Bitmap"));
             ab.putClientProperty("MASK", BITMAP);
@@ -1059,6 +1104,12 @@ public class Viewer extends JPanel
             ab.putClientProperty("MASK", SEGMENTS);
             ab.setSelected(true);
             ab.setToolTipText("Show line segments");
+            ab.addActionListener(this);
+            
+            toolbar.add(ab = new JCheckBox ("Segments Joined"));
+            ab.putClientProperty("MASK", SEGMENTS_JOINED);
+            ab.setSelected(true);
+            ab.setToolTipText("Show line segments joined");
             ab.addActionListener(this);
             
             toolbar.add(ab = new JCheckBox ("Line Orders"));
@@ -1096,17 +1147,34 @@ public class Viewer extends JPanel
             ab.setToolTipText("Show line orders");
             ab.addActionListener(this);
             
-
-            toolbar.addSeparator();
-            Box hbox = Box.createHorizontalBox();
-            hbox.add(new JLabel ("Scale"));
-            hbox.add(Box.createHorizontalStrut(5));
-            JSpinner spinner = new JSpinner 
-                (new SpinnerNumberModel (1., .1, 50., .2));
-            spinner.addChangeListener(this);
-            hbox.add(spinner);
-            hbox.add(Box.createHorizontalGlue());
-            toolbar.add(hbox);
+            
+            
+            {
+	            toolbar.addSeparator();
+	            Box hbox = Box.createHorizontalBox();
+	            hbox.add(new JLabel ("Scale"));
+	            hbox.add(Box.createHorizontalStrut(5));
+	            JSpinner spinner = new JSpinner 
+	                (new SpinnerNumberModel (1., .1, 50., .2));
+	            spinner.addChangeListener(this);
+	            hbox.add(spinner);
+	            hbox.add(Box.createHorizontalGlue());
+	            toolbar.add(hbox);
+	        }
+            
+            {
+            	 Box hbox2 = Box.createHorizontalBox();
+                 hbox2.add(new JLabel ("Segment Joins"));
+                 hbox2.add(Box.createHorizontalStrut(5));
+                 JSpinner spinner2 = new JSpinner 
+                     (new SpinnerNumberModel (5, 0, 10000, 1));
+                 spinner2.addChangeListener(e->{
+                	 Bitmap.MAX_REPS=((Number)spinner2.getValue()).intValue();
+                 });
+                 hbox2.add(spinner2);
+                 hbox2.add(Box.createHorizontalGlue());
+                 toolbar.add(hbox2);
+            }
             
             
             JPanel pane = new JPanel (new BorderLayout (0, 2));
@@ -1116,6 +1184,8 @@ public class Viewer extends JPanel
             pack ();
             setSize (600, 400);
             setDefaultCloseOperation (JFrame.EXIT_ON_CLOSE);
+            
+            
         }
 
         public void actionPerformed (ActionEvent e) {
@@ -1127,6 +1197,32 @@ public class Viewer extends JPanel
                 File file = null;
                 try {
                     file = viewer.load();
+                    if (file != null) {
+                        setTitle (file.getName());
+                        for (Component c : toolbar.getComponents()) {
+                            if (c instanceof AbstractButton) {
+                                ab = (AbstractButton)c;
+                                Integer mask = 
+                                    (Integer)ab.getClientProperty("MASK");
+                                if (mask != null) {
+                                    ab.setEnabled(viewer.isAvailable(mask));
+                                }
+                            }
+                        }
+                        repaint ();
+                    }
+                }
+                catch (Exception ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog
+                        (this, "Can't load file \""+file+"\"; perhaps "
+                         +"it's not a 1 bpp TIFF image?", "Error", 
+                         JOptionPane.ERROR_MESSAGE);
+                }
+            }else  if (cmd.equalsIgnoreCase("reload")) {
+            	File file = null;
+                try {
+                    file=viewer.reload();
                     if (file != null) {
                         setTitle (file.getName());
                         for (Component c : toolbar.getComponents()) {
@@ -1163,6 +1259,9 @@ public class Viewer extends JPanel
             }
             else if (cmd.equalsIgnoreCase("segments")) {
                 viewer.setVisible(SEGMENTS, show);
+            }
+            else if (cmd.equalsIgnoreCase("segments joined")) {
+                viewer.setVisible(SEGMENTS_JOINED, show);
             }
             else if (cmd.equalsIgnoreCase("line orders")) {
                 viewer.setVisible(LINE_ORDERS, show);

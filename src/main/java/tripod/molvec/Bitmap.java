@@ -25,19 +25,22 @@ import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
 
@@ -54,6 +57,7 @@ import tripod.molvec.algo.Tuple;
 import tripod.molvec.image.ImageUtil;
 import tripod.molvec.image.TiffTags;
 import tripod.molvec.image.binarization.AdaptiveThreshold;
+import tripod.molvec.image.binarization.SigmaThreshold;
 import tripod.molvec.util.GeomUtil;
 import tripod.molvec.util.GeomUtil.LineDistanceCalculator;
 
@@ -540,8 +544,8 @@ public class Bitmap implements Serializable, TiffTags {
                 ("Can handle sample with multiple channels");
         }
 
-        return new AdaptiveThreshold ().binarize(raster);
-        //return new SigmaThreshold ().binarize(raster);
+        //return new AdaptiveThreshold ().binarize(raster);
+        return new SigmaThreshold ().binarize(raster);
     }
 
 
@@ -1516,11 +1520,47 @@ public class Bitmap implements Serializable, TiffTags {
 		}
 		return sumDist/len;
     }
-    private static int MAX_REPS=Integer.MAX_VALUE;
-    public List<Line2D> combineLines(List<Line2D> ilines, double maxMinDistance, double maxAvgDeviation){
+    public static int MAX_REPS=Integer.MAX_VALUE;
+    
+    
+    public List<Line2D> combineLines(List<Line2D> ilines, double maxMinDistance, double maxAvgDeviation, double maxDistanceToConsiderSamePoint, double maxAngle, double minLengthForAngleCompare){
+    	List<Line2D> lines = ilines;
+    	int[] reps1=new int[]{0};
+    	
+    	boolean gotOne=true;
+    	while(gotOne){
+    		gotOne=false;
+    		List<Line2D> nlines=combineLines2(lines, maxMinDistance, maxAvgDeviation, maxDistanceToConsiderSamePoint,maxAngle,minLengthForAngleCompare,reps1);
+    		if(nlines.size()!=lines.size()){
+    			gotOne=true;
+    			lines=nlines;
+    		}
+    		if(reps1[0]>MAX_REPS)break;
+    	}
+    	return lines;
+    }
+    
+    private List<Line2D> combineLines2(List<Line2D> ilines, double maxMinDistance, double maxAvgDeviation, double maxDistanceToConsiderSamePoint,double maxAngle, double minLengthForAngleCompare, int[] reps){
     	byte[] distMet=distanceData.get();
     	
-    	List<Line2D> lines = new ArrayList<Line2D>(ilines);
+    	List<Line2D> lines=ilines.stream()
+    	     .map(l->Tuple.of(l,LineUtil.length(l)).withVComparator())
+    	     .sorted()
+    	     .map(t->t.k())
+    	     .collect(Collectors.toList());
+    	
+    	List<Point2D> allPoints=lines.stream()
+       	     .flatMap(l->Stream.of(l.getP1(),l.getP2()))
+       	     .collect(Collectors.toList());
+    	
+    	List<Point2D> dontmerge=GeomUtil.groupPointsCloserThan(allPoints,maxDistanceToConsiderSamePoint)
+    	        .stream()
+    	        .filter(pL->pL.size()>2)
+    	        .flatMap(l->l.stream())
+    	        .collect(Collectors.toList());
+    	
+    	System.out.println("Points part of multi:" + dontmerge.size());
+    	
     	
     	BiFunction<Double,Double,Double> sample = (x,y)->{
     		//do interp eventually
@@ -1529,55 +1569,157 @@ public class Bitmap implements Serializable, TiffTags {
     		return (double) (distMet[iy*scanline*8+ix]/4);    		
     	};
     	
-//    	Map<Integer,Integer> bestLines = new HashMap<Integer,Integer>();
-//    	
-//    	for(int i=0;i<lines.size();i++){
-//    		bestLines.put(i, i);
-//    	}
+    	double maxCosAng = Math.abs(Math.cos(maxAngle));
+
+    	Set<Line2D> alreadyMerged = new HashSet<Line2D>();
     	
-    	int reps=0;
-//    	boolean gotone=true;
-//    	while(gotone){
-//    		gotone=false;
-	    	for(int i=0;i<lines.size();i++){
-	    		Line2D line1=lines.get(i);
-	    		for(int j=i+1;j<lines.size();j++){
-	    			Line2D line2=lines.get(j);
-	    			LineDistanceCalculator ldc=LineDistanceCalculator.from(line1, line2);
-	    			if(ldc.getSmallestPointDistance()<maxMinDistance){
-	    				//System.out.println("Might work");
-	    				Line2D combined = ldc.getLineFromFarthestPoints();
-	    				double sx=combined.getX1();
-	    				double sy=combined.getY1();
-	    				double dx=combined.getX2()-combined.getX1();
-	    				double dy=combined.getY2()-combined.getY1();
-	    				double len=LineUtil.length(combined);
-	    				
-	    				double mult=1/len;
-	    				
-	    				double sumSqDist = 0;
-	    				for(int d=0;d<len;d++){
-	    					double ddx = mult*d*dx+sx;
-	    					double ddy = mult*d*dy+sy;
-	    					double dist=sample.apply(ddx, ddy);
-	    					sumSqDist+=dist*dist;
-	    				}
-	    				double sqrtSTDErr = Math.sqrt(sumSqDist/len);
-	    				if(sqrtSTDErr<maxAvgDeviation){
-	    					System.out.println("Old line 1:" + LineUtil.length(line1));
-	    					System.out.println("Old line 2:" + LineUtil.length(line2));
-	    					System.out.println("New line:" + LineUtil.length(combined));
-	    					System.out.println("Dist:"+ldc.getSmallestPointDistance());
-	    					lines.set(i, combined);
-	    					lines.remove(j);
-	    					reps++;
-	    					i=i-1;
-	    					break;
-	    				}	
-	    			}
-	    		}
-	    		if(reps>MAX_REPS)break;
-	    	}
+    	
+    	int[] ii = new int[]{0};
+    	
+		for (int i = 0; i < lines.size(); i++) {
+			if (reps[0] >= MAX_REPS)
+				break;    
+			Line2D line1 = lines.get(i);
+			ii[0]=i;			
+			
+			boolean[] foundOne= new boolean[]{false};
+			
+			IntStream.range(i+1,lines.size())
+			         .mapToObj(k->Tuple.of(k,k))
+			         .map(Tuple.kmap(k->lines.get(k)))
+			         .map(Tuple.kmap(l->LineDistanceCalculator.from(line1, l)))
+			         .map(t->t.withKComparatorMap(lu->lu.getSmallestPointDistance()))
+			         .sorted()
+			         .filter(t->{
+			        	 //if(alreadyMerged.clines.get(t.v())
+			        	 return t.k().getSmallestPointDistance()<maxMinDistance; 
+			         })
+			         .filter(t->{
+			        	 Line2D line2=lines.get(t.v());
+			        	 if(LineUtil.length(line1)>minLengthForAngleCompare && 
+			        	    LineUtil.length(line2)>minLengthForAngleCompare){
+				        	 if(LineUtil.cosTheta(line1,line2)<maxCosAng){
+				        		 return false;
+				        	 }
+			        	 }
+			        	 return true;
+			         })
+			         .filter(t->{
+			        	 	Point2D[] closest=t.k().closestPoints();
+							
+							boolean partOfTriple=dontmerge.stream()
+							         .flatMap(p->Stream.of(p.distance(closest[0]),p.distance(closest[1])))
+							         .filter(d->(d<maxDistanceToConsiderSamePoint))
+							         .findAny()
+							         .isPresent();
+							if(partOfTriple)return false;
+							return true;
+			         })
+			         .filter(t->{
+			        	 	int j=t.v();
+			        	 	LineDistanceCalculator ldc = t.k();
+			        	 	Line2D line2 = lines.get(j);
+							Line2D combined = ldc.getLineFromFarthestPoints();
+							double sx = combined.getX1();
+							double sy = combined.getY1();
+							double dx = combined.getX2() - combined.getX1();
+							double dy = combined.getY2() - combined.getY1();
+							double len = LineUtil.length(combined);
+
+							double mult = 1 / len;
+
+							double sumSqDist = 0;
+							for (int d = 0; d < len; d++) {
+								double ddx = mult * d * dx + sx;
+								double ddy = mult * d * dy + sy;
+								double dist = sample.apply(ddx, ddy);
+								sumSqDist += dist * dist;
+							}
+							double sqrtSTDErr = Math.sqrt(sumSqDist / len);
+							if (sqrtSTDErr <= maxAvgDeviation) {
+								if (len > LineUtil.length(line1) && len > LineUtil.length(line2)) {
+									return true;
+								}
+							} else {
+								System.out.println("No Good:" + sqrtSTDErr);
+							}
+							return false;
+			         })
+			         .findFirst()
+			         .ifPresent(t->{
+			        	 	int j=t.v();
+			        	 	LineDistanceCalculator ldc = t.k();
+			        	 	Line2D line2 = lines.get(j);
+			        	 	Line2D combined = ldc.getLineFromFarthestPoints();
+			        	 	
+			        	 	System.out.println("Old line 1:" + LineUtil.length(line1));
+							System.out.println("Old line 2:" + LineUtil.length(line2));
+							System.out.println("New line:" + LineUtil.length(combined));
+							System.out.println("Dist:" + ldc.getSmallestPointDistance());
+							
+							alreadyMerged.add(combined);
+							lines.set(ii[0], combined);
+							lines.remove(j);
+							reps[0]++;
+							foundOne[0]=true;
+							System.out.println("reps:" + reps[0] + " of " + MAX_REPS);
+			         });
+			if(foundOne[0])i--;
+			
+			    
+//			
+//			
+//			for (int j = i + 1; j < lines.size(); j++) {
+//				Line2D line2 = lines.get(j);
+//				LineDistanceCalculator ldc = LineDistanceCalculator.from(line1, line2);
+//				if (ldc.getSmallestPointDistance() < maxMinDistance) {
+//					Point2D[] closest=ldc.closestPoints();
+//					
+//					boolean partOfTriple=dontmerge.stream()
+//					         .flatMap(p->Stream.of(p.distance(closest[0]),p.distance(closest[1])))
+//					         .filter(d->(d<maxDistanceToConsiderSamePoint))
+//					         .findAny()
+//					         .isPresent();
+//					if(partOfTriple)continue;
+//					
+//					// System.out.println("Might work");
+//					Line2D combined = ldc.getLineFromFarthestPoints();
+//					double sx = combined.getX1();
+//					double sy = combined.getY1();
+//					double dx = combined.getX2() - combined.getX1();
+//					double dy = combined.getY2() - combined.getY1();
+//					double len = LineUtil.length(combined);
+//
+//					double mult = 1 / len;
+//
+//					double sumSqDist = 0;
+//					for (int d = 0; d < len; d++) {
+//						double ddx = mult * d * dx + sx;
+//						double ddy = mult * d * dy + sy;
+//						double dist = sample.apply(ddx, ddy);
+//						sumSqDist += dist * dist;
+//					}
+//					double sqrtSTDErr = Math.sqrt(sumSqDist / len);
+//					if (sqrtSTDErr <= maxAvgDeviation) {
+//
+//						if (len > LineUtil.length(line1) && len > LineUtil.length(line2)) {
+//							System.out.println("Old line 1:" + LineUtil.length(line1));
+//							System.out.println("Old line 2:" + LineUtil.length(line2));
+//							System.out.println("New line:" + LineUtil.length(combined));
+//							System.out.println("Dist:" + ldc.getSmallestPointDistance());
+//							lines.set(i, combined);
+//							lines.remove(j);
+//							reps++;
+//							i = i - 1;
+//							break;
+//						}
+//					} else {
+//						System.out.println("No Good:" + sqrtSTDErr);
+//					}
+//				}
+//			}
+			
+		}
 	    	
     	
     	return lines;

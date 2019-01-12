@@ -102,7 +102,7 @@ public class LineUtil {
 	 * @param minIntersectionRatio
 	 * @return
 	 */
-	public static List<List<Line2D>> groupMultipleBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio){
+	public static List<List<Line2D>> groupMultipleBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio, double minLargerProjectionRatio){
 		double[] recipLengths=new double[lines.size()];
 		Map<Integer,Integer> groups = new HashMap<>();
 		for(int i=0;i<lines.size();i++){
@@ -111,6 +111,7 @@ public class LineUtil {
 			groups.put(i, i);
 		}
 		double cosThetaCutoff=Math.cos(maxDeltaTheta);
+		System.out.println("cos cutoff:" + cosThetaCutoff);
 		
 		
 		//So, this will be an n^2 operation
@@ -152,13 +153,26 @@ public class LineUtil {
 						}
 						double intersectLength=Math.abs(proj1-proj2);
 						double cutoffRat1=Math.max(recipLengths[i], recipLengths[j]);
-						if(intersectLength*cutoffRat1>minProjectionRatio){
+						double cutoffRat2=Math.min(recipLengths[i], recipLengths[j]);
+						if(intersectLength*cutoffRat1>minProjectionRatio 
+								&& intersectLength*cutoffRat2>minLargerProjectionRatio
+								){
+							System.out.println("WORKED");
+							System.out.println((intersectLength*cutoffRat1) + " >? " + minProjectionRatio);
+							System.out.println((intersectLength*cutoffRat2) + " >? " + minLargerProjectionRatio);
 							int g1=groups.get(i);
 							int g2=groups.get(j);
 							groups.put(i, Math.min(g1, g2));
 							groups.put(j, Math.min(g1, g2));
+						}else{
+							System.out.println("Didn't work");
+							System.out.println((intersectLength*cutoffRat1) + " >? " + minProjectionRatio);
+							System.out.println((intersectLength*cutoffRat2) + " >? " + minLargerProjectionRatio);
 						}
 					}
+				}else{
+					System.out.println("Not par");
+					System.out.println((cosTheta) + " >? " + cosThetaCutoff);
 				}
 			}
 		}
@@ -188,9 +202,9 @@ public class LineUtil {
 	 * @param minIntersectionRatio
 	 * @return
 	 */
-	public static List<Tuple<Line2D, Integer>> reduceMultiBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio){
+	public static List<Tuple<Line2D, Integer>> reduceMultiBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio, double minLargerProjectionRatio){
 		
-		return groupMultipleBonds(lines,maxDeltaTheta,maxDeltaOffset,minProjectionRatio)
+		return groupMultipleBonds(lines,maxDeltaTheta,maxDeltaOffset,minProjectionRatio,minLargerProjectionRatio)
 				.stream()
 				.map(l->Tuple.of(l,l.size()))
 				.map(Tuple.kmap(l->l.stream()
@@ -504,7 +518,7 @@ public class LineUtil {
 			         .mapToObj(i->i)
 			         .collect(Collectors.toMap(i->i, i->i));
 			
-			List<LinkedHashSet<Integer>> mergeNodes=groupMultipleBonds(edgeMap.keySet().stream().collect(Collectors.toList()),5*Math.PI/180, 2, .8)
+			List<LinkedHashSet<Integer>> mergeNodes=groupMultipleBonds(edgeMap.keySet().stream().collect(Collectors.toList()),5*Math.PI/180, 2, .8, 0)
 			.stream()
 			.filter(l->l.size()>1)
 			.map(l->{
@@ -879,7 +893,7 @@ public class LineUtil {
 			return new Line2D.Double(line.getP2(), pnt);
 		}
 	}
-	public static ConnectionTable getConnectionTable(List<Tuple<Line2D,Integer>> linest, List<Shape> likelyNodes, double maxDistanceRatioNonLikely,double maxDistanceRatioLikely, Predicate<Line2D> acceptNewLine){
+	public static ConnectionTable getConnectionTable(List<Tuple<Line2D,Integer>> linest, List<Shape> likelyNodes, double maxDistanceRatioNonLikely,double maxDistanceRatioLikely, double maxDistanceRatioPerLine, Predicate<Line2D> acceptNewLine){
 		//This will find the likely intersection points between lines.
 				//If 2 lines would intersect 
 				List<Tuple<Line2D,Integer>> lines = new ArrayList<>(linest);
@@ -888,6 +902,7 @@ public class LineUtil {
 					Tuple<Line2D, Integer> lineOrder1=lines.get(i);
 					double distance1 = LineUtil.length(lineOrder1.k());
 					for(int j=i+1;j<lines.size();j++){
+						
 						
 						Tuple<Line2D, Integer> lineOrder2=lines.get(j);
 						double distance2 = LineUtil.length(lineOrder2.k());
@@ -899,13 +914,20 @@ public class LineUtil {
 						double ndistance2 = Math.max(intersect.distance(lineOrder2.k().getP1()), intersect.distance(lineOrder2.k().getP2()));
 						double totalDistanceAfter = ndistance1+ndistance2;
 						
-						double ratio = Math.max(totalDistanceAfter,totalDistance)/Math.min(totalDistanceAfter, totalDistance);
+						double ratioTotal = Math.max(totalDistanceAfter,totalDistance)/Math.min(totalDistanceAfter, totalDistance);
+						
+						double ratioLine1 = Math.max(ndistance1,distance1)/Math.min(ndistance1, distance1);
+						double ratioLine2 = Math.max(ndistance2,distance2)/Math.min(ndistance2, distance2);
 						
 						boolean merge = false;
 						
-						if(ratio<maxDistanceRatioLikely){
-							if(ratio<maxDistanceRatioNonLikely){
+					
+								
+						if(ratioTotal<maxDistanceRatioLikely){
+							if(ratioTotal<maxDistanceRatioNonLikely){
+								if(ratioLine1<maxDistanceRatioPerLine && ratioLine2<maxDistanceRatioPerLine){
 								merge=true;
+								}
 							}else{
 								boolean inLikelyNode=likelyNodes.stream().filter(s->s.contains(intersect)).findAny().isPresent();
 								if(inLikelyNode){

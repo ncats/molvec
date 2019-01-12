@@ -55,14 +55,25 @@ public class StructureImageExtractor {
 	private final double MAX_BOND_TO_AVG_BOND_RATIO_TO_KEEP = 1.5;
 	private final double MIN_DISTANCE_BEFORE_MERGING_NODES = 4.0;
 	private final double maxRatioForIntersection = 1.2;
+	private final double maxPerLineDistanceRatioForIntersection = 2;
 	private final double OCR_TO_BOND_MAX_DISTANCE=2.0;
 	private final double maxCandidateRatioForIntersection = 1.7;        
-	private final double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS = 2;
-	private final double MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS = 3;
-	private final double PROBABLY_TOO_SMALL_LINE = 4;
-	private final double MAX_ANGLE_FOR_PARALLEL=5 * Math.PI/180.0;
+	private final double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN = 1;
+	private final double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL = 0.5;
+	private final double MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS = 6;
+	
+	private final double MAX_ANGLE_FOR_JOINING_SEGMENTS=25 * Math.PI/180.0;
+	private final double MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS=5.0;
+	
 	private final double MAX_DISTANCE_TO_MERGE_PARALLEL_LINES=2;
+	private final double MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE= 1;
+	
+	
+	//For finding high order bonds
 	private final double MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS=.5;
+	private final double MIN_BIGGER_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS=.25;
+	private final double MAX_ANGLE_FOR_PARALLEL=10.0 * Math.PI/180.0;
+	
 	//Parallel lines
 	
 	
@@ -81,6 +92,7 @@ public class StructureImageExtractor {
 		
 	    return keepers;
 	}).get();
+	
     
 	
     public StructureImageExtractor(){
@@ -135,10 +147,7 @@ public class StructureImageExtractor {
          }
         
         lines= LineUtil.asLines(thin.segments());
-        double largestBond=lines.stream()
-		           .mapToDouble(l->l.getP1().distance(l.getP2()))
-		           .max()
-		           .getAsDouble();
+        
         
         Predicate<Line2D> isInOCRShape = (l)->{
         	 if(likelyOCR.isEmpty())return false;
@@ -157,8 +166,9 @@ public class StructureImageExtractor {
         };
         
         Predicate<Line2D> tryToMerge = isInOCRShape.negate().and((l)->{
-        	//if(true)return false;
-        	return LineUtil.length(l)<largestBond/2;
+        	if(true)return true;
+        	return false;
+        	//return LineUtil.length(l)<largestBond;
         });
         
         
@@ -171,21 +181,28 @@ public class StructureImageExtractor {
         		                   .filter(tryToMerge.negate())
         		                   .collect(Collectors.toList());
         
-        smallLines= bitmap.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS);
-        lines=Stream.concat(bigLines.stream(),
+        smallLines= thin.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
+        smallLines= bitmap.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
+        linesJoined=Stream.concat(bigLines.stream(),
         		            smallLines.stream())
         		    .collect(Collectors.toList());
         
-        
+        double largestBond=linesJoined.stream()
+		           .mapToDouble(l->LineUtil.length(l))
+		           .max()
+		           .orElse(0);
        
+        System.out.println("Angle:");
+        System.out.println(MAX_ANGLE_FOR_PARALLEL);
+        System.out.println(Math.cos(MAX_ANGLE_FOR_PARALLEL));
         
-        List<Line2D> preprocess= LineUtil.reduceMultiBonds(lines, MAX_ANGLE_FOR_PARALLEL, MAX_DISTANCE_TO_MERGE_PARALLEL_LINES, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS)
+        List<Line2D> preprocess= LineUtil.reduceMultiBonds(linesJoined, MAX_ANGLE_FOR_PARALLEL, MAX_DISTANCE_TO_MERGE_PARALLEL_LINES, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS,0)
         		                         .stream()
         		                         .map(t->t.k())
         		                         .collect(Collectors.toList());
         
-        
-        linesOrder=LineUtil.reduceMultiBonds(preprocess, MAX_ANGLE_FOR_PARALLEL, largestBond/3, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS);
+        System.out.println("Detecting multi bonds");
+        linesOrder=LineUtil.reduceMultiBonds(preprocess, MAX_ANGLE_FOR_PARALLEL, largestBond/3, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS, MIN_BIGGER_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS);
         
               
         
@@ -203,7 +220,7 @@ public class StructureImageExtractor {
         	          })
         	          .collect(Collectors.toList());
         	
-	        ctab = LineUtil.getConnectionTable(linesOrderRestricted, likelyOCR, maxRatioForIntersection, maxCandidateRatioForIntersection,l-> (LineUtil.length(l) < maxBondLength[0]))
+	        ctab = LineUtil.getConnectionTable(linesOrderRestricted, likelyOCR, maxRatioForIntersection, maxCandidateRatioForIntersection,maxPerLineDistanceRatioForIntersection,l-> (LineUtil.length(l) < maxBondLength[0]))
 	        		       .mergeNodesCloserThan(MIN_DISTANCE_BEFORE_MERGING_NODES);
 	        
 	        for(Shape s: likelyOCR){
@@ -308,6 +325,10 @@ public class StructureImageExtractor {
 
 	public List<Line2D> getLines() {
 		return lines;
+	}
+	
+	public List<Line2D> getLinesJoined() {
+		return linesJoined;
 	}
 
 	public List<Tuple<Line2D, Integer>> getLinesOrder() {

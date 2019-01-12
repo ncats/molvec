@@ -13,11 +13,10 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Set;
+import java.util.Map;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import tripod.molvec.algo.LineUtil;
 import tripod.molvec.algo.Tuple;
@@ -287,7 +286,33 @@ public class GeomUtil {
           return null;
         */
     }
-    
+    public static List<List<Point2D>> groupPointsCloserThan(List<Point2D> points,double maxDistance){
+    	int[] groups = IntStream.range(0, points.size())
+    							.toArray();
+    	
+    	for(int i=0;i<points.size();i++){
+    		Point2D p1=points.get(i);
+    		for(int j=i+1;j<points.size();j++){
+    			Point2D p2=points.get(j);
+    			if(p1.distance(p2)<maxDistance){
+    				int g1= groups[i];
+    				int g2= groups[j];
+    				groups[i]=Math.min(g1, g2);
+    				groups[j]=Math.min(g1, g2);
+    			}
+    		}
+    	}
+    	
+    	
+    	return IntStream.range(0, points.size())
+    	         .mapToObj(i->Tuple.of(groups[i],i))
+    	         .map(Tuple.vmap(i->points.get(i)))
+    	         .collect(Tuple.toGroupedMap())
+    	         .values()
+    	         .stream()
+    	         .collect(Collectors.toList());
+    	
+    }
     
     public static class LineDistanceCalculator{
     	private Line2D line1;
@@ -296,17 +321,24 @@ public class GeomUtil {
     	private int line1CloserPoint=-1;
     	private int line2CloserPoint=-1;
     	
+    	private Point2D[] pts1=new Point2D[2];
+    	private Point2D[] pts2=new Point2D[2];
+    	
     	private double[] lens = new double[4];
     	
     	public boolean isProcessed(){
     		return line1CloserPoint!=-1;
     	}
     	public LineDistanceCalculator process(){
+    		pts1[0]=line1.getP1();
+    		pts1[1]=line1.getP2();
+    		pts2[0]=line2.getP1();
+    		pts2[1]=line2.getP2();
     		
-    		lens[0]=line1.getP1().distance(line2.getP1());
-    		lens[1]=line1.getP1().distance(line2.getP2());
-    		lens[2]=line1.getP2().distance(line2.getP1());
-    		lens[3]=line1.getP2().distance(line2.getP2());
+    		lens[0]=pts1[0].distance(pts2[0]);
+    		lens[1]=pts1[0].distance(pts2[1]);
+    		lens[2]=pts1[1].distance(pts2[0]);
+    		lens[3]=pts1[1].distance(pts2[1]);
     		
     		double min=Double.POSITIVE_INFINITY;
     		int mini=0;
@@ -327,6 +359,13 @@ public class GeomUtil {
     		int i=(line1CloserPoint<<1) | line2CloserPoint;
     		
     		return lens[i];
+    	}
+    	public Point2D[] closestPoints(){
+    		Point2D[] points= new Point2D[2];
+    		if(!isProcessed())process();
+    		points[0]=pts1[line1CloserPoint];
+    		points[1]=pts2[line2CloserPoint];
+    		return points;
     	}
     	
     	public Line2D getLineFromFarthestPoints(){
