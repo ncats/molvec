@@ -1571,7 +1571,6 @@ public class Bitmap implements Serializable, TiffTags {
     	
     	double maxCosAng = Math.abs(Math.cos(maxAngle));
 
-    	Set<Line2D> alreadyMerged = new HashSet<Line2D>();
     	
     	
     	int[] ii = new int[]{0};
@@ -1588,13 +1587,17 @@ public class Bitmap implements Serializable, TiffTags {
 			         .mapToObj(k->Tuple.of(k,k))
 			         .map(Tuple.kmap(k->lines.get(k)))
 			         .map(Tuple.kmap(l->LineDistanceCalculator.from(line1, l)))
-			         .map(t->t.withKComparatorMap(lu->lu.getSmallestPointDistance()))
+			         .map(t->t.withKComparatorMap(lu->lu.getAbsoluteClosestDistance()))
 			         .sorted()
 			         .filter(t->{
+			        	 Line2D line2=lines.get(t.v());
+			        	 double dist=t.k().getAbsoluteClosestDistance();
 			        	 //if(alreadyMerged.clines.get(t.v())
-			        	 return t.k().getSmallestPointDistance()<maxMinDistance; 
+			        	
+			        	 return dist<maxMinDistance; 
 			         })
 			         .filter(t->{
+			        	 
 			        	 Line2D line2=lines.get(t.v());
 			        	 if(LineUtil.length(line1)>minLengthForAngleCompare && 
 			        	    LineUtil.length(line2)>minLengthForAngleCompare){
@@ -1641,7 +1644,7 @@ public class Bitmap implements Serializable, TiffTags {
 									return true;
 								}
 							} else {
-								System.out.println("No Good:" + sqrtSTDErr);
+//								System.out.println("No Good:" + sqrtSTDErr);
 							}
 							return false;
 			         })
@@ -1652,17 +1655,16 @@ public class Bitmap implements Serializable, TiffTags {
 			        	 	Line2D line2 = lines.get(j);
 			        	 	Line2D combined = ldc.getLineFromFarthestPoints();
 			        	 	
-			        	 	System.out.println("Old line 1:" + LineUtil.length(line1));
-							System.out.println("Old line 2:" + LineUtil.length(line2));
-							System.out.println("New line:" + LineUtil.length(combined));
-							System.out.println("Dist:" + ldc.getSmallestPointDistance());
-							
-							alreadyMerged.add(combined);
+//			        	 	System.out.println("Old line 1:" + LineUtil.length(line1));
+//							System.out.println("Old line 2:" + LineUtil.length(line2));
+//							System.out.println("New line:" + LineUtil.length(combined));
+//							System.out.println("Dist:" + ldc.getSmallestPointDistance());
+//							
 							lines.set(ii[0], combined);
 							lines.remove(j);
 							reps[0]++;
 							foundOne[0]=true;
-							System.out.println("reps:" + reps[0] + " of " + MAX_REPS);
+//							System.out.println("reps:" + reps[0] + " of " + MAX_REPS);
 			         });
 			if(foundOne[0])i--;
 			

@@ -52,7 +52,7 @@ public class StructureImageExtractor {
     private final double MIN_BOND_TO_AVG_BOND_RATIO = 1/2.5;
     private final double MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 1.3;
     private final double MAX_TOLERANCE_FOR_DASH_BONDS = 1.0;
-	private final double cutoffCosine=0.65;
+	private final double OCRcutoffCosine=0.65;
 	private final double MAX_BOND_TO_AVG_BOND_RATIO_TO_KEEP = 1.5;
 	private final double MIN_DISTANCE_BEFORE_MERGING_NODES = 4.0;
 	private final double maxRatioForIntersection = 1.2;
@@ -64,7 +64,7 @@ public class StructureImageExtractor {
 	private final double MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS = 6;
 	
 	private final double MAX_ANGLE_FOR_JOINING_SEGMENTS=25 * Math.PI/180.0;
-	private final double MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS=5.0;
+	private final double MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS=8.0;
 	
 	private final double MAX_DISTANCE_TO_MERGE_PARALLEL_LINES=2;
 	private final double MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE= 1;
@@ -92,10 +92,33 @@ public class StructureImageExtractor {
 		keepers.add("P");
 		keepers.add("B");
 		keepers.add("Br");
+		keepers.add("Cl");
 		keepers.add("F");
 		
 	    return keepers;
 	}).get();
+	
+	
+	
+	private String interpretOCRStringAsAtom(String s){
+		if(accept.contains(s)){
+			return s;
+		}else if(accept.contains(s.toUpperCase())){
+			return s.toUpperCase();
+		}
+		if(s.contains("H")){
+			return interpretOCRStringAsAtom(s.replace("H", ""));
+		}
+		if(s.contains("I")){
+			return interpretOCRStringAsAtom(s.replace("I", "l"));
+		}
+		if(s.contains("c")){
+			return interpretOCRStringAsAtom(s.replace("c", "C"));
+		}
+		
+		return null;
+			
+	}
 	
     
 	
@@ -126,6 +149,7 @@ public class StructureImageExtractor {
         }
 
         List<Shape> likelyOCR=new ArrayList<Shape>();
+        List<Shape> likelyOCRAll=new ArrayList<Shape>();
         /*
          * Looks at each polygon, and gets the likely OCR chars.
          */   
@@ -136,7 +160,7 @@ public class StructureImageExtractor {
                          thin.crop(s).createRaster()
                          );
                  ocrAttmept.put(s, potential);
-                 if(potential.stream().filter(e->e.getValue().doubleValue()>cutoffCosine).findAny().isPresent()){
+                 if(potential.stream().filter(e->e.getValue().doubleValue()>OCRcutoffCosine).findAny().isPresent()){
                 	 String t=potential.get(0).getKey()+"";
                  	if(!"I".equalsIgnoreCase(t) && 
                  	   !"L".equalsIgnoreCase(t) &&
@@ -146,6 +170,8 @@ public class StructureImageExtractor {
                  	   !"\\".equalsIgnoreCase(t)){
                  		likelyOCR.add(s);
                  	}
+                 	likelyOCRAll.add(s);
+                 	
                  }
              }
         }
@@ -188,7 +214,9 @@ public class StructureImageExtractor {
         		                   .collect(Collectors.toList());
         
         smallLines= thin.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
+        
         smallLines= bitmap.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
+        
         linesJoined=Stream.concat(bigLines.stream(),
         		            smallLines.stream())
         		    .collect(Collectors.toList());
@@ -302,7 +330,7 @@ public class StructureImageExtractor {
         
         double cosThetaOCRShape =Math.cos(MAX_THETA_FOR_OCR_SEPERATION);
         
-        List<List<Shape>> ocrGroupList=GeomUtil.groupShapesIfClosestPointsMatchCriteria(likelyOCR, pts->{
+        List<List<Shape>> ocrGroupList=GeomUtil.groupShapesIfClosestPointsMatchCriteria(likelyOCRAll, pts->{
         	Line2D l2 = new Line2D.Double(pts[0],pts[1]);
         	double dist=LineUtil.length(l2);
         	if(dist>ctab.getAverageBondLength()*MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING){
@@ -341,13 +369,17 @@ public class StructureImageExtractor {
 	        .collect(Tuple.toMap());
         
         
+        for(Shape s: bestGuessOCR.keySet()){
+        	ctab.mergeAllNodesInside(s, 1);
+        }
         
         
         for(Shape s: bestGuessOCR.keySet()){
         	String sym=bestGuessOCR.get(s);
-        	if(accept.contains(sym)){
-        		System.out.println("Adding:" + sym);
-        		ctab.setNodeToSymbol(s, sym);
+        	System.out.println("Trying to add:" + sym);
+        	String actual=this.interpretOCRStringAsAtom(sym);
+        	if(actual!=null){
+        		ctab.setNodeToSymbol(s, actual);
         	}
         	
         }

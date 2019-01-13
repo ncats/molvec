@@ -420,12 +420,23 @@ public class GeomUtil {
     		
     	}
     	
+    	public Point2D[] getAbsoluteClosestPointsOnEachLine(){
+    		return GeomUtil.closestPointsOnLines(line1, line2);
+    	}
+    	
+    	public double getAbsoluteClosestDistance(){
+    		Point2D[] pts=getAbsoluteClosestPointsOnEachLine();
+    		return pts[0].distance(pts[1]);
+    	}
+    	
     	public static LineDistanceCalculator from(Line2D line1, Line2D line2){
     		LineDistanceCalculator ldc = new LineDistanceCalculator();
     		ldc.line1=line1;
     		ldc.line2=line2;
     		return ldc;
     	}
+    	
+    	
     	
     }
     
@@ -599,6 +610,15 @@ public class GeomUtil {
     }
     
     
+    public static void main(String[] args){
+//    	line1:27.0,146.0 -> 47.0,180.0
+//    	line2:43.0,173.0
+//    	
+    	Line2D l1 = new Line2D.Double(27.0, 146.0, 47,180);
+    	Point2D p = new Point2D.Double(43,174);
+    	
+    	System.out.println(closestPointOnLine(l1,p));
+    }
     
   
   

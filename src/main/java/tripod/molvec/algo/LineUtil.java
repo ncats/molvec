@@ -157,22 +157,22 @@ public class LineUtil {
 						if(intersectLength*cutoffRat1>minProjectionRatio 
 								&& intersectLength*cutoffRat2>minLargerProjectionRatio
 								){
-							System.out.println("WORKED");
-							System.out.println((intersectLength*cutoffRat1) + " >? " + minProjectionRatio);
-							System.out.println((intersectLength*cutoffRat2) + " >? " + minLargerProjectionRatio);
+//							System.out.println("WORKED");
+//							System.out.println((intersectLength*cutoffRat1) + " >? " + minProjectionRatio);
+//							System.out.println((intersectLength*cutoffRat2) + " >? " + minLargerProjectionRatio);
 							int g1=groups.get(i);
 							int g2=groups.get(j);
 							groups.put(i, Math.min(g1, g2));
 							groups.put(j, Math.min(g1, g2));
 						}else{
-							System.out.println("Didn't work");
-							System.out.println((intersectLength*cutoffRat1) + " >? " + minProjectionRatio);
-							System.out.println((intersectLength*cutoffRat2) + " >? " + minLargerProjectionRatio);
+//							System.out.println("Didn't work");
+//							System.out.println((intersectLength*cutoffRat1) + " >? " + minProjectionRatio);
+//							System.out.println((intersectLength*cutoffRat2) + " >? " + minLargerProjectionRatio);
 						}
 					}
 				}else{
-					System.out.println("Not par");
-					System.out.println((cosTheta) + " >? " + cosThetaCutoff);
+//					System.out.println("Not par");
+//					System.out.println((cosTheta) + " >? " + cosThetaCutoff);
 				}
 			}
 		}
@@ -967,7 +967,7 @@ public class LineUtil {
 		double[] vec=asVector(l);
 		double[] pvec = new double[]{p.getX()-l.getX1(),p.getY()-l.getY1()};
 		double dot=GeomUtil.dot(vec, pvec);
-		double proj=dot/GeomUtil.l2Norm(vec);
+		double proj=dot/Math.pow(GeomUtil.l2Norm(vec),2);
 		double[] projVec= new double[]{proj*vec[0],proj*vec[1]};
 		return new Point2D.Double(projVec[0]+l.getX1(), projVec[1]+l.getY1());
 	}

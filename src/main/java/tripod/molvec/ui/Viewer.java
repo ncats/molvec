@@ -1130,7 +1130,7 @@ public class Viewer extends JPanel
             
             toolbar.add(ab = new JCheckBox ("Line Orders"));
             ab.putClientProperty("MASK", LINE_ORDERS);
-            ab.setSelected(true);
+            ab.setSelected(false);
             ab.setToolTipText("Show line orders");
             ab.addActionListener(this);
 
