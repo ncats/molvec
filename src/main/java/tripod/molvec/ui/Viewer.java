@@ -65,11 +65,10 @@ import javax.swing.event.ChangeListener;
 
 import tripod.molvec.Bitmap;
 import tripod.molvec.algo.CentroidEuclideanMetric;
-import tripod.molvec.algo.LineUtil;
-import tripod.molvec.algo.LineUtil.ConnectionTable;
 import tripod.molvec.algo.NearestNeighbors;
 import tripod.molvec.algo.StructureImageExtractor;
 import tripod.molvec.algo.Tuple;
+import tripod.molvec.util.ConnectionTable;
 import tripod.molvec.util.GeomUtil;
 
 
@@ -330,8 +329,8 @@ public class Viewer extends JPanel
         
         bitmap=sie.getBitmap();
         thin=sie.getThin();
-        segments=LineUtil.fromLines(sie.getLines());
-        segmentsJoined=LineUtil.fromLines(sie.getLinesJoined());
+        segments=GeomUtil.fromLines(sie.getLines());
+        segmentsJoined=GeomUtil.fromLines(sie.getLinesJoined());
         linesOrder=sie.getLinesOrder();
         polygons=sie.getPolygons();
         ctab=sie.getCtab();

@@ -19,9 +19,9 @@ import java.util.stream.Stream;
 import gov.nih.ncats.chemkit.api.Chemical;
 import tripod.molvec.Bitmap;
 import tripod.molvec.CachedSupplier;
-import tripod.molvec.algo.LineUtil.ConnectionTable;
 import tripod.molvec.ui.RasterCosineSCOCR;
 import tripod.molvec.ui.SCOCR;
+import tripod.molvec.util.ConnectionTable;
 import tripod.molvec.util.GeomUtil;
 
 public class StructureImageExtractor {
@@ -196,7 +196,7 @@ public class StructureImageExtractor {
         
         
         
-        lines= LineUtil.asLines(thin.segments());
+        lines= GeomUtil.asLines(thin.segments());
         
         
         Predicate<Line2D> isInOCRShape = (l)->{
@@ -240,7 +240,7 @@ public class StructureImageExtractor {
         		    .collect(Collectors.toList());
         
         double largestBond=linesJoined.stream()
-		           .mapToDouble(l->LineUtil.length(l))
+		           .mapToDouble(l->GeomUtil.length(l))
 		           .max()
 		           .orElse(0);
        
@@ -248,13 +248,13 @@ public class StructureImageExtractor {
         System.out.println(MAX_ANGLE_FOR_PARALLEL);
         System.out.println(Math.cos(MAX_ANGLE_FOR_PARALLEL));
         
-        List<Line2D> preprocess= LineUtil.reduceMultiBonds(linesJoined, MAX_ANGLE_FOR_PARALLEL, MAX_DISTANCE_TO_MERGE_PARALLEL_LINES, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS,0)
+        List<Line2D> preprocess= GeomUtil.reduceMultiBonds(linesJoined, MAX_ANGLE_FOR_PARALLEL, MAX_DISTANCE_TO_MERGE_PARALLEL_LINES, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS,0)
         		                         .stream()
         		                         .map(t->t.k())
         		                         .collect(Collectors.toList());
         
         System.out.println("Detecting multi bonds");
-        linesOrder=LineUtil.reduceMultiBonds(preprocess, MAX_ANGLE_FOR_PARALLEL, largestBond/3, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS, MIN_BIGGER_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS);
+        linesOrder=GeomUtil.reduceMultiBonds(preprocess, MAX_ANGLE_FOR_PARALLEL, largestBond/3, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS, MIN_BIGGER_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS);
         
               
         
@@ -272,7 +272,7 @@ public class StructureImageExtractor {
         	          })
         	          .collect(Collectors.toList());
         	
-	        ctab = LineUtil.getConnectionTable(linesOrderRestricted, likelyOCR, maxRatioForIntersection, maxCandidateRatioForIntersection,maxPerLineDistanceRatioForIntersection,l-> (LineUtil.length(l) < maxBondLength[0]))
+	        ctab = GeomUtil.getConnectionTable(linesOrderRestricted, likelyOCR, maxRatioForIntersection, maxCandidateRatioForIntersection,maxPerLineDistanceRatioForIntersection,l-> (GeomUtil.length(l) < maxBondLength[0]))
 	        		       .mergeNodesCloserThan(MIN_DISTANCE_BEFORE_MERGING_NODES);
 	        
 	        for(Shape s: likelyOCR){
@@ -305,9 +305,8 @@ public class StructureImageExtractor {
 	        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO);
 	        
 	        ctab.makeMissingBondsToNeighbors(bitmap,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MAX_TOLERANCE_FOR_DASH_BONDS,likelyOCR,OCR_TO_BOND_MAX_DISTANCE, (t)->{
-	        	System.out.println("Tol found:" + t.k());
+//	        	System.out.println("Tol found:" + t.k());
 	        	if(t.k()>MAX_TOLERANCE_FOR_SINGLE_BONDS){
-	        		
 	        		t.v().setDashed(true);
 	        	}
 	        });
@@ -348,7 +347,7 @@ public class StructureImageExtractor {
         double shortestRealBondRatio = .3;
         ctab.fixBondOrders(likelyOCR,shortestRealBondRatio, e->{
         	System.out.println("Fixing bond order");
-        	e.order=1;
+        	e.setOrder(1);
         });
         
         
@@ -359,11 +358,11 @@ public class StructureImageExtractor {
         
         List<List<Shape>> ocrGroupList=GeomUtil.groupShapesIfClosestPointsMatchCriteria(likelyOCRAll, pts->{
         	Line2D l2 = new Line2D.Double(pts[0],pts[1]);
-        	double dist=LineUtil.length(l2);
+        	double dist=GeomUtil.length(l2);
         	if(dist>ctab.getAverageBondLength()*MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING){
         		return false;
         	}
-        	double[] vec=LineUtil.asVector(l2);
+        	double[] vec=GeomUtil.asVector(l2);
         	double cosTheta=Math.abs(vec[0]/dist);
         	
         	if(cosTheta>cosThetaOCRShape){

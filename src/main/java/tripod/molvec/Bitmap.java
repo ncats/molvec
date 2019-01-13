@@ -52,7 +52,6 @@ import com.sun.media.jai.codec.TIFFDirectory;
 import com.sun.media.jai.codec.TIFFEncodeParam;
 import com.sun.media.jai.codec.TIFFField;
 
-import tripod.molvec.algo.LineUtil;
 import tripod.molvec.algo.Tuple;
 import tripod.molvec.image.ImageUtil;
 import tripod.molvec.image.TiffTags;
@@ -676,6 +675,9 @@ public class Bitmap implements Serializable, TiffTags {
       }
        return ((double)on) / (data.length*8);
     }
+    
+    
+    
     
     public Bitmap invert(){
     	Bitmap clone = new Bitmap(this);
@@ -1468,7 +1470,7 @@ public class Bitmap implements Serializable, TiffTags {
 		double dx=line.getX2()-line.getX1();
 		double dy=line.getY2()-line.getY1();
 		
-    	double len=LineUtil.length(line);
+    	double len=GeomUtil.length(line);
     	if(len<1)return 0;
     	double mult=1/len;
     	
@@ -1509,7 +1511,7 @@ public class Bitmap implements Serializable, TiffTags {
 		double dx=line.getX2()-line.getX1();
 		double dy=line.getY2()-line.getY1();
 		
-    	double len=LineUtil.length(line);
+    	double len=GeomUtil.length(line);
     	double mult=1/len;
     	double sumDist = 0;
 		for(int d=0;d<len;d++){
@@ -1544,7 +1546,7 @@ public class Bitmap implements Serializable, TiffTags {
     	byte[] distMet=distanceData.get();
     	
     	List<Line2D> lines=ilines.stream()
-    	     .map(l->Tuple.of(l,LineUtil.length(l)).withVComparator())
+    	     .map(l->Tuple.of(l,GeomUtil.length(l)).withVComparator())
     	     .sorted()
     	     .map(t->t.k())
     	     .collect(Collectors.toList());
@@ -1599,9 +1601,9 @@ public class Bitmap implements Serializable, TiffTags {
 			         .filter(t->{
 			        	 
 			        	 Line2D line2=lines.get(t.v());
-			        	 if(LineUtil.length(line1)>minLengthForAngleCompare && 
-			        	    LineUtil.length(line2)>minLengthForAngleCompare){
-				        	 if(LineUtil.cosTheta(line1,line2)<maxCosAng){
+			        	 if(GeomUtil.length(line1)>minLengthForAngleCompare && 
+			        	    GeomUtil.length(line2)>minLengthForAngleCompare){
+				        	 if(GeomUtil.cosTheta(line1,line2)<maxCosAng){
 				        		 return false;
 				        	 }
 			        	 }
@@ -1627,7 +1629,7 @@ public class Bitmap implements Serializable, TiffTags {
 							double sy = combined.getY1();
 							double dx = combined.getX2() - combined.getX1();
 							double dy = combined.getY2() - combined.getY1();
-							double len = LineUtil.length(combined);
+							double len = GeomUtil.length(combined);
 
 							double mult = 1 / len;
 
@@ -1640,7 +1642,7 @@ public class Bitmap implements Serializable, TiffTags {
 							}
 							double sqrtSTDErr = Math.sqrt(sumSqDist / len);
 							if (sqrtSTDErr <= maxAvgDeviation) {
-								if (len > LineUtil.length(line1) && len > LineUtil.length(line2)) {
+								if (len > GeomUtil.length(line1) && len > GeomUtil.length(line2)) {
 									return true;
 								}else if(line1.intersectsLine(line2)){
 										return true;

@@ -14,6 +14,7 @@ import java.util.Map.Entry;
 
 import tripod.molvec.Bitmap;
 import tripod.molvec.CachedSupplier;
+import tripod.molvec.util.GeomUtil;
 
 public class ImageDecomposition {
 	private Bitmap bitmap;
@@ -21,7 +22,7 @@ public class ImageDecomposition {
 	
 	private CachedSupplier<Collection<Shape>> polygons = CachedSupplier.of(()->bitmap.connectedComponents(Bitmap.Bbox.Polygon));
 	private CachedSupplier<Collection<Path2D>> segments = CachedSupplier.of(()->thin.segments());
-	private CachedSupplier<Collection<Line2D>> lines = CachedSupplier.of(()->LineUtil.asLines(segments.get()));
+	private CachedSupplier<Collection<Line2D>> lines = CachedSupplier.of(()->GeomUtil.asLines(segments.get()));
 	
 	
 	

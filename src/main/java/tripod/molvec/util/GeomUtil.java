@@ -4,22 +4,27 @@ import java.awt.Point;
 import java.awt.Polygon;
 import java.awt.Shape;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.GeneralPath;
 import java.awt.geom.Line2D;
+import java.awt.geom.Path2D;
 import java.awt.geom.PathIterator;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import tripod.molvec.algo.LineUtil;
 import tripod.molvec.algo.Tuple;
 
 
@@ -245,12 +250,12 @@ public class GeomUtil {
         return lines.toArray (new Line2D[0]);
     }
 
-    public static Point2D segmentIntersection(Line2D l1, Line2D l2){
+    public static Optional<Point2D> segmentIntersection(Line2D l1, Line2D l2){
     	 Point2D pt = intersection (l1, l2);
          if (pt != null && intersects (l1, pt) && intersects (l2, pt)) {
-             return pt;
+             return Optional.of(pt);
          }
-         return null;
+         return Optional.empty();
     }
     
     /**
@@ -275,17 +280,6 @@ public class GeomUtil {
             * (p3.getX () * p4.getY () - p3.getY () * p4.getX ());
 
         return new Point2D.Double (x / c, y / c);
-
-        /*
-          double[] p1 = calcLineParams (l1);
-          double[] p2 = calcLineParams (l2);
-          if (p1[0] != p2[0]) {
-          double x = (p2[1] - p1[1])/(p1[0] - p2[0]);
-          double y = p1[0]*x + p1[1];
-          return new Point2D.Double(x, y);
-          }
-          return null;
-        */
     }
     public static List<List<Point2D>> groupPointsCloserThan(List<Point2D> points,double maxDistance){
     	int[] groups = IntStream.range(0, points.size())
@@ -409,9 +403,9 @@ public class GeomUtil {
     		Point2D p1 = (line1CloserPoint==0)?line1.getP2():line1.getP1();
     		Point2D p2 = (line2CloserPoint==0)?line2.getP2():line2.getP1();
     		Line2D nline= new Line2D.Double(p1,p2);
-    		double ol1=LineUtil.length(line1);
-    		double ol2=LineUtil.length(line2);
-    		double nl=LineUtil.length(nline);
+    		double ol1=GeomUtil.length(line1);
+    		double ol2=GeomUtil.length(line2);
+    		double nl=GeomUtil.length(nline);
     		if(nl>ol1 && nl>ol2){
     			return nline;
     		}else{
@@ -441,21 +435,6 @@ public class GeomUtil {
     	
     }
     
-
-    // calculate line parameters (slope & intercept) of a line
-    public static double[] calcLineParams (Line2D line) {
-        Point2D p1 = line.getP1 (), p2 = line.getP2 ();
-        double intercept = 0, slope = 0;
-        if (p1.getX () != p2.getX ()) {
-            intercept = (p2.getX () * p1.getY () - p1.getX () * p2.getY ())
-                / (p2.getX () - p1.getX ());
-
-            slope = (p1.getY () - intercept) / p1.getX ();
-        }
-
-        return new double[]{slope, intercept};
-    }
-
     public static boolean intersects (Line2D line, Point2D pt) {
         return line.ptSegDist (pt) < 0.0001;
     }
@@ -474,13 +453,14 @@ public class GeomUtil {
         return false;
     }
     
-    public static Point2D getIntersection(Shape s1, Line2D l1){
+    public static Optional<Point2D> getIntersection(Shape s1, Line2D l1){
+    	
     	
     	return Arrays.stream(lines(s1))
     	      .map(l->segmentIntersection(l,l1))
-    	      .filter(p->p!=null)
+    	      .filter(p->p.isPresent())
     	      .findFirst()
-    	      .orElse(null);
+    	      .map(p->p.get());
     }
 
     /**
@@ -527,7 +507,7 @@ public class GeomUtil {
     }
     
     /**
-     * Return two closest points on shape pair
+     * Return two closest points on shape and line
      */
     public static Point2D[] closestPoints (Shape s1, Line2D line) {
         return closestPoints(lines(s1),new Line2D[]{line});
@@ -601,8 +581,8 @@ public class GeomUtil {
     }
     
     public static Point2D closestPointOnLine(Line2D l, Point2D p){
-    	Point2D pp=LineUtil.projectPointOntoLine(l,p);
-    	double len = LineUtil.length(l);
+    	Point2D pp=GeomUtil.projectPointOntoLine(l,p);
+    	double len = GeomUtil.length(l);
     	if(pp.distance(l.getP1())>len){
     		return l.getP2();
     	}else if(pp.distance(l.getP2())>len){
@@ -662,18 +642,6 @@ public class GeomUtil {
     	}
     }
     
-    
-    public static void main(String[] args){
-//    	line1:27.0,146.0 -> 47.0,180.0
-//    	line2:43.0,173.0
-//    	
-    	Line2D l1 = new Line2D.Double(27.0, 146.0, 47,180);
-    	Point2D p = new Point2D.Double(43,174);
-    	
-    	System.out.println(closestPointOnLine(l1,p));
-    }
-    
-  
   
 
     /**
@@ -739,6 +707,290 @@ public class GeomUtil {
     	         .toArray();
     	return ordinalCorrel(rank);
     }
+
+	public static List<Line2D> asLines(Collection<Path2D> segments){
+			List<Line2D> lines= new ArrayList<Line2D>();
+	        for(Path2D p2:segments){
+	            PathIterator pi=p2.getPathIterator(null);
+	            double[] prevPt=null;
+	            while(!pi.isDone()){
+	        		
+	                double[] coord= new double[2];
+	                pi.currentSegment(coord);
+	                if(prevPt!=null){
+	                    Line2D line = new Line2D.Double
+	                        (coord[0], coord[1], prevPt[0], prevPt[1]);
+	//                    double lineLength=Math.sqrt
+	//                        ((coord[0]-prevPt[0])*(coord[0]-prevPt[0])
+	//                         +(coord[1]-prevPt[1])*(coord[1]-prevPt[1]));
+	                    lines.add(line);
+	                    //System.out.println(lineLength);
+	                }
+	                prevPt=coord;
+	                pi.next();
+	            }
+	        }
+	        return lines;
+		}
+
+	public static Path2D fromLine(Line2D line){
+		GeneralPath gp = new GeneralPath();
+		gp.moveTo(line.getX1(),line.getY1());
+		gp.lineTo(line.getX2(),line.getY2());
+		return gp;
+	}
+
+	public static List<Path2D> fromLines(List<Line2D> lines){
+		return lines.stream().map(l->fromLine(l)).collect(Collectors.toList());
+	}
+
+	public static double length(Line2D l){
+		return l.getP1().distance(l.getP2());
+	}
+
+	/**
+		 * <p>Currently, this method takes in a set of lines and attempts to group the lines based on being</p>
+		 * <ol>
+		 * <li>Sufficiently parallel</li>
+		 * <li>Sufficiently close together</li>
+		 * <li>Sufficiently "overlapping" in projection of little line to big line</li>
+		 * <li>Sufficiently "overlapping" in projection of big line to little line</li>  
+		 * </ol>
+		 * 
+		 * 
+		 * @param lines
+		 * @param maxDeltaTheta
+		 * @param maxDeltaOffset
+		 * @param minProjectionRatio
+		 * @param minLargerProjectionRatio
+		 * @return
+		 */
+		public static List<List<Line2D>> groupMultipleBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio, double minLargerProjectionRatio){
+			double[] recipLengths=new double[lines.size()];
+			Map<Integer,Integer> groups = new HashMap<>();
+			for(int i=0;i<lines.size();i++){
+				Line2D line=lines.get(i);
+				recipLengths[i]=1.0/line.getP1().distance(line.getP2());
+				groups.put(i, i);
+			}
+			double cosThetaCutoff=Math.cos(maxDeltaTheta);
+			System.out.println("cos cutoff:" + cosThetaCutoff);
+			
+			
+			//So, this will be an n^2 operation
+			for(int i=0;i<lines.size();i++){
+				Line2D line1=lines.get(i);
+				double[] vec1=asVector(line1);
+				for(int j=i+1;j<lines.size();j++){
+					Line2D line2=lines.get(j);
+					double[] vec2=asVector(line2);
+					double dot=vec1[0]*vec2[0]+vec1[1]*vec2[1];
+					double cosTheta=Math.abs(dot*recipLengths[i]*recipLengths[j]);
+					//Sufficiently parallel
+					if(cosTheta>cosThetaCutoff){
+						double[] vec2Off = new double[2];
+						vec2Off[0] = (line2.getX1()+line2.getX2())/2 -line1.getX1();
+						vec2Off[1] = (line2.getY1()+line2.getY2())/2 -line1.getY1();
+						double antiDot=(vec2Off[0]*vec1[1]-vec2Off[1]*vec1[0]);
+						double rej=Math.abs(antiDot*recipLengths[i]);
+						//Sufficiently close to line
+						if(rej<maxDeltaOffset){
+							
+							double len1=1/recipLengths[i];
+							double proj1=0;
+							double proj2=0;
+							vec2Off[0] = line2.getX1() -line1.getX1();
+							vec2Off[1] = line2.getY1() -line1.getY1();
+							proj1=(vec2Off[0]*vec1[0]+vec2Off[1]*vec1[1])*recipLengths[i];
+							vec2Off[0] = line2.getX2() -line1.getX1();
+							vec2Off[1] = line2.getY2() -line1.getY1();
+							proj2=(vec2Off[0]*vec1[0]+vec2Off[1]*vec1[1])*recipLengths[i];
+							
+							if(proj1<0)proj1=0;
+							if(proj1>len1){
+								proj1=len1;
+							}
+							if(proj2<0)proj2=0;
+							if(proj2>len1){
+								proj2=len1;
+							}
+							double intersectLength=Math.abs(proj1-proj2);
+							double cutoffRat1=Math.max(recipLengths[i], recipLengths[j]);
+							double cutoffRat2=Math.min(recipLengths[i], recipLengths[j]);
+							if(intersectLength*cutoffRat1>minProjectionRatio 
+									&& intersectLength*cutoffRat2>minLargerProjectionRatio
+									){
+	//							System.out.println("WORKED");
+	//							System.out.println((intersectLength*cutoffRat1) + " >? " + minProjectionRatio);
+	//							System.out.println((intersectLength*cutoffRat2) + " >? " + minLargerProjectionRatio);
+								int g1=groups.get(i);
+								int g2=groups.get(j);
+								groups.put(i, Math.min(g1, g2));
+								groups.put(j, Math.min(g1, g2));
+							}else{
+	//							System.out.println("Didn't work");
+	//							System.out.println((intersectLength*cutoffRat1) + " >? " + minProjectionRatio);
+	//							System.out.println((intersectLength*cutoffRat2) + " >? " + minLargerProjectionRatio);
+							}
+						}
+					}else{
+	//					System.out.println("Not par");
+	//					System.out.println((cosTheta) + " >? " + cosThetaCutoff);
+					}
+				}
+			}
+			
+			return groups.entrySet().stream()
+			      .map(Tuple::of)
+			      .map(Tuple.kmap(i->lines.get(i)))
+			      .map(t->t.swap())
+			      .collect(Tuple.toGroupedMap())
+			      .entrySet()
+			      .stream()
+			      .map(Tuple::of)
+			      .map(t->t.v())
+			      .collect(Collectors.toList());
+			
+			
+		}
+
+	/**
+	 * This method, like {@link #groupMultipleBonds(List, double, double, double, double)}, attempts to group bonds, but also 
+	 * goes one step further to select the longest line from each group while also returning the count of lines
+	 * found in the group. This is an estimate of the bond order.
+	 * 
+	 * @param lines
+	 * @param maxDeltaTheta
+	 * @param maxDeltaOffset
+	 * @param minProjectionRatio
+	 * @param minLargerProjectionRatio
+	 * @return
+	 */
+	public static List<Tuple<Line2D, Integer>> reduceMultiBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio, double minLargerProjectionRatio){
+		
+		return groupMultipleBonds(lines,maxDeltaTheta,maxDeltaOffset,minProjectionRatio,minLargerProjectionRatio)
+				.stream()
+				.map(l->Tuple.of(l,l.size()))
+				.map(Tuple.kmap(l->l.stream()
+								   .map(s->Tuple.of(s,-length(s)).withVComparator())
+								   .sorted()
+								   .findFirst()
+						           .get()
+						           .k()
+						           ))
+				.collect(Collectors.toList());
+	}
+
+	public static double[] asVector(Line2D line){
+		double dx=line.getX2()-line.getX1();
+		double dy=line.getY2()-line.getY1();
+		return new double[]{dx,dy};
+		
+	}
+
+	public static Shape getClosestShapeTo(List<Shape> shapes, Point2D pnt){
+		return shapes.stream()
+				      .map(s->Tuple.of(s,distanceTo(s, pnt)).withVComparator())
+				      .sorted()
+				      .findFirst()
+				      .map(t->t.k())
+				      .orElse(null);
+	}
+
+	public static double cosTheta(Line2D l1, Line2D l2){
+		double[] vec1=asVector(l1);
+		double[] vec2=asVector(l2);
+		double dot=vec1[0]*vec2[0]+vec1[1]*vec2[1];
+		double cosTheta=Math.abs(dot/(length(l1)*length(l2)));
+		return cosTheta;
+	}
+
+	public static Line2D longestLineFromOneVertexToPoint(Line2D line, Point2D pnt){
+		double d1= pnt.distance(line.getP1());
+		double d2= pnt.distance(line.getP2());
+		if(d1>d2){
+			return new Line2D.Double(line.getP1(), pnt);
+		}else{
+			return new Line2D.Double(line.getP2(), pnt);
+		}
+	}
+
+	public static ConnectionTable getConnectionTable(List<Tuple<Line2D,Integer>> linest, List<Shape> likelyNodes, double maxDistanceRatioNonLikely,double maxDistanceRatioLikely, double maxDistanceRatioPerLine, Predicate<Line2D> acceptNewLine){
+				List<Tuple<Line2D,Integer>> lines = new ArrayList<>(linest);
+				
+				for(int i=0;i<lines.size();i++){
+					Tuple<Line2D, Integer> lineOrder1=lines.get(i);
+					double distance1 = GeomUtil.length(lineOrder1.k());
+					for(int j=i+1;j<lines.size();j++){
+						
+						
+						Tuple<Line2D, Integer> lineOrder2=lines.get(j);
+						double distance2 = GeomUtil.length(lineOrder2.k());
+						double totalDistance = distance1+distance2;
+						
+						Point2D intersect = intersection(lineOrder1.k(),lineOrder2.k());
+						if(intersect==null)continue;
+						double ndistance1 = Math.max(intersect.distance(lineOrder1.k().getP1()), intersect.distance(lineOrder1.k().getP2()));
+						double ndistance2 = Math.max(intersect.distance(lineOrder2.k().getP1()), intersect.distance(lineOrder2.k().getP2()));
+						double totalDistanceAfter = ndistance1+ndistance2;
+						
+						double ratioTotal = Math.max(totalDistanceAfter,totalDistance)/Math.min(totalDistanceAfter, totalDistance);
+						
+						double ratioLine1 = Math.max(ndistance1,distance1)/Math.min(ndistance1, distance1);
+						double ratioLine2 = Math.max(ndistance2,distance2)/Math.min(ndistance2, distance2);
+						
+						boolean merge = false;
+						
+					
+								
+						if(ratioTotal<maxDistanceRatioLikely){
+							if(ratioTotal<maxDistanceRatioNonLikely){
+								if(ratioLine1<maxDistanceRatioPerLine && ratioLine2<maxDistanceRatioPerLine){
+								merge=true;
+								}
+							}else{
+								boolean inLikelyNode=likelyNodes.stream().filter(s->s.contains(intersect)).findAny().isPresent();
+								if(inLikelyNode){
+									merge=true;
+								}
+							}
+						}
+						
+						if(merge){
+							Line2D newLine1 = longestLineFromOneVertexToPoint(lineOrder1.k(),intersect);
+							Line2D newLine2 = longestLineFromOneVertexToPoint(lineOrder2.k(),intersect);
+							if(acceptNewLine.test(newLine1) && acceptNewLine.test(newLine2)){
+								Tuple<Line2D,Integer> norder1 = Tuple.of(newLine1,lineOrder1.v());
+								Tuple<Line2D,Integer> norder2 = Tuple.of(newLine2,lineOrder2.v());
+								lines.set(i, norder1);
+								lines.set(j, norder2);
+								lineOrder1 = norder1;
+							}
+						}				
+					}
+				}
+					
+				ConnectionTable ct=new ConnectionTable();
+				
+				for(int i=0;i<lines.size();i++){
+					Tuple<Line2D, Integer> lineOrder1=lines.get(i);
+					ct.addNode(lineOrder1.k().getP1());
+					ct.addNode(lineOrder1.k().getP2());
+					ct.addEdge(i*2, i*2+1, lineOrder1.v());
+				}
+				return ct;
+				
+				
+	}
+
+	public static Point2D projectPointOntoLine(Line2D l, Point2D p){
+		double[] vec=asVector(l);
+		double[] pvec = new double[]{p.getX()-l.getX1(),p.getY()-l.getY1()};
+		double dot=dot(vec, pvec);
+		double proj=dot/Math.pow(l2Norm(vec),2);
+		double[] projVec= new double[]{proj*vec[0],proj*vec[1]};
+		return new Point2D.Double(projVec[0]+l.getX1(), projVec[1]+l.getY1());
+	}
     
     
 }
