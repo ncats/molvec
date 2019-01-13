@@ -216,8 +216,8 @@ public class StructureImageExtractor {
         };
         
         Predicate<Line2D> tryToMerge = isInOCRShape.negate().and((l)->{
-        	if(true)return true;
-        	return false;
+        	return true;
+        	
         	//return LineUtil.length(l)<largestBond;
         });
         
@@ -244,16 +244,13 @@ public class StructureImageExtractor {
 		           .max()
 		           .orElse(0);
        
-        System.out.println("Angle:");
-        System.out.println(MAX_ANGLE_FOR_PARALLEL);
-        System.out.println(Math.cos(MAX_ANGLE_FOR_PARALLEL));
+
         
         List<Line2D> preprocess= GeomUtil.reduceMultiBonds(linesJoined, MAX_ANGLE_FOR_PARALLEL, MAX_DISTANCE_TO_MERGE_PARALLEL_LINES, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS,0)
         		                         .stream()
         		                         .map(t->t.k())
         		                         .collect(Collectors.toList());
         
-        System.out.println("Detecting multi bonds");
         linesOrder=GeomUtil.reduceMultiBonds(preprocess, MAX_ANGLE_FOR_PARALLEL, largestBond/3, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS, MIN_BIGGER_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS);
         
               
@@ -448,7 +445,6 @@ public class StructureImageExtractor {
         
         for(Shape s: bestGuessOCR.keySet()){
         	String sym=bestGuessOCR.get(s);
-        	System.out.println("Trying to add:" + sym);
         	String actual=this.interpretOCRStringAsAtom(sym);
         	if(actual!=null){
         		ctab.setNodeToSymbol(s, actual);
@@ -500,6 +496,7 @@ public class StructureImageExtractor {
 		return ctab;
 	}
 
+	
 	
 	
 }

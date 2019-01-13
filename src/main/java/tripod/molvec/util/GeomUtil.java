@@ -29,7 +29,9 @@ import tripod.molvec.algo.Tuple;
 
 
 public class GeomUtil {
-    private static final Logger logger = 
+    private static final double ZERO_DISTANCE_TOLERANCE = 0.0001;
+
+	private static final Logger logger = 
         Logger.getLogger (GeomUtil.class.getName ());
 
     private static final boolean DEBUG;
@@ -268,7 +270,7 @@ public class GeomUtil {
         double c = (p1.getX () - p2.getX ()) * (p3.getY () - p4.getY ())
             - (p1.getY () - p2.getY ()) * (p3.getX () - p4.getX ());
 
-        if (Math.abs (c) < 0.0001)
+        if (Math.abs (c) < ZERO_DISTANCE_TOLERANCE)
             return null;
 
 
@@ -436,7 +438,7 @@ public class GeomUtil {
     }
     
     public static boolean intersects (Line2D line, Point2D pt) {
-        return line.ptSegDist (pt) < 0.0001;
+        return line.ptSegDist (pt) < ZERO_DISTANCE_TOLERANCE;
     }
 
     public static boolean intersects (Shape s1, Shape s2) {
@@ -605,7 +607,7 @@ public class GeomUtil {
     
     public static Point2D[] closestPointsOnLines(Line2D l1, Line2D l2){
     	Point2D inter=GeomUtil.intersection(l1, l2);
-    	if(inter!=null && l1.ptSegDist(inter) < 0.001 && l2.ptSegDist(inter) < 0.001){
+    	if(inter!=null && l1.ptSegDist(inter) < ZERO_DISTANCE_TOLERANCE && l2.ptSegDist(inter) < ZERO_DISTANCE_TOLERANCE){
     		return new Point2D[]{inter,inter};
     	}
     	Point2D[] closestProj1 = new Point2D[2];
@@ -774,7 +776,6 @@ public class GeomUtil {
 				groups.put(i, i);
 			}
 			double cosThetaCutoff=Math.cos(maxDeltaTheta);
-			System.out.println("cos cutoff:" + cosThetaCutoff);
 			
 			
 			//So, this will be an n^2 operation
@@ -872,7 +873,7 @@ public class GeomUtil {
 				.stream()
 				.map(l->Tuple.of(l,l.size()))
 				.map(Tuple.kmap(l->l.stream()
-								   .map(s->Tuple.of(s,-length(s)).withVComparator())
+								   .map(s->Tuple.of(s,-length(s)).withVComparator()) //always choose longer line
 								   .sorted()
 								   .findFirst()
 						           .get()

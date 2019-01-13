@@ -283,8 +283,8 @@ public class ConnectionTable{
 		edges.stream()
 		     .filter(e->e.getBondDistance()<avg)
 		     .forEach(e->{
-		    	 Point2D p1=e.getNode1();
-		    	 Point2D p2=e.getNode2();
+		    	 Point2D p1=e.getPoint1();
+		    	 Point2D p2=e.getPoint2();
 		    	 double minDistp1=Double.MAX_VALUE;
 		    	 double minDistp2=Double.MAX_VALUE;
 		    	 Shape closest1=null;
@@ -353,17 +353,17 @@ public class ConnectionTable{
 			mergeNode1.add(keepEdge.n1);
 			mergeNode2.add(keepEdge.n2);
 			
-			Point2D node1Point = keepEdge.getNode1();
-			Point2D node2Point = keepEdge.getNode2();
+			Point2D node1Point = keepEdge.getPoint1();
+			Point2D node2Point = keepEdge.getPoint2();
 			
 			l.stream()
 			 .map(l1->edgeMap.get(l1))
 			 .filter(e->e!=keepEdge)
 			 .forEach(me->{
-				 double distance1to1=me.getNode1().distance(node1Point);
-				 double distance1to2=me.getNode1().distance(node2Point);
-				 double distance2to1=me.getNode2().distance(node1Point);
-				 double distance2to2=me.getNode2().distance(node2Point);
+				 double distance1to1=me.getPoint1().distance(node1Point);
+				 double distance1to2=me.getPoint1().distance(node2Point);
+				 double distance2to1=me.getPoint2().distance(node1Point);
+				 double distance2to2=me.getPoint2().distance(node2Point);
 				 if(distance1to1<distance1to2){
 					 mergeNode1.add(me.n1);
 				 }else{
@@ -483,6 +483,9 @@ public class ConnectionTable{
 		public Point2D getPoint() {
 			return this.point;
 		}
+		public String getSymbol() {
+			return this.symbol;
+		}
 		
 	}
 	public class Edge{
@@ -538,12 +541,20 @@ public class ConnectionTable{
 			Point2D p2 = ConnectionTable.this.nodes.get(n2).point;
 			return new Line2D.Double(p1, p2);
 		}
-		public Point2D getNode1(){
+		public Point2D getPoint1(){
 			return ConnectionTable.this.nodes.get(n1).point;
 		}
-		public Point2D getNode2(){
+		public Point2D getPoint2(){
 			return ConnectionTable.this.nodes.get(n2).point;
 		}
+		
+		public Node getRealNode1(){
+			return ConnectionTable.this.nodes.get(n1);
+		}
+		public Node getRealNode2(){
+			return ConnectionTable.this.nodes.get(n2);
+		}
+		
 		public int getOrder() {
 			
 			return this.order;
@@ -681,11 +692,11 @@ public class ConnectionTable{
 		this.edges
 		    .stream()
 		    .forEach(e->{
-		    	Shape s1=GeomUtil.getClosestShapeTo(likelyOCR,e.getNode1());
-		    	Shape s2=GeomUtil.getClosestShapeTo(likelyOCR,e.getNode2());
+		    	Shape s1=GeomUtil.getClosestShapeTo(likelyOCR,e.getPoint1());
+		    	Shape s2=GeomUtil.getClosestShapeTo(likelyOCR,e.getPoint2());
 		    	if(s1!=s2){
-		    		if(s1.contains(e.getNode1())){
-		    			if(s2.contains(e.getNode2())){
+		    		if(s1.contains(e.getPoint1())){
+		    			if(s2.contains(e.getPoint2())){
 		    				Line2D line = e.getLine();
 		    				
 		    				Point2D pn1=GeomUtil.getIntersection(s1,line).orElse(null);
@@ -701,6 +712,10 @@ public class ConnectionTable{
 		    	}
 		    });
 		return this;
+	}
+
+	public List<Node> getNodes() {
+		return this.nodes;
 	}
 	
 	

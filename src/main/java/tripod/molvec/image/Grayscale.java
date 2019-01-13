@@ -119,7 +119,6 @@ public class Grayscale {
 
         { Peaks peaks = new Peaks ();
             int[] p = peaks.detect(histogram);
-            System.out.print("Peaks:");
             for (int i = 0; i < p.length; ++i) {
                 System.out.print(" "+p[i]);
             }

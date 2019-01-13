@@ -1561,7 +1561,6 @@ public class Bitmap implements Serializable, TiffTags {
     	        .flatMap(l->l.stream())
     	        .collect(Collectors.toList());
     	
-    	System.out.println("Points part of multi:" + dontmerge.size());
     	
     	
     	BiFunction<Double,Double,Double> sample = (x,y)->{
