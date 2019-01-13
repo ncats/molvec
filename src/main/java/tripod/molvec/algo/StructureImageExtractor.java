@@ -42,6 +42,7 @@ public class StructureImageExtractor {
     private List<Line2D> linesJoined;
     private List<Tuple<Line2D,Integer>> linesOrder;    
     private Map<Shape,List<Entry<Character,Number>>> ocrAttmept = new HashMap<Shape,List<Entry<Character,Number>>>();
+    private Map<Shape,String> bestGuessOCR = new HashMap<>();
     
     private ConnectionTable ctab;
     
@@ -68,6 +69,8 @@ public class StructureImageExtractor {
 	private final double MAX_DISTANCE_TO_MERGE_PARALLEL_LINES=2;
 	private final double MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE= 1;
 	
+	private final double MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING=0.3;
+	private final double MAX_THETA_FOR_OCR_SEPERATION=45 * Math.PI/180.0;
 	
 	//For finding high order bonds
 	private final double MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS=.5;
@@ -88,6 +91,7 @@ public class StructureImageExtractor {
 		keepers.add("S");
 		keepers.add("P");
 		keepers.add("B");
+		keepers.add("Br");
 		keepers.add("F");
 		
 	    return keepers;
@@ -144,18 +148,20 @@ public class StructureImageExtractor {
                  	}
                  }
              }
-         }
+        }
+        
+        
         
         lines= LineUtil.asLines(thin.segments());
         
         
         Predicate<Line2D> isInOCRShape = (l)->{
         	 if(likelyOCR.isEmpty())return false;
-        	 Tuple<Shape,Double> shape1=GeomUtil.distanceTo(likelyOCR, l.getP1());
+        	 Tuple<Shape,Double> shape1=GeomUtil.findClosestShapeTo(likelyOCR, l.getP1());
 	       	  if(shape1.v()>OCR_TO_BOND_MAX_DISTANCE){
 	       		  return false;
 	       	  }
-	       	  Tuple<Shape,Double> shape2=GeomUtil.distanceTo(likelyOCR, l.getP2());
+	       	  Tuple<Shape,Double> shape2=GeomUtil.findClosestShapeTo(likelyOCR, l.getP2());
 	       	  if(shape2.v()>OCR_TO_BOND_MAX_DISTANCE){
 	       		  return false;
 	       	  }
@@ -294,9 +300,53 @@ public class StructureImageExtractor {
         
         
         
-        for(Shape s: likelyOCR){
-        	String sym=(ocrAttmept.get(s).get(0).getKey() + "").toUpperCase();
+        double cosThetaOCRShape =Math.cos(MAX_THETA_FOR_OCR_SEPERATION);
+        
+        List<List<Shape>> ocrGroupList=GeomUtil.groupShapesIfClosestPointsMatchCriteria(likelyOCR, pts->{
+        	Line2D l2 = new Line2D.Double(pts[0],pts[1]);
+        	double dist=LineUtil.length(l2);
+        	if(dist>ctab.getAverageBondLength()*MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING){
+        		return false;
+        	}
+        	double[] vec=LineUtil.asVector(l2);
+        	double cosTheta=Math.abs(vec[0]/dist);
+        	
+        	if(cosTheta>cosThetaOCRShape){
+        		return true;
+        	}
+        	return false;
+        });
+        
+
+        bestGuessOCR= ocrGroupList.stream()
+        	//.filter(l->l.size()>1)
+	        .map(g->{
+	        	String st=g.stream()
+	        			.map(s->Tuple.of(s,s))
+	        			.map(Tuple.vmap(s->s.getBounds2D().getMinX()))
+	        			.map(t->t.withVComparator())
+	        			.sorted()
+	        			.map(t->t.k())
+	        			.map(s->(ocrAttmept.get(s).get(0).getKey() + ""))
+	        			.collect(Collectors.joining());
+	        	Shape s = g.get(0);
+	        	
+	        	Shape bigShape=g.stream()
+	        					.reduce((s1,s2)->GeomUtil.add(s1, s2))
+	        					.orElse(s);
+	        	System.out.println(st);
+	        	bestGuessOCR.put(bigShape, st);
+	        	return Tuple.of(bigShape,st);
+	        })
+	        .collect(Tuple.toMap());
+        
+        
+        
+        
+        for(Shape s: bestGuessOCR.keySet()){
+        	String sym=bestGuessOCR.get(s);
         	if(accept.contains(sym)){
+        		System.out.println("Adding:" + sym);
         		ctab.setNodeToSymbol(s, sym);
         	}
         	
@@ -321,6 +371,9 @@ public class StructureImageExtractor {
 
 	public List<Shape> getPolygons() {
 		return polygons;
+	}
+	public Map<Shape,String> getBestGuessOCR(){
+		return bestGuessOCR;
 	}
 
 	public List<Line2D> getLines() {

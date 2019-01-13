@@ -963,5 +963,14 @@ public class LineUtil {
 				
 	}
 	
+	public static Point2D projectPointOntoLine(Line2D l, Point2D p){
+		double[] vec=asVector(l);
+		double[] pvec = new double[]{p.getX()-l.getX1(),p.getY()-l.getY1()};
+		double dot=GeomUtil.dot(vec, pvec);
+		double proj=dot/GeomUtil.l2Norm(vec);
+		double[] projVec= new double[]{proj*vec[0],proj*vec[1]};
+		return new Point2D.Double(projVec[0]+l.getX1(), projVec[1]+l.getY1());
+	}
+	
 	
 }

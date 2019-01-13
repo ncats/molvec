@@ -13,7 +13,7 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Map;
+import java.util.function.Predicate;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -314,6 +314,40 @@ public class GeomUtil {
     	
     }
     
+    
+    
+    public static List<List<Shape>> groupShapesIfClosestPointsMatchCriteria(List<Shape> shapes, Predicate<Point2D[]> merge){
+    	return groupShapes(shapes,(t)->merge.test(closestPoints(t.k(),t.v())));
+    }
+    
+    public static List<List<Shape>> groupShapes(List<Shape> points, Predicate<Tuple<Shape,Shape>> merge){
+    	int[] groups = IntStream.range(0, points.size())
+    							.toArray();
+    	
+    	for(int i=0;i<points.size();i++){
+    		Shape p1=points.get(i);
+    		for(int j=i+1;j<points.size();j++){
+    			Shape p2=points.get(j);
+    			if(merge.test(Tuple.of(p1,p2))){
+    				int g1= groups[i];
+    				int g2= groups[j];
+    				groups[i]=Math.min(g1, g2);
+    				groups[j]=Math.min(g1, g2);
+    			}
+    		}
+    	}
+    	
+    	
+    	return IntStream.range(0, points.size())
+    	         .mapToObj(i->Tuple.of(groups[i],i))
+    	         .map(Tuple.vmap(i->points.get(i)))
+    	         .collect(Tuple.toGroupedMap())
+    	         .values()
+    	         .stream()
+    	         .collect(Collectors.toList());
+    	
+    }
+    
     public static class LineDistanceCalculator{
     	private Line2D line1;
     	private Line2D line2;
@@ -473,6 +507,29 @@ public class GeomUtil {
         return new Point2D[]{p1, p2};
     }
     
+    /**
+     * Return two closest points on shape pair
+     */
+    public static Point2D[] closestPoints (Shape s1, Shape s2) {
+        Line2D[] l1s=lines(s1);
+        Line2D[] l2s=lines(s2);
+        
+        Point2D[] closest = null;
+        double dist = Double.MAX_VALUE;
+      
+        for(Line2D l1: l1s){
+        	for(Line2D l2: l2s){
+        		Point2D[] p=closestPointsOnLines(l1,l2);
+        		double d=p[0].distance(p[1]);
+        		if(d<dist){
+        			dist=d;
+        			closest=p;
+        		}
+        	}
+        }
+        return closest;
+    }
+    
     public static double distanceTo(Shape s, Point2D pt){
     	if(s.contains(pt)){
     		return 0;
@@ -483,13 +540,65 @@ public class GeomUtil {
     	      .getAsDouble();
     }
     
-    public static Tuple<Shape,Double> distanceTo(List<Shape> shapes, Point2D pt){
+    public static Tuple<Shape,Double> findClosestShapeTo(List<Shape> shapes, Point2D pt){
     	return shapes.stream()
     	      .map(s->Tuple.of(s,distanceTo(s,pt)).withVComparator())
     	      .sorted()
     	      .findFirst()
     	      .get();
     }
+    
+    public static Point2D closestPointOnLine(Line2D l, Point2D p){
+    	Point2D pp=LineUtil.projectPointOntoLine(l,p);
+    	double len = LineUtil.length(l);
+    	if(pp.distance(l.getP1())>len){
+    		return l.getP2();
+    	}else if(pp.distance(l.getP2())>len){
+    		return l.getP1();
+    	}
+    	return pp;
+    }
+    
+    public static Point2D[] closestPointsOnLines(Line2D l1, Line2D l2){
+    	Point2D inter=GeomUtil.intersection(l1, l2);
+    	if(inter!=null && l1.ptSegDist(inter) < 0.001 && l2.ptSegDist(inter) < 0.001){
+    		return new Point2D[]{inter,inter};
+    	}
+    	Point2D[] closestProj1 = new Point2D[2];
+    	Point2D[] closestProj2 = new Point2D[2];
+    	
+    	Point2D l21Closest=closestPointOnLine(l1,l2.getP1());
+    	Point2D l22Closest=closestPointOnLine(l1,l2.getP2());
+    	Point2D l11Closest=closestPointOnLine(l2,l1.getP1());
+    	Point2D l12Closest=closestPointOnLine(l2,l1.getP2());
+    	
+    	
+    	
+    	
+    	if(l21Closest.distance(l2.getP1()) < l22Closest.distance(l2.getP2())){
+    		closestProj1[0]=l21Closest;
+    		closestProj1[1]=l2.getP1();
+    	}else{
+    		closestProj1[0]=l22Closest;
+    		closestProj1[1]=l2.getP2();
+    	}
+    	
+    	if(l11Closest.distance(l1.getP1()) < l12Closest.distance(l1.getP2())){
+    		closestProj2[0]=l1.getP1();
+    		closestProj2[1]=l11Closest;
+    	}else{
+    		closestProj2[0]=l1.getP2();
+    		closestProj2[1]=l12Closest;
+    	}
+    	
+    	if(closestProj1[0].distance(closestProj1[1]) <closestProj2[0].distance(closestProj2[1]) ){
+    		return closestProj1;
+    	}else{
+    		return closestProj2;
+    	}
+    }
+    
+    
     
   
   

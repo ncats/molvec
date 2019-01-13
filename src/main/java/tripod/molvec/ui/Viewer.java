@@ -92,7 +92,8 @@ public class Viewer extends JPanel
     static final int LINE_ORDERS = 1<<7;
     static final int CTAB = 1<<8;    
     static final int SEGMENTS_JOINED = 1<<9;
-    static final int ALL = SEGMENTS|POLYGONS|THINNING|BITMAP|COMPOSITE|HISTOGRAM|OCR_SHAPES|LINE_ORDERS|CTAB|SEGMENTS_JOINED;
+    static final int OCR_BOUNDS_SHAPES = 1<<10;
+    static final int ALL = SEGMENTS|POLYGONS|THINNING|BITMAP|COMPOSITE|HISTOGRAM|OCR_SHAPES|LINE_ORDERS|CTAB|SEGMENTS_JOINED|OCR_BOUNDS_SHAPES;
 
     static final Color HL_COLOR = new Color (0xdd, 0xdd, 0xdd, 120);
     static final Color KNN_COLOR = new Color (0x70, 0x5a, 0x9c, 120);
@@ -130,6 +131,7 @@ public class Viewer extends JPanel
     Collection<Path2D> segments = new ArrayList<Path2D>();
     Collection<Path2D> segmentsJoined = new ArrayList<Path2D>();
     Collection<Shape> zones = new ArrayList<Shape>();
+    Map<Shape,String> bestGuessOCR=null;
     
     ConnectionTable ctab = null;
 
@@ -334,6 +336,7 @@ public class Viewer extends JPanel
         polygons=sie.getPolygons();
         ctab=sie.getCtab();
         ocrAttmept=sie.getOcrAttmept();
+        this.bestGuessOCR=sie.getBestGuessOCR();
         
         System.out.println("Loaded");
         
@@ -704,6 +707,10 @@ public class Viewer extends JPanel
         if ((show & CTAB) !=0) {
         	 drawCT(g2);
         }
+        if ((show & OCR_BOUNDS_SHAPES) != 0) {
+        	drawBestGuessOCR(g2);
+        }
+        
         
     }
 
@@ -750,10 +757,19 @@ public class Viewer extends JPanel
     }
     
     void drawPolygons (Graphics2D g2) {
-	g2.setPaint(Color.red);
-	for (Shape a : polygons) {
+		g2.setPaint(Color.red);
+		for (Shape a : polygons) {
 	    g2.draw(a);
         }
+    }
+    
+    void drawBestGuessOCR (Graphics2D g2) {
+		g2.setPaint(Color.MAGENTA);
+		if(this.bestGuessOCR!=null){
+			for (Shape a : this.bestGuessOCR.keySet()) {
+				g2.draw(a);
+	        }
+		}
     }
 
     void drawZones (Graphics2D g2) {
@@ -1141,6 +1157,14 @@ public class Viewer extends JPanel
                 ("Show colored polygons for likely characters");
             ab.addActionListener(this);
             
+            toolbar.add(ab = new JCheckBox ("OCR Guesses"));
+            ab.putClientProperty("MASK", Viewer.OCR_BOUNDS_SHAPES);
+            ab.setToolTipText
+                ("Show polygons for grouped sets of likely strings");
+            ab.addActionListener(this);
+            
+            //
+            
             toolbar.add(ab = new JCheckBox ("Connection Tab"));
             ab.putClientProperty("MASK", CTAB);
             ab.setSelected(true);
@@ -1268,6 +1292,9 @@ public class Viewer extends JPanel
             }
             else if (cmd.equalsIgnoreCase("connection tab")) {
                 viewer.setVisible(CTAB, show);
+            }
+            else if (cmd.equalsIgnoreCase("OCR Guesses")) {
+                viewer.setVisible(Viewer.OCR_BOUNDS_SHAPES, show);
             }
             else if (cmd.equalsIgnoreCase("thinning")) {
                 viewer.setVisible(THINNING, show);
