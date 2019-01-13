@@ -1642,6 +1642,8 @@ public class Bitmap implements Serializable, TiffTags {
 							if (sqrtSTDErr <= maxAvgDeviation) {
 								if (len > LineUtil.length(line1) && len > LineUtil.length(line2)) {
 									return true;
+								}else if(line1.intersectsLine(line2)){
+										return true;
 								}
 							} else {
 //								System.out.println("No Good:" + sqrtSTDErr);

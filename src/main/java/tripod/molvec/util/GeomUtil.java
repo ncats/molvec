@@ -7,6 +7,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Line2D;
 import java.awt.geom.PathIterator;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -522,8 +523,17 @@ public class GeomUtil {
      * Return two closest points on shape pair
      */
     public static Point2D[] closestPoints (Shape s1, Shape s2) {
-        Line2D[] l1s=lines(s1);
-        Line2D[] l2s=lines(s2);
+        return closestPoints(lines(s1),lines(s2));
+    }
+    
+    /**
+     * Return two closest points on shape pair
+     */
+    public static Point2D[] closestPoints (Shape s1, Line2D line) {
+        return closestPoints(lines(s1),new Line2D[]{line});
+    }
+    
+    public static Point2D[] closestPoints (Line2D[] l1s, Line2D[] l2s) {
         
         Point2D[] closest = null;
         double dist = Double.MAX_VALUE;
@@ -541,6 +551,7 @@ public class GeomUtil {
         return closest;
     }
     
+    
     public static double distanceTo(Shape s, Point2D pt){
     	if(s.contains(pt)){
     		return 0;
@@ -551,12 +562,42 @@ public class GeomUtil {
     	      .getAsDouble();
     }
     
+    public static Point2D findCenterOfShape(Shape s){
+    	Rectangle2D rect=s.getBounds2D();
+    	return new Point2D.Double(rect.getCenterX(),rect.getCenterY());
+    }
+    
+    public static Point2D findCenterMostPoint(List<Point2D> points){
+    	double[] avg=new double[]{0,0};
+    	points.forEach(p->{
+    		avg[0]+=p.getX();
+    		avg[1]+=p.getY();
+    	});
+    	avg[0]=avg[0]/points.size();
+    	avg[1]=avg[1]/points.size();
+    	Point2D avgPt=new Point2D.Double(avg[0],avg[1]);
+    	
+    	
+    	return findClosestPoint(points,avgPt);
+    }
+    
+    public static Point2D findClosestPoint(List<Point2D> points, Point2D avgPt){
+    	return points.stream()
+	      .map(p->Tuple.of(p,p.distance(avgPt)).withVComparator())
+	      .sorted()
+	      .map(t->t.k())
+	      .findFirst()
+	      .orElse(null);
+    }
+    
+    
+    
     public static Tuple<Shape,Double> findClosestShapeTo(List<Shape> shapes, Point2D pt){
     	return shapes.stream()
     	      .map(s->Tuple.of(s,distanceTo(s,pt)).withVComparator())
     	      .sorted()
     	      .findFirst()
-    	      .get();
+    	      .orElse(null);
     }
     
     public static Point2D closestPointOnLine(Line2D l, Point2D p){
@@ -568,6 +609,18 @@ public class GeomUtil {
     		return l.getP1();
     	}
     	return pp;
+    }
+    public static Point2D closestPointOnLines(Line2D[] ls, Point2D p){
+    	return Arrays.stream(ls)
+    	      .map(l->closestPointOnLine(l,p))
+    	      .map(p1->Tuple.of(p1,p.distance(p1)).withVComparator())
+    	      .sorted()
+    	      .map(t->t.k())
+    	      .findFirst()
+    	      .orElse(null);
+    }
+    public static Point2D closestPointOnShape(Shape s, Point2D p){
+    	return closestPointOnLines(lines(s),p);
     }
     
     public static Point2D[] closestPointsOnLines(Line2D l1, Line2D l2){

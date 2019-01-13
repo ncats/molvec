@@ -2,6 +2,7 @@ package tripod.molvec.algo;
 
 import java.awt.Shape;
 import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -51,7 +52,10 @@ public class StructureImageExtractor {
     private final double INITIAL_MAX_BOND_LENGTH=Double.MAX_VALUE;
     private final double MIN_BOND_TO_AVG_BOND_RATIO = 1/2.5;
     private final double MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 1.3;
-    private final double MAX_TOLERANCE_FOR_DASH_BONDS = 1.0;
+    
+    private final double MAX_TOLERANCE_FOR_DASH_BONDS = 2.0;
+    private final double MAX_TOLERANCE_FOR_SINGLE_BONDS = 0.5;
+    
 	private final double OCRcutoffCosine=0.65;
 	private final double MAX_BOND_TO_AVG_BOND_RATIO_TO_KEEP = 1.5;
 	private final double MIN_DISTANCE_BEFORE_MERGING_NODES = 4.0;
@@ -71,6 +75,7 @@ public class StructureImageExtractor {
 	
 	private final double MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING=0.3;
 	private final double MAX_THETA_FOR_OCR_SEPERATION=45 * Math.PI/180.0;
+	private final double MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.5;
 	
 	//For finding high order bonds
 	private final double MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS=.5;
@@ -98,6 +103,19 @@ public class StructureImageExtractor {
 	    return keepers;
 	}).get();
 	
+	
+	private final HashSet<String> reject = CachedSupplier.of(()->{
+		HashSet<String> keepers=new HashSet<String>();
+		
+		keepers.add("I");
+		keepers.add("i");
+		keepers.add("l");
+		keepers.add("-");
+		keepers.add("/");
+		keepers.add("\\");
+		
+	    return keepers;
+	}).get();
 	
 	
 	private String interpretOCRStringAsAtom(String s){
@@ -258,7 +276,7 @@ public class StructureImageExtractor {
 	        		       .mergeNodesCloserThan(MIN_DISTANCE_BEFORE_MERGING_NODES);
 	        
 	        for(Shape s: likelyOCR){
-	        	ctab.mergeAllNodesInside(s, OCR_TO_BOND_MAX_DISTANCE);
+	        	ctab.mergeAllNodesInsideCenter(s, OCR_TO_BOND_MAX_DISTANCE);
 	        }
 	        double bl1=ctab.getAverageBondLength();
 	        ctab.mergeNodesCloserThan(bl1*MIN_BOND_TO_AVG_BOND_RATIO);
@@ -282,10 +300,19 @@ public class StructureImageExtractor {
 	        	return e2;
 	        });
 	        ctab.mergeNodesExtendingTo(likelyOCR);
+	        
 	        ctab.removeOrphanNodes();
-	        ctab.makeDashBondsToNeighbors(bitmap,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MAX_TOLERANCE_FOR_DASH_BONDS);
+	        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO);
 	        
+	        ctab.makeMissingBondsToNeighbors(bitmap,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MAX_TOLERANCE_FOR_DASH_BONDS,likelyOCR,OCR_TO_BOND_MAX_DISTANCE, (t)->{
+	        	System.out.println("Tol found:" + t.k());
+	        	if(t.k()>MAX_TOLERANCE_FOR_SINGLE_BONDS){
+	        		
+	        		t.v().setDashed(true);
+	        	}
+	        });
 	        
+	     	        
 	        double avgBondLength=ctab.getAverageBondLength();
 	        maxBondLength[0]=avgBondLength*MAX_BOND_TO_AVG_BOND_RATIO_TO_KEEP;
 	        
@@ -368,10 +395,56 @@ public class StructureImageExtractor {
 	        })
 	        .collect(Tuple.toMap());
         
+        List<Shape> ocrMeaningful=bestGuessOCR.keySet()
+				   .stream()
+				   .filter(s->interpretOCRStringAsAtom(bestGuessOCR.get(s))!=null)
+				   .collect(Collectors.toList());
         
         for(Shape s: bestGuessOCR.keySet()){
-        	ctab.mergeAllNodesInside(s, 1);
+        	String sym=bestGuessOCR.get(s);
+        	String actual=this.interpretOCRStringAsAtom(sym);
+        	if(actual!=null){
+        		Point2D center = GeomUtil.findCenterOfShape(s);
+        		ctab.mergeAllNodesInside(s, MAX_BOND_RATIO_FOR_MERGING_TO_OCR*ctab.getAverageBondLength(),(n)->{
+        			if(sym.equals("H")){
+        				if(GeomUtil.findClosestShapeTo(ocrMeaningful, n.getPoint()).k() !=s){
+        					return false;
+        				}
+        			}
+        			
+        			return true;
+        		},(l)->{
+        			
+        			boolean matchesOthers=l.stream()
+						        			 .map(pt->GeomUtil.findClosestShapeTo(ocrMeaningful, pt).k())
+						        			 .filter(sb->(sb!=s))
+						        			 .findAny()
+						        			 .isPresent();
+        			if(!matchesOthers){
+        				return center;
+        			}else{
+        				//return center;
+        				return GeomUtil.findCenterMostPoint(l);
+        			}
+        			
+        			 
+        			
+        		});
+        	}
         }
+        ctab.cleanDuplicateEdges((e1,e2)->{
+        	if(e1.getOrder()>e2.getOrder()){
+        		return e1;
+        	}else if(e1.getOrder()>e2.getOrder()){
+        		return e2;
+        	}else{
+        		if(e1.getDashed())return e2;
+        		if(e2.getDashed())return e1;
+        		if(e1.getWedge())return e1;
+        		if(e2.getWedge())return e2;
+        	}
+        	return e1;
+        });
         
         
         for(Shape s: bestGuessOCR.keySet()){

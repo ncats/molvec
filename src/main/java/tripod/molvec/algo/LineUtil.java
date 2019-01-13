@@ -445,9 +445,7 @@ public class LineUtil {
 			return this;
 		}
 		
-		public ConnectionTable mergeAllNodesInside(Shape s, double tol){
-			Rectangle2D r=s.getBounds2D();
-			Point2D p = new Point2D.Double(r.getCenterX(),r.getCenterY());
+		public ConnectionTable mergeAllNodesInside(Shape s, double tol,Predicate<Node> allow, Function<List<Point2D>, Point2D> merger){
 			
 			List<Integer> toMerge = new ArrayList<Integer>();
 			for(int i=nodes.size()-1;i>=0;i--){
@@ -456,7 +454,18 @@ public class LineUtil {
 					toMerge.add(i);
 				}
 			}
-			return this.mergeNodes(toMerge, (l)->p);
+			toMerge=toMerge.stream()
+			       .filter(i->allow.test(nodes.get(i)))
+			        .collect(Collectors.toList());
+				
+			
+			return this.mergeNodes(toMerge, merger);
+		}
+		
+		public ConnectionTable mergeAllNodesInsideCenter(Shape s, double tol){
+			Rectangle2D r=s.getBounds2D();
+			Point2D p = new Point2D.Double(r.getCenterX(),r.getCenterY());
+			return mergeAllNodesInside(s,tol,n->true,(l)->p);
 		}
 		
 		public ConnectionTable mergeNodesExtendingTo(List<Shape> shapes){
@@ -661,6 +670,9 @@ public class LineUtil {
 			public int hashCode(){
 				return point.hashCode() ^ symbol.hashCode();
 			}
+			public Point2D getPoint() {
+				return this.point;
+			}
 			
 		}
 		public class Edge{
@@ -775,7 +787,7 @@ public class LineUtil {
 			return this.edges;
 		}
 
-		public ConnectionTable makeDashBondsToNeighbors(Bitmap bm, double d, double tol) {
+		public ConnectionTable makeMissingBondsToNeighbors(Bitmap bm, double d, double tol, List<Shape> OCRSet, double ocrTol,Consumer<Tuple<Double,Edge>> econs) {
 			double avg=this.getAverageBondLength();
 			Map<Integer,Set<Integer>> nmap = new HashMap<>();
 			edges.forEach(e->{
@@ -788,11 +800,26 @@ public class LineUtil {
 					if(!nmap.get(i).contains(j)){
 						Node n2=nodes.get(j);
 						if(n1.distanceTo(n2)<avg*d){
-							Edge e= new Edge(i,j,1).setDashed(true);
-							double score=bm.getLineLikeScore(e.getLine());
+							Tuple<Shape,Double> t1=GeomUtil.findClosestShapeTo(OCRSet, n1.point);
+							Tuple<Shape,Double> t2=GeomUtil.findClosestShapeTo(OCRSet, n2.point);
+							
+							Point2D pt1=n1.point;
+							Point2D pt2=n2.point;
+							
+							if(t1!=null && t1.v()<ocrTol){
+								pt1=GeomUtil.closestPointOnShape(t1.k(), pt2);
+							}
+							if(t2!=null && t2.v()<ocrTol){
+								pt2=GeomUtil.closestPointOnShape(t2.k(), pt1);
+							}
+							
+							
+							Edge e= new Edge(i,j,1);
+							double score=bm.getLineLikeScore(new Line2D.Double(pt1,pt2));
 							//System.out.println("Score:" + score);
 							if(score<tol){
 								this.edges.add(e);
+								econs.accept(Tuple.of(score,e));
 							}
 						}
 					}
