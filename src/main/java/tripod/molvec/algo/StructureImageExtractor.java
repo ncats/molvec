@@ -6,6 +6,7 @@ import java.awt.geom.Point2D;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -52,6 +53,7 @@ public class StructureImageExtractor {
     private final double INITIAL_MAX_BOND_LENGTH=Double.MAX_VALUE;
     private final double MIN_BOND_TO_AVG_BOND_RATIO = 1/2.5;
     private final double MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 1.3;
+    private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 0.7;
     
     private final double MAX_TOLERANCE_FOR_DASH_BONDS = 2.0;
     private final double MAX_TOLERANCE_FOR_SINGLE_BONDS = 0.5;
@@ -76,6 +78,7 @@ public class StructureImageExtractor {
 	private final double MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING=0.3;
 	private final double MAX_THETA_FOR_OCR_SEPERATION=45 * Math.PI/180.0;
 	private final double MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.5;
+	private final double MIN_LONGEST_WIDTH_RATIO_FOR_OCR_TO_AVERAGE=0.5;
 	
 	//For finding high order bonds
 	private final double MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS=.5;
@@ -179,21 +182,33 @@ public class StructureImageExtractor {
                          );
                  ocrAttmept.put(s, potential);
                  if(potential.stream().filter(e->e.getValue().doubleValue()>OCRcutoffCosine).findAny().isPresent()){
-                	 String t=potential.get(0).getKey()+"";
-                 	if(!"I".equalsIgnoreCase(t) && 
-                 	   !"L".equalsIgnoreCase(t) &&
-                 	   !"1".equalsIgnoreCase(t) &&
-                 	   !"-".equalsIgnoreCase(t) &&
-                 	   !"/".equalsIgnoreCase(t) &&
-                 	   !"\\".equalsIgnoreCase(t)){
-                 		likelyOCR.add(s);
-                 	}
-                 	likelyOCRAll.add(s);
+                	 	String t=potential.get(0).getKey()+"";
+	                 	if(!"I".equalsIgnoreCase(t) && 
+	                 	   !"L".equalsIgnoreCase(t) &&
+	                 	   !"1".equalsIgnoreCase(t) &&
+	                 	   !"-".equalsIgnoreCase(t) &&
+	                 	   !"/".equalsIgnoreCase(t) &&
+	                 	   !"\\".equalsIgnoreCase(t)){
+	                 		likelyOCR.add(s);
+	                 	}
+	                 	likelyOCRAll.add(s);
                  	
                  }
              }
         }
         
+        double averageLargestOCR=likelyOCR.stream()
+							              .map(s->GeomUtil.getPairOfFarthestPoints(s))
+							              .mapToDouble(p->p[0].distance(p[1]))
+							              .average()
+							              .orElse(0);
+        System.out.println("avg ocr:" + averageLargestOCR);
+        likelyOCRAll=likelyOCRAll.stream()
+                    .map(s->Tuple.of(s,GeomUtil.getPairOfFarthestPoints(s)))
+                    .filter(t->t.v()[0].distance(t.v()[1]) > averageLargestOCR*MIN_LONGEST_WIDTH_RATIO_FOR_OCR_TO_AVERAGE)
+                    .map(t->t.k())
+                    .collect(Collectors.toList());
+                		 
         
         
         lines= GeomUtil.asLines(thin.segments());
@@ -231,9 +246,10 @@ public class StructureImageExtractor {
         		                   .filter(tryToMerge.negate())
         		                   .collect(Collectors.toList());
         
-        smallLines= thin.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
+       // smallLines= thin.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
         
         smallLines= bitmap.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
+        smallLines= thin.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
         
         linesJoined=Stream.concat(bigLines.stream(),
         		            smallLines.stream())
@@ -301,13 +317,16 @@ public class StructureImageExtractor {
 	        ctab.removeOrphanNodes();
 	        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO);
 	        
+	        
+	        ctab.makeMissingNodesForShapes(likelyOCR,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL);
+	        
 	        ctab.makeMissingBondsToNeighbors(bitmap,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MAX_TOLERANCE_FOR_DASH_BONDS,likelyOCR,OCR_TO_BOND_MAX_DISTANCE, (t)->{
 //	        	System.out.println("Tol found:" + t.k());
 	        	if(t.k()>MAX_TOLERANCE_FOR_SINGLE_BONDS){
 	        		t.v().setDashed(true);
 	        	}
 	        });
-	        
+	        ctab.removeOrphanNodes();
 	     	        
 	        double avgBondLength=ctab.getAverageBondLength();
 	        maxBondLength[0]=avgBondLength*MAX_BOND_TO_AVG_BOND_RATIO_TO_KEEP;
@@ -356,9 +375,11 @@ public class StructureImageExtractor {
         List<List<Shape>> ocrGroupList=GeomUtil.groupShapesIfClosestPointsMatchCriteria(likelyOCRAll, pts->{
         	Line2D l2 = new Line2D.Double(pts[0],pts[1]);
         	double dist=GeomUtil.length(l2);
+        	
         	if(dist>ctab.getAverageBondLength()*MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING){
         		return false;
         	}
+        	
         	double[] vec=GeomUtil.asVector(l2);
         	double cosTheta=Math.abs(vec[0]/dist);
         	
@@ -428,6 +449,7 @@ public class StructureImageExtractor {
         		});
         	}
         }
+        ctab.cleanMeaninglessEdges();
         ctab.cleanDuplicateEdges((e1,e2)->{
         	if(e1.getOrder()>e2.getOrder()){
         		return e1;

@@ -76,7 +76,7 @@ public class SegmentationTest {
 		StructureImageExtractor sie = new StructureImageExtractor();
 		sie.load(f);
 		int num=sie.getLinesJoined().size();
-		assertTrue("Expected number of segments was between 9 and 10, found:" + num,num>=9 && num<=10);
+		assertTrue("Expected number of segments was between 9 and 11, found:" + num,num>=9 && num<=11);
 		if(num!=9){
 			int finalEdges=sie.getCtab().getEdges().size();
 			assertTrue("Expected 7 final edges, found:" + finalEdges,finalEdges==7);

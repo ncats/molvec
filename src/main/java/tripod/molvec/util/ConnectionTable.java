@@ -255,6 +255,28 @@ public class ConnectionTable{
 		return this;
 	}
 	
+	public List<Node> getNodesInsideShape(Shape s, double tol){
+		List<Node> mnodes= new ArrayList<>();
+		
+		for(int i=nodes.size()-1;i>=0;i--){
+			Point2D pn = nodes.get(i).point;
+			if(GeomUtil.distanceTo(s,pn)<tol){
+				mnodes.add(nodes.get(i));
+			}
+		}
+		return mnodes;
+	}
+	
+	public Tuple<Node,Double> getClosestNodeToShape(Shape s){
+		return nodes.stream()
+		     .map(n->Tuple.of(n,GeomUtil.distanceTo(s, n.point)).withVComparator())
+		     .sorted()
+		     .findFirst()
+		     .orElse(null);
+		
+	}
+	
+	
 	public ConnectionTable mergeAllNodesInside(Shape s, double tol,Predicate<Node> allow, Function<List<Point2D>, Point2D> merger){
 		
 		List<Integer> toMerge = new ArrayList<Integer>();
@@ -615,6 +637,10 @@ public class ConnectionTable{
 	public ConnectionTable makeMissingBondsToNeighbors(Bitmap bm, double d, double tol, List<Shape> OCRSet, double ocrTol,Consumer<Tuple<Double,Edge>> econs) {
 		double avg=this.getAverageBondLength();
 		Map<Integer,Set<Integer>> nmap = new HashMap<>();
+		
+		Set<Integer> nullSet = new HashSet<Integer>();
+		
+		
 		edges.forEach(e->{
 			nmap.computeIfAbsent(e.n1,k->new HashSet<>()).add(e.n2);
 			nmap.computeIfAbsent(e.n2,k->new HashSet<>()).add(e.n1);
@@ -622,7 +648,7 @@ public class ConnectionTable{
 		for(int i =0 ;i<this.nodes.size();i++){
 			Node n1=nodes.get(i);
 			for(int j =i+1 ;j<this.nodes.size();j++){
-				if(!nmap.get(i).contains(j)){
+				if(!nmap.getOrDefault(i,nullSet).contains(j)){
 					Node n2=nodes.get(j);
 					if(n1.distanceTo(n2)<avg*d){
 						Tuple<Shape,Double> t1=GeomUtil.findClosestShapeTo(OCRSet, n1.point);
@@ -658,7 +684,7 @@ public class ConnectionTable{
 		Map<Integer,List<Edge>> nmap = getEdgeMap();
 		
 		for(int i =nodes.size()-1;i>=0;i--){
-			if(nmap.get(i)==null){
+			if(nmap.get(i).isEmpty()){
 				removeNode(i);
 			}
 		}
@@ -667,6 +693,10 @@ public class ConnectionTable{
 	
 	private Map<Integer,List<Edge>> _getEdgeMap(){
 		Map<Integer,List<Edge>> nmap = new HashMap<>();
+		IntStream.range(0, nodes.size())
+		         .forEach(i->{
+		        	 nmap.put(i, new ArrayList<>());
+		         });
 		edges.forEach(e->{
 			nmap.computeIfAbsent(e.n1,k->new ArrayList<>()).add(e);
 			nmap.computeIfAbsent(e.n2,k->new ArrayList<>()).add(e);
@@ -716,6 +746,23 @@ public class ConnectionTable{
 
 	public List<Node> getNodes() {
 		return this.nodes;
+	}
+
+	public ConnectionTable makeMissingNodesForShapes(List<Shape> likelyOCR, double mAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,
+			double mIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL) {
+		double avg=this.getAverageBondLength();
+		List<Shape> addShapes=likelyOCR.stream() 
+		         .map(oc->Tuple.of(getClosestNodeToShape(oc),oc))
+		         .filter(t->t.k().v()>avg*mIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL)
+				 .filter(t->t.k().v()<avg*mAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL)
+				 .map(t->t.v())
+				 .collect(Collectors.toList());
+		
+		for(Shape s:addShapes){
+			this.addNode(GeomUtil.findCenterOfShape(s));
+		}        
+		
+		return this;
 	}
 	
 	

@@ -24,6 +24,7 @@ import java.util.function.Predicate;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import tripod.molvec.algo.Tuple;
 
@@ -991,6 +992,34 @@ public class GeomUtil {
 		double proj=dot/Math.pow(l2Norm(vec),2);
 		double[] projVec= new double[]{proj*vec[0],proj*vec[1]};
 		return new Point2D.Double(projVec[0]+l.getX1(), projVec[1]+l.getY1());
+	}
+	
+	public static Point2D[] getPairOfFarthestPoints(Shape s){
+		return getPairOfFarthestPoints(vertices(s));
+	}
+	public static Point2D[] getPairOfFarthestPoints(Point2D[] pts){
+		return getPairOfFarthestPoints(Arrays.asList(pts));
+	}
+	public static Point2D[] getPairOfFarthestPoints(List<Point2D> pts){
+		return eachCombination(pts)
+		         .map(t->Tuple.of(t,-t.k().distance(t.v())).withVComparator())
+		         .sorted()
+		         .findFirst()
+		         .map(t->t.k())
+		         .map(t->new Point2D[]{t.k(),t.v()})
+		         .orElse(null);
+	}
+	
+	public static <T> Stream<Tuple<T,T>> eachCombination(List<T> list){
+		return IntStream.range(0, list.size())
+		         .mapToObj(i->IntStream.range(i+1, list.size())
+		        		               .mapToObj(j->Tuple.of(i,j))
+		        		  )
+		         .flatMap(s->s)
+		         .map(Tuple.vmap(i->list.get(i)))
+		         .map(Tuple.kmap(i->list.get(i)));
+		         
+		         
 	}
     
     

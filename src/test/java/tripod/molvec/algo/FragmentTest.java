@@ -74,7 +74,7 @@ public class FragmentTest {
 		assertEquals(10,ctab.getEdges().size());
 		assertEquals(10,ctab.getEdges().stream().filter(e->e.getOrder()==1).count());
 		assertEquals(3,ctab.getEdges().stream().filter(e->e.getDashed()).count());
-		assertEquals(7,ctab.getNodes().stream().filter(n->n.getSymbol().equals("C")).count());
+		assertEquals(5,ctab.getNodes().stream().filter(n->n.getSymbol().equals("C")).count());
 		assertEquals(2,ctab.getNodes().stream().filter(n->n.getSymbol().equals("N")).count());
 		assertEquals(2,ctab.getNodes().stream().filter(n->n.getSymbol().equals("H")).count());
 	}

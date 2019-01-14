@@ -1672,57 +1672,6 @@ public class Bitmap implements Serializable, TiffTags {
 			if(foundOne[0])i--;
 			
 			    
-//			
-//			
-//			for (int j = i + 1; j < lines.size(); j++) {
-//				Line2D line2 = lines.get(j);
-//				LineDistanceCalculator ldc = LineDistanceCalculator.from(line1, line2);
-//				if (ldc.getSmallestPointDistance() < maxMinDistance) {
-//					Point2D[] closest=ldc.closestPoints();
-//					
-//					boolean partOfTriple=dontmerge.stream()
-//					         .flatMap(p->Stream.of(p.distance(closest[0]),p.distance(closest[1])))
-//					         .filter(d->(d<maxDistanceToConsiderSamePoint))
-//					         .findAny()
-//					         .isPresent();
-//					if(partOfTriple)continue;
-//					
-//					// System.out.println("Might work");
-//					Line2D combined = ldc.getLineFromFarthestPoints();
-//					double sx = combined.getX1();
-//					double sy = combined.getY1();
-//					double dx = combined.getX2() - combined.getX1();
-//					double dy = combined.getY2() - combined.getY1();
-//					double len = LineUtil.length(combined);
-//
-//					double mult = 1 / len;
-//
-//					double sumSqDist = 0;
-//					for (int d = 0; d < len; d++) {
-//						double ddx = mult * d * dx + sx;
-//						double ddy = mult * d * dy + sy;
-//						double dist = sample.apply(ddx, ddy);
-//						sumSqDist += dist * dist;
-//					}
-//					double sqrtSTDErr = Math.sqrt(sumSqDist / len);
-//					if (sqrtSTDErr <= maxAvgDeviation) {
-//
-//						if (len > LineUtil.length(line1) && len > LineUtil.length(line2)) {
-//							System.out.println("Old line 1:" + LineUtil.length(line1));
-//							System.out.println("Old line 2:" + LineUtil.length(line2));
-//							System.out.println("New line:" + LineUtil.length(combined));
-//							System.out.println("Dist:" + ldc.getSmallestPointDistance());
-//							lines.set(i, combined);
-//							lines.remove(j);
-//							reps++;
-//							i = i - 1;
-//							break;
-//						}
-//					} else {
-//						System.out.println("No Good:" + sqrtSTDErr);
-//					}
-//				}
-//			}
 			
 		}
 	    	
