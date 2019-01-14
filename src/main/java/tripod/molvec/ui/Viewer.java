@@ -89,10 +89,11 @@ public class Viewer extends JPanel
     static final int HISTOGRAM = 1<<5;
     static final int OCR_SHAPES = 1<<6;
     static final int LINE_ORDERS = 1<<7;
-    static final int CTAB = 1<<8;    
+    static final int CTAB = 1<<8;
+    static final int CTAB_RAW = 1<<11;    
     static final int SEGMENTS_JOINED = 1<<9;
     static final int OCR_BOUNDS_SHAPES = 1<<10;
-    static final int ALL = SEGMENTS|POLYGONS|THINNING|BITMAP|COMPOSITE|HISTOGRAM|OCR_SHAPES|LINE_ORDERS|CTAB|SEGMENTS_JOINED|OCR_BOUNDS_SHAPES;
+    static final int ALL = SEGMENTS|POLYGONS|THINNING|BITMAP|COMPOSITE|HISTOGRAM|OCR_SHAPES|LINE_ORDERS|CTAB|SEGMENTS_JOINED|OCR_BOUNDS_SHAPES|CTAB_RAW;
 
     static final Color HL_COLOR = new Color (0xdd, 0xdd, 0xdd, 120);
     static final Color KNN_COLOR = new Color (0x70, 0x5a, 0x9c, 120);
@@ -133,6 +134,7 @@ public class Viewer extends JPanel
     Map<Shape,String> bestGuessOCR=null;
     
     ConnectionTable ctab = null;
+    ConnectionTable ctabRaw = null;
 
     NearestNeighbors<Shape> knn = new NearestNeighbors<Shape>
         (5, new CentroidEuclideanMetric<Shape>());
@@ -334,6 +336,7 @@ public class Viewer extends JPanel
         linesOrder=sie.getLinesOrder();
         polygons=sie.getPolygons();
         ctab=sie.getCtab();
+        ctabRaw=sie.getCtabRaw();
         ocrAttmept=sie.getOcrAttmept();
         this.bestGuessOCR=sie.getBestGuessOCR();
         
@@ -706,6 +709,9 @@ public class Viewer extends JPanel
         if ((show & CTAB) !=0) {
         	 drawCT(g2);
         }
+        if ((show & CTAB_RAW) !=0) {
+       	 	drawCTRaw(g2);
+        }
         if ((show & OCR_BOUNDS_SHAPES) != 0) {
         	drawBestGuessOCR(g2);
         }
@@ -753,6 +759,10 @@ public class Viewer extends JPanel
     
     void drawCT(Graphics2D g2){
     	ctab.draw(g2);
+    }
+
+    void drawCTRaw(Graphics2D g2){
+    	ctabRaw.draw(g2);
     }
     
     void drawPolygons (Graphics2D g2) {
@@ -1167,7 +1177,13 @@ public class Viewer extends JPanel
             toolbar.add(ab = new JCheckBox ("Connection Tab"));
             ab.putClientProperty("MASK", CTAB);
             ab.setSelected(true);
-            ab.setToolTipText("Show line orders");
+            ab.setToolTipText("Show Connection Table");
+            ab.addActionListener(this);
+            
+            toolbar.add(ab = new JCheckBox ("Connection Tab Raw"));
+            ab.putClientProperty("MASK", CTAB_RAW);
+            ab.setSelected(true);
+            ab.setToolTipText("Show Connection Table Raw");
             ab.addActionListener(this);
             
             
@@ -1291,6 +1307,9 @@ public class Viewer extends JPanel
             }
             else if (cmd.equalsIgnoreCase("connection tab")) {
                 viewer.setVisible(CTAB, show);
+            }
+            else if (cmd.equalsIgnoreCase("connection tab raw")) {
+                viewer.setVisible(CTAB_RAW, show);
             }
             else if (cmd.equalsIgnoreCase("OCR Guesses")) {
                 viewer.setVisible(Viewer.OCR_BOUNDS_SHAPES, show);

@@ -50,6 +50,7 @@ public class StructureImageExtractor {
     private Map<Shape,String> bestGuessOCR = new HashMap<>();
     
     private ConnectionTable ctab;
+    private ConnectionTable ctabRaw;
     
     
     private final double MAX_REPS = 10;
@@ -58,6 +59,7 @@ public class StructureImageExtractor {
     private final double MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 1.3;
     private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 0.5;
     
+
     private final double MAX_TOLERANCE_FOR_DASH_BONDS = 2.0;
     private final double MAX_TOLERANCE_FOR_SINGLE_BONDS = 0.4;
     
@@ -68,6 +70,7 @@ public class StructureImageExtractor {
 	private final double MIN_DISTANCE_BEFORE_MERGING_NODES = 4.0;
 	private final double maxRatioForIntersection = 1.2;
 	private final double maxPerLineDistanceRatioForIntersection = 2;
+	private final double minPerLineDistanceRatioForIntersection = 0.7;
 	private final double OCR_TO_BOND_MAX_DISTANCE=2.0;
 	private final double maxCandidateRatioForIntersection = 1.7;        
 	private final double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN = 1;
@@ -145,6 +148,9 @@ public class StructureImageExtractor {
 		}
 		if(s.contains("c")){
 			return interpretOCRStringAsAtom(s.replace("c", "C"));
+		}
+		if(s.contains("0")){
+			return interpretOCRStringAsAtom(s.replace("0", "O"));
 		}
 		
 		if(s.contains("-")){
@@ -333,8 +339,25 @@ public class StructureImageExtractor {
         	          })
         	          .collect(Collectors.toList());
         	
-	        ctab = GeomUtil.getConnectionTable(linesOrderRestricted, likelyOCR, maxRatioForIntersection, maxCandidateRatioForIntersection,maxPerLineDistanceRatioForIntersection,l-> (GeomUtil.length(l) < maxBondLength[0]))
+	        ctab = GeomUtil.getConnectionTable(linesOrderRestricted, likelyOCR, 
+	        		maxRatioForIntersection, 
+	        		maxCandidateRatioForIntersection,
+	        		maxPerLineDistanceRatioForIntersection,
+	        		minPerLineDistanceRatioForIntersection,
+	        		l-> (GeomUtil.length(l) < maxBondLength[0]))
 	        		       .mergeNodesCloserThan(MIN_DISTANCE_BEFORE_MERGING_NODES);
+	        
+	        
+	        ctab.getTolerancesForAllEdges(bitmap)
+	    	    .forEach(t->{
+	    	    	System.out.println("Score for edge:" + t.v());
+	    	    	if(t.v()>MAX_TOLERANCE_FOR_DASH_BONDS){
+	    	    		
+	    	    		ctab.removeEdge(t.k());
+	    	    	}
+	    	    });
+	        
+	        ctabRaw=ctab.cloneTab();
 	        
 	        for(Shape s: likelyOCR){
 	        	ctab.mergeAllNodesInsideCenter(s, OCR_TO_BOND_MAX_DISTANCE);
@@ -712,7 +735,7 @@ public class StructureImageExtractor {
         }
         
         
-        
+        //ctab=ctabRaw;
         
 
         return this;
@@ -756,6 +779,12 @@ public class StructureImageExtractor {
 
 	public ConnectionTable getCtab() {
 		return ctab;
+	}
+
+
+
+	public ConnectionTable getCtabRaw() {
+		return this.ctabRaw;
 	}
 
 	

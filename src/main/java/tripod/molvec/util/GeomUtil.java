@@ -949,8 +949,13 @@ public class GeomUtil {
 		}
 	}
 
-	public static ConnectionTable getConnectionTable(List<Tuple<Line2D,Integer>> linest, List<Shape> likelyNodes, double maxDistanceRatioNonLikely,double maxDistanceRatioLikely, double maxDistanceRatioPerLine, Predicate<Line2D> acceptNewLine){
-				List<Tuple<Line2D,Integer>> lines = new ArrayList<>(linest);
+	public static ConnectionTable getConnectionTable(List<Tuple<Line2D, Integer>> linest, List<Shape> likelyNodes,
+			double maxDistanceRatioNonLikely, 
+			double maxDistanceRatioLikely, 
+			double maxDistanceRatioPerLine,
+			double minPerLineDistanceRatioForIntersection,
+			Predicate<Line2D> acceptNewLine) {
+			List<Tuple<Line2D,Integer>> lines = new ArrayList<>(linest);
 				
 				for(int i=0;i<lines.size();i++){
 					Tuple<Line2D, Integer> lineOrder1=lines.get(i);
@@ -973,14 +978,18 @@ public class GeomUtil {
 						double ratioLine1 = Math.max(ndistance1,distance1)/Math.min(ndistance1, distance1);
 						double ratioLine2 = Math.max(ndistance2,distance2)/Math.min(ndistance2, distance2);
 						
+						double ratioOldToNew1 = ndistance1/distance1;
+						double ratioOldToNew2 = ndistance2/distance2;
+						
 						boolean merge = false;
 						
 					
 								
 						if(ratioTotal<maxDistanceRatioLikely){
 							if(ratioTotal<maxDistanceRatioNonLikely){
-								if(ratioLine1<maxDistanceRatioPerLine && ratioLine2<maxDistanceRatioPerLine){
-								merge=true;
+								if(ratioLine1<maxDistanceRatioPerLine && ratioLine2<maxDistanceRatioPerLine &&
+								   ratioOldToNew1>minPerLineDistanceRatioForIntersection && ratioOldToNew2>minPerLineDistanceRatioForIntersection){
+									merge=true;
 								}
 							}else{
 								boolean inLikelyNode=likelyNodes.stream().filter(s->s.contains(intersect)).findAny().isPresent();

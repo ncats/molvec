@@ -801,6 +801,24 @@ public class ConnectionTable{
 		return this;
 	}
 
+	public ConnectionTable cloneTab() {
+		ConnectionTable ctab2 = new ConnectionTable();
+		this.nodes.forEach(n->{
+			ctab2.addNode(n.point);
+			Node nnode=ctab2.nodes.get(ctab2.nodes.size()-1);
+			nnode.symbol=n.symbol;
+		});
+		this.edges.forEach(e->{
+			ctab2.addEdge(e.n1, e.n2,e.order);
+			Edge nedge=ctab2.edges.get(ctab2.edges.size()-1);
+			nedge.setDashed(e.getDashed());
+			nedge.setWedge(e.getWedge());
+		});
+		
+		
+		return ctab2;
+	}
+
 	
 	
 	
