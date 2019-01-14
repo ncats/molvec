@@ -6,7 +6,7 @@ import java.io.File;
 
 import org.junit.Test;
 
-public class SegmentationTest {
+public class LineSegmentTest {
 
 	
 	private File getFile(String fname){

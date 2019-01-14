@@ -8,6 +8,7 @@ import java.awt.geom.Rectangle2D;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -54,7 +55,7 @@ public class StructureImageExtractor {
     private final double INITIAL_MAX_BOND_LENGTH=Double.MAX_VALUE;
     private final double MIN_BOND_TO_AVG_BOND_RATIO = 1/2.5;
     private final double MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 1.3;
-    private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 0.7;
+    private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 0.5;
     
     private final double MAX_TOLERANCE_FOR_DASH_BONDS = 2.0;
     private final double MAX_TOLERANCE_FOR_SINGLE_BONDS = 0.5;
@@ -140,8 +141,20 @@ public class StructureImageExtractor {
 			return interpretOCRStringAsAtom(s.replace("c", "C"));
 		}
 		
-		return null;
+		if(s.contains("-")){
+			List<String> bonded=Arrays.stream(s.split("-"))
+									  .map(p->interpretOCRStringAsAtom(p))
+									  .collect(Collectors.toList());
+			if(bonded.isEmpty() || bonded.stream().anyMatch(p->p==null)){
+				return null;
+			}else{
+				
+				return bonded.get(0);
+			}
 			
+		}
+		
+		return null;			
 	}
 	
     
@@ -518,28 +531,52 @@ public class StructureImageExtractor {
         	return false;
         });
         
-
-        bestGuessOCR= ocrGroupList.stream()
+        bestGuessOCR.clear();
+        
+        ocrGroupList.stream()
         	//.filter(l->l.size()>1)
-	        .map(g->{
-	        	String st=g.stream()
+	        .forEach(g->{
+	        	List<Shape> sorted=g.stream()
 	        			.map(s->Tuple.of(s,s))
 	        			.map(Tuple.vmap(s->s.getBounds2D().getMinX()))
 	        			.map(t->t.withVComparator())
 	        			.sorted()
 	        			.map(t->t.k())
-	        			.map(s->(ocrAttmept.get(s).get(0).k() + ""))
-	        			.collect(Collectors.joining());
-	        	Shape s = g.get(0);
+	        			.collect(Collectors.toList());
 	        	
-	        	Shape bigShape=g.stream()
-	        					.reduce((s1,s2)->GeomUtil.add(s1, s2))
-	        					.orElse(s);
-	        	System.out.println(st);
-	        	bestGuessOCR.put(bigShape, st);
-	        	return Tuple.of(bigShape,st);
-	        })
-	        .collect(Tuple.toMap());
+//	        	String st=sorted.stream()
+//	        			.map(s->(ocrAttmept.get(s).get(0).k() + ""))
+//	        			.collect(Collectors.joining());
+	        	
+	        	String soFar="";
+	        	Shape making=null;
+	        	
+	        	for(Shape s: sorted){
+	        		String v=(ocrAttmept.get(s).get(0).k() + "");
+	        		if(v.equals("-")){
+	        			if(making!=null){
+	        				System.out.println("Found:" + soFar);
+	        				bestGuessOCR.put(making, soFar);
+	        			}
+	        			soFar="";
+	        			making=null;
+	        			continue;
+	        		}
+	        		if(making==null){
+	        			making=s;
+	        		}else{
+	        			making=GeomUtil.add(making,s);
+	        		}
+	        		soFar+=v;
+	        	}
+	        	
+	        	if(making!=null){
+	        		System.out.println("Found:" + soFar);
+    				bestGuessOCR.put(making, soFar);
+    			}
+	        	
+	        	
+	        });
         
         List<Shape> ocrMeaningful=bestGuessOCR.keySet()
 				   .stream()
