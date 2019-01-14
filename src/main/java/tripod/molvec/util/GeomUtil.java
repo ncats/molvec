@@ -27,6 +27,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import tripod.molvec.algo.Tuple;
+import tripod.molvec.util.GeomUtil.LineDistanceCalculator;
 
 
 public class GeomUtil {
@@ -203,6 +204,10 @@ public class GeomUtil {
 
     public static Point2D[] vertices (Shape shape) {
         return vertices (shape, null);
+    }
+    
+    public static Point2D[] vertices(List<Line2D> lines){
+    	return lines.stream().flatMap(l->Stream.of(l.getP1(),l.getP2())).toArray(i->new Point2D[i]);
     }
 
     public static Point2D[] vertices (Shape shape, AffineTransform afx) {
@@ -873,10 +878,11 @@ public class GeomUtil {
 	 * @param minLargerProjectionRatio
 	 * @return
 	 */
-	public static List<Tuple<Line2D, Integer>> reduceMultiBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio, double minLargerProjectionRatio){
+	public static List<Tuple<Line2D, Integer>> reduceMultiBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio, double minLargerProjectionRatio, double maxStitchLineDistanceDelta){
 		
 		return groupMultipleBonds(lines,maxDeltaTheta,maxDeltaOffset,minProjectionRatio,minLargerProjectionRatio)
 				.stream()
+				.map(l->GeomUtil.stitchSufficientlyStitchableLines(l, maxStitchLineDistanceDelta))
 				.map(l->Tuple.of(l,l.size()))
 				.map(Tuple.kmap(l->l.stream()
 								   .map(s->Tuple.of(s,-length(s)).withVComparator()) //always choose longer line
@@ -1053,6 +1059,62 @@ public class GeomUtil {
 		Line2D l1 = new Line2D.Double(l.getP1(),cp);
 		Line2D l2 = new Line2D.Double(l.getP2(),cp);
 		return Stream.of(l1,l2).collect(Collectors.toList());
+		
+	}
+	
+	public static Line2D stitchLines(Line2D l1,Line2D l2){
+		LineDistanceCalculator ldc=LineDistanceCalculator.from(l1,l2);
+		return ldc.getLineFromFarthestPoints();
+	}
+	
+	public static Line2D longestLineFrom(List<Point2D> points){
+		Point2D[] pts=getPairOfFarthestPoints(points);
+		return new Line2D.Double(pts[0], pts[1]);
+	}
+	
+	public static List<Line2D> stitchSufficientlyStitchableLines(List<Line2D> lines, double maxDistance){
+		
+		//Look through each line,
+		List<Tuple<Line2D,Double>> lineLengthSet = lines.stream()
+				 .map(l->Tuple.of(l,length(l)).withVComparator())
+				 .sorted()
+				 .collect(Collectors.toList());
+		
+		Map<Line2D,Integer> group = new HashMap<>();
+		
+		for(int i=0;i<lines.size();i++){
+			group.put(lines.get(i),i);
+		}
+		
+		eachCombination(lineLengthSet).forEach(t->{
+			double dl1=t.k().v();
+			double dl2=t.v().v();
+			double sum=dl1+dl2;
+			Line2D l1=t.k().k();
+			Line2D l2=t.v().k();
+			Line2D nl=stitchLines(l1,l2);
+			double dln=length(nl);
+			if(Math.abs(sum-dln)<maxDistance){
+				int g1=group.get(l1);
+				int g2=group.get(l2);
+				int ng=Math.min(g1, g2);
+				group.put(l1, ng);
+				group.put(l2, ng);
+			}
+		});
+		
+		return group.entrySet()
+		     .stream()
+		     .map(Tuple::of)
+		     .map(t->t.swap())
+		     .collect(Tuple.toGroupedMap())
+		     .values()
+		     .stream()
+		     .map(ll->vertices(ll))
+		     .map(vt->longestLineFrom(Arrays.asList(vt)))
+		     .collect(Collectors.toList());
+		
+				 
 		
 	}
     

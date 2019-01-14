@@ -163,5 +163,21 @@ public class FragmentTest {
 		assertEquals(10,ctab.getNodes().stream().filter(n->n.getSymbol().equals("C")).count());
 	}
 	
+	@Test
+	public void fuzzyFragmentWithProblemDoubleBondShouldHaveCorrectReading() throws Exception {
+		File f=getFile("fragmentTest/fuzzy_chain.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		ConnectionTable ctab = sie.getCtab();
+		
+		
+		assertEquals(9,ctab.getNodes().size());
+		assertEquals(8,ctab.getEdges().size());	
+		assertEquals(2,ctab.getEdges().stream().filter(e->e.getOrder()==2).count());
+		assertEquals(6,ctab.getEdges().stream().filter(e->e.getOrder()==1).count());
+		assertEquals(3,ctab.getNodes().stream().filter(n->n.getSymbol().equals("O")).count());
+		assertEquals(6,ctab.getNodes().stream().filter(n->n.getSymbol().equals("C")).count());
+	}
+	
 	
 }
