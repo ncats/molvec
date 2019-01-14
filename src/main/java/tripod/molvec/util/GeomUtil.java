@@ -1046,5 +1046,14 @@ public class GeomUtil {
 		
 		//lines(shape, afx)
 	}
+	public static List<Line2D> splitLineIn2(Line2D l){
+		double cx=l.getBounds2D().getCenterX();
+		double cy=l.getBounds2D().getCenterY();
+		Point2D cp = new Point2D.Double(cx,cy);
+		Line2D l1 = new Line2D.Double(l.getP1(),cp);
+		Line2D l2 = new Line2D.Double(l.getP2(),cp);
+		return Stream.of(l1,l2).collect(Collectors.toList());
+		
+	}
     
 }

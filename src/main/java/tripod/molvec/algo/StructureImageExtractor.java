@@ -273,10 +273,23 @@ public class StructureImageExtractor {
         		                   .filter(tryToMerge.negate())
         		                   .collect(Collectors.toList());
         
+        smallLines=smallLines.stream()
+			                  .flatMap(l->{
+			                	  if(GeomUtil.length(l)<MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS){
+			                		  return GeomUtil.splitLineIn2(l).stream();  
+			                	  }
+			                	  return Stream.of(l);
+			                  })
+			                  .collect(Collectors.toList());
+        
        // smallLines= thin.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
         
         smallLines= bitmap.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
         smallLines= thin.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
+        
+        smallLines=smallLines.stream()
+                .filter(l->GeomUtil.length(l)>MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS)
+                .collect(Collectors.toList());
         
         linesJoined=Stream.concat(bigLines.stream(),
         		            smallLines.stream())
