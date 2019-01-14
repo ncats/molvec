@@ -140,7 +140,7 @@ public class Viewer extends JPanel
     List<Tuple<Line2D,Integer>> linesOrder;   
     
     java.util.List<Shape> highlights = new ArrayList<Shape>();
-    Map<Shape,List<Entry<Character,Number>>> ocrAttmept = new HashMap<Shape,List<Entry<Character,Number>>>();
+    Map<Shape,List<Tuple<Character,Number>>> ocrAttmept = new HashMap<>();
 
     double cutoffLength = 20;
     double sx = 1., sy = 1.;
@@ -721,9 +721,9 @@ public class Viewer extends JPanel
 
             if (this.ocrAttmept.get(s) != null) {
                 int i = 0;
-                for (Entry<Character, Number> ocrGuess : this.ocrAttmept.get(s)) {
-                    String disp = ocrGuess.getKey() + ":"
-                        + ocrGuess.getValue().toString().substring(0, 4);
+                for (Tuple<Character, Number> ocrGuess : this.ocrAttmept.get(s)) {
+                    String disp = ocrGuess.k() + ":"
+                        + ocrGuess.v().toString().substring(0, 4);
                     Shape strShape = f.createGlyphVector(
                                                          g2.getFontRenderContext(), disp).getOutline();
                     AffineTransform at = new AffineTransform();
@@ -744,7 +744,7 @@ public class Viewer extends JPanel
     	g2.setPaint(makeColorAlpha(Color.ORANGE,.5f));
     	for (Shape a : polygons) {
             if(ocrAttmept.containsKey(a)){
-    		if(ocrAttmept.get(a).get(0).getValue().doubleValue()>ocrCutoff){
+    		if(ocrAttmept.get(a).get(0).v().doubleValue()>ocrCutoff){
                     g2.fill(a);
     		}
             }

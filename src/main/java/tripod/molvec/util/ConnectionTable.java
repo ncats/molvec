@@ -747,6 +747,15 @@ public class ConnectionTable{
 	public List<Node> getNodes() {
 		return this.nodes;
 	}
+	
+	public List<Node> getNodesNotInShapes(List<Shape> shapes, double tol){
+		if(shapes.isEmpty())return nodes;
+		return nodes.stream()
+		     .map(n->Tuple.of(n,GeomUtil.getClosestShapeTo(shapes, n.point)))
+		     .filter(t->GeomUtil.distanceTo(t.v(),t.k().point)>tol)
+		     .map(t->t.k())
+		     .collect(Collectors.toList());
+	}
 
 	public ConnectionTable makeMissingNodesForShapes(List<Shape> likelyOCR, double mAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,
 			double mIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL) {

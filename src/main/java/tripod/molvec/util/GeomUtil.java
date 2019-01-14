@@ -550,7 +550,7 @@ public class GeomUtil {
     	return new Point2D.Double(rect.getCenterX(),rect.getCenterY());
     }
     
-    public static Point2D findCenterMostPoint(List<Point2D> points){
+    public static Point2D findCenterOfVertices(List<Point2D> points){
     	double[] avg=new double[]{0,0};
     	points.forEach(p->{
     		avg[0]+=p.getX();
@@ -558,9 +558,14 @@ public class GeomUtil {
     	});
     	avg[0]=avg[0]/points.size();
     	avg[1]=avg[1]/points.size();
-    	Point2D avgPt=new Point2D.Double(avg[0],avg[1]);
     	
-    	
+    	return new Point2D.Double(avg[0],avg[1]);
+    }
+    
+   
+    
+    public static Point2D findCenterMostPoint(List<Point2D> points){
+    	Point2D avgPt=findCenterOfVertices(points);
     	return findClosestPoint(points,avgPt);
     }
     
@@ -898,6 +903,7 @@ public class GeomUtil {
 				      .map(t->t.k())
 				      .orElse(null);
 	}
+	
 
 	public static double cosTheta(Line2D l1, Line2D l2){
 		double[] vec1=asVector(l1);
@@ -1021,6 +1027,24 @@ public class GeomUtil {
 		         
 		         
 	}
-    
+	
+	public static Shape makeShapeAround(Point2D p, double rad){
+		return new Rectangle2D.Double(p.getX()-rad, p.getY()-rad, rad*2, rad*2);
+	}
+	
+	public static Shape growShape(Shape s, double dr){
+		AffineTransform at = new AffineTransform();
+		Rectangle2D rect = s.getBounds2D();
+		
+		double scale = (rect.getWidth()+2*dr)/rect.getWidth();
+		
+		Point2D pt=GeomUtil.findCenterOfShape(s);
+		at.translate(pt.getX(), pt.getY());
+		at.scale(scale, scale);
+		at.translate(-pt.getX(), -pt.getY());
+		return at.createTransformedShape(s);
+		
+		//lines(shape, afx)
+	}
     
 }
