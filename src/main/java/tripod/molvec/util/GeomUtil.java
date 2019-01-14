@@ -712,6 +712,17 @@ public class GeomUtil {
     						 l1);
     }
     
+    public static double variance(double[] l1){
+    	double[] cl=centerVector(l1);
+    	return Arrays.stream(cl)
+    			     .map(d->d*d)
+    			     .average()
+    			     .orElse(0);
+    }
+    public static double variance(int[] l1){
+    	return variance(Arrays.stream(l1).mapToDouble(i->i).toArray());
+    }
+    
     public static double rankedCorrel(int[] l1){
     	int[] rank=IntStream.range(0, l1.length)
     	         .mapToObj(i->Tuple.of(i,l1[i]).withVComparator())
@@ -891,6 +902,15 @@ public class GeomUtil {
 						           .get()
 						           .k()
 						           ))
+				.collect(Collectors.toList());
+	}
+	
+	
+	public static List<Line2D> stitchEdgesInMultiBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio, double minLargerProjectionRatio, double maxStitchLineDistanceDelta){
+		
+		return groupMultipleBonds(lines,maxDeltaTheta,maxDeltaOffset,minProjectionRatio,minLargerProjectionRatio)
+				.stream()
+				.flatMap(l->GeomUtil.stitchSufficientlyStitchableLines(l, maxStitchLineDistanceDelta).stream())
 				.collect(Collectors.toList());
 	}
 

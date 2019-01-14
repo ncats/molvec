@@ -32,6 +32,7 @@ import gov.nih.ncats.chemkit.api.Bond.Stereo;
 import tripod.molvec.Bitmap;
 import tripod.molvec.CachedSupplier;
 import tripod.molvec.algo.Tuple;
+import tripod.molvec.util.ConnectionTable.Edge;
 
 public class ConnectionTable{
 	private List<Node> nodes = new ArrayList<Node>();
@@ -160,7 +161,7 @@ public class ConnectionTable{
 	}
 	
 	public ConnectionTable removeNode(int remNode){
-		this.nodes.remove(remNode);
+		
 		for(Edge e: edges){
 			if(e.n1==remNode || e.n2==remNode){
 				throw new IllegalStateException("Can't remove a node that is used in an edge");
@@ -172,6 +173,13 @@ public class ConnectionTable{
 				e.n2=e.n2-1;
 			}
 		}
+		this.nodes.remove(remNode);
+		resetCaches();
+		return this;
+	}
+	
+	public ConnectionTable removeEdge(Edge e) {
+		this.edges.remove(e);
 		resetCaches();
 		return this;
 	}
@@ -633,6 +641,18 @@ public class ConnectionTable{
 	public List<Edge> getEdges() {
 		return this.edges;
 	}
+	
+	public List<Tuple<Edge,Double>> getTolerancesForAllEdges(Bitmap bm){
+		return this.edges.stream()
+		          .map(e->Tuple.of(e,bm.getLineLikeScore(e.getLine())))
+		          .collect(Collectors.toList());
+	}
+	
+	public List<Tuple<Edge,Double>> getDashLikeScoreForAllEdges(Bitmap bm){
+		return this.edges.stream()
+		          .map(e->Tuple.of(e,bm.getDashLikeScore(e.getLine())))
+		          .collect(Collectors.toList());
+	}
 
 	public ConnectionTable makeMissingBondsToNeighbors(Bitmap bm, double d, double tol, List<Shape> OCRSet, double ocrTol,Consumer<Tuple<Double,Edge>> econs) {
 		double avg=this.getAverageBondLength();
@@ -689,6 +709,13 @@ public class ConnectionTable{
 			}
 		}
 		return this;
+	}
+	
+	public ConnectionTable removeNodeAndEdges(Node n){
+		List<Edge> nedges=n.getEdges();
+		this.edges.removeAll(nedges);
+		resetCaches();
+		return this.removeNode(n.getIndex());
 	}
 	
 	private Map<Integer,List<Edge>> _getEdgeMap(){
@@ -773,6 +800,8 @@ public class ConnectionTable{
 		
 		return this;
 	}
+
+	
 	
 	
 }

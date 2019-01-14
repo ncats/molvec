@@ -86,6 +86,20 @@ public class MoleculeTest {
 		assertEquals(cReal.getFormula(),form);
 	}
 	
+	@Test
+	public void fuzzyStructure2Test() throws Exception {
+		File f=getFile("moleculeTest/fuzzy2.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("CC(=C)C(=O)OCCOC(=O)c1ccc(C(=O)OCCCOC(=O)C=C)c(c1)C(=O)OCC(O)COc2ccc(Cc3ccc(OCC4CO4)cc3)cc2").build();
+		
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+	}
+	
 	
 	
 }

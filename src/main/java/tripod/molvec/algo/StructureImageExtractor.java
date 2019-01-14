@@ -24,6 +24,7 @@ import tripod.molvec.CachedSupplier;
 import tripod.molvec.ui.RasterCosineSCOCR;
 import tripod.molvec.ui.SCOCR;
 import tripod.molvec.util.ConnectionTable;
+import tripod.molvec.util.ConnectionTable.Edge;
 import tripod.molvec.util.ConnectionTable.Node;
 import tripod.molvec.util.GeomUtil;
 
@@ -58,7 +59,7 @@ public class StructureImageExtractor {
     private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 0.5;
     
     private final double MAX_TOLERANCE_FOR_DASH_BONDS = 2.0;
-    private final double MAX_TOLERANCE_FOR_SINGLE_BONDS = 0.5;
+    private final double MAX_TOLERANCE_FOR_SINGLE_BONDS = 0.4;
     
 	private final double OCRcutoffCosine=0.65;
 	private final double OCRcutoffCosineRescue=0.50;
@@ -89,9 +90,14 @@ public class StructureImageExtractor {
 	private final double MIN_BIGGER_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS=.25;
 	private final double MAX_ANGLE_FOR_PARALLEL=10.0 * Math.PI/180.0;
 	
+	private final double MIN_ST_DEV_FOR_KEEPING_DASHED_LINES=0.07;
+	
+	
+	
 	//Parallel lines
 	
-	private final double MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC=3.0;
+	private final double MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC=5.0;
+	private final double MAX_ANGLE_FOR_PARALLEL_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC=15.0 * Math.PI/180.0;
 	
     
 	private final HashSet<String> accept = CachedSupplier.of(()->{
@@ -307,6 +313,8 @@ public class StructureImageExtractor {
         		                         .map(t->t.k())
         		                         .collect(Collectors.toList());
         
+        preprocess=GeomUtil.stitchEdgesInMultiBonds(preprocess, MAX_ANGLE_FOR_PARALLEL_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC, largestBond/3, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS, 0,MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC);
+        
         linesOrder=GeomUtil.reduceMultiBonds(preprocess, MAX_ANGLE_FOR_PARALLEL, largestBond/3, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS, MIN_BIGGER_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS,MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC);
         
               
@@ -360,12 +368,51 @@ public class StructureImageExtractor {
 	        
 	        ctab.makeMissingNodesForShapes(likelyOCR,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL);
 	        
+	        List<Node> toRemove = new ArrayList<Node>();
+	        
 	        ctab.makeMissingBondsToNeighbors(bitmap,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MAX_TOLERANCE_FOR_DASH_BONDS,likelyOCR,OCR_TO_BOND_MAX_DISTANCE, (t)->{
 //	        	System.out.println("Tol found:" + t.k());
+	        	//It could be that there is already a bond between the two nodes through a bad intermediate
+	        	Edge e=t.v();
+	        	Node n1=e.getRealNode1();
+	        	Node n2=e.getRealNode2();
+	        	List<Edge> existingEdges1=n1.getEdges();
+	        	List<Edge> existingEdges2=n2.getEdges();
+	        	List<Node> n1Neigh=existingEdges1.stream()
+						        	             .flatMap(ne->Stream.of(ne.getRealNode1(),ne.getRealNode2()))
+						        	             .filter(n->!n.equals(n1))
+						        	             .collect(Collectors.toList());
+	        	
+	        	List<Node> n2Neigh=existingEdges2.stream()
+       	             .flatMap(ne->Stream.of(ne.getRealNode1(),ne.getRealNode2()))
+       	             .filter(n->!n.equals(n2))
+       	             .collect(Collectors.toList());
+	        	List<Node> commonNeigh = n1Neigh.stream().filter(nn->n2Neigh.contains(nn)).collect(Collectors.toList());
+	        	
+	        	boolean alreadyExists = false;
+	        	
+	        	if(!commonNeigh.isEmpty()){
+	        		for(Node cn:commonNeigh){
+		        		Point2D cp=cn.getPoint();
+		        		double distance1=n1.getPoint().distance(cp);
+		        		double distance2=n2.getPoint().distance(cp);
+		        		double sumd=distance1+distance2;
+		        		double ddelta=Math.abs(sumd-e.getBondDistance());
+		        		if(ddelta<MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC){
+		        			System.out.println("Should remove this one");
+		        			toRemove.add(cn);
+		        		}
+		        		alreadyExists=true;
+	        		}
+	        	}
+	        	
+	        	
+	        	//System.out.println("Tol found for add:" + t.k());
 	        	if(t.k()>MAX_TOLERANCE_FOR_SINGLE_BONDS){
 	        		t.v().setDashed(true);
 	        	}
 	        });
+	        toRemove.forEach(n->ctab.removeNodeAndEdges(n));
 	        ctab.removeOrphanNodes();
 	     	        
 	        double avgBondLength=ctab.getAverageBondLength();
@@ -644,13 +691,24 @@ public class StructureImageExtractor {
         });
         
         
+        //final cleanup
+        {
+        	ctab.getDashLikeScoreForAllEdges(bitmap)
+        	    .forEach(t->{
+        	    	if(t.v()<MIN_ST_DEV_FOR_KEEPING_DASHED_LINES && t.k().getDashed()){
+        	    		System.out.println("Dash score:" + t.v());
+        	    		t.k().setDashed(false);
+        	    	}
+        	    });
+        }
+        
+        
         for(Shape s: bestGuessOCR.keySet()){
         	String sym=bestGuessOCR.get(s);
         	String actual=this.interpretOCRStringAsAtom(sym);
         	if(actual!=null){
         		ctab.setNodeToSymbol(s, actual);
         	}
-        	
         }
         
         

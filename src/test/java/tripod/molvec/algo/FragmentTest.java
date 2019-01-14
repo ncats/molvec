@@ -179,5 +179,22 @@ public class FragmentTest {
 		assertEquals(6,ctab.getNodes().stream().filter(n->n.getSymbol().equals("C")).count());
 	}
 	
+	@Test
+	public void fuzzyFragmentWithSmallRingShouldHaveCorrectReading() throws Exception {
+		File f=getFile("fragmentTest/fuzzy_small_ring.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		ConnectionTable ctab = sie.getCtab();
+		
+		
+		assertEquals(12,ctab.getNodes().size());
+		assertEquals(13,ctab.getEdges().size());	
+		assertEquals(3,ctab.getEdges().stream().filter(e->e.getOrder()==2).count());
+		assertEquals(10,ctab.getEdges().stream().filter(e->e.getOrder()==1).count());
+		assertEquals(2,ctab.getNodes().stream().filter(n->n.getSymbol().equals("O")).count());
+		assertEquals(10,ctab.getNodes().stream().filter(n->n.getSymbol().equals("C")).count());
+		assertEquals(0,ctab.getEdges().stream().filter(e->e.getDashed()).count());
+	}
+	
 	
 }
