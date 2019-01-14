@@ -31,7 +31,8 @@ public class RasterCosineSCOCR extends SCOCR {
 				new Font("DejaVu Sans", Font.BOLD, 8),
 				new Font("Khmer OS", Font.PLAIN, 8),
 				new Font("DejaVu Sans", Font.PLAIN, 8),
-				new Font("Khmer OS", Font.BOLD, 8) }));
+				new Font("Khmer OS", Font.BOLD, 8) 
+				}));
 
 	}
 

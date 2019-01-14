@@ -42,19 +42,20 @@ public class ConnectionTable{
 	private CachedSupplier<Map<Node,Integer>> _nodeMap = CachedSupplier.of(()->_getNodeMap());
 	
 	
-	public ConnectionTable addNode(Point2D p){
-		nodes.add(new Node(p,"C"));
+	public Node addNode(Point2D p){
+		Node n=new Node(p,"C");
+		nodes.add(n);
 		resetCaches();
-		return this;
+		return n;
 	}
 	
-	public ConnectionTable setNodeToSymbol(Shape s, String sym){
-		nodes.stream()
+	public List<Node> setNodeToSymbol(Shape s, String sym){
+		return nodes.stream()
 		.filter(n->s.contains(n.point.getX(),n.point.getY()))
-		.forEach(n->{
+		.peek(n->{
 			n.symbol=sym;
-		});
-		return this;
+		})
+		.collect(Collectors.toList());
 		
 	}
 	
@@ -515,6 +516,11 @@ public class ConnectionTable{
 		}
 		public String getSymbol() {
 			return this.symbol;
+		}
+		public Node setSymbol(String symbol2) {
+			this.symbol=symbol2;
+			return this;
+			
 		}
 		
 	}

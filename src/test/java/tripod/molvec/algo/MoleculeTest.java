@@ -114,6 +114,20 @@ public class MoleculeTest {
 		assertEquals(cReal.getFormula(),form);
 	}
 	
+	@Test
+	public void subscriptImplicitAtomsCl3Test() throws Exception {
+		File f=getFile("moleculeTest/withSubscriptForCl.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("ClC(Cl)(Cl)Cc1nc(CC(Cl)(Cl)Cl)nc(n1)-c2ccc3OCOc3c2").build();
+		
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+	}
+	
 	
 	
 }

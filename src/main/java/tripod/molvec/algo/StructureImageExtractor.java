@@ -8,12 +8,12 @@ import java.awt.geom.Rectangle2D;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -133,40 +133,172 @@ public class StructureImageExtractor {
 	    return keepers;
 	}).get();
 	
-	
-	private String interpretOCRStringAsAtom(String s){
+	private BranchNode interpretOCRStringAsAtom(String s, boolean tokenOnly){
 		if(accept.contains(s)){
-			return s;
+			return new BranchNode(s);
 		}else if(accept.contains(s.toUpperCase())){
-			return s.toUpperCase();
+			return new BranchNode(s.toUpperCase());
 		}
 		if(s.contains("H")){
-			return interpretOCRStringAsAtom(s.replace("H", ""));
+			return interpretOCRStringAsAtom(s.replace("H", ""),tokenOnly);
 		}
 		if(s.contains("I")){
-			return interpretOCRStringAsAtom(s.replace("I", "l"));
+			return interpretOCRStringAsAtom(s.replace("I", "l"),tokenOnly);
 		}
 		if(s.contains("c")){
-			return interpretOCRStringAsAtom(s.replace("c", "C"));
+			return interpretOCRStringAsAtom(s.replace("c", "C"),tokenOnly);
 		}
-		if(s.contains("0")){
-			return interpretOCRStringAsAtom(s.replace("0", "O"));
+		if(s.equals("0")){
+			return interpretOCRStringAsAtom(s.replace("0", "O"),tokenOnly);
 		}
 		
-		if(s.contains("-")){
-			List<String> bonded=Arrays.stream(s.split("-"))
-									  .map(p->interpretOCRStringAsAtom(p))
-									  .collect(Collectors.toList());
-			if(bonded.isEmpty() || bonded.stream().anyMatch(p->p==null)){
-				return null;
-			}else{
-				
-				return bonded.get(0);
+		try{
+			int r=Integer.parseInt(s);
+			if(r>0){
+				BranchNode repNode=new BranchNode("?");
+				repNode.setRepeat(r);
+				return repNode;
 			}
+		}catch(Exception e){
+			
+		}
+		if(tokenOnly){
+			return null;
+		}
+		
+		//start breaking up
+		if(s.length()>1){
+			BranchNode parent=null;
+			String rem=null;
+			for(int i=s.length()-1;i>=1;i--){
+				String substr=s.substring(0, i);
+				BranchNode bn1=interpretOCRStringAsAtom(substr,true);
+				if(bn1!=null){
+					parent=bn1;
+					rem=s.substring(i);
+					break;
+				}
+			}
+			if(parent!=null){
+				BranchNode child=interpretOCRStringAsAtom(rem);
+				if(child!=null){
+					BranchNode bnFinal= parent.addChild(child);
+					return bnFinal;
+				}
+			}
+		}
+		
+		return null;		
+	}
+	private BranchNode interpretOCRStringAsAtom(String s){
+		return interpretOCRStringAsAtom(s,false);
+	}
+	
+	private static class BranchNode{
+		String symbol = "C";
+		boolean pseudo=false;
+		boolean isRepeat=false;
+		int rep=0;
+		
+		List<BranchNode> children = new ArrayList<BranchNode>();
+		
+		Point2D suggestedPoint = new Point2D.Double(0, 0);
+		
+		
+		public BranchNode generateCoordinates(){
+			suggestedPoint = new Point2D.Double(0, 0);
+			int totalChildren = children.size();
+			
+			double dtheta = (2*Math.PI)/(totalChildren+1.0);
+			
+			for(int i=0;i<totalChildren;i++){
+				BranchNode child = children.get(i);
+				child.generateCoordinates();
+				AffineTransform at = new AffineTransform();
+				
+				double ntheta = dtheta*(i+1);
+				at.rotate(-ntheta);
+				at.translate(-1, 0);
+				child.applyTransform(at);
+			}
+			return this;
 			
 		}
 		
-		return null;			
+		public BranchNode applyTransform(AffineTransform at){
+			
+			suggestedPoint=at.transform(suggestedPoint, null);
+			for(BranchNode c:this.getChildren()){
+				c.applyTransform(at);
+			}
+			return this;
+		}
+		
+		public String getSymbol(){
+			return this.symbol;
+		}
+		
+		public boolean hasChildren(){
+			return !children.isEmpty();
+		}
+		public List<BranchNode> getChildren(){
+			return this.children;
+		}
+		
+		public boolean isPseudoNode(){
+			return pseudo;
+		}
+		public boolean isRepeatNode(){
+			return this.isRepeat;
+		}
+		public int getRepeat(){
+			return this.rep;
+		}
+		public BranchNode setRepeat(int r){
+			this.isRepeat=true;
+			this.rep=r;
+			return this;
+		}
+		
+		public BranchNode addChild(BranchNode bn){
+			if(bn.isRepeatNode()){
+				int rep=bn.getRepeat();
+				this.setPseudoNode(true);
+				for(int i=0;i<rep;i++){
+					this.addChild(new BranchNode(this.symbol));
+				}
+			}else if(bn.isPseudoNode()){
+				this.children.addAll(bn.children);
+			}else{
+				this.children.add(bn);
+			}
+			return this;
+		}
+		
+		public BranchNode setPseudoNode(boolean p){
+			this.pseudo=p;
+			return this;
+		}
+		
+		
+		public BranchNode(String s){
+			this.symbol=s;
+		}
+		
+		public String toString(){
+			return this.symbol + "[" + this.children.stream().map(b->b.toString()).collect(Collectors.joining(",")) + "]";
+		}
+		
+		private void forEachBranchNode(BiConsumer<BranchNode,BranchNode> cons, BranchNode parent){
+			cons.accept(parent, this);
+			for(BranchNode child:this.getChildren()){
+				child.forEachBranchNode(cons,this);
+			}
+		}
+		
+		public void forEachBranchNode(BiConsumer<BranchNode,BranchNode> parentAndChild){
+			forEachBranchNode(parentAndChild,null);
+		}
 	}
 	
     
@@ -668,7 +800,7 @@ public class StructureImageExtractor {
         
         for(Shape s: bestGuessOCR.keySet()){
         	String sym=bestGuessOCR.get(s);
-        	String actual=this.interpretOCRStringAsAtom(sym);
+        	BranchNode actual=this.interpretOCRStringAsAtom(sym);
         	if(actual!=null){
         		Point2D center = GeomUtil.findCenterOfShape(s);
         		ctab.mergeAllNodesInside(s, MAX_BOND_RATIO_FOR_MERGING_TO_OCR*ctab.getAverageBondLength(),(n)->{
@@ -725,13 +857,53 @@ public class StructureImageExtractor {
         	    });
         }
         
+        double fbondlength=ctab.getAverageBondLength();
         
         for(Shape s: bestGuessOCR.keySet()){
         	String sym=bestGuessOCR.get(s);
-        	String actual=this.interpretOCRStringAsAtom(sym);
+        	BranchNode actual=this.interpretOCRStringAsAtom(sym);
         	if(actual!=null){
-        		ctab.setNodeToSymbol(s, actual);
+        		List<Node> nlist=ctab.setNodeToSymbol(s, actual.getSymbol());
+        		
+        		if(nlist.size()==1){
+        			Node pnode=nlist.get(0);
+        			Point2D ppoint=pnode.getPoint();
+        			if(actual.hasChildren()){
+        				actual.generateCoordinates();
+        				AffineTransform at = new AffineTransform();
+        				at.translate(ppoint.getX(), ppoint.getY());
+        				at.scale(fbondlength, fbondlength);
+        				if(pnode.getEdges().size()>0){
+        					Edge edge1= pnode.getEdges().get(0);
+        					Point2D otherPoint = edge1.getPoint2();
+        					if(!edge1.getRealNode1().equals(pnode)){
+        						otherPoint = edge1.getPoint1();
+        					}
+        					double ang=GeomUtil.angle(ppoint, otherPoint);
+        					at.rotate(ang+Math.PI);
+        				}
+        				actual.applyTransform(at);
+        				
+        				Map<BranchNode,Node> parentNodes = new HashMap<BranchNode,Node>();
+        				
+        				
+        				actual.forEachBranchNode((parN,curN)->{
+        					 Node mpnode=pnode;
+        					 if(parN!=null){
+        						 mpnode=parentNodes.get(parN);
+        					 }
+        					
+        					 Node n= ctab.addNode(curN.suggestedPoint)
+	        					     .setSymbol(curN.getSymbol());
+        					 ctab.addEdge(mpnode.getIndex(), n.getIndex(), 1);
+        					 parentNodes.put(curN, n);
+        				});
+        				
+        				
+        			}
+        		}
         	}
+        	
         }
         
         

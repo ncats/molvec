@@ -62,24 +62,24 @@ public class GeomUtil {
      */
     public static double angle (double x0, double y0, double x1, double y1) {
         double dx = x1 - x0, dy = y1 - y0;
-        if (dx > 0 && dy > 0) {
-            return Math.atan (dy / dx);
-        } else if (dx > 0 && dy == 0) {
-            return 0.;
-        } else if (dx < 0 && dy > 0) {
-            return Math.PI - Math.atan (-1. * dy / dx);
-        } else if (dx < 0 && dy == 0) {
-            return Math.PI;
-        } else if (dx == 0 && dy > 0) {
-            return Math.PI / 2;
-        } else if (dx == 0 && dy < 0) {
-            return 3 * Math.PI / 2;
-        } else if (dx < 0 && dy < 0) {
-            return 3 * Math.PI / 2 - Math.atan (dy / dx);
-        } else if (dx > 0 && dy < 0) {
-            return 2 * Math.PI - Math.atan (-1. * dy / dx);
-        }
-        return 0.;
+//        if (dx > 0 && dy > 0) {
+//            return Math.atan (dy / dx);
+//        } else if (dx > 0 && dy == 0) {
+//            return 0.;
+//        } else if (dx < 0 && dy > 0) {
+//            return Math.PI - Math.atan (-1. * dy / dx);
+//        } else if (dx < 0 && dy == 0) {
+//            return Math.PI;
+//        } else if (dx == 0 && dy > 0) {
+//            return Math.PI / 2;
+//        } else if (dx == 0 && dy < 0) {
+//            return 3 * Math.PI / 2;
+//        } else if (dx < 0 && dy < 0) {
+//            return 3 * Math.PI / 2 - Math.atan (dy / dx);
+//        } else if (dx > 0 && dy < 0) {
+//            return 2 * Math.PI - Math.atan (-1. * dy / dx);
+//        }
+        return Math.atan2(dy, dx);
     }
 
 
