@@ -56,17 +56,20 @@ class BranchNode{
 		suggestedPoint = new Point2D.Double(0, 0);
 		int totalChildren = children.size();
 		
-		double dtheta = (2*Math.PI)/(totalChildren+1.0);
+		double[] thetas=new double[]{-Math.PI/3,Math.PI/3,0};
 		
 		for(int i=0;i<totalChildren;i++){
 			BranchNode child = children.get(i);
 			child.generateCoordinates();
 			AffineTransform at = new AffineTransform();
 			
-			double ntheta = dtheta*(i+1);
-			at.rotate(-ntheta);
-			at.translate(-1, 0);
+			double ntheta = thetas[i];
+			at.rotate(ntheta);
+			at.translate(1, 0);
+			
+			
 			child.applyTransform(at);
+			
 		}
 		return this;
 		
@@ -207,10 +210,8 @@ class BranchNode{
 		if((s.equalsIgnoreCase("CO2H")
 			|| s.equalsIgnoreCase("CO2"))){
 			BranchNode bn = new BranchNode("C");
-			BranchNode sO=new BranchNode("O").setOrderToParent(1);
-			bn.addChild(sO);
 			bn.addChild(new BranchNode("O").setOrderToParent(2));
-			bn.setCombiningNode(sO);
+			bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
 			return bn;
 		}
 		

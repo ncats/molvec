@@ -631,20 +631,31 @@ public class StructureImageExtractor {
         
         double cosThetaOCRShape =Math.cos(MAX_THETA_FOR_OCR_SEPERATION);
         
-        List<List<Shape>> ocrGroupList=GeomUtil.groupShapesIfClosestPointsMatchCriteria(likelyOCRAll, pts->{
+        List<List<Shape>> ocrGroupList=GeomUtil.groupShapesIfClosestPointsMatchCriteria(likelyOCRAll, t->{
+        	Point2D[] pts=t.v();
+        	Shape[] shapes =t.k();
         	Line2D l2 = new Line2D.Double(pts[0],pts[1]);
         	double dist=GeomUtil.length(l2);
-        	
-        	if(dist>ctab.getAverageBondLength()*MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING){
+        	double cutoff=ctab.getAverageBondLength()*MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING;
+        	String v1=(ocrAttmept.get(shapes[0]).get(0).k() + "");
+        	String v2=(ocrAttmept.get(shapes[1]).get(0).k() + "");
+        	System.out.println(v1 + " ?-> " + v2 + " D:" + dist + " <? " + cutoff);
+        	if(dist>cutoff){
         		return false;
         	}
+        	System.out.println("Keep");
         	
-        	double[] vec=GeomUtil.asVector(l2);
-        	double cosTheta=Math.abs(vec[0]/dist);
+        	Point2D cs1=GeomUtil.findCenterOfShape(shapes[0]);
+        	Point2D cs2=GeomUtil.findCenterOfShape(shapes[1]);
+        	
+        	Line2D cenLine = new Line2D.Double(cs1, cs2);
+        	double[] vec=GeomUtil.asVector(cenLine);
+        	double cosTheta=Math.abs(vec[0]/GeomUtil.length(cenLine));
         	
         	if(cosTheta>cosThetaOCRShape){
         		return true;
         	}
+        	System.out.println("Angle too big " + cosTheta + "<" + cosThetaOCRShape);
         	return false;
         });
         
@@ -661,9 +672,10 @@ public class StructureImageExtractor {
 	        			.map(t->t.k())
 	        			.collect(Collectors.toList());
 	        	
-//	        	String st=sorted.stream()
-//	        			.map(s->(ocrAttmept.get(s).get(0).k() + ""))
-//	        			.collect(Collectors.joining());
+	        	String st=sorted.stream()
+	        			.map(s->(ocrAttmept.get(s).get(0).k() + ""))
+	        			.collect(Collectors.joining());
+	        	System.out.println("OKay ... " + st);
 	        	
 	        	String soFar="";
 	        	Shape making=null;

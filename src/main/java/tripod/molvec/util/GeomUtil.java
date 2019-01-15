@@ -12,6 +12,7 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -320,8 +321,12 @@ public class GeomUtil {
     
     
     
-    public static List<List<Shape>> groupShapesIfClosestPointsMatchCriteria(List<Shape> shapes, Predicate<Point2D[]> merge){
-    	return groupShapes(shapes,(t)->merge.test(closestPoints(t.k(),t.v())));
+    public static List<List<Shape>> groupShapesIfClosestPointsMatchCriteria(List<Shape> shapes, Predicate<Tuple<Shape[],Point2D[]>> merge){
+    	return groupShapes(shapes,(t)->{
+    		Point2D[] far=closestPoints(t.k(),t.v());
+    		Shape[] s= new Shape[]{t.k(),t.v()};
+    		return merge.test(Tuple.of(s,far));	
+    	});
     }
     
     public static List<List<Shape>> groupShapes(List<Shape> points, Predicate<Tuple<Shape,Shape>> merge){
@@ -331,6 +336,7 @@ public class GeomUtil {
     public static <T> List<List<T>> groupThings(List<T> points, Predicate<Tuple<T,T>> merge){
     	int[] groups = IntStream.range(0, points.size())
     							.toArray();
+    	BitSet bs = new BitSet(points.size());
     	
     	for(int i=0;i<points.size();i++){
     		T p1=points.get(i);
@@ -339,8 +345,18 @@ public class GeomUtil {
     			if(merge.test(Tuple.of(p1,p2))){
     				int g1= groups[i];
     				int g2= groups[j];
-    				groups[i]=Math.min(g1, g2);
-    				groups[j]=Math.min(g1, g2);
+    				int ng=Math.min(g1, g2);
+    				int rg=Math.max(g1, g2);
+    				groups[i]=ng;
+    				groups[j]=ng;
+    				bs.set(ng);
+    				if(bs.get(rg)){
+    					for(int k=0;k<groups.length;k++){
+    						if(groups[k]==rg){
+    							groups[k]=ng;
+    						}
+    					}
+    				}
     			}
     		}
     	}

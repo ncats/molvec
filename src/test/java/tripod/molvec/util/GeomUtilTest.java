@@ -7,10 +7,17 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import org.junit.Test;
+
+import tripod.molvec.algo.Tuple;
 
 
 public class GeomUtilTest {
@@ -225,5 +232,35 @@ public class GeomUtilTest {
     	
     	int[] expected=new int[]{-6,-5,-4,-3,-2,-1,0};
     	assertEquals(Arrays.toString(expected), Arrays.toString(rejections));
+    }
+    
+    @Test
+    public void testGroupPairsWorks(){
+    	
+    	List<Integer> ilist1 = IntStream.range(0,100).mapToObj(i->i).collect(Collectors.toList());
+    	List<Integer> ilist2 = IntStream.range(102,150).mapToObj(i->i).collect(Collectors.toList());
+    	List<Integer> ilist3 = IntStream.range(155,157).mapToObj(i->i).collect(Collectors.toList());
+    	
+    	List<Integer> ilist = Stream.concat(ilist1.stream(),
+    								        Stream.concat(ilist2.stream(),
+    								        			  ilist3.stream()))
+							    	.collect(Collectors.toList());
+    	
+    	
+    	Collections.shuffle(ilist, new Random(1234l));
+
+    	List<List<Integer>> ilistg = GeomUtil.groupThings(ilist, t->(Math.abs(t.k()-t.v())<=1))
+    	        .stream()
+    	        .map(l->l.stream().sorted().collect(Collectors.toList()))
+    	        .map(l->Tuple.of(l,l.get(0)).withVComparator())
+    	        .sorted()
+    	        .map(t->t.k())
+    	        .collect(Collectors.toList());
+    	
+    	assertEquals(ilist1,ilistg.get(0));
+    	assertEquals(ilist2,ilistg.get(1));
+    	assertEquals(ilist3,ilistg.get(2));
+    	
+    	
     }
 }
