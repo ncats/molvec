@@ -945,8 +945,11 @@ public class GeomUtil {
 								 .sorted()
 								 .findFirst()
 								 .orElse(1.0);
+					System.out.println("Next");
 					List<Line2D> nlines= l.stream()
+						 .peek(t->System.out.println("Group:" + (int)Math.round(t.v()/doff) + " as " + t.v()))
 						 .map(Tuple.vmap(d->(int)Math.round(d/doff)))
+						 
 						 .map(t->t.swap())
 						 .collect(Tuple.toGroupedMap())
 						 .entrySet()
@@ -1248,7 +1251,7 @@ public class GeomUtil {
 	
 	public static List<Tuple<Line2D,Double>> getLineOffsetsToLongestLine(List<Line2D> lines){
 		Line2D longest= lines.stream()
-				             .map(l->Tuple.of(l,length(l)).withVComparator())
+				             .map(l->Tuple.of(l,-length(l)).withVComparator())
 				             .sorted()
 				             .map(t->t.k())
 				             .findFirst()
