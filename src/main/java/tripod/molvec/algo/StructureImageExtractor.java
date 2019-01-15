@@ -13,7 +13,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -104,240 +103,11 @@ public class StructureImageExtractor {
 	private final double MAX_ANGLE_FOR_PARALLEL_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC=15.0 * Math.PI/180.0;
 	
     
-	private final HashSet<String> accept = CachedSupplier.of(()->{
-		HashSet<String> keepers=new HashSet<String>();
-		keepers.add("C");
-		keepers.add("N");
-		keepers.add("O");
-		keepers.add("H");
-		keepers.add("S");
-		keepers.add("P");
-		keepers.add("B");
-		keepers.add("Br");
-		keepers.add("Cl");
-		keepers.add("F");
-		
-	    return keepers;
-	}).get();
 	
 	
-	private final HashSet<String> reject = CachedSupplier.of(()->{
-		HashSet<String> keepers=new HashSet<String>();
-		
-		keepers.add("I");
-		keepers.add("i");
-		keepers.add("l");
-		keepers.add("-");
-		keepers.add("/");
-		keepers.add("\\");
-		
-	    return keepers;
-	}).get();
 	
-	private BranchNode interpretOCRStringAsAtom(String s, boolean tokenOnly){
-		if(!tokenOnly && s.equalsIgnoreCase("CO2H")){
-			System.out.println("Found carboxy");
-			BranchNode bn = new BranchNode("C");
-			bn.addChild(new BranchNode("O").setOrderToParent(1));
-			bn.addChild(new BranchNode("O").setOrderToParent(2));
-			return bn;
-		}
-		
-		if(accept.contains(s)){
-			return new BranchNode(s);
-		}else if(accept.contains(s.toUpperCase())){
-			return new BranchNode(s.toUpperCase());
-		}
-		if(s.contains("H")){
-			
-			return interpretOCRStringAsAtom(s.replaceAll("H[0-9]*", ""),tokenOnly);
-		}
-		if(s.contains("I")){
-			return interpretOCRStringAsAtom(s.replace("I", "l"),tokenOnly);
-		}
-		if(s.contains("1")){
-			return interpretOCRStringAsAtom(s.replace("1", "l"),tokenOnly);
-		}
-		if(s.contains("c")){
-			return interpretOCRStringAsAtom(s.replace("c", "C"),tokenOnly);
-		}
-		if(s.equals("0")){
-			return interpretOCRStringAsAtom(s.replace("0", "O"),tokenOnly);
-		}
-		
-		try{
-			int r=Integer.parseInt(s);
-			if(r>0){
-				BranchNode repNode=new BranchNode("?");
-				repNode.setRepeat(r);
-				return repNode;
-			}
-		}catch(Exception e){
-			
-		}
-		if(tokenOnly){
-			return null;
-		}
-		
-		
-		//start breaking up
-		if(s.length()>1){
-			BranchNode parent=null;
-			String rem=null;
-			for(int i=s.length()-1;i>=1;i--){
-				String substr=s.substring(0, i);
-				BranchNode bn1=interpretOCRStringAsAtom(substr,true);
-				if(bn1!=null){
-					parent=bn1;
-					rem=s.substring(i);
-					break;
-				}
-			}
-			if(parent!=null){
-				BranchNode child=interpretOCRStringAsAtom(rem);
-				if(child!=null){
-					BranchNode bnFinal= parent.addChild(child);
-					return bnFinal;
-				}
-			}
-		}
-		
-		return null;		
-	}
-	private BranchNode interpretOCRStringAsAtom(String s){
-		return interpretOCRStringAsAtom(s,false);
-	}
 	
-	private static class BranchNode{
-		String symbol = "C";
-		boolean pseudo=false;
-		boolean isRepeat=false;
-		int rep=0;
-		int orderToParent=1;
-		
-		List<BranchNode> children = new ArrayList<BranchNode>();
-		
-		Point2D suggestedPoint = new Point2D.Double(0, 0);
-		
-		public int getOrderToParent(){
-			return this.orderToParent;
-		}
-		
-		public BranchNode setOrderToParent(int o){
-			this.orderToParent=o;
-			return this;
-		}
-		
-		public BranchNode generateCoordinates(){
-			suggestedPoint = new Point2D.Double(0, 0);
-			int totalChildren = children.size();
-			
-			double dtheta = (2*Math.PI)/(totalChildren+1.0);
-			
-			for(int i=0;i<totalChildren;i++){
-				BranchNode child = children.get(i);
-				child.generateCoordinates();
-				AffineTransform at = new AffineTransform();
-				
-				double ntheta = dtheta*(i+1);
-				at.rotate(-ntheta);
-				at.translate(-1, 0);
-				child.applyTransform(at);
-			}
-			return this;
-			
-		}
-		
-		public BranchNode applyTransform(AffineTransform at){
-			
-			suggestedPoint=at.transform(suggestedPoint, null);
-			for(BranchNode c:this.getChildren()){
-				c.applyTransform(at);
-			}
-			return this;
-		}
-		
-		public String getSymbol(){
-			return this.symbol;
-		}
-		
-		public boolean hasChildren(){
-			return !children.isEmpty();
-		}
-		public List<BranchNode> getChildren(){
-			return this.children;
-		}
-		public boolean isRealNode(){
-			return !pseudo && !isRepeat;
-		}
-		public boolean isPseudoNode(){
-			return pseudo;
-		}
-		public boolean isRepeatNode(){
-			return this.isRepeat;
-		}
-		public int getRepeat(){
-			return this.rep;
-		}
-		public BranchNode setRepeat(int r){
-			this.isRepeat=true;
-			this.rep=r;
-			return this;
-		}
-		
-		public BranchNode addChild(BranchNode bn){
-			if(bn.isRepeatNode()){
-				int rep=bn.getRepeat();
-				this.setPseudoNode(true);
-				for(int i=0;i<rep;i++){
-					this.addChild(new BranchNode(this.symbol));
-				}
-				if(bn.hasChildren()){
-					if(bn.children.size()>1){
-						throw new IllegalStateException("Repeat branch nodes should not have more than one child");
-					}
-					BranchNode realNode=bn.children.get(0);
-					return realNode.addChild(this);					
-				}
-			}else if(bn.isPseudoNode()){
-				this.children.addAll(bn.children);
-			}else{
-				this.children.add(bn);
-			}
-			return this;
-		}
-		
-		public BranchNode setPseudoNode(boolean p){
-			this.pseudo=p;
-			return this;
-		}
-		
-		
-		public BranchNode(String s){
-			this.symbol=s;
-		}
-		
-		public String toString(){
-			return this.symbol + "[" + this.children.stream().map(b->b.toString()).collect(Collectors.joining(",")) + "]";
-		}
-		
-		private void forEachBranchNode(BiConsumer<BranchNode,BranchNode> cons, BranchNode parent){
-			cons.accept(parent, this);
-			for(BranchNode child:this.getChildren()){
-				child.forEachBranchNode(cons,this);
-			}
-		}
-		
-		public void forEachBranchNode(BiConsumer<BranchNode,BranchNode> parentAndChild){
-			forEachBranchNode(parentAndChild,null);
-		}
-		
-		
-	}
-	
-    
-	
-    public StructureImageExtractor(){
+	public StructureImageExtractor(){
     	
     }
     
@@ -777,14 +547,13 @@ public class StructureImageExtractor {
         		Bitmap nmap=bitmap.crop(nshape);
                 Bitmap nthinmap=thin.crop(nshape);
                 if(nmap!=null && nthinmap!=null){
-                	System.out.println("And it looks promising");
+                	//System.out.println("And it looks promising");
                 	nshape=GeomUtil.growShape(nshape, 2);
                 	nmap=bitmap.crop(nshape);
                     nthinmap=thin.crop(nshape);
                     
                     List<Shape> slist=nmap.connectedComponents(Bitmap.Bbox.Polygon);
                     
-                    System.out.println("Shapes are:" + slist);
                     Shape bshape=slist.stream()
 			                            .map(s->Tuple.of(s,-s.getBounds2D().getWidth()*s.getBounds2D().getHeight()).withVComparator())
 			                            .sorted()
@@ -931,12 +700,12 @@ public class StructureImageExtractor {
         
         List<Shape> ocrMeaningful=bestGuessOCR.keySet()
 				   .stream()
-				   .filter(s->interpretOCRStringAsAtom(bestGuessOCR.get(s))!=null)
+				   .filter(s->BranchNode.interpretOCRStringAsAtom(bestGuessOCR.get(s))!=null)
 				   .collect(Collectors.toList());
         
         for(Shape s: bestGuessOCR.keySet()){
         	String sym=bestGuessOCR.get(s);
-        	BranchNode actual=this.interpretOCRStringAsAtom(sym);
+        	BranchNode actual=BranchNode.interpretOCRStringAsAtom(sym);
         	if(actual!=null && actual.isRealNode()){
         		Point2D center = GeomUtil.findCenterOfShape(s);
         		ctab.mergeAllNodesInside(s, MAX_BOND_RATIO_FOR_MERGING_TO_OCR*ctab.getAverageBondLength(),(n)->{
@@ -1012,7 +781,7 @@ public class StructureImageExtractor {
         
         for(Shape s: bestGuessOCR.keySet()){
         	String sym=bestGuessOCR.get(s);
-        	BranchNode actual=this.interpretOCRStringAsAtom(sym);
+        	BranchNode actual=BranchNode.interpretOCRStringAsAtom(sym);
         	if(actual!=null && actual.isRealNode()){
         		List<Node> nlist=ctab.setNodeToSymbol(s, actual.getSymbol());
         		

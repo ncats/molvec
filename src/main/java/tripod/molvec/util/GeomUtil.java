@@ -594,9 +594,8 @@ public class GeomUtil {
     public static Point2D findClosestPoint(List<Point2D> points, Point2D avgPt){
     	return points.stream()
 	      .map(p->Tuple.of(p,p.distance(avgPt)).withVComparator())
-	      .sorted()
+	      .min(CompareUtil.naturalOrder())
 	      .map(t->t.k())
-	      .findFirst()
 	      .orElse(null);
     }
     
@@ -605,8 +604,7 @@ public class GeomUtil {
     public static Tuple<Shape,Double> findClosestShapeTo(List<Shape> shapes, Point2D pt){
     	return shapes.stream()
     	      .map(s->Tuple.of(s,distanceTo(s,pt)).withVComparator())
-    	      .sorted()
-    	      .findFirst()
+    	      .min(CompareUtil.naturalOrder())
     	      .orElse(null);
     }
     
@@ -624,9 +622,8 @@ public class GeomUtil {
     	return Arrays.stream(ls)
     	      .map(l->closestPointOnLine(l,p))
     	      .map(p1->Tuple.of(p1,p.distance(p1)).withVComparator())
-    	      .sorted()
+    	      .min(CompareUtil.naturalOrder())
     	      .map(t->t.k())
-    	      .findFirst()
     	      .orElse(null);
     }
     public static Point2D closestPointOnShape(Shape s, Point2D p){
@@ -941,13 +938,10 @@ public class GeomUtil {
 				.map(l->{
 					double doff=l.stream()
 								 .filter(t->Math.abs(t.v())>GeomUtil.ZERO_DISTANCE_TOLERANCE)
-								 .map(t->t.v())
-								 .sorted()
-								 .findFirst()
+								 .mapToDouble(t->t.v())
+								 .min()
 								 .orElse(1.0);
-					System.out.println("Next");
 					List<Line2D> nlines= l.stream()
-						 .peek(t->System.out.println("Group:" + (int)Math.round(t.v()/doff) + " as " + t.v()))
 						 .map(Tuple.vmap(d->(int)Math.round(d/doff)))
 						 
 						 .map(t->t.swap())
@@ -955,17 +949,8 @@ public class GeomUtil {
 						 .entrySet()
 						 .stream()
 						 .map(Tuple::of)
-						 
-						 
 						 .map(Tuple.vmap(v1->GeomUtil.getPairOfFarthestPoints(vertices(v1))))
 						 .map(Tuple.vmap(v1->new Line2D.Double(v1[0], v1[1])))
-						 
-//						 .map(Tuple.vmap(v1->v1.stream()
-//								               .map(vi->Tuple.of(vi,-length(vi)).withVComparator())
-//								               .sorted()
-//								               .map(t->t.k())
-//								               .findFirst()
-//								               .get()))
 						 .map(t->t.v())
 						 .collect(Collectors.toList());
 					
@@ -974,9 +959,8 @@ public class GeomUtil {
 				//.map(l->l.stream().map(t->t.k()).collect(Collectors.toList()))
 				.map(l->Tuple.of(l,l.size()))
 				.map(Tuple.kmap(l->l.stream()
-								   .map(s->Tuple.of(s,-length(s)).withVComparator()) //always choose longer line
-								   .sorted()
-								   .findFirst()
+								   .map(s->Tuple.of(s,length(s)).withVComparator()) //always choose longer line
+								   .max(CompareUtil.naturalOrder())
 						           .get()
 						           .k()
 						           ))
@@ -1002,8 +986,7 @@ public class GeomUtil {
 	public static Shape getClosestShapeTo(List<Shape> shapes, Point2D pnt){
 		return shapes.stream()
 				      .map(s->Tuple.of(s,distanceTo(s, pnt)).withVComparator())
-				      .sorted()
-				      .findFirst()
+				      .min(CompareUtil.naturalOrder())
 				      .map(t->t.k())
 				      .orElse(null);
 	}
@@ -1121,9 +1104,8 @@ public class GeomUtil {
 	}
 	public static Point2D[] getPairOfFarthestPoints(List<Point2D> pts){
 		return eachCombination(pts)
-		         .map(t->Tuple.of(t,-t.k().distance(t.v())).withVComparator())
-		         .sorted()
-		         .findFirst()
+		         .map(t->Tuple.of(t,t.k().distance(t.v())).withVComparator())
+		         .max(CompareUtil.naturalOrder())
 		         .map(t->t.k())
 		         .map(t->new Point2D[]{t.k(),t.v()})
 		         .orElse(null);
@@ -1251,10 +1233,9 @@ public class GeomUtil {
 	
 	public static List<Tuple<Line2D,Double>> getLineOffsetsToLongestLine(List<Line2D> lines){
 		Line2D longest= lines.stream()
-				             .map(l->Tuple.of(l,-length(l)).withVComparator())
-				             .sorted()
+				             .map(l->Tuple.of(l,length(l)).withVComparator())
+				             .max(CompareUtil.naturalOrder())
 				             .map(t->t.k())
-				             .findFirst()
 				             .orElse(null);
 		if(longest==null)return null;
 		double[] lvec= GeomUtil.asVector(longest);
