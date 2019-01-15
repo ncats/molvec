@@ -312,8 +312,7 @@ public class ConnectionTable{
 	public Tuple<Node,Double> getClosestNodeToShape(Shape s){
 		return nodes.stream()
 		     .map(n->Tuple.of(n,GeomUtil.distanceTo(s, n.point)).withVComparator())
-		     .sorted()
-		     .findFirst()
+		     .min(CompareUtil.naturalOrder())
 		     .orElse(null);
 		
 	}
@@ -406,9 +405,8 @@ public class ConnectionTable{
 		.filter(l->l.size()>1)
 		.map(l->{
 			Line2D keep=l.stream()
-			 .map(l1->Tuple.of(-GeomUtil.length(l1),l1).withKComparator())
-			 .sorted()
-			 .findFirst()
+			 .map(l1->Tuple.of(GeomUtil.length(l1),l1).withKComparator())
+			 .max(CompareUtil.naturalOrder())
 			 .get()
 			 .v();
 			Edge keepEdge=edgeMap.get(keep);
@@ -695,11 +693,9 @@ public class ConnectionTable{
 	
 	public Tuple<Edge,Double> getWorstToleranceForNode(Node n, Bitmap bm){
 		return n.getEdges().stream()
-		          .map(e->Tuple.of(e,-bm.getLineLikeScore(e.getLine())))
+		          .map(e->Tuple.of(e,bm.getLineLikeScore(e.getLine())))
 		          .map(t->t.withVComparator())
-		          .sorted()
-		          .map(Tuple.vmap(d->-d))
-		          .findFirst()
+		          .max(CompareUtil.naturalOrder())
 		          .orElse(null);
 	}
 	

@@ -9,7 +9,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,9 +18,9 @@ import java.util.stream.Stream;
 
 import gov.nih.ncats.chemkit.api.Chemical;
 import tripod.molvec.Bitmap;
-import tripod.molvec.CachedSupplier;
 import tripod.molvec.ui.RasterCosineSCOCR;
 import tripod.molvec.ui.SCOCR;
+import tripod.molvec.util.CompareUtil;
 import tripod.molvec.util.ConnectionTable;
 import tripod.molvec.util.ConnectionTable.Edge;
 import tripod.molvec.util.ConnectionTable.Node;
@@ -555,10 +554,9 @@ public class StructureImageExtractor {
                     List<Shape> slist=nmap.connectedComponents(Bitmap.Bbox.Polygon);
                     
                     Shape bshape=slist.stream()
-			                            .map(s->Tuple.of(s,-s.getBounds2D().getWidth()*s.getBounds2D().getHeight()).withVComparator())
-			                            .sorted()
+			                            .map(s->Tuple.of(s,s.getBounds2D().getWidth()*s.getBounds2D().getHeight()).withVComparator())
+			                            .max(CompareUtil.naturalOrder())
 			                            .map(t->t.k())
-			                            .findFirst()
 			                            .orElse(nshape);
                     Rectangle2D rect1 = nshape.getBounds2D();
                     AffineTransform at = new AffineTransform();
