@@ -72,7 +72,7 @@ public class StructureImageExtractor {
 	private final double maxPerLineDistanceRatioForIntersection = 2;
 	private final double minPerLineDistanceRatioForIntersection = 0.7;
 	private final double OCR_TO_BOND_MAX_DISTANCE=2.0;
-	private final double maxCandidateRatioForIntersection = 1.7;        
+	private final double maxCandidateRatioForIntersection = 1.9;        
 	private final double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN = 1;
 	private final double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL = 0.5;
 	private final double MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS = 6;
@@ -642,6 +642,7 @@ public class StructureImageExtractor {
 	        }
 	        if(reps>MAX_REPS)break;
         }
+        
         ctab.getEdges()
         .forEach(e->{
         	double wl=bitmap.getWedgeLikeScore(e.getLine());
@@ -922,6 +923,7 @@ public class StructureImageExtractor {
 	        	
 	        });
         
+        
         List<Shape> ocrMeaningful=bestGuessOCR.keySet()
 				   .stream()
 				   .filter(s->interpretOCRStringAsAtom(bestGuessOCR.get(s))!=null)
@@ -975,8 +977,8 @@ public class StructureImageExtractor {
         });
         
         
-        ctab.makeMissingBondsToNeighbors(bitmap,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MAX_TOLERANCE_FOR_DASH_BONDS,likelyOCR,OCR_TO_BOND_MAX_DISTANCE, (t)->{
-        	//System.out.println("Tol found for add:" + t.k());
+        ctab.makeMissingBondsToNeighbors(bitmap,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MAX_TOLERANCE_FOR_SINGLE_BONDS,likelyOCR,OCR_TO_BOND_MAX_DISTANCE, (t)->{
+        	System.out.println("Tol found for add:" + t.k());
         	if(t.k()>MAX_TOLERANCE_FOR_SINGLE_BONDS){
         		t.v().setDashed(true);
         	}
@@ -989,8 +991,16 @@ public class StructureImageExtractor {
         	    	if(t.v()<MIN_ST_DEV_FOR_KEEPING_DASHED_LINES && t.k().getDashed()){
         	    		System.out.println("Dash score:" + t.v());
         	    		t.k().setDashed(false);
+        	    		
+        	    		//Maybe it shouldn't even be here?
+        	    		//Try to remove it
+        	    		double tol=ctab.getToleranceForEdge(t.k(),bitmap);
+        	    		if(tol>MAX_TOLERANCE_FOR_DASH_BONDS){
+        	    			ctab.removeEdge(t.k());
+        	    		}
         	    	}
         	    });
+        	
         }
         
         double fbondlength=ctab.getAverageBondLength();

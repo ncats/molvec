@@ -681,6 +681,9 @@ public class ConnectionTable{
 		          .map(e->Tuple.of(e,bm.getLineLikeScore(e.getLine())))
 		          .collect(Collectors.toList());
 	}
+	public double getToleranceForEdge(Edge e, Bitmap bm){
+		return bm.getLineLikeScore(e.getLine());
+	}
 	
 	public double getAverageToleranceForNode(Node n, Bitmap bm){
 		return n.getEdges().stream()

@@ -138,12 +138,23 @@ public class MoleculeTest {
 		
 		
 		Chemical c=sie.getChemical();
-		System.out.println(c.toSmiles());
-		System.out.println(c.toMol());
 		String form=c.getFormula();
 		assertEquals(cReal.getFormula(),form);
 	}
 	
+	@Test
+	public void moleculeWithCloseNitrogensInRingTest() throws Exception {
+		File f=getFile("moleculeTest/moleculeWithCloseNitrogensInRing.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("FC(F)(F)CNc1nc(Nc2ccc(cc2)N3CCOCC3)nc4ccsc14").build();
+		
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+	}
 	
 	
 }
