@@ -143,6 +143,20 @@ public class MoleculeTest {
 	}
 	
 	@Test
+	public void subscriptImplicitAtomsH2Test() throws Exception {
+		File f=getFile("moleculeTest/withSubscriptForH.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("COc1cccc(C(O)c2cc(F)ccc2-N)c1C").build();
+		
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+	}
+	
+	@Test
 	public void moleculeWithCloseNitrogensInRingTest() throws Exception {
 		File f=getFile("moleculeTest/moleculeWithCloseNitrogensInRing.png");
 		StructureImageExtractor sie = new StructureImageExtractor();

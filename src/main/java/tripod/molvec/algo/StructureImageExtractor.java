@@ -149,7 +149,8 @@ public class StructureImageExtractor {
 			return new BranchNode(s.toUpperCase());
 		}
 		if(s.contains("H")){
-			return interpretOCRStringAsAtom(s.replace("H", ""),tokenOnly);
+			
+			return interpretOCRStringAsAtom(s.replaceAll("H[0-9]*", ""),tokenOnly);
 		}
 		if(s.contains("I")){
 			return interpretOCRStringAsAtom(s.replace("I", "l"),tokenOnly);
@@ -347,6 +348,7 @@ public class StructureImageExtractor {
     	   ch.equalsIgnoreCase("A")||
     	   ch.equalsIgnoreCase("Z")||
     	   ch.equalsIgnoreCase("-")||
+    	   ch.equalsIgnoreCase("m")||
     	   ch.equals("n")){
     		invScore=invScore*3; // penalize
     	}
