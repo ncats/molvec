@@ -55,12 +55,12 @@ public class StructureImageExtractor {
     
     private final double MAX_REPS = 10;
     private final double INITIAL_MAX_BOND_LENGTH=Double.MAX_VALUE;
-    private final double MIN_BOND_TO_AVG_BOND_RATIO = 1/2.5;
+    private final double MIN_BOND_TO_AVG_BOND_RATIO = 1/2.7;
     private final double MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 1.3;
     private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 0.5;
     
 
-    private final double MAX_TOLERANCE_FOR_DASH_BONDS = 2.0;
+    private final double MAX_TOLERANCE_FOR_DASH_BONDS = 3.5;
     private final double MAX_TOLERANCE_FOR_SINGLE_BONDS = 0.4;
     
 	private final double OCRcutoffCosine=0.65;
@@ -76,6 +76,7 @@ public class StructureImageExtractor {
 	private final double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN = 1;
 	private final double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL = 0.5;
 	private final double MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS = 6;
+	private final double MIN_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS = 2;
 	
 	private final double MAX_ANGLE_FOR_JOINING_SEGMENTS=25 * Math.PI/180.0;
 	private final double MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS=8.0;
@@ -244,7 +245,9 @@ public class StructureImageExtractor {
 		public List<BranchNode> getChildren(){
 			return this.children;
 		}
-		
+		public boolean isRealNode(){
+			return !pseudo && !isRepeat;
+		}
 		public boolean isPseudoNode(){
 			return pseudo;
 		}
@@ -266,6 +269,13 @@ public class StructureImageExtractor {
 				this.setPseudoNode(true);
 				for(int i=0;i<rep;i++){
 					this.addChild(new BranchNode(this.symbol));
+				}
+				if(bn.hasChildren()){
+					if(bn.children.size()>1){
+						throw new IllegalStateException("Repeat branch nodes should not have more than one child");
+					}
+					BranchNode realNode=bn.children.get(0);
+					return realNode.addChild(this);					
 				}
 			}else if(bn.isPseudoNode()){
 				this.children.addAll(bn.children);
@@ -299,11 +309,31 @@ public class StructureImageExtractor {
 		public void forEachBranchNode(BiConsumer<BranchNode,BranchNode> parentAndChild){
 			forEachBranchNode(parentAndChild,null);
 		}
+		
+		
 	}
 	
     
 	
     public StructureImageExtractor(){
+    	
+    }
+    
+    private static Tuple<Character,Number> adjustConfidence(Tuple<Character,Number> tup){
+    	String ch=tup.k()+"";
+    	double invScore=1-tup.v().doubleValue();
+    	if(ch.equals("K") || ch.equals("k") || ch.equals("f")){
+    		invScore=invScore*3.5; // penalize "K"
+    	}
+    	if(ch.equalsIgnoreCase("R")||
+    	   ch.equalsIgnoreCase("A")||
+    	   ch.equalsIgnoreCase("Z")||
+    	   ch.equalsIgnoreCase("-")||
+    	   ch.equals("n")){
+    		invScore=invScore*3; // penalize
+    	}
+    	
+    	return Tuple.of(tup.k(),Math.max(0,1-invScore));
     	
     }
     
@@ -314,6 +344,10 @@ public class StructureImageExtractor {
      	   !"1".equalsIgnoreCase(t) &&
      	   !"-".equalsIgnoreCase(t) &&
      	   !"/".equalsIgnoreCase(t) &&
+     	   !"K".equalsIgnoreCase(t) &&
+     	   !"Y".equalsIgnoreCase(t) &&
+     	   !"W".equalsIgnoreCase(t) &&
+     	   !"f".equals(t) &&
      	   !"\\".equalsIgnoreCase(t)){
      		return true;
      	}
@@ -355,6 +389,7 @@ public class StructureImageExtractor {
                          )
              			.stream()
              			.map(Tuple::of)
+             			.map(t->adjustConfidence(t))
              			.collect(Collectors.toList());
                  ocrAttmept.put(s, potential);
                  if(potential.stream().filter(e->e.v().doubleValue()>OCRcutoffCosine).findAny().isPresent()){
@@ -419,7 +454,8 @@ public class StructureImageExtractor {
         
         smallLines=smallLines.stream()
 			                  .flatMap(l->{
-			                	  if(GeomUtil.length(l)<MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS){
+			                	  double len=GeomUtil.length(l);
+			                	  if(len<MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS && len>MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS){
 			                		  return GeomUtil.splitLineIn2(l).stream();  
 			                	  }
 			                	  return Stream.of(l);
@@ -482,9 +518,8 @@ public class StructureImageExtractor {
 	        
 	        ctab.getTolerancesForAllEdges(bitmap)
 	    	    .forEach(t->{
-	    	    	System.out.println("Score for edge:" + t.v());
-	    	    	if(t.v()>MAX_TOLERANCE_FOR_DASH_BONDS){
-	    	    		
+	    	    	//System.out.println("Score for edge:" + t.v());
+	    	    	if(t.v()>MAX_TOLERANCE_FOR_DASH_BONDS && t.k().getOrder()==1){	    	    		
 	    	    		ctab.removeEdge(t.k());
 	    	    	}
 	    	    });
@@ -494,8 +529,8 @@ public class StructureImageExtractor {
 	        for(Shape s: likelyOCR){
 	        	ctab.mergeAllNodesInsideCenter(s, OCR_TO_BOND_MAX_DISTANCE);
 	        }
-	        double bl1=ctab.getAverageBondLength();
-	        ctab.mergeNodesCloserThan(bl1*MIN_BOND_TO_AVG_BOND_RATIO);
+	        //double bl1=ctab.getAverageBondLength();
+	        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO);
 	        ctab.mergeAllNodesOnParLines();
 	        ctab.cleanMeaninglessEdges();
 	        ctab.cleanDuplicateEdges((e1,e2)->{
@@ -609,6 +644,11 @@ public class StructureImageExtractor {
         });
         
         
+        double avgTol=ctab.getTolerancesForAllEdges(bitmap)
+				          .stream()
+				          .mapToDouble(t->t.v())
+				          .average()
+				          .orElse(0);
 
         //This is probably where we try to add some missed OCR based on the nodes
         
@@ -622,7 +662,12 @@ public class StructureImageExtractor {
         //8. Add everything that is OKAY to the OCR sets
         
         double avgbond=ctab.getAverageBondLength();
-        double SEED_BOND_RATIO_FOR_OCR_WIDTH=0.3;
+        double SEED_BOND_RATIO_FOR_OCR_WIDTH=0.20;
+        double PROBLEM_BOND_LENGTH_RATIO=0.8;
+        double PROBLEM_TOLERANCE_RATIO=1.0;
+        
+        double SEED_BOND_RATIO_FOR_OCR_WIDTH_FOR_CENTROID=0.5;
+        
         List<Node> unmatchedNodes=ctab.getNodesNotInShapes(likelyOCR, OCR_TO_BOND_MAX_DISTANCE + avgbond*SEED_BOND_RATIO_FOR_OCR_WIDTH);
         
         
@@ -633,43 +678,78 @@ public class StructureImageExtractor {
         List<Point2D> vertices=lines.stream().flatMap(l->Stream.of(l.getP1(),l.getP2())).collect(Collectors.toList());
         List<Point2D> verticesJ=linesJoined.stream().flatMap(l->Stream.of(l.getP1(),l.getP2())).collect(Collectors.toList());
         
+        
+        List<Shape> toAddAllOCR=new ArrayList<Shape>();
+        
+        
         unmatchedNodes.forEach(n->{
+        	Tuple<Edge,Double> worstEdge=ctab.getWorstToleranceForNode(n,bitmap);
+        	
+//        	System.out.println("Avg tol:" + avgTol);
+//        	System.out.println("Worst tol here:" + worstEdge.v());
+        	
+        	
+        	//The worst bond isn't so bad, maybe it's not worth looking
+        	if(worstEdge.v()<avgTol*PROBLEM_TOLERANCE_RATIO){
+        		
+        		//double check to see if the shortest bond is too short
+        		//if it isn't, then skip this one, it's probably fine.
+        		boolean tooSmallBond=n.getEdges()
+        				              .stream()
+						              .mapToDouble(e->e.getBondDistance())
+						              .filter(d->d<avgbond*PROBLEM_BOND_LENGTH_RATIO)
+						              .findAny()
+						              .isPresent();
+        		if(tooSmallBond){
+        			//continue
+        		}else{
+        			System.out.println("Skip");
+        			return;
+        		}
+        	}
+        	System.out.println("Keep");
+        	
+        	
+        	
         	Point2D cpt=n.getPoint();
         	
         	
         	int numEdges=n.getEdges().size();
         	Shape[] area=new Shape[]{null};
         	Shape nshape=null;
-        	double radius=Math.max(avgbond*SEED_BOND_RATIO_FOR_OCR_WIDTH,averageLargestOCR/2);
+        	double radius=Math.max(avgbond*SEED_BOND_RATIO_FOR_OCR_WIDTH_FOR_CENTROID,averageLargestOCR/2);
         	
         	boolean keep=true;
         	for(int i=0;i<3;i++){
+        		keep=true;
         		area[0]=GeomUtil.makeShapeAround(cpt,radius);
-        		//polygons.add(area);
+        		
+        		//
             	List<Point2D> insideVertices=verticesJ.stream()
     							        	        .filter(v->area[0].contains(v))
     							        	        .collect(Collectors.toList());
-	        	if(insideVertices.size()>numEdges+2){
-	        		List<Point2D> insideVertices2=vertices.stream()
-		        	        .filter(v->area[0].contains(v))
-		        	        .collect(Collectors.toList());
-	        		nshape = GeomUtil.convexHull(insideVertices2.toArray(new Point2D[0]));
-	        		Point2D[] far=GeomUtil.getPairOfFarthestPoints(nshape);
-	        		double r=far[0].distance(far[1]);
-	        		if(r < averageLargestOCR*MIN_LONGEST_WIDTH_RATIO_FOR_OCR_TO_AVERAGE){
-	        			keep=false;
-	        			break;
-	                }else{
-	                	radius=Math.max(averageLargestOCR/2,r/2);
-	                	//cpt=GeomUtil.findCenterOfVertices(Arrays.asList(GeomUtil.vertices(nshape)));
-	                	cpt=GeomUtil.findCenterOfShape(nshape);
-	                }
-	        	}else{
+	        	if(insideVertices.size()<=numEdges+1){
 	        		keep=false;
-	        		break;
 	        	}
+	        	List<Point2D> insideVertices2=verticesJ.stream()
+	        	        .filter(v->area[0].contains(v))
+	        	        .collect(Collectors.toList());
+        		nshape = GeomUtil.convexHull(insideVertices2.toArray(new Point2D[0]));
+        		
+        		Point2D[] far=GeomUtil.getPairOfFarthestPoints(nshape);
+        		double r=0;
+        		if(far!=null){
+        			r=far[0].distance(far[1]);	
+        		}
+        		if(r < averageLargestOCR*MIN_LONGEST_WIDTH_RATIO_FOR_OCR_TO_AVERAGE){
+        			keep=false;
+        			//break;
+                }
+            	radius=Math.max(averageLargestOCR/2,r/2);
+            	//cpt=GeomUtil.findCenterOfVertices(Arrays.asList(GeomUtil.vertices(nshape)));
+            	cpt=GeomUtil.findCenterOfShape(nshape);
         	}
-        	
+        	polygons.add(nshape);
         	if(keep){
         		Bitmap nmap=bitmap.crop(nshape);
                 Bitmap nthinmap=thin.crop(nshape);
@@ -691,7 +771,7 @@ public class StructureImageExtractor {
                     Rectangle2D rect1 = nshape.getBounds2D();
                     AffineTransform at = new AffineTransform();
                     at.translate(rect1.getX(),rect1.getY());
-                    nshape=at.createTransformedShape(bshape);
+                    nshape=at.createTransformedShape(bshape).getBounds2D();
 //                    
                     
                     nmap=bitmap.crop(nshape);
@@ -705,15 +785,19 @@ public class StructureImageExtractor {
 		                        )
 		            			.stream()
 		            			.map(Tuple::of)
+		            			.map(t->adjustConfidence(t))
 		            			.collect(Collectors.toList());
 	                	ocrAttmept.put(nshape, potential);
 		                polygons.add(nshape);
-		                if(potential.stream().filter(e->e.v().doubleValue()>OCRcutoffCosineRescue).findAny().isPresent()){
-		                	System.out.println("Found another");
-			                if(OCRIsLikely(potential.get(0))){
-			                	likelyOCR.add(nshape);
-			                }
-			                likelyOCRAll.add(nshape);
+		                if(potential.stream().findFirst().filter(e->e.v().doubleValue()>OCRcutoffCosineRescue).isPresent()){
+		                	toAddAllOCR.add(nshape);
+		                	System.out.println("Found another pot:" +potential.get(0).k());
+		                	System.out.println("Found another pot score:" +potential.get(0).v());
+//		                	
+//			                if(OCRIsLikely(potential.get(0))){
+//			                	likelyOCR.add(nshape);
+//			                }
+//			                likelyOCRAll.add(nshape);
 		                }
                     }
                 }
@@ -723,8 +807,36 @@ public class StructureImageExtractor {
         	
         });
        
+        GeomUtil.mergeOverlappingShapes(toAddAllOCR)
+                .forEach(nshape->{
+                	//if(ctab.getNodesInsideShape(nshape, 0).isEmpty())return;
+                	Bitmap nmap=bitmap.crop(nshape);
+                	Bitmap nthinmap=thin.crop(nshape);
+                	if(nmap!=null && nthinmap!=null){
+	                    
+	                	List<Tuple<Character,Number>> potential = OCR.getNBestMatches(4,
+		                		nmap.createRaster(),
+		                		nthinmap.createRaster()
+		                        )
+		            			.stream()
+		            			.map(Tuple::of)
+		            			.map(t->adjustConfidence(t))
+		            			.collect(Collectors.toList());
+	                	ocrAttmept.put(nshape, potential);
+		                polygons.add(nshape);
+		                if(potential.stream().findFirst().filter(e->e.v().doubleValue()>OCRcutoffCosineRescue).isPresent()){
+		                	//toAddAllOCR.add(nshape);
+		                	System.out.println("Found another:" +potential.get(0).k());
+		                	System.out.println("Found another:" +potential.get(0).v());
+//		                	
+			                if(OCRIsLikely(potential.get(0))){
+			                	likelyOCR.add(nshape);
+			                }
+			                likelyOCRAll.add(nshape);
+		                }
+                    }
+                });
         
-                 
         
         
         double cosThetaOCRShape =Math.cos(MAX_THETA_FOR_OCR_SEPERATION);
@@ -801,7 +913,7 @@ public class StructureImageExtractor {
         for(Shape s: bestGuessOCR.keySet()){
         	String sym=bestGuessOCR.get(s);
         	BranchNode actual=this.interpretOCRStringAsAtom(sym);
-        	if(actual!=null){
+        	if(actual!=null && actual.isRealNode()){
         		Point2D center = GeomUtil.findCenterOfShape(s);
         		ctab.mergeAllNodesInside(s, MAX_BOND_RATIO_FOR_MERGING_TO_OCR*ctab.getAverageBondLength(),(n)->{
         			if(sym.equals("H")){
@@ -862,7 +974,7 @@ public class StructureImageExtractor {
         for(Shape s: bestGuessOCR.keySet()){
         	String sym=bestGuessOCR.get(s);
         	BranchNode actual=this.interpretOCRStringAsAtom(sym);
-        	if(actual!=null){
+        	if(actual!=null && actual.isRealNode()){
         		List<Node> nlist=ctab.setNodeToSymbol(s, actual.getSymbol());
         		
         		if(nlist.size()==1){

@@ -729,7 +729,7 @@ public class Viewer extends JPanel
                 int i = 0;
                 for (Tuple<Character, Number> ocrGuess : this.ocrAttmept.get(s)) {
                     String disp = ocrGuess.k() + ":"
-                        + ocrGuess.v().toString().substring(0, 4);
+                        + (ocrGuess.v().doubleValue()+"    ").substring(0, 4);
                     Shape strShape = f.createGlyphVector(
                                                          g2.getFontRenderContext(), disp).getOutline();
                     AffineTransform at = new AffineTransform();

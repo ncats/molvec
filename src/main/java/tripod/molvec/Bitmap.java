@@ -1457,7 +1457,7 @@ public class Bitmap implements Serializable, TiffTags {
     
     
     public List<Path2D> segments () {
-        return segments (2, DEFAULT_AEV_THRESHOLD);
+        return segments (1, DEFAULT_AEV_THRESHOLD);
     }
     
     //0 means not wedge like

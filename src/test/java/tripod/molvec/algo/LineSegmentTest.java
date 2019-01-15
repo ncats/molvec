@@ -83,4 +83,21 @@ public class LineSegmentTest {
 		}
 	}
 	
+	@Test
+	public void twoByOneDiagonalShouldBeReadableAsLine() throws Exception {
+		File f=getFile("segmentTest/2_by_1_diagonal.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		int num=sie.getLinesJoined().size();
+		assertTrue("Expected number of segments was 1, found:" + num,num==1);
+	}
+	@Test
+	public void oneByOneDiagonalShouldBeReadableAsLine() throws Exception {
+		File f=getFile("segmentTest/1_by_1_diagonal.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		int num=sie.getLinesJoined().size();
+		assertTrue("Expected number of segments was 1, found:" + num,num==1);
+	}
+	
 }

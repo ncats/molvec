@@ -196,5 +196,22 @@ public class FragmentTest {
 		assertEquals(0,ctab.getEdges().stream().filter(e->e.getDashed()).count());
 	}
 	
+	@Test
+	public void thinWigglingFragmentWith2x1DiagonalShouldHaveCorrectReading() throws Exception {
+		File f=getFile("fragmentTest/thin_wiggly.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		ConnectionTable ctab = sie.getCtab();
+		
+		
+		assertEquals(18,ctab.getNodes().size());
+		assertEquals(19,ctab.getEdges().size());	
+		assertEquals(7,ctab.getEdges().stream().filter(e->e.getOrder()==2).count());
+		assertEquals(12,ctab.getEdges().stream().filter(e->e.getOrder()==1).count());
+		assertEquals(1,ctab.getNodes().stream().filter(n->n.getSymbol().equals("N")).count());
+		assertEquals(17,ctab.getNodes().stream().filter(n->n.getSymbol().equals("C")).count());
+		assertEquals(0,ctab.getEdges().stream().filter(e->e.getDashed()).count());
+	}
+	
 	
 }

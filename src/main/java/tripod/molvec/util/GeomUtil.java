@@ -27,7 +27,6 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import tripod.molvec.algo.Tuple;
-import tripod.molvec.util.GeomUtil.LineDistanceCalculator;
 
 
 public class GeomUtil {
@@ -209,6 +208,8 @@ public class GeomUtil {
     public static Point2D[] vertices(List<Line2D> lines){
     	return lines.stream().flatMap(l->Stream.of(l.getP1(),l.getP2())).toArray(i->new Point2D[i]);
     }
+    
+    
 
     public static Point2D[] vertices (Shape shape, AffineTransform afx) {
         PathIterator p = shape.getPathIterator (afx);
@@ -324,13 +325,17 @@ public class GeomUtil {
     }
     
     public static List<List<Shape>> groupShapes(List<Shape> points, Predicate<Tuple<Shape,Shape>> merge){
+    	return groupThings(points,merge);
+    }
+    
+    public static <T> List<List<T>> groupThings(List<T> points, Predicate<Tuple<T,T>> merge){
     	int[] groups = IntStream.range(0, points.size())
     							.toArray();
     	
     	for(int i=0;i<points.size();i++){
-    		Shape p1=points.get(i);
+    		T p1=points.get(i);
     		for(int j=i+1;j<points.size();j++){
-    			Shape p2=points.get(j);
+    			T p2=points.get(j);
     			if(merge.test(Tuple.of(p1,p2))){
     				int g1= groups[i];
     				int g2= groups[j];
@@ -448,7 +453,8 @@ public class GeomUtil {
     }
 
     public static boolean intersects (Shape s1, Shape s2) {
-        Line2D[] lines1 = lines (s1);
+        if(!s1.getBounds2D().intersects(s2.getBounds2D()))return false;
+    	Line2D[] lines1 = lines (s1);
         Line2D[] lines2 = lines (s2);
         for (Line2D l1 : lines1) {
             for (Line2D l2 : lines2) {
@@ -457,6 +463,17 @@ public class GeomUtil {
                     return true;
                 }
             }
+        }
+        Point2D[] p1s=vertices(s1);
+        Point2D[] p2s=vertices(s2);
+        
+        for(Point2D p:p1s){
+        	if(s1.contains(p))return true;
+        	break;
+        }
+        for(Point2D p:p2s){
+        	if(s2.contains(p))return true;
+        	break;
         }
         return false;
     }
@@ -697,6 +714,32 @@ public class GeomUtil {
       			 .sum();
     }
     
+    public static double orthoDot(double[] a, double[] b){
+    	if(a.length!=2 || b.length!=2)throw new IllegalStateException("Cannot do an orthoganal dot product on vectors longer than 2");
+    	return dot(a, new double[]{b[1],-b[0]});
+    }
+    
+    /**
+     * Get the scalar projection of B onto A
+     * @param a
+     * @param b
+     * @return
+     */
+    public static double projection(double[] a, double[] b){
+    	return dot(a,b)/(l2Norm(a));
+    }
+    
+    /**
+     * Get the scalar rejection of B onto A
+     * @param a
+     * @param b
+     * @return
+     */
+    public static double rejection(double[] a, double[] b){
+    	return orthoDot(a,b)/(l2Norm(a));
+    }
+    
+    
     public static double pearsonCorrel(double[] l1, double[] l2){
     	l1=centerVector(l1);
     	l2=centerVector(l2);
@@ -894,6 +937,38 @@ public class GeomUtil {
 		return groupMultipleBonds(lines,maxDeltaTheta,maxDeltaOffset,minProjectionRatio,minLargerProjectionRatio)
 				.stream()
 				.map(l->GeomUtil.stitchSufficientlyStitchableLines(l, maxStitchLineDistanceDelta))
+				.map(l->GeomUtil.getLineOffsetsToLongestLine(l))
+				.map(l->{
+					double doff=l.stream()
+								 .filter(t->Math.abs(t.v())>GeomUtil.ZERO_DISTANCE_TOLERANCE)
+								 .map(t->t.v())
+								 .sorted()
+								 .findFirst()
+								 .orElse(1.0);
+					List<Line2D> nlines= l.stream()
+						 .map(Tuple.vmap(d->(int)Math.round(d/doff)))
+						 .map(t->t.swap())
+						 .collect(Tuple.toGroupedMap())
+						 .entrySet()
+						 .stream()
+						 .map(Tuple::of)
+						 
+						 
+						 .map(Tuple.vmap(v1->GeomUtil.getPairOfFarthestPoints(vertices(v1))))
+						 .map(Tuple.vmap(v1->new Line2D.Double(v1[0], v1[1])))
+						 
+//						 .map(Tuple.vmap(v1->v1.stream()
+//								               .map(vi->Tuple.of(vi,-length(vi)).withVComparator())
+//								               .sorted()
+//								               .map(t->t.k())
+//								               .findFirst()
+//								               .get()))
+						 .map(t->t.v())
+						 .collect(Collectors.toList());
+					
+					return nlines;
+				})
+				//.map(l->l.stream().map(t->t.k()).collect(Collectors.toList()))
 				.map(l->Tuple.of(l,l.size()))
 				.map(Tuple.kmap(l->l.stream()
 								   .map(s->Tuple.of(s,-length(s)).withVComparator()) //always choose longer line
@@ -1051,6 +1126,15 @@ public class GeomUtil {
 		         .orElse(null);
 	}
 	
+	public static List<Shape> mergeOverlappingShapes(List<Shape> shapes){
+		return GeomUtil.groupShapes(shapes, t->intersects(t.k(),t.v()))
+					.stream()
+					.map(ll->ll.stream().reduce((s1,s2)->add(s1,s2)).orElse(null))
+					.filter(s->s!=null)
+				    .collect(Collectors.toList());
+
+	}
+	
 	public static <T> Stream<Tuple<T,T>> eachCombination(List<T> list){
 		return IntStream.range(0, list.size())
 		         .mapToObj(i->IntStream.range(i+1, list.size())
@@ -1146,5 +1230,42 @@ public class GeomUtil {
 				 
 		
 	}
+	
+	public static double[] asVector(Point2D p){
+		return new double[]{p.getX(),p.getY()};
+	}
+	public static double[] addVectors(double[] a, double[] b){
+		return IntStream.range(0, a.length)
+			         .mapToDouble(i->a[i]+b[i])
+			         .toArray();
+	}
+	public static double[] negate(double[] a){
+		return IntStream.range(0, a.length)
+		         .mapToDouble(i->-a[i])
+		         .toArray();
+	}
+	
+	
+	public static List<Tuple<Line2D,Double>> getLineOffsetsToLongestLine(List<Line2D> lines){
+		Line2D longest= lines.stream()
+				             .map(l->Tuple.of(l,length(l)).withVComparator())
+				             .sorted()
+				             .map(t->t.k())
+				             .findFirst()
+				             .orElse(null);
+		if(longest==null)return null;
+		double[] lvec= GeomUtil.asVector(longest);
+		double[] offset = negate(new double[]{longest.getX1(),longest.getY1()});
+		
+		
+		return lines.stream()
+			         .map(l->Tuple.of(l,findCenterOfShape(l)))
+			         .map(Tuple.vmap(p->asVector(p)))
+			         .map(Tuple.vmap(b->addVectors(b,offset)))
+			         .map(Tuple.vmap(b->rejection(lvec,b)))
+			         .collect(Collectors.toList());
+		
+	}
+	
     
 }

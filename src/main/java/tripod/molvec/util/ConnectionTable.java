@@ -157,7 +157,7 @@ public class ConnectionTable{
 			}
 		}
 		
-		
+		resetCaches();
 		return this;
 	}
 	
@@ -238,12 +238,16 @@ public class ConnectionTable{
 	}
 	
 	public ConnectionTable mergeNodesCloserThan(double maxDistance){
+
+
+		
 		boolean mergedOne = true;
 		
 		while(mergedOne){
 			mergedOne=false;
 			for(int i=0;i<nodes.size();i++){
-				Point2D pnti=nodes.get(i).point;
+				Node node1=nodes.get(i);
+				Point2D pnti=node1.point;
 				for(int j=i+1;j<nodes.size();j++){
 					Point2D pntj = nodes.get(j).point;
 					if(pnti.distance(pntj)<maxDistance){
@@ -255,6 +259,35 @@ public class ConnectionTable{
 				if(mergedOne)break;
 			}
 		}
+		
+		
+		
+
+		resetCaches();
+
+		return this;
+	}
+	
+	
+	
+	public ConnectionTable mergeNodesCloserThan(double maxDistance, Function<List<Node>, Point2D> combiner){
+		List<List<Node>> mergeList=GeomUtil.groupThings(nodes, (t)->{
+								Node n1=t.k();
+								Node n2=t.v();
+								return n1.point.distance(n2.point)<maxDistance;
+							})
+							.stream()
+							.filter(nl->nl.size()>=2)
+							.collect(Collectors.toList());
+		
+		mergeList.forEach(ml->{
+			List<Integer> nindexs = ml.stream().map(n->n.getIndex()).collect(Collectors.toList());
+			//System.out.println("NIA:" + nindexs);
+			Point2D centerpt = combiner.apply(ml);
+			this.mergeNodes(nindexs, (pl)->{
+				return centerpt;
+			});			
+		});
 		return this;
 	}
 	
@@ -498,19 +531,14 @@ public class ConnectionTable{
 		
 		public int getIndex(){
 			Integer ind=getNodeMap().get(this);
-			if(ind==null)return -1;
+			if(ind==null){
+				throw new IllegalStateException("Can't find node index for node");
+				//return -1;
+			}
 			return ind;
 		}
 		
-		public boolean equals(Object o){
-			if(o==null)return false;
-			if(!(o instanceof Node))return false;
-			return o==this;
-		}
 		
-		public int hashCode(){
-			return point.hashCode() ^ symbol.hashCode();
-		}
 		public Point2D getPoint() {
 			return this.point;
 		}
@@ -652,6 +680,24 @@ public class ConnectionTable{
 		return this.edges.stream()
 		          .map(e->Tuple.of(e,bm.getLineLikeScore(e.getLine())))
 		          .collect(Collectors.toList());
+	}
+	
+	public double getAverageToleranceForNode(Node n, Bitmap bm){
+		return n.getEdges().stream()
+		          .map(e->Tuple.of(e,bm.getLineLikeScore(e.getLine())))
+		          .mapToDouble(t->t.v())
+		          .average()
+		          .orElse(0);
+	}
+	
+	public Tuple<Edge,Double> getWorstToleranceForNode(Node n, Bitmap bm){
+		return n.getEdges().stream()
+		          .map(e->Tuple.of(e,-bm.getLineLikeScore(e.getLine())))
+		          .map(t->t.withVComparator())
+		          .sorted()
+		          .map(Tuple.vmap(d->-d))
+		          .findFirst()
+		          .orElse(null);
 	}
 	
 	public List<Tuple<Edge,Double>> getDashLikeScoreForAllEdges(Bitmap bm){
