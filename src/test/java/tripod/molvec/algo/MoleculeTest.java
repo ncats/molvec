@@ -169,6 +169,19 @@ public class MoleculeTest {
 		String form=c.getFormula();
 		assertEquals(cReal.getFormula(),form);
 	}
-	
+	@Test
+	public void moleculeWith2CarboxyShortHandsTest() throws Exception {
+		File f=getFile("moleculeTest/carboxylicShorthandNotation.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("OC(=O)Cc1ccc(OCc2ccccc2C(O)=O)cc1").build();
+		
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+	}
+	//
 	
 }
