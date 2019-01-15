@@ -155,6 +155,9 @@ public class StructureImageExtractor {
 		if(s.contains("I")){
 			return interpretOCRStringAsAtom(s.replace("I", "l"),tokenOnly);
 		}
+		if(s.contains("1")){
+			return interpretOCRStringAsAtom(s.replace("1", "l"),tokenOnly);
+		}
 		if(s.contains("c")){
 			return interpretOCRStringAsAtom(s.replace("c", "C"),tokenOnly);
 		}
