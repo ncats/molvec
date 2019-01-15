@@ -230,6 +230,24 @@ public class FragmentTest {
 		assertEquals(9,ctab.getNodes().stream().filter(n->n.getSymbol().equals("C")).count());
 		assertEquals(0,ctab.getEdges().stream().filter(e->e.getDashed()).count());
 	}
+
+	@Test
+	public void simpleFragmentWithALittleNoiseShouldHaveCorrectReading() throws Exception {
+		File f=getFile("fragmentTest/simple_frag_with_little_noise.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		ConnectionTable ctab = sie.getCtab();
+		
+		
+		assertEquals(12,ctab.getNodes().size());
+		assertEquals(13,ctab.getEdges().size());	
+		assertEquals(5,ctab.getEdges().stream().filter(e->e.getOrder()==2).count());
+		assertEquals(8,ctab.getEdges().stream().filter(e->e.getOrder()==1).count());
+		assertEquals(1,ctab.getNodes().stream().filter(n->n.getSymbol().equals("O")).count());
+		assertEquals(1,ctab.getNodes().stream().filter(n->n.getSymbol().equals("N")).count());
+		assertEquals(10,ctab.getNodes().stream().filter(n->n.getSymbol().equals("C")).count());
+		assertEquals(0,ctab.getEdges().stream().filter(e->e.getDashed()).count());
+	}
 	
 	
 }

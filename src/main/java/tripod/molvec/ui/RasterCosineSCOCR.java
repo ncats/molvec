@@ -2,10 +2,17 @@ package tripod.molvec.ui;
 
 import java.awt.Font;
 import java.awt.Graphics2D;
+import java.awt.Shape;
 import java.awt.font.GlyphVector;
+import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBuffer;
+import java.awt.image.MultiPixelPackedSampleModel;
 import java.awt.image.Raster;
+import java.awt.image.SampleModel;
+import java.awt.image.WritableRaster;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -13,6 +20,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.imageio.ImageIO;
 
 public class RasterCosineSCOCR extends SCOCR {
 	Set<Character> _alphabet;
@@ -134,21 +144,75 @@ public class RasterCosineSCOCR extends SCOCR {
 		Graphics2D g = (Graphics2D) bi.getGraphics();
 		GlyphVector gv = f.createGlyphVector(g.getFontRenderContext(),
 				new char[] { c });
+		Shape outline=gv.getOutline();
 		Rectangle2D r = gv.getVisualBounds();
 
 		double w = r.getWidth();
 		double h = r.getHeight();
 
+		Point2D testPoint = new Point2D.Double();
+		
 		for (int j = 0; j < DEF_HEIGHT; j++) {
 			for (int i = 0; i < DEF_WIDTH; i++) {
-				toRet[i][j] = (gv.getOutline().contains(r.getMinX() + (w * i)
-						/ DEF_WIDTH, r.getMinY() + (h * j) / DEF_HEIGHT)) ? 1
+				testPoint.setLocation(r.getMinX() + (w * i) / DEF_WIDTH, 
+									  r.getMinY() + (h * j) / DEF_HEIGHT);
+				toRet[i][j] = outline.contains(testPoint) ? 1
 						: 0;
 			}
 		}
+		
+		
+		        
 		blurbmap(toRet);
 		return w / h;
 	}
+	
+	
+	private void saveModel(File dir){
+		if(!dir.exists())dir.mkdirs();
+		if(!dir.isDirectory()) throw new IllegalStateException("Must specify a directory to save model");
+		
+		for(Character ch : charVal.keySet()){
+			AtomicInteger ai = new AtomicInteger(0);
+			double rat=WH_RATIO.get(ch);
+			
+			charVal.get(ch).stream()
+	                        .forEach(data->{
+	                        	int i=ai.getAndIncrement();
+	                        	try{
+	                        		Raster rs=makeRaster(data);
+	                        		 BufferedImage image = new BufferedImage
+	                        		            (DEF_WIDTH, DEF_HEIGHT, BufferedImage.TYPE_BYTE_GRAY);
+	                        		        image.setData (rs);
+	                        		        
+	                        		        String fullpath = dir.getAbsolutePath() + "/" + "glyph." + ((int)ch.charValue()) +"." +  i + "." + rat + ".png";
+	                        		        File file = new File(fullpath);
+	                        		        ImageIO.write (image, "png", file);
+	                        		}catch(Exception e){
+	                        			e.printStackTrace();
+	                        		}
+	                        });
+		}
+		
+	}
+	
+	private static Raster makeRaster(int[][] data){
+		int width=data.length;
+		int height=data[0].length;
+		int scanline=1*width;
+		SampleModel sampleModel = new MultiPixelPackedSampleModel(DataBuffer.TYPE_BYTE, width, height, 8, scanline, 0);
+		WritableRaster raster =
+		            Raster.createWritableRaster (sampleModel, null);
+		        for (int y = 0; y < height; ++y) {
+		            for (int x = 0; x < width; ++x) {
+		                // the default IndexColorModel is 0 for black and 1 white
+		                raster.setSample
+		                    (x, y, 0, data[x][y]*8);
+		            }
+		        }
+		        return raster;
+	}
+	
 
 	private void makeAlphabetMaps() {
 		for (Font f : FONT_LIST) {
@@ -164,7 +228,11 @@ public class RasterCosineSCOCR extends SCOCR {
 				bmap.add(charMat);
 			}
 		}
+		//saveModel(new File("tmp1"));
 	}
+	
+	
+	
 
 	@Override
 	public void setAlphabet(Set<Character> charSet) {
