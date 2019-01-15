@@ -135,6 +135,14 @@ public class StructureImageExtractor {
 	}).get();
 	
 	private BranchNode interpretOCRStringAsAtom(String s, boolean tokenOnly){
+		if(!tokenOnly && s.equalsIgnoreCase("CO2H")){
+			System.out.println("Found carboxy");
+			BranchNode bn = new BranchNode("C");
+			bn.addChild(new BranchNode("O").setOrderToParent(1));
+			bn.addChild(new BranchNode("O").setOrderToParent(2));
+			return bn;
+		}
+		
 		if(accept.contains(s)){
 			return new BranchNode(s);
 		}else if(accept.contains(s.toUpperCase())){
@@ -166,6 +174,7 @@ public class StructureImageExtractor {
 		if(tokenOnly){
 			return null;
 		}
+		
 		
 		//start breaking up
 		if(s.length()>1){
@@ -200,11 +209,20 @@ public class StructureImageExtractor {
 		boolean pseudo=false;
 		boolean isRepeat=false;
 		int rep=0;
+		int orderToParent=1;
 		
 		List<BranchNode> children = new ArrayList<BranchNode>();
 		
 		Point2D suggestedPoint = new Point2D.Double(0, 0);
 		
+		public int getOrderToParent(){
+			return this.orderToParent;
+		}
+		
+		public BranchNode setOrderToParent(int o){
+			this.orderToParent=o;
+			return this;
+		}
 		
 		public BranchNode generateCoordinates(){
 			suggestedPoint = new Point2D.Double(0, 0);
@@ -675,7 +693,7 @@ public class StructureImageExtractor {
         
         System.out.println("Nodes not in shapes:"+ unmatchedNodes.size());
         
-        List<Point2D> vertices=lines.stream().flatMap(l->Stream.of(l.getP1(),l.getP2())).collect(Collectors.toList());
+        //List<Point2D> vertices=lines.stream().flatMap(l->Stream.of(l.getP1(),l.getP2())).collect(Collectors.toList());
         List<Point2D> verticesJ=linesJoined.stream().flatMap(l->Stream.of(l.getP1(),l.getP2())).collect(Collectors.toList());
         
         
@@ -703,11 +721,9 @@ public class StructureImageExtractor {
         		if(tooSmallBond){
         			//continue
         		}else{
-        			System.out.println("Skip");
         			return;
         		}
         	}
-        	System.out.println("Keep");
         	
         	
         	
@@ -749,8 +765,9 @@ public class StructureImageExtractor {
             	//cpt=GeomUtil.findCenterOfVertices(Arrays.asList(GeomUtil.vertices(nshape)));
             	cpt=GeomUtil.findCenterOfShape(nshape);
         	}
-        	polygons.add(nshape);
+        	
         	if(keep){
+        		
         		Bitmap nmap=bitmap.crop(nshape);
                 Bitmap nthinmap=thin.crop(nshape);
                 if(nmap!=null && nthinmap!=null){
@@ -958,6 +975,13 @@ public class StructureImageExtractor {
         });
         
         
+        ctab.makeMissingBondsToNeighbors(bitmap,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MAX_TOLERANCE_FOR_DASH_BONDS,likelyOCR,OCR_TO_BOND_MAX_DISTANCE, (t)->{
+        	//System.out.println("Tol found for add:" + t.k());
+        	if(t.k()>MAX_TOLERANCE_FOR_SINGLE_BONDS){
+        		t.v().setDashed(true);
+        	}
+        });
+        
         //final cleanup
         {
         	ctab.getDashLikeScoreForAllEdges(bitmap)
@@ -998,16 +1022,18 @@ public class StructureImageExtractor {
         				
         				Map<BranchNode,Node> parentNodes = new HashMap<BranchNode,Node>();
         				
+        				parentNodes.put(actual, pnode);
         				
         				actual.forEachBranchNode((parN,curN)->{
+        					 if(parN==null) return;
         					 Node mpnode=pnode;
         					 if(parN!=null){
         						 mpnode=parentNodes.get(parN);
         					 }
         					
         					 Node n= ctab.addNode(curN.suggestedPoint)
-	        					     .setSymbol(curN.getSymbol());
-        					 ctab.addEdge(mpnode.getIndex(), n.getIndex(), 1);
+	        					         .setSymbol(curN.getSymbol());
+        					 ctab.addEdge(mpnode.getIndex(), n.getIndex(), curN.getOrderToParent());
         					 parentNodes.put(curN, n);
         				});
         				

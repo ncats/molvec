@@ -120,7 +120,7 @@ public class MoleculeTest {
 		StructureImageExtractor sie = new StructureImageExtractor();
 		sie.load(f);
 		
-		Chemical cReal=ChemicalBuilder.createFromSmiles("ClC(Cl)(Cl)Cc1nc(CC(Cl)(Cl)Cl)nc(n1)-c2ccc3OCOc3c2").build();
+		Chemical cReal=ChemicalBuilder.createFromSmiles("ClC(Cl)(Cl)c1nc(nc(n1)C(Cl)(Cl)Cl)-c2ccc3OCOc3c2").build();
 		
 		
 		Chemical c=sie.getChemical();
@@ -134,7 +134,7 @@ public class MoleculeTest {
 		StructureImageExtractor sie = new StructureImageExtractor();
 		sie.load(f);
 		
-		Chemical cReal=ChemicalBuilder.createFromSmiles("FC(F)(F)CC1(N=N1)c2ccc(CN3C(=O)C=CC3=O)cc2").build();
+		Chemical cReal=ChemicalBuilder.createFromSmiles("FC(F)(F)C1(N=N1)c2ccc(CN3C(=O)C=CC3=O)cc2").build();
 		
 		
 		Chemical c=sie.getChemical();
