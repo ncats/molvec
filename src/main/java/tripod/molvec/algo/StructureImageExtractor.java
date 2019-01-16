@@ -395,6 +395,7 @@ public class StructureImageExtractor {
 	        });
 	        toRemove.forEach(n->ctab.removeNodeAndEdges(n));
 	        ctab.removeOrphanNodes();
+	        
 	     	        
 	        double avgBondLength=ctab.getAverageBondLength();
 	        maxBondLength[0]=avgBondLength*MAX_BOND_TO_AVG_BOND_RATIO_TO_KEEP;
@@ -441,6 +442,7 @@ public class StructureImageExtractor {
 				          .average()
 				          .orElse(0);
 
+        
         //This is probably where we try to add some missed OCR based on the nodes
         
         //1. Find all nodes that aren't in likely OCR shapes
@@ -594,8 +596,30 @@ public class StructureImageExtractor {
         	
         });
        
+        
+        
         GeomUtil.mergeOverlappingShapes(toAddAllOCR)
                 .forEach(nshape->{
+                	boolean sigOverlap = 
+                	likelyOCR.stream()
+								                    .map(s->Tuple.of(s,GeomUtil.getIntersectionShape(nshape, s)))
+								                    .filter(os->os.v().isPresent())
+								                    .peek(t->{
+								                    	System.out.println("Overlap:" + ocrAttmept.get(t.k()).stream().findFirst().get().k());
+								                    })
+								                    .map(Tuple.vmap(os->os.get()))
+								                    .map(Tuple.vmap(s->GeomUtil.area(s)))
+								                    .map(Tuple.kmap(s->GeomUtil.area(s)))
+								                    .mapToDouble(t->t.v()/t.k())
+								                    .peek(area->System.out.println(area))
+								                    .filter(areaFraction->areaFraction>0.5)
+								                    .findAny()
+								                    .isPresent();
+                	
+                	if(sigOverlap){
+                		System.out.println("Sig overlap");
+                		return;
+                	}
                 	//if(ctab.getNodesInsideShape(nshape, 0).isEmpty())return;
                 	Bitmap nmap=bitmap.crop(nshape);
                 	Bitmap nthinmap=thin.crop(nshape);
@@ -748,12 +772,15 @@ public class StructureImageExtractor {
         });
         
         
+        
+        
         ctab.makeMissingBondsToNeighbors(bitmap,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MAX_TOLERANCE_FOR_SINGLE_BONDS,likelyOCR,OCR_TO_BOND_MAX_DISTANCE, (t)->{
         	System.out.println("Tol found for add:" + t.k());
         	if(t.k()>MAX_TOLERANCE_FOR_SINGLE_BONDS){
         		t.v().setDashed(true);
         	}
         });
+        
         
         //final cleanup
         {
@@ -779,6 +806,7 @@ public class StructureImageExtractor {
         	String sym=bestGuessOCR.get(s);
         	BranchNode actual=BranchNode.interpretOCRStringAsAtom(sym);
         	if(actual!=null && actual.isRealNode()){
+        		System.out.println(actual.toString());
         		List<Node> nlist=ctab.setNodeToSymbol(s, actual.getSymbol());
         		
         		if(nlist.size()==1){

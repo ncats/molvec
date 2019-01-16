@@ -582,6 +582,16 @@ public class GeomUtil {
         return closest;
     }
     
+    public static List<Point2D> intersectingPoints(List<Line2D> l1s, List<Line2D> l2s){
+    	return l1s.stream()
+    			  .flatMap(l->l2s.stream().map(l2->segmentIntersection(l2,l)).filter(ip->ip.isPresent()))
+    			  .map(op->op.get())
+    			  .collect(Collectors.toList());
+    }
+    public static List<Point2D> intersectingPoints(Shape l1s, Shape l2s){
+    	return intersectingPoints(Arrays.asList(lines(l1s)),Arrays.asList(lines(l2s)));
+    }
+    
     
     public static double distanceTo(Shape s, Point2D pt){
     	if(s.contains(pt)){
@@ -1339,6 +1349,71 @@ public class GeomUtil {
 		       .max(Comparator.naturalOrder())
 		       .map(t->t.k());
 		       
+	}
+	
+	public static Optional<Shape> getIntersectionShape(Shape s1, Shape s2){
+		List<Point2D> pointsInside1 = Arrays.stream(vertices(s1))
+				                            .filter(p->s2.contains(p))
+				                            .collect(Collectors.toList());
+		List<Point2D> pointsInside2 = Arrays.stream(vertices(s2))
+                .filter(p->s1.contains(p))
+                .collect(Collectors.toList());
+		
+		List<Point2D> pp=intersectingPoints(s1,s2);
+		
+		List<Point2D> allPoints = new ArrayList<Point2D>();
+		allPoints.addAll(pointsInside1);
+		allPoints.addAll(pointsInside2);
+		allPoints.addAll(pp);
+		
+		if(allPoints.isEmpty() || allPoints.size()<3)return Optional.empty();
+		return Optional.ofNullable(convexHull(allPoints.toArray(new Point2D[0])));
+	}
+//	
+//	public static Shape[] splitInHalf(Shape s){
+//		Point2D[] points = vertices(s); // assumes it always gives in CCW or CW order
+//		if(points.length==3)throw new IllegalStateException("Can't split a triangle in two");
+//		
+//		int smallerShapeSize=points.length/2;
+//		int biggerShapeSize= points.length-smallerShapeSize;
+//		Point2D[] smallerv=Arrays.copyOfRange(points, 0, smallerShapeSize+1);
+//		Point2D[] biggervt=Arrays.copyOfRange(points, smallerShapeSize,points.length);
+//		Point2D[] biggerv= Stream.concat(Arrays.stream(biggervt),
+//				      					 Stream.of(points[0]))
+//				                 .toArray(i->new Point2D[i]);
+//		
+//		
+//	
+//		Shape[] nshapes = new Shape[2];
+//		
+//		nshapes[0] = convexHull(smallerv);
+//		nshapes[1] = convexHull(biggerv);
+//		
+//		
+//		return nshapes;
+//		
+//		
+//	}
+	
+	
+	public static double area(Shape s){
+		return poorMansArea(s);
+	}
+	
+	public static double poorMansArea(Shape s){
+		Rectangle2D r = s.getBounds2D();
+		int hits=0;
+		int tot=10000;
+		double wid=r.getWidth();
+		double hi=r.getHeight();
+		double tx;
+		double ty;
+		for(int i=0;i<tot;i++){
+			tx=r.getMinX()+r.getWidth()*Math.random();
+			ty=r.getMinY()+r.getHeight()*Math.random();
+			if(s.contains(tx, ty))hits++;
+		}
+		return wid*hi*(hits)/(double)tot;
 	}
 	
     

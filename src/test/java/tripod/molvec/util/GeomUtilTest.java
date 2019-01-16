@@ -2,13 +2,13 @@ package tripod.molvec.util;
 
 import static org.junit.Assert.assertEquals;
 
+import java.awt.Shape;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -257,10 +257,58 @@ public class GeomUtilTest {
     	        .map(t->t.k())
     	        .collect(Collectors.toList());
     	
+    	
     	assertEquals(ilist1,ilistg.get(0));
     	assertEquals(ilist2,ilistg.get(1));
     	assertEquals(ilist3,ilistg.get(2));
     	
     	
     }
+    
+    @Test
+    public void testIntersectingShape(){
+    	Shape s = GeomUtil.convexHull(new Point2D.Double(0, 0),new Point2D.Double(1, 0),new Point2D.Double(0, 1), new Point2D.Double(1,1));
+    	
+    	AffineTransform at = new AffineTransform();
+    	at.scale(10, 10);
+    	
+    	Shape rs=at.createTransformedShape(s);
+    	at = new AffineTransform();
+    	at.translate(5, 0);
+    	Shape ns = at.createTransformedShape(rs);
+    	List<Point2D> ips=GeomUtil.intersectingPoints(rs, ns);
+    	System.out.println(ips);
+    	Shape is=GeomUtil.getIntersectionShape(rs, ns).get();
+    	System.out.println(GeomUtil.area(is));
+    	
+    	
+    	System.out.println(Arrays.toString(GeomUtil.vertices(is)));
+    	
+    }
+    
+//    @Test
+//    public void testAreaForShapeWorks(){
+//    	Shape s = GeomUtil.convexHull(new Point2D.Double(0, 0),new Point2D.Double(1, 0),new Point2D.Double(0, 1));
+//    	System.out.println("Area:");
+//    	System.out.println(GeomUtil.poorMansArea(s));
+//    }
+//    
+//
+//    @Test
+//    public void testSplitInHalf(){
+//    	int segs=6;
+//    	double size=1000;
+//    	Point2D[] circle = IntStream.range(0,segs)
+//    			                    .mapToDouble(i->2*Math.PI*(((double)i)/((double)segs)))
+//    			                    .mapToObj(t->new Point2D.Double(size*Math.cos(t),size*Math.sin(t)))
+//    			                    .toArray(i->new Point2D[i]);
+//    			                    
+//    	System.out.println(Arrays.toString(circle));
+//    	Shape s = GeomUtil.convexHull(circle);
+//    	System.out.println(Arrays.toString(GeomUtil.vertices(s)));
+//    	Shape[] nshapes = GeomUtil.splitInHalf(s);
+//    	
+//    	System.out.println(Arrays.toString(GeomUtil.vertices(nshapes[0])));
+//    	System.out.println(Arrays.toString(GeomUtil.vertices(nshapes[1])));
+//    }
 }
