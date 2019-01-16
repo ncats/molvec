@@ -544,7 +544,15 @@ public class Bitmap implements Serializable, TiffTags {
         }
 
         //return new AdaptiveThreshold ().binarize(raster);
-        return new SigmaThreshold ().binarize(raster);
+        Bitmap bm= new SigmaThreshold ().binarize(raster);
+        
+        try{
+        ImageIO.write(bm.createBufferedImage(), "png", new File("threshold.png"));
+        }catch(Exception e){
+        	e.printStackTrace();
+        }
+        return bm;
+        
     }
 
 

@@ -100,6 +100,7 @@ public class ImageUtil implements TiffTags {
                     +" photometric="+photometric+" rows="+rows);
 
 	RenderedImage decodedImage = decoder.decodeAsRenderedImage();
+	ImageIO.write(decodedImage, "png", new File("tmp.png"));
 	Raster raster = decodedImage.getData();
 	/*
 	if (raster.getNumBands() > 1) {
@@ -118,7 +119,9 @@ public class ImageUtil implements TiffTags {
         */
 
         Grayscale grayscale = new Grayscale (raster);
-        return grayscale.getImage();
+        BufferedImage big=grayscale.getImage();
+        ImageIO.write(decodedImage, "png", new File("tmp-gray.png"));    
+        return big;
     }
 
     public static BufferedImage decode (BufferedImage bi) {    	

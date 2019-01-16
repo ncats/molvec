@@ -60,6 +60,7 @@ public class MoleculeTest {
 	
 	@Test
 	public void complexStructure1Test() throws Exception {
+		System.out.println("Complex1");
 		File f=getFile("moleculeTest/complex.png");
 		StructureImageExtractor sie = new StructureImageExtractor();
 		sie.load(f);
