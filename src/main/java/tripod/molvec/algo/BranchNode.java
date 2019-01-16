@@ -33,6 +33,8 @@ class BranchNode{
 	boolean isRepeat=false;
 	int rep=0;
 	int orderToParent=1;
+	private int thetaOffset=0;
+	
 	
 	private BranchNode childForCombine=null;
 	
@@ -45,6 +47,11 @@ class BranchNode{
 	
 	public int getOrderToParent(){
 		return this.orderToParent;
+	}
+	
+	public BranchNode thetaOffset(int o){
+		this.thetaOffset=o;
+		return this;
 	}
 	
 	public BranchNode setOrderToParent(int o){
@@ -63,7 +70,8 @@ class BranchNode{
 			child.generateCoordinates();
 			AffineTransform at = new AffineTransform();
 			
-			double ntheta = i<thetas.length?thetas[i]:0;
+			int ti = i+thetaOffset;
+			double ntheta = ti<thetas.length?thetas[ti]:0;
 			at.rotate(ntheta);
 			at.translate(1, 0);
 			
@@ -91,6 +99,13 @@ class BranchNode{
 			return "'" + this.rep + "'";
 		}
 		return this.symbol;
+	}
+	
+	public boolean shouldComineLinearly(){
+		if(this.getSymbol().equals("C")){
+			return true;
+		}
+		return false;
 	}
 	
 	public boolean hasChildren(){
@@ -148,9 +163,18 @@ class BranchNode{
 		}
 		if(bn.isRepeatNode()){
 			int rep=bn.getRepeat();
-			nToAddTo.setPseudoNode(true);
-			for(int i=0;i<rep;i++){
-				nToAddTo.addChild(new BranchNode(nToAddTo.symbol));
+			if(this.shouldComineLinearly()){
+				BranchNode parent=nToAddTo;
+				for(int i=1;i<rep;i++){
+					BranchNode bnew=new BranchNode(nToAddTo.symbol).thetaOffset(i%2);
+					parent.addChild(bnew);
+					parent=bnew;
+				}
+			}else{
+				nToAddTo.setPseudoNode(true);
+				for(int i=0;i<rep;i++){
+					nToAddTo.addChild(new BranchNode(nToAddTo.symbol));
+				}
 			}
 						
 			if(bn.hasChildren()){

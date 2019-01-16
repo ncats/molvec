@@ -1292,6 +1292,7 @@ public class GeomUtil {
 		boolean p1Inside = s.contains(l.getP1());
 		boolean p2Inside = s.contains(l.getP2());
 		
+		//empty
 		if(p1Inside && p2Inside)return new ArrayList<Line2D>();
 		
 		
@@ -1312,7 +1313,10 @@ public class GeomUtil {
 			return Arrays.asList(ln);
 		}else{
 			if(ip2==null){
-				throw new IllegalStateException("Line should not have both points inside convux hull and have no intersections. Something is wrong.");
+				//Could be tangent to one point actually, in this case just return whole line
+				return Arrays.asList(l);
+				
+				//throw new IllegalStateException("Line should not have both points inside convux hull and have no intersections. Something is wrong.");
 			}else{
 				double p1Distance1 = ip1.distance(l.getP1());
 				double p1Distance2 = ip2.distance(l.getP1());

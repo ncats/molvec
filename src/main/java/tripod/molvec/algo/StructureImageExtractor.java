@@ -721,6 +721,7 @@ public class StructureImageExtractor {
         
         List<Shape> ocrMeaningful=bestGuessOCR.keySet()
 				   .stream()
+				   .peek(t->System.out.println(bestGuessOCR.get(t)))
 				   .filter(s->BranchNode.interpretOCRStringAsAtom(bestGuessOCR.get(s))!=null)
 				   .collect(Collectors.toList());
         
