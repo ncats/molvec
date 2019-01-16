@@ -496,12 +496,22 @@ public class GeomUtil {
     
     public static Optional<Point2D> getIntersection(Shape s1, Line2D l1){
     	
+    	return getAllIntersections(s1,l1).stream().findFirst();
+    }
+    
+    public static List<Point2D> getAllIntersections(Shape s1, Line2D l1){
     	
-    	return Arrays.stream(lines(s1))
-    	      .map(l->segmentIntersection(l,l1))
-    	      .filter(p->p.isPresent())
-    	      .findFirst()
-    	      .map(p->p.get());
+    	List<Point2D> plist= Arrays.stream(lines(s1))
+						    	      .map(l->segmentIntersection(l,l1))
+						    	      .filter(p->p.isPresent())
+						    	      .map(p->p.get())
+						    	      .collect(Collectors.toList());
+    	
+    	return GeomUtil.groupPointsCloserThan(plist, ZERO_DISTANCE_TOLERANCE)
+    	        .stream()
+    	        .map(pl->pl.get(0))
+    	        .collect(Collectors.toList());
+    	
     }
 
     /**
@@ -1265,6 +1275,70 @@ public class GeomUtil {
 			         .map(Tuple.vmap(b->rejection(lvec,b)))
 			         .collect(Collectors.toList());
 		
+	}
+	
+	public static List<Line2D> getLinesNotInside(Line2D l, Shape s){
+		
+		boolean p1Inside = s.contains(l.getP1());
+		boolean p2Inside = s.contains(l.getP2());
+		
+		if(p1Inside && p2Inside)return new ArrayList<Line2D>();
+		
+		
+		
+		List<Point2D> ips=GeomUtil.getAllIntersections(s, l);
+		if(ips.isEmpty())return Arrays.asList(l);
+		if(ips.size()>2)throw new IllegalStateException("Line should not intersect with convex hull more than twice, maybe the shape isn't a convux hull?");
+		
+		
+		Point2D ip1 = ips.get(0);
+		Point2D ip2 = (ips.size()==2)?ips.get(1):null;
+		
+		if(p1Inside && ip2==null){			
+			Line2D ln = new Line2D.Double(ip1,l.getP2());
+			return Arrays.asList(ln);
+		}else if(p2Inside && ip2==null){
+			Line2D ln = new Line2D.Double(l.getP1(),ip1);
+			return Arrays.asList(ln);
+		}else{
+			if(ip2==null){
+				throw new IllegalStateException("Line should not have both points inside convux hull and have no intersections. Something is wrong.");
+			}else{
+				double p1Distance1 = ip1.distance(l.getP1());
+				double p1Distance2 = ip2.distance(l.getP1());
+				
+				Point2D kp1 = l.getP1();
+				Point2D kp2 = l.getP2();
+				
+				if(p1Distance1>p1Distance2){
+					kp1 = l.getP2();
+					kp2 = l.getP1();
+				}
+				return Arrays.asList(new Line2D.Double(kp1,ip1),new Line2D.Double(kp2,ip2));
+			}
+		}
+	}
+	
+	public static List<Line2D> getLinesNotInside(Line2D l, List<Shape> shapes){
+		List<Line2D> start = Arrays.asList(l);
+		
+		for(Shape s: shapes){
+			start=start.stream()
+					   .flatMap(ls->getLinesNotInside(ls,s).stream())
+					   .collect(Collectors.toList());
+		}
+		return start;
+	}
+	
+	public static Optional<Line2D> getLongestLineNotInside(Line2D l, List<Shape> shapes){
+		//if(true)return Optional.of(l);
+		
+		return getLinesNotInside(l,shapes)
+		       .stream()
+		       .map(l1->Tuple.of(l1,length(l1)).withVComparator())
+		       .max(Comparator.naturalOrder())
+		       .map(t->t.k());
+		       
 	}
 	
     

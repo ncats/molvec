@@ -674,16 +674,20 @@ public class ConnectionTable{
 		return this.edges;
 	}
 	
-	public List<Tuple<Edge,Double>> getTolerancesForAllEdges(Bitmap bm){
+	public List<Tuple<Edge,Double>> getTolerancesForAllEdges(Bitmap bm,List<Shape> shapes){
 		return this.edges.stream()
-		          .map(e->Tuple.of(e,bm.getLineLikeScore(e.getLine())))
+		          .map(e->Tuple.of(e,getToleranceForEdge(e,bm,shapes)))
 		          .collect(Collectors.toList());
 	}
-	public double getToleranceForEdge(Edge e, Bitmap bm){
-		return bm.getLineLikeScore(e.getLine());
+	
+	
+	public double getToleranceForEdge(Edge e, Bitmap bm, List<Shape> shapes){
+		return GeomUtil.getLongestLineNotInside(e.getLine(), shapes)
+		        	   .map(ll->bm.getLineLikeScore(e.getLine()))
+		               .orElse(0.0);
 	}
 	
-	public double getAverageToleranceForNode(Node n, Bitmap bm){
+	public double getAverageToleranceForNode(Node n, Bitmap bm,List<Shape> shapes){
 		return n.getEdges().stream()
 		          .map(e->Tuple.of(e,bm.getLineLikeScore(e.getLine())))
 		          .mapToDouble(t->t.v())
@@ -691,7 +695,7 @@ public class ConnectionTable{
 		          .orElse(0);
 	}
 	
-	public Tuple<Edge,Double> getWorstToleranceForNode(Node n, Bitmap bm){
+	public Tuple<Edge,Double> getWorstToleranceForNode(Node n, Bitmap bm,List<Shape> shapes){
 		return n.getEdges().stream()
 		          .map(e->Tuple.of(e,bm.getLineLikeScore(e.getLine())))
 		          .map(t->t.withVComparator())

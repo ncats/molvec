@@ -200,7 +200,7 @@ public class StructureImageExtractor {
 							              .mapToDouble(p->p[0].distance(p[1]))
 							              .average()
 							              .orElse(0);
-        System.out.println("avg ocr:" + averageLargestOCR);
+        //System.out.println("avg ocr:" + averageLargestOCR);
         
                 		 
         likelyOCRAll.retainAll(likelyOCRAll.stream()
@@ -308,13 +308,13 @@ public class StructureImageExtractor {
 	        		       .mergeNodesCloserThan(MIN_DISTANCE_BEFORE_MERGING_NODES);
 	        
 	        
-	        ctab.getTolerancesForAllEdges(bitmap)
-	    	    .forEach(t->{
-	    	    	//System.out.println("Score for edge:" + t.v());
-	    	    	if(t.v()>MAX_TOLERANCE_FOR_DASH_BONDS && t.k().getOrder()==1){	    	    		
-	    	    		ctab.removeEdge(t.k());
-	    	    	}
-	    	    });
+//	        ctab.getTolerancesForAllEdges(bitmap)
+//	    	    .forEach(t->{
+//	    	    	//System.out.println("Score for edge:" + t.v());
+//	    	    	if(t.v()>MAX_TOLERANCE_FOR_DASH_BONDS && t.k().getOrder()==1){	    	    		
+//	    	    		ctab.removeEdge(t.k());
+//	    	    	}
+//	    	    });
 	        
 	        ctabRaw=ctab.cloneTab();
 	        
@@ -381,7 +381,6 @@ public class StructureImageExtractor {
 		        		double sumd=distance1+distance2;
 		        		double ddelta=Math.abs(sumd-e.getBondDistance());
 		        		if(ddelta<MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC){
-		        			System.out.println("Should remove this one");
 		        			toRemove.add(cn);
 		        		}
 		        		alreadyExists=true;
@@ -432,12 +431,11 @@ public class StructureImageExtractor {
         
         double shortestRealBondRatio = .3;
         ctab.fixBondOrders(likelyOCR,shortestRealBondRatio, e->{
-        	System.out.println("Fixing bond order");
         	e.setOrder(1);
         });
         
         
-        double avgTol=ctab.getTolerancesForAllEdges(bitmap)
+        double avgTol=ctab.getTolerancesForAllEdges(bitmap,likelyOCR)
 				          .stream()
 				          .mapToDouble(t->t.v())
 				          .average()
@@ -466,7 +464,6 @@ public class StructureImageExtractor {
         
         
         
-        System.out.println("Nodes not in shapes:"+ unmatchedNodes.size());
         
         //List<Point2D> vertices=lines.stream().flatMap(l->Stream.of(l.getP1(),l.getP2())).collect(Collectors.toList());
         List<Point2D> verticesJ=linesJoined.stream().flatMap(l->Stream.of(l.getP1(),l.getP2())).collect(Collectors.toList());
@@ -476,7 +473,7 @@ public class StructureImageExtractor {
         
         
         unmatchedNodes.forEach(n->{
-        	Tuple<Edge,Double> worstEdge=ctab.getWorstToleranceForNode(n,bitmap);
+        	Tuple<Edge,Double> worstEdge=ctab.getWorstToleranceForNode(n,bitmap,likelyOCR);
         	
 //        	System.out.println("Avg tol:" + avgTol);
 //        	System.out.println("Worst tol here:" + worstEdge.v());
@@ -581,8 +578,8 @@ public class StructureImageExtractor {
 		                polygons.add(nshape);
 		                if(potential.stream().findFirst().filter(e->e.v().doubleValue()>OCRcutoffCosineRescue).isPresent()){
 		                	toAddAllOCR.add(nshape);
-		                	System.out.println("Found another pot:" +potential.get(0).k());
-		                	System.out.println("Found another pot score:" +potential.get(0).v());
+//		                	System.out.println("Found another pot:" +potential.get(0).k());
+//		                	System.out.println("Found another pot score:" +potential.get(0).v());
 //		                	
 //			                if(OCRIsLikely(potential.get(0))){
 //			                	likelyOCR.add(nshape);
@@ -616,8 +613,6 @@ public class StructureImageExtractor {
 		                polygons.add(nshape);
 		                if(potential.stream().findFirst().filter(e->e.v().doubleValue()>OCRcutoffCosineRescue).isPresent()){
 		                	//toAddAllOCR.add(nshape);
-		                	System.out.println("Found another:" +potential.get(0).k());
-		                	System.out.println("Found another:" +potential.get(0).v());
 //		                	
 			                if(OCRIsLikely(potential.get(0))){
 			                	likelyOCR.add(nshape);
@@ -639,11 +634,9 @@ public class StructureImageExtractor {
         	double cutoff=ctab.getAverageBondLength()*MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING;
         	String v1=(ocrAttmept.get(shapes[0]).get(0).k() + "");
         	String v2=(ocrAttmept.get(shapes[1]).get(0).k() + "");
-        	System.out.println(v1 + " ?-> " + v2 + " D:" + dist + " <? " + cutoff);
         	if(dist>cutoff){
         		return false;
         	}
-        	System.out.println("Keep");
         	
         	Point2D cs1=GeomUtil.findCenterOfShape(shapes[0]);
         	Point2D cs2=GeomUtil.findCenterOfShape(shapes[1]);
@@ -655,7 +648,6 @@ public class StructureImageExtractor {
         	if(cosTheta>cosThetaOCRShape){
         		return true;
         	}
-        	System.out.println("Angle too big " + cosTheta + "<" + cosThetaOCRShape);
         	return false;
         });
         
@@ -672,10 +664,7 @@ public class StructureImageExtractor {
 	        			.map(t->t.k())
 	        			.collect(Collectors.toList());
 	        	
-	        	String st=sorted.stream()
-	        			.map(s->(ocrAttmept.get(s).get(0).k() + ""))
-	        			.collect(Collectors.joining());
-	        	System.out.println("OKay ... " + st);
+	        	
 	        	
 	        	String soFar="";
 	        	Shape making=null;
@@ -684,7 +673,6 @@ public class StructureImageExtractor {
 	        		String v=(ocrAttmept.get(s).get(0).k() + "");
 	        		if(v.equals("-")){
 	        			if(making!=null){
-	        				System.out.println("Found:" + soFar);
 	        				bestGuessOCR.put(making, soFar);
 	        			}
 	        			soFar="";
@@ -700,7 +688,6 @@ public class StructureImageExtractor {
 	        	}
 	        	
 	        	if(making!=null){
-	        		System.out.println("Found:" + soFar);
     				bestGuessOCR.put(making, soFar);
     			}
 	        	
@@ -773,12 +760,11 @@ public class StructureImageExtractor {
         	ctab.getDashLikeScoreForAllEdges(bitmap)
         	    .forEach(t->{
         	    	if(t.v()<MIN_ST_DEV_FOR_KEEPING_DASHED_LINES && t.k().getDashed()){
-        	    		System.out.println("Dash score:" + t.v());
         	    		t.k().setDashed(false);
         	    		
         	    		//Maybe it shouldn't even be here?
         	    		//Try to remove it
-        	    		double tol=ctab.getToleranceForEdge(t.k(),bitmap);
+        	    		double tol=ctab.getToleranceForEdge(t.k(),bitmap,likelyOCR);
         	    		if(tol>MAX_TOLERANCE_FOR_DASH_BONDS){
         	    			ctab.removeEdge(t.k());
         	    		}

@@ -56,14 +56,14 @@ class BranchNode{
 		suggestedPoint = new Point2D.Double(0, 0);
 		int totalChildren = children.size();
 		
-		double[] thetas=new double[]{-Math.PI/3,Math.PI/3,0};
+		double[] thetas=new double[]{-Math.PI/3,Math.PI/3,0,-2*Math.PI/3,2*Math.PI/3};
 		
 		for(int i=0;i<totalChildren;i++){
 			BranchNode child = children.get(i);
 			child.generateCoordinates();
 			AffineTransform at = new AffineTransform();
 			
-			double ntheta = thetas[i];
+			double ntheta = i<thetas.length?thetas[i]:0;
 			at.rotate(ntheta);
 			at.translate(1, 0);
 			
