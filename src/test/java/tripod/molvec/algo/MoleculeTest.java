@@ -182,6 +182,21 @@ public class MoleculeTest {
 		String form=c.getFormula();
 		assertEquals(cReal.getFormula(),form);
 	}
+	
+	@Test
+	public void nCarbonChainTest() throws Exception {
+		File f=getFile("moleculeTest/carbonChainShorthand.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("CCCc1ccc(CCC)c2cc3c(-c4ccccc4)c5cc6c(CCC)ccc(CCC)c6cc5c(-c7ccccc7)c3cc12").build();
+		
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+		
+	}
 	//
 	
 }
