@@ -277,34 +277,98 @@ public class GeomUtilTest {
     	at = new AffineTransform();
     	at.translate(5, 0);
     	Shape ns = at.createTransformedShape(rs);
-    	List<Point2D> ips=GeomUtil.intersectingPoints(rs, ns);
+    	
     	
     	Shape is=GeomUtil.getIntersectionShape(rs, ns).get();
     	assertEquals(50,0, area(is));
     	
     	
-    	//System.out.println(Arrays.toString(GeomUtil.vertices(is)));
     	
     }
     @Test
     public void traingleAreaTest(){
     	double expected= 0.5;
-    	Shape s= convexHull(new Point2D[]{new Point2D.Double(2,1),new Point2D.Double(1,0),new Point2D.Double(2,0)});
+    	Shape si= convexHull(new Point2D[]{new Point2D.Double(2,1),new Point2D.Double(1,0),new Point2D.Double(2,0)});
     	int nrot=100;
-    	for(int j=0;j<nrot;j++){
-    		AffineTransform atrotate =new AffineTransform();
-    		atrotate.rotate(j*Math.PI/nrot);
-    		Shape rs=atrotate.createTransformedShape(s);
-	    	for(int i=1;i<100;i++){
-		    	AffineTransform at =new AffineTransform();
-		    	at.scale(i, i);
-		    	Shape sn=at.createTransformedShape(rs);
-		    	double area=areaTriangle(sn);
-		    	assertEquals(expected*i*i,area,0.00001);
+    	for(int k=0;k<2;k++){
+    		AffineTransform atflip =new AffineTransform();
+    		int inv=((k%2)==0)?1:-1;
+    		atflip.scale(inv, 1);
+    		
+    		Shape s=atflip.createTransformedShape(si);
+	    	for(int j=0;j<nrot;j++){
+	    		AffineTransform atrotate =new AffineTransform();
+	    		atrotate.rotate(j*Math.PI/nrot);
+	    		Shape rs=atrotate.createTransformedShape(s);
+		    	for(int i=1;i<100;i++){
+			    	AffineTransform at =new AffineTransform();
+			    	at.scale(i, i);
+			    	Shape sn=at.createTransformedShape(rs);
+			    	double area=areaTriangle(sn);
+			    	assertEquals(inv*expected*i*i,area,0.00001);
+		    	}
 	    	}
     	}
-    	
     }
+    
+    @Test
+    public void traingleAreaTest2(){
+    	double expected= 0.5;
+    	Shape si= convexHull(new Point2D[]{new Point2D.Double(2,1),new Point2D.Double(1,0),new Point2D.Double(2,0)});
+    	int nrot=100;
+    	for(int k=0;k<2;k++){
+    		AffineTransform atflip =new AffineTransform();
+    		int inv=((k%2)==0)?1:-1;
+    		atflip.scale(inv, 1);
+    		
+    		Shape s=atflip.createTransformedShape(si);
+	    	for(int j=0;j<nrot;j++){
+	    		AffineTransform atrotate =new AffineTransform();
+	    		atrotate.rotate(j*Math.PI/nrot);
+	    		Shape rs=atrotate.createTransformedShape(s);
+		    	for(int i=1;i<100;i++){
+			    	AffineTransform at =new AffineTransform();
+			    	at.scale(i, i);
+			    	Shape sn=at.createTransformedShape(rs);
+			    	double area=GeomUtil.areaVerticesCW(vertices(sn));
+			    	assertEquals(inv*expected*i*i,area,0.00001);
+		    	}
+	    	}
+    	}
+    }
+    
+    @Test
+    public void rectangleAreaTestWithShear(){
+    	double expected= 1;
+    	Random rshear = new Random(1234l);
+    	Shape si= convexHull(new Point2D[]{new Point2D.Double(2,1),new Point2D.Double(1,1),new Point2D.Double(1,0),new Point2D.Double(2,0)});
+    	int nrot=100;
+    	for(int k=0;k<2;k++){
+    		AffineTransform atflip =new AffineTransform();
+    		int inv=((k%2)==0)?1:-1;
+    		atflip.shear(rshear.nextDouble()*1000, 0);
+    		atflip.scale(inv, 1);
+    		
+    		Shape s=atflip.createTransformedShape(si);
+	    	for(int j=0;j<nrot;j++){
+	    		AffineTransform atrotate =new AffineTransform();
+	    		atrotate.rotate(j*Math.PI/nrot);
+	    		Shape rs=atrotate.createTransformedShape(s);
+		    	for(int i=1;i<100;i++){
+			    	AffineTransform at =new AffineTransform();
+			    	at.scale(i, i);
+			    	Shape sn=at.createTransformedShape(rs);
+			    	double area=GeomUtil.areaVerticesCW(vertices(sn));
+			    	assertEquals(inv*expected*i*i,area,0.00001);
+		    	}
+	    	}
+    	}
+    }
+    
+    
+    
+    
+    
 //    
 //    @Test
 //    public void f(){

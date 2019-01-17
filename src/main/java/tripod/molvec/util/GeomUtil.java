@@ -1451,12 +1451,27 @@ public class GeomUtil {
 		Point2D[] pts=vertices(s);
 		if(pts.length!=3)throw new IllegalStateException("Triangles must have 3 points");
 		return areaTriangle(pts[0],pts[1],pts[2]);
+	}
+	
+	public static double areaVerticesCW(Point2D[] verts){
+		if(verts.length<3)return 0;
+		if(verts.length==3)return areaTriangle(verts[0],verts[1],verts[2]);
+		List<Point2D> oddPoints=new ArrayList<Point2D>();
+		double areaSoFar=0;
+		for(int i=1;i<verts.length;i+=2){
+			Point2D p1=verts[i-1];
+			Point2D p2=verts[i];
+			oddPoints.add(p2);
+			Point2D p3=verts[(i+1)%verts.length];
+			areaSoFar+=areaTriangle(p1,p2,p3);
+		}
+		return areaSoFar + areaVerticesCW(oddPoints.toArray(new Point2D[]{}));
 		
 	}
 	
 	
 	public static double area(Shape s){
-		return poorMansArea(s);
+		return Math.abs(areaVerticesCW(vertices(s)));
 	}
 	
 	public static double poorMansArea(Shape s){
