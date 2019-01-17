@@ -304,9 +304,22 @@ public class MoleculeTest {
 		sie.load(f);
 		
 		Chemical cReal=ChemicalBuilder.createFromSmiles("C=CC(C(c1ccc(OCCN2CCOCC2)cc1)c3ccc(OCCN4CCOCC4)cc3)c5ccccc5").build();
-		//This smiles, which should be the same, doesn't seem to give the same formula. Don't know why
-		//[#6]Cc1c(-[#6])c2cc3nc(nc4nc(cc5nc(cc1n2)c(-[#6])c5C[#6])c(-[#6])c4C[#6])c(-[#6])c3C[#6]
 		
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+		//
+	}
+	
+	//c1c(nn(c1-c2ccccc2)-c3cccc(c3)-n4c5ccc(cc5c6cc(ccc46)-c7ccccc7)-c8ccccc8)-c9ccccc9
+	@Test
+	public void structureWithWeirdAngleBondToOtherOCRAtomTest() throws Exception {
+		File f=getFile("moleculeTest/weirdAngleBetweenNitrogens.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("c1c(nn(c1-c2ccccc2)-c3cccc(c3)-n4c5ccc(cc5c6cc(ccc46)-c7ccccc7)-c8ccccc8)-c9ccccc9").build();
 		
 		Chemical c=sie.getChemical();
 		String form=c.getFormula();

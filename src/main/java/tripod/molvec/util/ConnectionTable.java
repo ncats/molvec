@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
@@ -25,14 +26,13 @@ import java.util.stream.IntStream;
 
 import gov.nih.ncats.chemkit.api.Atom;
 import gov.nih.ncats.chemkit.api.Bond;
-import gov.nih.ncats.chemkit.api.Chemical;
-import gov.nih.ncats.chemkit.api.ChemicalBuilder;
 import gov.nih.ncats.chemkit.api.Bond.BondType;
 import gov.nih.ncats.chemkit.api.Bond.Stereo;
+import gov.nih.ncats.chemkit.api.Chemical;
+import gov.nih.ncats.chemkit.api.ChemicalBuilder;
 import tripod.molvec.Bitmap;
 import tripod.molvec.CachedSupplier;
 import tripod.molvec.algo.Tuple;
-import tripod.molvec.util.ConnectionTable.Edge;
 
 public class ConnectionTable{
 	private List<Node> nodes = new ArrayList<Node>();
@@ -302,7 +302,7 @@ public class ConnectionTable{
 		
 		for(int i=nodes.size()-1;i>=0;i--){
 			Point2D pn = nodes.get(i).point;
-			if(GeomUtil.distanceTo(s,pn)<tol){
+			if(GeomUtil.distanceTo(s,pn)<tol || s.contains(pn)){
 				mnodes.add(nodes.get(i));
 			}
 		}
@@ -643,6 +643,7 @@ public class ConnectionTable{
 			return ConnectionTable.this.nodes.get(n2);
 		}
 		
+		
 		public int getOrder() {
 			
 			return this.order;
@@ -660,6 +661,19 @@ public class ConnectionTable{
 			this.order = order;
 		}
 		
+	}
+	public Optional<Edge> getEdgeBetweenNodes(Node n1, Node n2){
+		List<Edge> edges1=n1.getEdges();
+		List<Edge> edges2=n2.getEdges();
+		
+		return edges1.stream()
+		      .filter(e->edges2.contains(e))
+		      .findFirst();
+		      
+		
+	}
+	public Optional<Edge> getEdgeBetweenNodes(int n1, int n2){
+		return getEdgeBetweenNodes(this.nodes.get(n1),this.nodes.get(n2));
 	}
 	public void draw(Graphics2D g2) {
 		int sx=1;

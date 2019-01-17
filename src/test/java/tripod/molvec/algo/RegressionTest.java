@@ -19,6 +19,8 @@ public class RegressionTest {
 		LARGEST_FRAGMENT_CORRECT,
 		WEIRD_SOURCE,
 		RIGHT_HEVAY_ATOMS,
+		RIGHT_BONDS,
+		LARGEST_FRAGMENT_RIGHT_BONDS,
 		INCORRECT,
 		FOUND_NOTHING,
 		ERROR
@@ -80,6 +82,9 @@ public class RegressionTest {
 				if(smilesReal.contains("|")){
 					return Result.WEIRD_SOURCE;
 				}
+				
+				
+				
 				
 				System.out.println("NO MATCH!");
 				return Result.INCORRECT;

@@ -1079,6 +1079,38 @@ public class StructureImageExtractor {
         	}
         });
         
+        GeomUtil.groupShapesIfClosestPointsMatchCriteria(likelyOCR, (t)->{
+        	Shape[] s=t.k();
+        	Point2D[] pts=t.v();
+        	if(pts[0].distance(pts[1])<ctab.getAverageBondLength()*.8){
+        		System.out.println("Probably connected");
+        		return true;
+        	}
+        	return false;
+        })
+        .stream()
+        .filter(ls->ls.size()>=2)
+        .forEach(ls->{
+        	List<Node> nodes = ls.stream()
+        	  .map(s->ctab.getNodesInsideShape(s, 0))
+        	  .flatMap(nds->nds.stream())
+        	  .distinct()
+        	  .collect(Collectors.toList());
+        	System.out.println("nodes:" + nodes.size());
+        	if(nodes.size()==2){
+        		Node n1=nodes.get(0);
+        		Node n2=nodes.get(1);
+        		boolean already=ctab.getEdgeBetweenNodes(n1, n2).isPresent();
+        		
+        		if(!already){
+        			System.out.println("Gonna make a bond");
+        			ctab.addEdge(nodes.get(0).getIndex(), nodes.get(1).getIndex(), 1);
+        		}
+        	}
+        	          
+        });
+        
+        
         
         //final cleanup
         {
@@ -1086,7 +1118,6 @@ public class StructureImageExtractor {
         	    .forEach(t->{
         	    	if(t.v()<MIN_ST_DEV_FOR_KEEPING_DASHED_LINES && t.k().getDashed()){
         	    		t.k().setDashed(false);
-        	    		
         	    		//Maybe it shouldn't even be here?
         	    		//Try to remove it
         	    		double tol=ctab.getToleranceForEdge(t.k(),bitmap,likelyOCR);
