@@ -341,7 +341,7 @@ public class ConnectionTable{
 		return mergeAllNodesInside(s,tol,n->true,(l)->p);
 	}
 	
-	public ConnectionTable mergeNodesExtendingTo(List<Shape> shapes){
+	public ConnectionTable mergeNodesExtendingTo(List<Shape> shapes,double maxAvgBondRatio){
 		double avg = this.getAverageBondLength();
 		edges.stream()
 		     .filter(e->e.getBondLength()<avg)
@@ -365,7 +365,7 @@ public class ConnectionTable{
 		    			 closest2=s;
 		    		 }
 		    	 }
-		    	 if(minDistp1>avg/2 && minDistp2>avg/2){
+		    	 if(minDistp1>avg*maxAvgBondRatio && minDistp2>avg*maxAvgBondRatio){
 		    		 return;
 		    	 }
 		    	 Node closestNode = this.nodes.get(e.n1);

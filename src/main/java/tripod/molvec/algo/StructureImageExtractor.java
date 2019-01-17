@@ -9,7 +9,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -132,13 +134,18 @@ public class StructureImageExtractor {
     	if(ch.equals("K") || ch.equals("k") || ch.equals("f")){
     		invScore=invScore*3.5; // penalize "K"
     	}
-    	if(ch.equalsIgnoreCase("R")||
+    	if(ch.equals("R")||
     	   ch.equalsIgnoreCase("A")||
     	   ch.equalsIgnoreCase("Z")||
     	   ch.equalsIgnoreCase("-")||
     	   ch.equalsIgnoreCase("m")||
     	   ch.equals("n")){
     		invScore=invScore*3; // penalize
+    	}
+    	if(ch.equalsIgnoreCase("X")){
+    		invScore=invScore*1.5; // penalize
+    	}else if(ch.equalsIgnoreCase("N")){
+    		invScore=invScore*(0.9); // promote
     	}
     	
     	return Tuple.of(tup.k(),Math.max(0,1-invScore));
@@ -411,6 +418,8 @@ public class StructureImageExtractor {
 	         			.stream()
 	         			.map(Tuple::of)
 	         			.map(t->adjustConfidence(t))
+	         			.map(t->t.withVComparator())
+	         			.sorted(Comparator.reverseOrder())
 	         			.collect(Collectors.toList());
 	         	 onFind.accept(s, potential);
 	         }
@@ -630,7 +639,7 @@ public class StructureImageExtractor {
 	        	}
 	        	return e2;
 	        });
-	        ctab.mergeNodesExtendingTo(likelyOCR);
+	        ctab.mergeNodesExtendingTo(likelyOCR,0.5);
 	        
 	        ctab.removeOrphanNodes();
 	        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO);
@@ -638,7 +647,7 @@ public class StructureImageExtractor {
 	        
 	        ctab.makeMissingNodesForShapes(likelyOCR,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL);
 	        
-	        List<Node> toRemove = new ArrayList<Node>();
+	        Set<Node> toRemove = new HashSet<Node>();
 	        
 	        ctab.makeMissingBondsToNeighbors(bitmap,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MAX_TOLERANCE_FOR_DASH_BONDS,likelyOCR,OCR_TO_BOND_MAX_DISTANCE, (t)->{
 //	        	System.out.println("Tol found:" + t.k());
@@ -935,6 +944,7 @@ public class StructureImageExtractor {
                 });
         
         
+        ctab.mergeNodesExtendingTo(likelyOCR,0.5);
         
         double cosThetaOCRShape =Math.cos(MAX_THETA_FOR_OCR_SEPERATION);
         
@@ -944,8 +954,6 @@ public class StructureImageExtractor {
         	Line2D l2 = new Line2D.Double(pts[0],pts[1]);
         	double dist=GeomUtil.length(l2);
         	double cutoff=ctab.getAverageBondLength()*MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING;
-        	String v1=(ocrAttmept.get(shapes[0]).get(0).k() + "");
-        	String v2=(ocrAttmept.get(shapes[1]).get(0).k() + "");
         	if(dist>cutoff){
         		return false;
         	}
@@ -1006,6 +1014,7 @@ public class StructureImageExtractor {
 	        	
 	        });
         
+
         
         List<Shape> ocrMeaningful=bestGuessOCR.keySet()
 				   .stream()
