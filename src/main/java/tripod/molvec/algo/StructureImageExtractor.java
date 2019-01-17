@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 import gov.nih.ncats.chemkit.api.Chemical;
 import tripod.molvec.Bitmap;
 import tripod.molvec.CachedSupplier;
+import tripod.molvec.algo.Tuple.KEqualityTuple;
 import tripod.molvec.ui.RasterCosineSCOCR;
 import tripod.molvec.ui.SCOCR;
 import tripod.molvec.util.CompareUtil;
@@ -103,7 +104,7 @@ public class StructureImageExtractor {
 	private final double MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING=0.3;
 	private final double MAX_THETA_FOR_OCR_SEPERATION=45 * Math.PI/180.0;
 	private final double MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.5;
-	private final double MIN_LONGEST_WIDTH_RATIO_FOR_OCR_TO_AVERAGE=0.5;
+	private final double MIN_LONGEST_WIDTH_RATIO_FOR_OCR_TO_AVERAGE=0.7;
 	
 	//For finding high order bonds
 	private final double MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS=.5;
@@ -225,48 +226,50 @@ public class StructureImageExtractor {
     	 Bitmap thcrop=thin.crop(s);
     	 Supplier<ShapeType> stypeGetter=()->{
 	    	 if(s.getBounds2D().getWidth()<=0 || s.getBounds2D().getHeight()<=0)return ShapeType.NOISE;
-	    	 {
-	          	List<Tuple<Character,Number>> potential = OCR_DEFAULT.getNBestMatches(4,
-	          			bmcrop.createRaster(),
-	          			thcrop.createRaster()
-	                      )
-	          			.stream()
-	          			.map(Tuple::of)
-	          			.map(t->adjustConfidence(t))
-	          			.collect(Collectors.toList());
-	          	
-	              if(potential.stream().filter(e->e.v().doubleValue()>cosCutoff).findAny().isPresent()){
-	            	  	Tuple<Character,Number> tchar=potential.get(0);
-	             	 	if(OCRIsLikely(tchar)){
-	             	 			if(Character.isDigit(tchar.k())){
-	             	 				return ShapeType.TEXT_NUMERIC;
-	             	 			}
-		                 		return ShapeType.TEXT_CHEMICAL;
-		                }
-		                return ShapeType.TEXT;
-	              }
-	    	 }
-	    	 {         
-	              List<Tuple<Character,Number>> potential = OCR_ALL.getNBestMatches(4,
-	                      bitmap.crop(s).createRaster(),
-	                      thin.crop(s).createRaster()
-	                      )
-	          			.stream()
-	          			.map(Tuple::of)
-	          			.collect(Collectors.toList());
-	          	
-	              if(potential.stream().filter(e->e.v().doubleValue()>cosCutoff).findAny().isPresent()){
-	            	  	Tuple<Character,Number> tchar=potential.get(0);
-	             	 	if(OCRIsLikely(tchar)){
-	             	 			if(Character.isDigit(tchar.k())){
-	             	 				return ShapeType.TEXT_NUMERIC;
-	             	 			}
-		                 		return ShapeType.TEXT;
-		                }
-		                return ShapeType.TEXT;
-	              }
-	        
-	    	 }
+	    	 
+//	    	 
+//	    	 {
+//	          	List<Tuple<Character,Number>> potential = OCR_DEFAULT.getNBestMatches(4,
+//	          			bmcrop.createRaster(),
+//	          			thcrop.createRaster()
+//	                      )
+//	          			.stream()
+//	          			.map(Tuple::of)
+//	          			.map(t->adjustConfidence(t))
+//	          			.collect(Collectors.toList());
+//	          	
+//	              if(potential.stream().filter(e->e.v().doubleValue()>cosCutoff).findAny().isPresent()){
+//	            	  	Tuple<Character,Number> tchar=potential.get(0);
+//	             	 	if(OCRIsLikely(tchar)){
+//	             	 			if(Character.isDigit(tchar.k())){
+//	             	 				return ShapeType.TEXT_NUMERIC;
+//	             	 			}
+//		                 		return ShapeType.TEXT_CHEMICAL;
+//		                }
+//		                return ShapeType.TEXT;
+//	              }
+//	    	 }
+//	    	 {         
+//	              List<Tuple<Character,Number>> potential = OCR_ALL.getNBestMatches(4,
+//	                      bitmap.crop(s).createRaster(),
+//	                      thin.crop(s).createRaster()
+//	                      )
+//	          			.stream()
+//	          			.map(Tuple::of)
+//	          			.collect(Collectors.toList());
+//	          	
+//	              if(potential.stream().filter(e->e.v().doubleValue()>cosCutoff).findAny().isPresent()){
+//	            	  	Tuple<Character,Number> tchar=potential.get(0);
+//	             	 	if(OCRIsLikely(tchar)){
+//	             	 			if(Character.isDigit(tchar.k())){
+//	             	 				return ShapeType.TEXT_NUMERIC;
+//	             	 			}
+//		                 		return ShapeType.TEXT;
+//		                }
+//		                return ShapeType.TEXT;
+//	              }
+//	        
+//	    	 }
 	    	
 	
 	    	 if(containedLines.size()==0)return ShapeType.NOISE;
@@ -278,9 +281,11 @@ public class StructureImageExtractor {
 	    	 int ngroups = parLines.size();
 	    	 
 	    	 Tuple<Double,Double> expected=REFACTOR_ME.get().get(containedLines.size());
-	    	 if(ngroups<expected.k()-3*expected.v()){
-	    		 //3 sigma better than expected
-	    		 return ShapeType.SIMILAR_ANGLE_LINES;
+	    	 if(expected!=null){
+		    	 if(ngroups<expected.k()-3*expected.v()){
+		    		 //3 sigma better than expected
+		    		 return ShapeType.SIMILAR_ANGLE_LINES;
+		    	 }
 	    	 }
 	            
 	             
@@ -552,14 +557,23 @@ public class StructureImageExtractor {
         linesJoined=Stream.concat(bigLines.stream(),
         		            smallLines.stream())
         		    .collect(Collectors.toList());
-        
         shapeTypes=new HashMap<>();
-//        for(Shape s: polygons){
-//        	
-//        	ShapeInfo st=computeShapeType(s, linesJoined, OCRcutoffCosine, bitmap, thin);
-//        	shapeTypes.put(s, st);
-//        	System.out.println(st);
-//        }
+        for(Shape s: polygons){
+        	
+        	ShapeInfo st=computeShapeType(s, linesJoined, OCRcutoffCosine, bitmap, thin);
+        	shapeTypes.put(s, st);
+        	
+        	if(st.t.equals(ShapeType.NOISE)){
+        		likelyOCR.remove(s);
+        		likelyOCRAll.remove(s);
+        	}
+        	System.out.println(st);
+        }
+        
+        
+        
+        
+        
         
        // if(true)return this;
         
@@ -1079,12 +1093,27 @@ public class StructureImageExtractor {
         	}
         });
         
+        List<Line2D> lj =linesJoined.stream()
+                   .flatMap(l->GeomUtil.getLinesNotInside(l, likelyOCR).stream())
+                   .collect(Collectors.toList());
+                   
+        
         GeomUtil.groupShapesIfClosestPointsMatchCriteria(likelyOCR, (t)->{
-        	Shape[] s=t.k();
+        	
         	Point2D[] pts=t.v();
         	if(pts[0].distance(pts[1])<ctab.getAverageBondLength()*.8){
-        		System.out.println("Probably connected");
-        		return true;
+        		//It should also have at least 1 line segment between the two
+        		Shape cshape = GeomUtil.add(t.k()[0], t.k()[1]);
+        		boolean containsLine=lj.stream()
+        							   .filter(l1->cshape.contains(l1.getP1()))
+        							   .findAny()
+        							   .isPresent();
+        		if(containsLine){
+	        		System.out.println("Probably connected");
+	        		return true;
+        		}else{
+        			return false;
+        		}
         	}
         	return false;
         })
@@ -1101,15 +1130,59 @@ public class StructureImageExtractor {
         		Node n1=nodes.get(0);
         		Node n2=nodes.get(1);
         		boolean already=ctab.getEdgeBetweenNodes(n1, n2).isPresent();
-        		
         		if(!already){
-        			System.out.println("Gonna make a bond");
         			ctab.addEdge(nodes.get(0).getIndex(), nodes.get(1).getIndex(), 1);
         		}
         	}
         	          
         });
         
+        //remove triangles that are obviously wrong
+        {
+        	double avgL = ctab.getAverageBondLength();
+        	Set<Edge> skip= new HashSet<Edge>();
+        	ctab.getEdges()
+        	    .stream()
+        	    .filter(e->e.getBondLength()>avgL)
+        	    .map(l->Tuple.of(l,GeomUtil.length(l.getLine())).withVComparator())
+        	    .sorted(Comparator.reverseOrder())
+        	    .map(t->t.k())
+        	    .filter(t->!skip.contains(t))
+        	    .forEach(e->{
+        	    	Node n1= e.getRealNode1();
+        	    	Node n2= e.getRealNode2();
+        	    	List<KEqualityTuple<Node,Edge>> neigh1=n1.getNeighborNodes();
+        	    	List<KEqualityTuple<Node,Edge>> neigh2=n2.getNeighborNodes();
+        	    	List<KEqualityTuple<Node,Edge>> things=neigh1.stream()
+        	    												 .filter(ne->neigh2.contains(ne))
+        	    												 .collect(Collectors.toList());
+        	    	
+        	    	if(things.size()>0){
+        	    		System.out.println("Triangle found");
+        	    		Point2D p1=n1.getPoint();
+	        	    	Point2D p2=n2.getPoint();
+	        	    	Point2D p3=things.get(0).k().getPoint();
+	        	    	
+	        	    	double tarea=Math.abs(GeomUtil.areaTriangle(p1,p2,p3));
+	        	    	
+	        	    	double expected = Math.sqrt(3)/4*Math.pow(e.getBondLength(),2);
+	        	    	if(tarea<expected*0.5){
+	        	    		System.out.println("It's a bad one");
+	        	    		ctab.removeEdge(e);
+	        	    	}else{
+	        	    		things.stream()
+	        	    		      .map(t->t.v())
+	        	    		      .forEach(e2->{
+	        	    		    	  skip.add(e2);
+	        	    		      });
+	        	    	}
+        	    	}
+        	    	
+        	    	
+        	    });
+        	//for each edge, 
+        	
+        }
         
         
         //final cleanup

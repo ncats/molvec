@@ -69,6 +69,7 @@ public class FragmentTest {
 		StructureImageExtractor sie = new StructureImageExtractor();
 		sie.load(f);
 		ConnectionTable ctab = sie.getCtab();
+		System.out.println(sie.getChemical().toMol());
 		
 		assertEquals(9,ctab.getNodes().size());
 		assertEquals(10,ctab.getEdges().size());

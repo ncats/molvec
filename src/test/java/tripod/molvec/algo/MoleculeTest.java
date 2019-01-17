@@ -288,7 +288,7 @@ public class MoleculeTest {
 				" 10 11  1  0  0  0  0 \n" + 
 				"M  END", Charset.defaultCharset()).build();
 		//This smiles, which should be the same, doesn't seem to give the same formula. Don't know why
-		//[#6]Cc1c(-[#6])c2cc3nc(nc4nc(cc5nc(cc1n2)c(-[#6])c5C[#6])c(-[#6])c4C[#6])c(-[#6])c3C[#6]
+		//CCc1c(-C)c2cc3nc(nc4nc(cc5nc(cc1n2)c(-C)c5CC)c(-C)c4CC)c(-C)c3CC
 		
 		
 		Chemical c=sie.getChemical();
@@ -326,4 +326,20 @@ public class MoleculeTest {
 		assertEquals(cReal.getFormula(),form);
 		//
 	}
+	
+	@Test
+	public void structureWhichIsAlmostARingAndHas2NonBondedOxygensVeryCloseTogether() throws Exception {
+		File f=getFile("moleculeTest/almostRing.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("CC(=C)C(=O)OCCOCC(COC(=O)CCC(=O)CCCCCOC(=O)C=C)OC(=O)c1ccccc1C(=O)OCC(O)COc2ccc(cc2)C(C)(C)c3ccc(OCC4CO4)cc3").build();
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+		//
+	}
+	
+	//
 }

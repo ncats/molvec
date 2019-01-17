@@ -23,6 +23,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import gov.nih.ncats.chemkit.api.Atom;
 import gov.nih.ncats.chemkit.api.Bond;
@@ -33,6 +34,8 @@ import gov.nih.ncats.chemkit.api.ChemicalBuilder;
 import tripod.molvec.Bitmap;
 import tripod.molvec.CachedSupplier;
 import tripod.molvec.algo.Tuple;
+import tripod.molvec.algo.Tuple.KEqualityTuple;
+import tripod.molvec.util.ConnectionTable.Node;
 
 public class ConnectionTable{
 	private List<Node> nodes = new ArrayList<Node>();
@@ -541,6 +544,14 @@ public class ConnectionTable{
 		Point2D point;
 		String symbol="C";
 		
+		
+		public List<KEqualityTuple<Node,Edge>> getNeighborNodes(){
+			return this.getEdges()
+			    .stream()
+				.map(ne->Tuple.of(ne.getOtherNode(this),ne).withKEquality())
+				.collect(Collectors.toList());
+		}
+		
 		public Node(Point2D p, String s){
 			this.point=p;
 			this.symbol=s;				
@@ -634,6 +645,12 @@ public class ConnectionTable{
 		}
 		public Point2D getPoint2(){
 			return ConnectionTable.this.nodes.get(n2).point;
+		}
+		
+		public Node getOtherNode(Node n){
+			if(n.getIndex() == this.n1)return getRealNode2();
+			if(n.getIndex() == this.n2)return getRealNode1();
+			return null;
 		}
 		
 		public Node getRealNode1(){
