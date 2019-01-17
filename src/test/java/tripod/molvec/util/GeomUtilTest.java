@@ -1,10 +1,17 @@
 package tripod.molvec.util;
 
 import static org.junit.Assert.assertEquals;
+import static tripod.molvec.util.GeomUtil.area;
+import static tripod.molvec.util.GeomUtil.areaTriangle;
+import static tripod.molvec.util.GeomUtil.convexHull;
+import static tripod.molvec.util.GeomUtil.vertices;
+import static tripod.molvec.util.GeomUtil.*;
 
 import java.awt.Shape;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.GeneralPath;
 import java.awt.geom.Line2D;
+import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,7 +21,6 @@ import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import static tripod.molvec.util.GeomUtil.*;
 
 import org.junit.Test;
 
@@ -338,10 +344,40 @@ public class GeomUtilTest {
     }
     
     @Test
-    public void rectangleAreaTestWithShear(){
-    	double expected= 1;
+    public void convexHullShapeAreaTestWithShear(){
+    	double expected= 5;
     	Random rshear = new Random(1234l);
-    	Shape si= convexHull(new Point2D[]{new Point2D.Double(2,1),new Point2D.Double(1,1),new Point2D.Double(1,0),new Point2D.Double(2,0)});
+    	
+    	Shape si= shapeFromVertices(new Point2D[]{new Point2D.Double(4,2),new Point2D.Double(3,3),new Point2D.Double(2,2),new Point2D.Double(2,0),new Point2D.Double(4,0)});
+    	int nrot=100;
+    	for(int k=0;k<2;k++){
+    		AffineTransform atflip =new AffineTransform();
+    		int inv=((k%2)==0)?1:-1;
+    		atflip.shear(rshear.nextDouble()*1000, 0);
+    		atflip.scale(inv, 1);
+    		
+    		Shape s=atflip.createTransformedShape(si);
+	    	for(int j=0;j<nrot;j++){
+	    		AffineTransform atrotate =new AffineTransform();
+	    		atrotate.rotate(j*Math.PI/nrot);
+	    		Shape rs=atrotate.createTransformedShape(s);
+		    	for(int i=1;i<100;i++){
+			    	AffineTransform at =new AffineTransform();
+			    	at.scale(i, i);
+			    	Shape sn=at.createTransformedShape(rs);
+			    	double area=GeomUtil.areaVerticesCW(vertices(sn));
+			    	assertEquals(inv*expected*i*i,area,0.00001);
+		    	}
+	    	}
+    	}
+    }
+    
+    @Test
+    public void nonConvexHullShapeAreaTestWithShear(){
+    	double expected= 3;
+    	Random rshear = new Random(1234l);
+    	
+    	Shape si= shapeFromVertices(new Point2D[]{new Point2D.Double(4,2),new Point2D.Double(3,1),new Point2D.Double(2,2),new Point2D.Double(2,0),new Point2D.Double(3.0,0),new Point2D.Double(4,0)});
     	int nrot=100;
     	for(int k=0;k<2;k++){
     		AffineTransform atflip =new AffineTransform();

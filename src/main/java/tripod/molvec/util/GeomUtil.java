@@ -1458,17 +1458,34 @@ public class GeomUtil {
 		if(verts.length==3)return areaTriangle(verts[0],verts[1],verts[2]);
 		List<Point2D> oddPoints=new ArrayList<Point2D>();
 		double areaSoFar=0;
+		oddPoints.add(verts[0]);
 		for(int i=1;i<verts.length;i+=2){
 			Point2D p1=verts[i-1];
+			
 			Point2D p2=verts[i];
-			oddPoints.add(p2);
+			
 			Point2D p3=verts[(i+1)%verts.length];
+			oddPoints.add(p3);
 			areaSoFar+=areaTriangle(p1,p2,p3);
 		}
 		return areaSoFar + areaVerticesCW(oddPoints.toArray(new Point2D[]{}));
 		
 	}
 	
+	public static Shape shapeFromVertices(Point2D[] pnts){
+		Path2D path = new Path2D.Double();
+		
+		for(int i=0;i<pnts.length;i++){
+			Point2D p=pnts[i];
+			if(i>0){
+				path.lineTo(p.getX(), p.getY());
+			}else{
+				path.moveTo(p.getX(), p.getY());
+			}
+		}
+		path.closePath();
+		return path;
+	}
 	
 	public static double area(Shape s){
 		return Math.abs(areaVerticesCW(vertices(s)));
