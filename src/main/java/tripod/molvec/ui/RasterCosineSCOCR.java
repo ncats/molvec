@@ -33,21 +33,44 @@ public class RasterCosineSCOCR extends SCOCR {
 	static int DEF_HEIGHT = 20;
 	private static BufferedImage bi = new BufferedImage(DEF_WIDTH, DEF_HEIGHT,
 			BufferedImage.TYPE_BYTE_GRAY);
-	static List<Font> FONT_LIST = new ArrayList<Font>();
-	static {
-		FONT_LIST.addAll(Arrays.asList(new Font[] {
+	private List<Font> fontList = new ArrayList<Font>();
+	
+	public static List<Font> DEFAULT_FONTS(){
+		return SANS_SERIF_FONTS();
+	}
+	
+	public static List<Font> SERIF_FONTS(){
+		return Arrays.asList(new Font[] {
+				new Font(Font.SERIF, Font.PLAIN, 8),
+				new Font(Font.SERIF, Font.BOLD, 8) 
+				});
+	}
+	public static List<Font> SANS_SERIF_FONTS(){
+		return Arrays.asList(new Font[] {
 				new Font(Font.SANS_SERIF, Font.BOLD, 8),
 				new Font(Font.SANS_SERIF, Font.PLAIN, 8),
 				new Font("DejaVu Sans", Font.BOLD, 8),
 				new Font("Khmer OS", Font.PLAIN, 8),
 				new Font("DejaVu Sans", Font.PLAIN, 8),
 				new Font("Khmer OS", Font.BOLD, 8) 
-				}));
-
+				});
 	}
-
+	
+	public RasterCosineSCOCR(List<Font> flist) {
+		fontList.addAll(flist);
+	}
+	
 	public RasterCosineSCOCR() {
-
+		this(Arrays.asList(new Font[] {
+				new Font(Font.SANS_SERIF, Font.BOLD, 8),
+				new Font(Font.SANS_SERIF, Font.PLAIN, 8),
+				new Font("DejaVu Sans", Font.BOLD, 8),
+				new Font("Khmer OS", Font.PLAIN, 8),
+				new Font("DejaVu Sans", Font.PLAIN, 8),
+				new Font("Khmer OS", Font.BOLD, 8), 
+				new Font(Font.SERIF, Font.PLAIN, 8),
+				new Font(Font.SERIF, Font.BOLD, 8) 
+				}));
 	}
 
 	/**
@@ -215,7 +238,7 @@ public class RasterCosineSCOCR extends SCOCR {
 	
 
 	private void makeAlphabetMaps() {
-		for (Font f : FONT_LIST) {
+		for (Font f : fontList) {
 			for (char c : _alphabet) {
 				int[][] charMat = new int[DEF_WIDTH][DEF_HEIGHT];
 				double wh = getBitmap(c, f, charMat);

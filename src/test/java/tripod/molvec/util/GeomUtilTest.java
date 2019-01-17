@@ -14,6 +14,7 @@ import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import static tripod.molvec.util.GeomUtil.*;
 
 import org.junit.Test;
 
@@ -277,14 +278,59 @@ public class GeomUtilTest {
     	at.translate(5, 0);
     	Shape ns = at.createTransformedShape(rs);
     	List<Point2D> ips=GeomUtil.intersectingPoints(rs, ns);
-    	System.out.println(ips);
+    	
     	Shape is=GeomUtil.getIntersectionShape(rs, ns).get();
-    	System.out.println(GeomUtil.area(is));
+    	assertEquals(50,0, area(is));
     	
     	
-    	System.out.println(Arrays.toString(GeomUtil.vertices(is)));
+    	//System.out.println(Arrays.toString(GeomUtil.vertices(is)));
     	
     }
+    @Test
+    public void traingleAreaTest(){
+    	double expected= 0.5;
+    	Shape s= convexHull(new Point2D[]{new Point2D.Double(2,1),new Point2D.Double(1,0),new Point2D.Double(2,0)});
+    	int nrot=100;
+    	for(int j=0;j<nrot;j++){
+    		AffineTransform atrotate =new AffineTransform();
+    		atrotate.rotate(j*Math.PI/nrot);
+    		Shape rs=atrotate.createTransformedShape(s);
+	    	for(int i=1;i<100;i++){
+		    	AffineTransform at =new AffineTransform();
+		    	at.scale(i, i);
+		    	Shape sn=at.createTransformedShape(rs);
+		    	double area=areaTriangle(sn);
+		    	assertEquals(expected*i*i,area,0.00001);
+	    	}
+    	}
+    	
+    }
+//    
+//    @Test
+//    public void f(){
+//    	for(int runs=1;runs<100;runs++){
+//    		int reps=1000;
+//    		List<Double> counts = new ArrayList<Double>();
+//    		for(int j=0;j<reps;j++){
+//		    	List<Line2D> lines=new ArrayList<Line2D>();
+//		    	for(int i=0;i<runs;i++){
+//		    		double t=Math.PI*2*Math.random();
+//		    		lines.add(new Line2D.Double(0,0,Math.cos(t),
+//		    				                    Math.sin(t)));
+//		    		
+//		    	}
+//		    	List<List<Line2D>> parLines=GeomUtil.groupMultipleBonds(lines, 3*Math.PI/180, Double.POSITIVE_INFINITY, 0, 0);
+//		    	//System.out.println(runs + "\t" + parLines.size());
+//		    	counts.add(parLines.size()+0.0);
+//    		}
+//    		double avg=counts.stream().mapToDouble(d->d).average().getAsDouble();
+//    		double sumsq=counts.stream().mapToDouble(d->d*d).average().getAsDouble();
+//    		double stDev=Math.sqrt(sumsq-avg*avg);
+//    		System.out.println(runs + "\t"+avg + "\t" + stDev);
+//    		//sumsq-
+//    	}
+//    	
+//    }
     
 //    @Test
 //    public void testAreaForShapeWorks(){
@@ -296,19 +342,30 @@ public class GeomUtilTest {
 //
 //    @Test
 //    public void testSplitInHalf(){
-//    	int segs=6;
+//    	int segs=700;
 //    	double size=1000;
 //    	Point2D[] circle = IntStream.range(0,segs)
 //    			                    .mapToDouble(i->2*Math.PI*(((double)i)/((double)segs)))
 //    			                    .mapToObj(t->new Point2D.Double(size*Math.cos(t),size*Math.sin(t)))
 //    			                    .toArray(i->new Point2D[i]);
-//    			                    
+//    	
+//    	Collections.shuffle(Arrays.asList(circle));
 //    	System.out.println(Arrays.toString(circle));
+//    	
 //    	Shape s = GeomUtil.convexHull(circle);
-//    	System.out.println(Arrays.toString(GeomUtil.vertices(s)));
+//    	Point2D[] pts= GeomUtil.vertices(s);
+//    	
+//    	Arrays.stream(pts)
+//    	.map(p->Math.atan2(p.getY(), p.getX()))
+//    	.forEach(d->{
+//    		System.out.println(d);
+//    	});
+    	
+    	
+    	//System.out.println(Arrays.toString(GeomUtil.vertices(s)));
 //    	Shape[] nshapes = GeomUtil.splitInHalf(s);
 //    	
 //    	System.out.println(Arrays.toString(GeomUtil.vertices(nshapes[0])));
 //    	System.out.println(Arrays.toString(GeomUtil.vertices(nshapes[1])));
-//    }
+//   }
 }

@@ -344,7 +344,7 @@ public class ConnectionTable{
 	public ConnectionTable mergeNodesExtendingTo(List<Shape> shapes){
 		double avg = this.getAverageBondLength();
 		edges.stream()
-		     .filter(e->e.getBondDistance()<avg)
+		     .filter(e->e.getBondLength()<avg)
 		     .forEach(e->{
 		    	 Point2D p1=e.getPoint1();
 		    	 Point2D p2=e.getPoint2();
@@ -509,8 +509,34 @@ public class ConnectionTable{
 	}
 	
 	public double getAverageBondLength(){
-		return edges.stream().mapToDouble(e->e.getBondDistance()).average().orElse(0);
+		return getMeanBondLength();
 	}
+	
+	public double getMeanBondLength(){
+		return edges.stream().mapToDouble(e->e.getBondLength()).average().orElse(0);
+	}
+	
+	public double getMedianBondLength(){
+		
+		double[] lens= edges.stream()
+				    	.mapToDouble(e->e.getBondLength())
+				    	.sorted()
+				    	.toArray();
+		
+		if(lens.length==0)return 0;
+		if(lens.length %2==1){
+			//1 -> 0
+			//3 -> 1
+			//5 -> 2
+			return lens[lens.length/2];
+		}else{
+			//2 -> 1,0
+			//4 -> 2,
+			
+			return (lens[lens.length/2] + lens[lens.length/2 - 1] / 2);
+		}
+	}
+	
 	public class Node{
 		Point2D point;
 		String symbol="C";
@@ -580,7 +606,7 @@ public class ConnectionTable{
 		
 		
 		
-		public double getBondDistance(){
+		public double getBondLength(){
 			return ConnectionTable.this.nodes.get(n1).point.distance(ConnectionTable.this.nodes.get(n2).point);
 		}
 		public Edge standardize(){
@@ -815,7 +841,7 @@ public class ConnectionTable{
 		    				Point2D pn2=GeomUtil.getIntersection(s2,line).orElse(null);
 		    				if(pn1!=null && pn2!=null){
 		    					double realDistance=pn1.distance(pn2);
-		    					if(realDistance/e.getBondDistance()<shortestRealBondRatio){
+		    					if(realDistance/e.getBondLength()<shortestRealBondRatio){
 		    						edgeCons.accept(e);
 		    					}
 		    				}

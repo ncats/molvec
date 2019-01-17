@@ -932,6 +932,31 @@ public class Bitmap implements Serializable, TiffTags {
         }
         return dst;
     }
+    
+    public long onPixelsInShape(Shape s){
+    	Rectangle r = s.getBounds ();
+        if (r.width == 0 || r.height == 0) {
+            return 0;
+        }
+
+        
+        int x1 = Math.min (width, r.x + r.width);
+        int y1 = Math.min (height, r.y + r.height);
+        int x0 = r.x, y0 = r.y;
+        long total =0;
+        int i, j = 0;
+        for (int y = y0; y <= y1; ++y, ++j) {
+            i = 0;
+            for (int x = x0; x <= x1; ++x, ++i) {
+                if (x == x1 || y == y1 || s.contains (x, y)){
+                	if(get(x,y))total++;
+                }
+                	
+                    
+            }
+        }
+        return total;
+    }
 
     /* Thinning algorithm based on Nagendraprasad, Wang, and Gupta.  The 
        following description is based on 

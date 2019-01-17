@@ -8,16 +8,21 @@ import java.awt.geom.Rectangle2D;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import gov.nih.ncats.chemkit.api.Chemical;
 import tripod.molvec.Bitmap;
+import tripod.molvec.CachedSupplier;
 import tripod.molvec.ui.RasterCosineSCOCR;
 import tripod.molvec.ui.SCOCR;
 import tripod.molvec.util.CompareUtil;
@@ -27,13 +32,22 @@ import tripod.molvec.util.ConnectionTable.Node;
 import tripod.molvec.util.GeomUtil;
 
 public class StructureImageExtractor {
-	static final SCOCR OCR=new RasterCosineSCOCR();
+	static final SCOCR OCR_DEFAULT=new RasterCosineSCOCR(RasterCosineSCOCR.SANS_SERIF_FONTS());
+	static final SCOCR OCR_BACKUP=new RasterCosineSCOCR(RasterCosineSCOCR.SERIF_FONTS());
+	
+	
+	static final SCOCR OCR_ALL=new RasterCosineSCOCR();
    
 	static{
 		Set<Character> alpha=SCOCR.SET_COMMON_CHEM_ALL();
 		alpha.add(Character.valueOf('/'));
 		alpha.add(Character.valueOf('\\'));
-    	OCR.setAlphabet(alpha);
+		OCR_DEFAULT.setAlphabet(alpha);
+		OCR_BACKUP.setAlphabet(alpha);
+    	
+    	Set<Character> alphaAll=SCOCR.SET_COMMON_PUCTUATION();
+    	alphaAll.addAll(SCOCR.SET_ALPHANUMERIC());
+    	OCR_ALL.setAlphabet(alphaAll);
     }
     
 	private Bitmap bitmap; // original bitmap
@@ -46,6 +60,8 @@ public class StructureImageExtractor {
     private List<Tuple<Line2D,Integer>> linesOrder;    
     private Map<Shape,List<Tuple<Character,Number>>> ocrAttmept = new HashMap<>();
     private Map<Shape,String> bestGuessOCR = new HashMap<>();
+    private Map<Shape,ShapeInfo> shapeTypes = new HashMap<>();
+    
     
     private ConnectionTable ctab;
     private ConnectionTable ctabRaw;
@@ -145,8 +161,266 @@ public class StructureImageExtractor {
      	}
      	return false;
     }
+    
+    public static enum ShapeType{
+    	TEXT,
+    	TEXT_NUMERIC,
+    	TEXT_CHEMICAL,
+    	LINE,
+    	LINES,
+    	SIMILAR_ANGLE_LINES,
+    	NOISE
+    }
+    
+    
+    public static class ShapeInfo{
+    	private Shape s;
+    	private ShapeType t;
+    	private double densityOriginal;
+    	private double densityThin;
+    	private double area;
+    	private int lineCount=0;
+    	private double lineLengthAverage=0;
+    	
+    	public ShapeInfo(Shape s, ShapeType t, double densityO, double densityT, int lcount, double lineLengthAverage){
+    		this.s=s;
+    		this.t=t;
+    		this.densityOriginal=densityO;
+    		this.densityThin=densityT;
+    		this.lineCount=lcount;
+    		this.area=GeomUtil.area(s);
+    		this.lineLengthAverage=lineLengthAverage;
+    		
+    	}
+    	
+    	
+    	public double avgPixelsPerLineUnit(){
+    		Rectangle2D rect=s.getBounds2D();
+    		double bboxarea= rect.getWidth()*rect.getHeight();
+    		double pixelsOn=bboxarea*this.densityOriginal;
+    		
+    		double totalLineLength=(this.lineCount*this.lineLengthAverage);
+    		return pixelsOn/totalLineLength;
+    	}
+    	
+    	
+    	public String toString(){
+    		return "ShapeInfo:" + s + ", type=" + t + ", densityRaw=" + this.densityOriginal + ", densityThin=" + this.densityThin + ", lines=" + lineCount + ", area=" + this.area + ", lineDensity=" + this.lineCount/area + ", thickness=" + this.avgPixelsPerLineUnit();
+    	}
+    	
+    }
+    
+    private static ShapeInfo computeShapeType(Shape s, List<Line2D> lines, double cosCutoff, Bitmap bitmap, Bitmap thin){
+    	 List<Line2D> containedLines=lines.stream()
+				  .filter(l->s.contains(l.getP1()))
+				  .collect(Collectors.toList());
+    	 Bitmap bmcrop=bitmap.crop(s);
+    	 Bitmap thcrop=thin.crop(s);
+    	 Supplier<ShapeType> stypeGetter=()->{
+	    	 if(s.getBounds2D().getWidth()<=0 || s.getBounds2D().getHeight()<=0)return ShapeType.NOISE;
+	    	 {
+	          	List<Tuple<Character,Number>> potential = OCR_DEFAULT.getNBestMatches(4,
+	          			bmcrop.createRaster(),
+	          			thcrop.createRaster()
+	                      )
+	          			.stream()
+	          			.map(Tuple::of)
+	          			.map(t->adjustConfidence(t))
+	          			.collect(Collectors.toList());
+	          	
+	              if(potential.stream().filter(e->e.v().doubleValue()>cosCutoff).findAny().isPresent()){
+	            	  	Tuple<Character,Number> tchar=potential.get(0);
+	             	 	if(OCRIsLikely(tchar)){
+	             	 			if(Character.isDigit(tchar.k())){
+	             	 				return ShapeType.TEXT_NUMERIC;
+	             	 			}
+		                 		return ShapeType.TEXT_CHEMICAL;
+		                }
+		                return ShapeType.TEXT;
+	              }
+	    	 }
+	    	 {         
+	              List<Tuple<Character,Number>> potential = OCR_ALL.getNBestMatches(4,
+	                      bitmap.crop(s).createRaster(),
+	                      thin.crop(s).createRaster()
+	                      )
+	          			.stream()
+	          			.map(Tuple::of)
+	          			.collect(Collectors.toList());
+	          	
+	              if(potential.stream().filter(e->e.v().doubleValue()>cosCutoff).findAny().isPresent()){
+	            	  	Tuple<Character,Number> tchar=potential.get(0);
+	             	 	if(OCRIsLikely(tchar)){
+	             	 			if(Character.isDigit(tchar.k())){
+	             	 				return ShapeType.TEXT_NUMERIC;
+	             	 			}
+		                 		return ShapeType.TEXT;
+		                }
+		                return ShapeType.TEXT;
+	              }
+	        
+	    	 }
+	    	
+	
+	    	 if(containedLines.size()==0)return ShapeType.NOISE;
+	    	 if(containedLines.size()==1)return ShapeType.LINE;
+	    	 
+	    	 
+	    	 List<List<Line2D>> parLines=GeomUtil.groupMultipleBonds(containedLines, 3*Math.PI/180, Double.POSITIVE_INFINITY, 0, 0);
+	    	 
+	    	 int ngroups = parLines.size();
+	    	 
+	    	 Tuple<Double,Double> expected=REFACTOR_ME.get().get(containedLines.size());
+	    	 if(ngroups<expected.k()-3*expected.v()){
+	    		 //3 sigma better than expected
+	    		 return ShapeType.SIMILAR_ANGLE_LINES;
+	    	 }
+	            
+	             
+	    	return ShapeType.LINES;
+    	};
+    	
+    	
+    	double dense1=Optional.ofNullable(bmcrop).map(c->c.fractionPixelsOn()).orElse(0.0);
+    	double dense2=Optional.ofNullable(thcrop).map(c->c.fractionPixelsOn()).orElse(0.0);
+    	
+    	double avg=containedLines.stream().mapToDouble(l->GeomUtil.length(l)).average().orElse(0);
+   	 
+    	return new ShapeInfo(s,stypeGetter.get(),dense1,dense2,containedLines.size(),avg);
+    	
+    }
+    
+    private static CachedSupplier<Map<Integer,Tuple<Double,Double>>> REFACTOR_ME=CachedSupplier.of(()->{
+    	 String raw="1	1.0	0.0\n" +
+    	    		"2	1.973	0.1620833119108796\n" + 
+    	    		"3	2.897	0.31998593719099716\n" + 
+    	    		"4	3.803	0.41975111673466614\n" + 
+    	    		"5	4.677	0.544675132533149\n" + 
+    	    		"6	5.523	0.636766048089879\n" + 
+    	    		"7	6.318	0.7105462687256918\n" + 
+    	    		"8	7.089	0.8396898236849115\n" + 
+    	    		"9	7.855	0.9380698268252714\n" + 
+    	    		"10	8.609	1.02670297554843\n" + 
+    	    		"11	9.298	1.1194623709620626\n" + 
+    	    		"12	9.98	1.145251064177632\n" + 
+    	    		"13	10.656	1.2343678544096903\n" + 
+    	    		"14	11.249	1.2275988758548042\n" + 
+    	    		"15	11.87	1.4153091535067586\n" + 
+    	    		"16	12.439	1.5589352135351824\n" + 
+    	    		"17	13.037	1.553586495821839\n" + 
+    	    		"18	13.65	1.586663165262238\n" + 
+    	    		"19	14.106	1.668761217190771\n" + 
+    	    		"20	14.573	1.7060688731701248\n" + 
+    	    		"21	14.972	1.752488516367517\n" + 
+    	    		"22	15.501	1.8176905677259902\n" + 
+    	    		"23	15.915	1.7691170113929704\n" + 
+    	    		"24	16.386	1.8566108908438494\n" + 
+    	    		"25	16.824	1.9470552123655849\n" + 
+    	    		"26	17.043	1.9796845708344548\n" + 
+    	    		"27	17.412	2.0199643561211715\n" + 
+    	    		"28	17.854	2.0944412142621722\n" + 
+    	    		"29	18.267	2.0370839452511587\n" + 
+    	    		"30	18.381	2.187198893562266\n" + 
+    	    		"31	18.615	2.073348740564426\n" + 
+    	    		"32	18.857	2.200579696352762\n" + 
+    	    		"33	19.292	2.152379148756084\n" + 
+    	    		"34	19.537	2.1933150708459688\n" + 
+    	    		"35	19.86	2.1859551687992087\n" + 
+    	    		"36	19.918	2.218394915248418\n" + 
+    	    		"37	20.137	2.3000502168430907\n" + 
+    	    		"38	20.355	2.2730981061098046\n" + 
+    	    		"39	20.61	2.2781352023091217\n" + 
+    	    		"40	20.897	2.3324645763655427\n" + 
+    	    		"41	20.86	2.310930548502063\n" + 
+    	    		"42	21.18	2.315080992103732\n" + 
+    	    		"43	21.192	2.2367690984989896\n" + 
+    	    		"44	21.368	2.4491990527517387\n" + 
+    	    		"45	21.472	2.4280065897768788\n" + 
+    	    		"46	21.51	2.337498663101203\n" + 
+    	    		"47	21.704	2.383775157182396\n" + 
+    	    		"48	21.815	2.3273966142451776\n" + 
+    	    		"49	21.843	2.3787288622287286\n" + 
+    	    		"50	21.94	2.3665164271561525\n" + 
+    	    		"51	21.981	2.374160693803157\n" + 
+    	    		"52	22.117	2.3705085952174865\n" + 
+    	    		"53	22.038	2.395110853384454\n" + 
+    	    		"54	22.171	2.3349002120005125\n" + 
+    	    		"55	22.234	2.339496527033094\n" + 
+    	    		"56	22.144	2.4692638579139436\n" + 
+    	    		"57	22.307	2.402654989797762\n" + 
+    	    		"58	22.282	2.4381296109928217\n" + 
+    	    		"59	22.303	2.4444203811946785\n" + 
+    	    		"60	22.256	2.3950916475158013\n" + 
+    	    		"61	22.31	2.4285592436669217\n" + 
+    	    		"62	22.242	2.4862493841125355\n" + 
+    	    		"63	22.267	2.433045622260299\n" + 
+    	    		"64	22.354	2.4985363715583677\n" + 
+    	    		"65	22.301	2.2992170406466794\n" + 
+    	    		"66	22.122	2.4110404393124636\n" + 
+    	    		"67	22.068	2.4292747889030526\n" + 
+    	    		"68	22.055	2.40540537124203\n" + 
+    	    		"69	21.945	2.416604022176571\n" + 
+    	    		"70	21.958	2.3942088463624294\n" + 
+    	    		"71	21.925	2.374736827524257\n" + 
+    	    		"72	21.869	2.4420972544106445\n" + 
+    	    		"73	21.753	2.3987477983314514\n" + 
+    	    		"74	21.725	2.4230920329199104\n" + 
+    	    		"75	21.735	2.3817588039094257\n" + 
+    	    		"76	21.443	2.427910830323043\n" + 
+    	    		"77	21.493	2.3600743632352055\n" + 
+    	    		"78	21.345	2.365581323903283\n" + 
+    	    		"79	21.306	2.2935483426341774\n" + 
+    	    		"80	21.056	2.364077832898063\n" + 
+    	    		"81	21.08	2.4231384607570523\n" + 
+    	    		"82	21.084	2.3162348758275746\n" + 
+    	    		"83	20.935	2.3771358816862085\n" + 
+    	    		"84	20.639	2.255810054060419\n" + 
+    	    		"85	20.801	2.320215291734811\n" + 
+    	    		"86	20.786	2.24860045361552\n" + 
+    	    		"87	20.427	2.372060496699029\n" + 
+    	    		"88	20.46	2.4783865719455487\n" + 
+    	    		"89	20.293	2.282794559306647\n" + 
+    	    		"90	20.188	2.393878860761352\n" + 
+    	    		"91	20.05	2.3806511714234744\n" + 
+    	    		"92	19.916	2.32571365391356\n" + 
+    	    		"93	19.784	2.4243234107684666\n" + 
+    	    		"94	19.655	2.246769903661688\n" + 
+    	    		"95	19.613	2.3730214916852344\n" + 
+    	    		"96	19.312	2.2668603838789703\n" + 
+    	    		"97	19.249	2.27134299479406\n" + 
+    	    		"98	19.188	2.338515768601971\n" + 
+    	    		"99	19.109	2.350982560547805";
+    	 return Arrays.stream(raw.split("\n"))
+		    	       .map(s->s.split("\t"))
+		    	       .map(s->Tuple.of(Integer.parseInt(s[0]),Tuple.of(Double.parseDouble(s[1]),Double.parseDouble(s[2]))))
+		    	       .collect(Tuple.toMap());
+    });
+    		
+    
+    
+    private void processOCR(SCOCR socr, List<Shape> polygons,Bitmap bitmap, Bitmap thin, BiConsumer<Shape,List<Tuple<Character,Number>>> onFind){
+    	 /*
+	     * Looks at each polygon, and gets the likely OCR chars.
+	     */   
+	    for (Shape s : polygons) {
+	         if(s.getBounds2D().getWidth()>0 && s.getBounds2D().getHeight()>0){
+	         	List<Tuple<Character,Number>> potential = socr.getNBestMatches(4,
+	                     bitmap.crop(s).createRaster(),
+	                     thin.crop(s).createRaster()
+	                     )
+	         			.stream()
+	         			.map(Tuple::of)
+	         			.map(t->adjustConfidence(t))
+	         			.collect(Collectors.toList());
+	         	 onFind.accept(s, potential);
+	         }
+	    }
+    }
+    
+    
      
     public StructureImageExtractor load(File file) throws IOException{
+    	SCOCR[] socr=new SCOCR[]{OCR_DEFAULT};
     	
     	double[] maxBondLength=new double[]{INITIAL_MAX_BOND_LENGTH};    
         
@@ -173,26 +447,29 @@ public class StructureImageExtractor {
         /*
          * Looks at each polygon, and gets the likely OCR chars.
          */   
-        for (Shape s : polygons) {
-             if(s.getBounds2D().getWidth()>0 && s.getBounds2D().getHeight()>0){
-             	List<Tuple<Character,Number>> potential = OCR.getNBestMatches(4,
-                         bitmap.crop(s).createRaster(),
-                         thin.crop(s).createRaster()
-                         )
-             			.stream()
-             			.map(Tuple::of)
-             			.map(t->adjustConfidence(t))
-             			.collect(Collectors.toList());
-                 ocrAttmept.put(s, potential);
-                 if(potential.stream().filter(e->e.v().doubleValue()>OCRcutoffCosine).findAny().isPresent()){
-                	 
-                	 	if(OCRIsLikely(potential.get(0))){
-	                 		likelyOCR.add(s);
-	                 	}
-	                 	likelyOCRAll.add(s);
-                 	
-                 }
+        
+    	processOCR(socr[0],polygons,bitmap,thin,(s,potential)->{
+    		 ocrAttmept.put(s, potential);
+             if(potential.stream().filter(e->e.v().doubleValue()>OCRcutoffCosine).findAny().isPresent()){
+            	 	if(OCRIsLikely(potential.get(0))){
+                 		likelyOCR.add(s);
+                 	}
+                 	likelyOCRAll.add(s);
              }
+    	});
+        
+        if(likelyOCR.isEmpty()){
+        	socr[0]=OCR_BACKUP;
+        	likelyOCRAll.clear();
+        	processOCR(socr[0],polygons,bitmap,thin,(s,potential)->{
+       		 ocrAttmept.put(s, potential);
+                if(potential.stream().filter(e->e.v().doubleValue()>OCRcutoffCosine).findAny().isPresent()){
+               	 	if(OCRIsLikely(potential.get(0))){
+                    		likelyOCR.add(s);
+                    	}
+                    	likelyOCRAll.add(s);
+                }
+        	});
         }
         
         double averageLargestOCR=likelyOCR.stream()
@@ -266,6 +543,17 @@ public class StructureImageExtractor {
         linesJoined=Stream.concat(bigLines.stream(),
         		            smallLines.stream())
         		    .collect(Collectors.toList());
+        
+        shapeTypes=new HashMap<>();
+//        for(Shape s: polygons){
+//        	
+//        	ShapeInfo st=computeShapeType(s, linesJoined, OCRcutoffCosine, bitmap, thin);
+//        	shapeTypes.put(s, st);
+//        	System.out.println(st);
+//        }
+        
+       // if(true)return this;
+        
         
         double largestBond=linesJoined.stream()
 		           .mapToDouble(l->GeomUtil.length(l))
@@ -379,7 +667,7 @@ public class StructureImageExtractor {
 		        		double distance1=n1.getPoint().distance(cp);
 		        		double distance2=n2.getPoint().distance(cp);
 		        		double sumd=distance1+distance2;
-		        		double ddelta=Math.abs(sumd-e.getBondDistance());
+		        		double ddelta=Math.abs(sumd-e.getBondLength());
 		        		if(ddelta<MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC){
 		        			toRemove.add(cn);
 		        		}
@@ -407,7 +695,7 @@ public class StructureImageExtractor {
 	        tooLongBond = ctab.getEdges()
 	        		          .stream()
 	        	//	          .peek(e->System.out.println(e.getBondDistance()))
-	        		          .filter(e->e.getBondDistance()>maxBondLength[0])
+	        		          .filter(e->e.getBondLength()>maxBondLength[0])
 	        		          .findAny()
 	        		          .isPresent();
 	        if(tooLongBond){
@@ -488,7 +776,7 @@ public class StructureImageExtractor {
         		//if it isn't, then skip this one, it's probably fine.
         		boolean tooSmallBond=n.getEdges()
         				              .stream()
-						              .mapToDouble(e->e.getBondDistance())
+						              .mapToDouble(e->e.getBondLength())
 						              .filter(d->d<avgbond*PROBLEM_BOND_LENGTH_RATIO)
 						              .findAny()
 						              .isPresent();
@@ -568,7 +856,7 @@ public class StructureImageExtractor {
                    
                     if(nmap!=null && nthinmap!=null){
 	                    
-	                	List<Tuple<Character,Number>> potential = OCR.getNBestMatches(4,
+	                	List<Tuple<Character,Number>> potential = socr[0].getNBestMatches(4,
 		                		nmap.createRaster(),
 		                		nthinmap.createRaster()
 		                        )
@@ -625,7 +913,7 @@ public class StructureImageExtractor {
                 	Bitmap nthinmap=thin.crop(nshape);
                 	if(nmap!=null && nthinmap!=null){
 	                    
-	                	List<Tuple<Character,Number>> potential = OCR.getNBestMatches(4,
+	                	List<Tuple<Character,Number>> potential = socr[0].getNBestMatches(4,
 		                		nmap.createRaster(),
 		                		nthinmap.createRaster()
 		                        )
@@ -904,6 +1192,10 @@ public class StructureImageExtractor {
 
 	public ConnectionTable getCtabRaw() {
 		return this.ctabRaw;
+	}
+
+	public Map<Shape,ShapeInfo> getShapeTypes() {
+		return shapeTypes;
 	}
 
 	

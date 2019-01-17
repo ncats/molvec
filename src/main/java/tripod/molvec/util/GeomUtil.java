@@ -90,7 +90,7 @@ public class GeomUtil {
         if (pts.length < 3) {
             Polygon poly = new Polygon ();
             for (Point2D pt : pts) {
-                poly.addPoint ((int) (pt.getX () + .5), (int) (pt.getY () + .5));
+            	poly.addPoint ((int) (pt.getX () + .5), (int) (pt.getY () + .5));
             }
             return poly;
         }
@@ -174,6 +174,7 @@ public class GeomUtil {
             }
             hull.addPoint ((int) (pt.getX () + .5), (int) (pt.getY () + .5));
         }
+        
 
         return hull;
     }
@@ -848,6 +849,81 @@ public class GeomUtil {
 		return l.getP1().distance(l.getP2());
 	}
 
+
+	private static class LineWrapper{
+		private Line2D line;
+		private double[] vec = null;
+		private double len = 0;
+		private double rlen = 0;
+		private double[] cvec= null;
+		private double[] offset = null;
+		
+		private boolean process=false;
+		
+		public Line2D getLine(){
+			return this.line;
+		}
+		
+		public LineWrapper process(){
+			if(process)return this;
+			vec=asVector(line);
+			len=l2Norm(vec);
+			rlen=1/len;
+			cvec = asVector(findCenterOfShape(line));
+			offset= negate(asVector(line.getP1()));
+			process=true;
+			return this;
+		}
+		
+		public double cosTheta(LineWrapper lw2){
+			double d=dot(this.vector(), lw2.vector());
+			return d*this.rlen*lw2.rlen;
+		}
+		
+		public double centerRejection(LineWrapper lw2){
+			double[] l1center=this.centerVector();
+			double[] offset = this.offset();
+			double[] l2center=lw2.centerVector();
+			double[] sVec=addVectors(l1center,offset);
+			double[] rVec=addVectors(l2center,offset);
+			return rejection(sVec,rVec);
+		}
+		
+		public double projectionOffset(Point2D p){
+			double[] pvec = asVector(p);
+			double[] nvec = addVectors(pvec,this.offset());
+			return dot(vector(),nvec)*this.recipLength();
+		}
+		
+		public double[] vector(){
+			process();
+			return this.vec;
+		}
+		public double length(){
+			process();
+			return this.len;
+		}
+		public double recipLength(){
+			process();
+			return this.rlen;
+		}
+		public double[] offset(){
+			process();
+			return this.offset;
+		}
+		public double[] centerVector(){
+			process();
+			return this.cvec;
+		}
+		public LineWrapper(Line2D l){
+			this.line=l;
+		}
+		public static LineWrapper of(Line2D l){
+			return new LineWrapper(l);
+		}
+	}
+	
+	
 	/**
 		 * <p>Currently, this method takes in a set of lines and attempts to group the lines based on being</p>
 		 * <ol>
@@ -865,94 +941,53 @@ public class GeomUtil {
 		 * @param minLargerProjectionRatio
 		 * @return
 		 */
+		
 		public static List<List<Line2D>> groupMultipleBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio, double minLargerProjectionRatio){
-			double[] recipLengths=new double[lines.size()];
-			Map<Integer,Integer> groups = new HashMap<>();
-			for(int i=0;i<lines.size();i++){
-				Line2D line=lines.get(i);
-				recipLengths[i]=1.0/line.getP1().distance(line.getP2());
-				groups.put(i, i);
-			}
+			
+
 			double cosThetaCutoff=Math.cos(maxDeltaTheta);
 			
+			List<LineWrapper> lws=lines.stream().map(l->LineWrapper.of(l)).collect(Collectors.toList());
 			
-			//So, this will be an n^2 operation
-			for(int i=0;i<lines.size();i++){
-				Line2D line1=lines.get(i);
-				double[] vec1=asVector(line1);
-				for(int j=i+1;j<lines.size();j++){
-					Line2D line2=lines.get(j);
-					double[] vec2=asVector(line2);
-					double dot=vec1[0]*vec2[0]+vec1[1]*vec2[1];
-					double cosTheta=Math.abs(dot*recipLengths[i]*recipLengths[j]);
-					//Sufficiently parallel
-					if(cosTheta>cosThetaCutoff){
-						double[] vec2Off = new double[2];
-						vec2Off[0] = (line2.getX1()+line2.getX2())/2 -line1.getX1();
-						vec2Off[1] = (line2.getY1()+line2.getY2())/2 -line1.getY1();
-						double antiDot=(vec2Off[0]*vec1[1]-vec2Off[1]*vec1[0]);
-						double rej=Math.abs(antiDot*recipLengths[i]);
-						//Sufficiently close to line
-						if(rej<maxDeltaOffset){
-							
-							double len1=1/recipLengths[i];
-							double proj1=0;
-							double proj2=0;
-							vec2Off[0] = line2.getX1() -line1.getX1();
-							vec2Off[1] = line2.getY1() -line1.getY1();
-							proj1=(vec2Off[0]*vec1[0]+vec2Off[1]*vec1[1])*recipLengths[i];
-							vec2Off[0] = line2.getX2() -line1.getX1();
-							vec2Off[1] = line2.getY2() -line1.getY1();
-							proj2=(vec2Off[0]*vec1[0]+vec2Off[1]*vec1[1])*recipLengths[i];
-							
-							if(proj1<0)proj1=0;
-							if(proj1>len1){
-								proj1=len1;
-							}
-							if(proj2<0)proj2=0;
-							if(proj2>len1){
-								proj2=len1;
-							}
-							double intersectLength=Math.abs(proj1-proj2);
-							double cutoffRat1=Math.max(recipLengths[i], recipLengths[j]);
-							double cutoffRat2=Math.min(recipLengths[i], recipLengths[j]);
-							if(intersectLength*cutoffRat1>minProjectionRatio 
-									&& intersectLength*cutoffRat2>minLargerProjectionRatio
-									){
-	//							System.out.println("WORKED");
-	//							System.out.println((intersectLength*cutoffRat1) + " >? " + minProjectionRatio);
-	//							System.out.println((intersectLength*cutoffRat2) + " >? " + minLargerProjectionRatio);
-								int g1=groups.get(i);
-								int g2=groups.get(j);
-								groups.put(i, Math.min(g1, g2));
-								groups.put(j, Math.min(g1, g2));
-							}else{
-	//							System.out.println("Didn't work");
-	//							System.out.println((intersectLength*cutoffRat1) + " >? " + minProjectionRatio);
-	//							System.out.println((intersectLength*cutoffRat2) + " >? " + minLargerProjectionRatio);
-							}
+			return GeomUtil.groupThings(lws, (lt)->{
+				LineWrapper line1=lt.k();
+				LineWrapper line2=lt.v();
+								
+				
+				if(Math.abs(line1.cosTheta(line2))>cosThetaCutoff){
+					double rej = Math.abs(line1.centerRejection(line2));
+					if(rej<maxDeltaOffset){
+						if(minProjectionRatio<=0 && minLargerProjectionRatio<=0)return true;
+						double proj1=line1.projectionOffset(line2.getLine().getP1());
+						double proj2=line1.projectionOffset(line2.getLine().getP2());
+						
+						if(proj1<0)proj1=0;
+						if(proj1>line1.length()){
+							proj1=line1.length();
 						}
-					}else{
-	//					System.out.println("Not par");
-	//					System.out.println((cosTheta) + " >? " + cosThetaCutoff);
+						if(proj2<0)proj2=0;
+						if(proj2>line1.length()){
+							proj2=line1.length();
+						}
+						double intersectLength=Math.abs(proj1-proj2);
+						double cutoffRat1=Math.max(line1.recipLength(), line2.recipLength());
+						double cutoffRat2=Math.min(line1.recipLength(), line2.recipLength());
+						if(        intersectLength*cutoffRat1>minProjectionRatio 
+								&& intersectLength*cutoffRat2>minLargerProjectionRatio
+								){
+							return true;
+						}
 					}
 				}
-			}
-			
-			return groups.entrySet().stream()
-			      .map(Tuple::of)
-			      .map(Tuple.kmap(i->lines.get(i)))
-			      .map(t->t.swap())
-			      .collect(Tuple.toGroupedMap())
-			      .entrySet()
-			      .stream()
-			      .map(Tuple::of)
-			      .map(t->t.v())
-			      .collect(Collectors.toList());
-			
+				return false;
+			})
+			.stream()
+			.map(l->l.stream().map(lw->lw.getLine()).collect(Collectors.toList()))
+			.collect(Collectors.toList());		
 			
 		}
-
+		
+		
 	/**
 	 * This method, like {@link #groupMultipleBonds(List, double, double, double, double)}, attempts to group bonds, but also 
 	 * goes one step further to select the longest line from each group while also returning the count of lines
@@ -1002,6 +1037,7 @@ public class GeomUtil {
 						           ))
 				.collect(Collectors.toList());
 	}
+	
 	
 	
 	public static List<Line2D> stitchEdgesInMultiBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio, double minLargerProjectionRatio, double maxStitchLineDistanceDelta){
@@ -1398,6 +1434,25 @@ public class GeomUtil {
 //		
 //		
 //	}
+	
+	public static double areaTriangle(Point2D p1, Point2D p2, Point2D p3){
+		//base x height
+		//base x rejection of non-base onto base
+		double[] vp1=asVector(p1);
+		double[] vp2=asVector(p2);
+		double[] vp3=asVector(p3);
+		vp2=addVectors(vp2,negate(vp1));
+		vp3=addVectors(vp3,negate(vp1));
+		return orthoDot(vp2,vp3)/2;
+		
+	}
+	
+	public static double areaTriangle(Shape s){
+		Point2D[] pts=vertices(s);
+		if(pts.length!=3)throw new IllegalStateException("Triangles must have 3 points");
+		return areaTriangle(pts[0],pts[1],pts[2]);
+		
+	}
 	
 	
 	public static double area(Shape s){

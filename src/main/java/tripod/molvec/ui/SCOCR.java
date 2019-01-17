@@ -42,6 +42,23 @@ public abstract class SCOCR {
 		}
 		return toRet;
 	}
+	
+	public static Set<Character> SET_COMMON_PUCTUATION() {
+		Set<Character> toRet = new LinkedHashSet<Character>();
+		toRet.add('.');
+		toRet.add('!');
+		toRet.add('?');
+		toRet.add(',');
+		toRet.add('-');
+		toRet.add('\'');
+		toRet.add('$');
+		toRet.add(')');
+		toRet.add('(');
+		toRet.add('"');
+		toRet.add('/');
+		toRet.add('\\');
+		return toRet;
+	}
 
 	public static Set<Character> SET_NUMERIC() {
 		Set<Character> toRet = new LinkedHashSet<Character>();
