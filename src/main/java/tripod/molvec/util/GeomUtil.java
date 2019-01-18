@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Stack;
 import java.util.function.Predicate;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -50,7 +51,7 @@ public class GeomUtil {
 
     public static double ccw (Point2D p1, Point2D p2, Point2D p3) {
         return (p2.getX () - p1.getX ()) * (p3.getY () - p1.getY ())
-            - (p2.getY () - p1.getY ()) * (p3.getX () - p1.getX ());
+             - (p2.getY () - p1.getY ()) * (p3.getX () - p1.getX ());
     }
 
     public static double angle (Point2D p0, Point2D p1) {
@@ -165,6 +166,19 @@ public class GeomUtil {
         }
 
         Polygon hull = new Polygon ();
+        int px=Integer.MIN_VALUE;
+        int py=Integer.MIN_VALUE;
+        
+        boolean hasDelta=false;
+        boolean hasPrevious=false;
+        
+        int pdx=Integer.MIN_VALUE;
+        int pdy=Integer.MIN_VALUE;
+        int rej=0;
+        boolean error=false;
+        
+        Stack<int[]> pointsToAdd = new Stack<int[]>();
+        
         for (ListIterator<Point2D> it = stack.listIterator (stack.size ());
              it.hasPrevious (); ) {
             Point2D pt = it.previous ();
@@ -172,8 +186,56 @@ public class GeomUtil {
             if (DEBUG) {
                 System.err.println (" " + pt);
             }
-            hull.addPoint ((int) (pt.getX () + .5), (int) (pt.getY () + .5));
+            int nx= (int) (pt.getX () + .5);
+            int ny= (int) (pt.getY () + .5);
+            
+            
+            if(hasPrevious && (nx==px && ny==py)){
+            	
+            }else{
+
+            	int ndx=nx-px;
+        		int ndy=ny-py;
+        		
+            	
+            	if(hasDelta){
+            		int nrej = (int)Math.signum(ndx*pdy - ndy*pdx);
+            		
+            		if(nrej==0){
+            			pointsToAdd.pop();
+            		}else{
+	            		if(rej!=0){
+	            			if(rej!=nrej){
+	            				error=true;
+	            			}
+	            		}
+	            		rej=nrej;
+            		}
+            	}
+           		pointsToAdd.push(new int[]{nx,ny});
+           		
+       			if(hasPrevious){
+            		pdx=ndx;
+            		pdy=ndy;
+            		hasDelta=true;
+            	}
+                px=nx;
+                py=ny;
+                hasPrevious=true;
+            }
         }
+        for(int[] xy : pointsToAdd){
+        	hull.addPoint(xy[0], xy[1]);
+        }
+    	
+        if(error){
+        	System.err.println("Not hull:" + Arrays.toString(pts));
+        	System.err.println("Not hull:" + Arrays.toString(vertices(hull)));
+        	//TODO: There must be a bug in this code, because this should never get called, but it is called sometimes.
+        	
+        	hull= convexHull(vertices(hull));
+        }
+        
         
 
         return hull;
@@ -1335,7 +1397,12 @@ public class GeomUtil {
 		
 		List<Point2D> ips=GeomUtil.getAllIntersections(s, l);
 		if(ips.isEmpty())return Arrays.asList(l);
-		if(ips.size()>2)throw new IllegalStateException("Line should not intersect with convex hull more than twice, maybe the shape isn't a convux hull?");
+		if(ips.size()>2){
+			System.out.println("Line:" + l);
+			System.out.println("Shape:" + Arrays.toString(vertices(s)));
+			System.out.println("Shape:" + Arrays.toString(vertices(convexHull(vertices(s)))));
+			throw new IllegalStateException("Line should not intersect with convex hull more than twice, maybe the shape isn't a convux hull?");
+		}
 		
 		
 		Point2D ip1 = ips.get(0);
