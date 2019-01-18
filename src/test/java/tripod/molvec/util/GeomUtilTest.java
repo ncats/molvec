@@ -4,14 +4,12 @@ import static org.junit.Assert.assertEquals;
 import static tripod.molvec.util.GeomUtil.area;
 import static tripod.molvec.util.GeomUtil.areaTriangle;
 import static tripod.molvec.util.GeomUtil.convexHull;
+import static tripod.molvec.util.GeomUtil.shapeFromVertices;
 import static tripod.molvec.util.GeomUtil.vertices;
-import static tripod.molvec.util.GeomUtil.*;
 
 import java.awt.Shape;
 import java.awt.geom.AffineTransform;
-import java.awt.geom.GeneralPath;
 import java.awt.geom.Line2D;
-import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,6 +20,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import tripod.molvec.algo.Tuple;
@@ -289,6 +288,36 @@ public class GeomUtilTest {
     	assertEquals(50,0, area(is));
     	
     	
+    	
+    }
+    
+    @Test
+    public void convexHullShouldEliminateInnerPointsTest(){
+		double[] coords = new double[] { 	2,  2,
+											2,  2,
+											10, 0,
+											0, 0, 
+			 								0, 0,
+			 								0, 10,
+			 								0, 10.002,
+			 								0, 10};
+		
+		int[] icoords = Arrays.stream(coords).mapToInt(d->(int)(d+0.5)).toArray(); 
+		
+		Point2D[] pts = new Point2D[coords.length/2];
+		for(int i=0;i<icoords.length;i+=2){
+			pts[i/2]=new Point2D.Double(icoords[i], icoords[i+1]);
+		}
+		Shape s= convexHull(pts);
+		System.out.println(Arrays.toString(vertices(s)));
+		
+		for(Point2D p : pts){
+			Assert.assertTrue(GeomUtil.distanceTo(s,p)<0.001);
+		}
+		Assert.assertTrue(s.contains(3, 3));
+		
+		
+		
     	
     }
     @Test
