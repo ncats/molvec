@@ -985,6 +985,13 @@ public class StructureImageExtractor {
         List<List<Shape>> ocrGroupList=GeomUtil.groupShapesIfClosestPointsMatchCriteria(likelyOCRAll, t->{
         	Point2D[] pts=t.v();
         	Shape[] shapes =t.k();
+        	String v1=(ocrAttmept.get(shapes[0]).get(0).k() + "");
+        	String v2=(ocrAttmept.get(shapes[1]).get(0).k() + "");
+        	if(v1.equals("\\") || v1.equals("/") || 
+        	   v2.equals("\\") || v2.equals("/")){
+        		return false;
+        	}
+        	
         	Line2D l2 = new Line2D.Double(pts[0],pts[1]);
         	double dist=GeomUtil.length(l2);
         	double cutoff=ctab.getAverageBondLength()*MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING;

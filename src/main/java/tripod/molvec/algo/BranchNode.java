@@ -261,6 +261,7 @@ class BranchNode{
 			return interpretOCRStringAsAtom(s.replace("0", "O"),tokenOnly);
 		}
 		
+		
 		try{
 			int r=Integer.parseInt(s);
 			if(r>0){
