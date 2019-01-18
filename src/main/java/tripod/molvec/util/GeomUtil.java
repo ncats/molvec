@@ -229,9 +229,11 @@ public class GeomUtil {
         }
     	
         if(error){
-        	System.err.println("Not hull:" + Arrays.toString(pts));
-        	System.err.println("Not hull:" + Arrays.toString(vertices(hull)));
         	//TODO: There must be a bug in this code, because this should never get called, but it is called sometimes.
+        	
+//        	System.err.println("Not hull:" + Arrays.toString(pts));
+//        	System.err.println("Not hull:" + Arrays.toString(vertices(hull)));
+
         	
         	hull= convexHull(vertices(hull));
         }

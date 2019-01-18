@@ -567,8 +567,21 @@ public class StructureImageExtractor {
         		likelyOCR.remove(s);
         		likelyOCRAll.remove(s);
         	}
-        	System.out.println(st);
+        	//System.out.println(st);
         }
+//        
+//        GeomUtil.groupThings(shapeTypes.values().stream().collect(Collectors.toList()), (tm)->{
+//        	ShapeInfo st1=tm.k();
+//        	ShapeInfo st2=tm.v();
+//        	
+//        	double my1=st1.s.getBounds2D().getMinY();
+//        	double my2=st2.s.getBounds2D().getMinY();
+//        	
+//        	
+//        	
+//        	
+//        	return true;
+//        });
         
         
         
@@ -915,20 +928,20 @@ public class StructureImageExtractor {
                 	likelyOCR.stream()
 								                    .map(s->Tuple.of(s,GeomUtil.getIntersectionShape(nshape, s)))
 								                    .filter(os->os.v().isPresent())
-								                    .peek(t->{
-								                    	System.out.println("Overlap:" + ocrAttmept.get(t.k()).stream().findFirst().get().k());
-								                    })
+//								                    .peek(t->{
+//								                    	System.out.println("Overlap:" + ocrAttmept.get(t.k()).stream().findFirst().get().k());
+//								                    })
 								                    .map(Tuple.vmap(os->os.get()))
 								                    .map(Tuple.vmap(s->GeomUtil.area(s)))
 								                    .map(Tuple.kmap(s->GeomUtil.area(s)))
 								                    .mapToDouble(t->t.v()/t.k())
-								                    .peek(area->System.out.println(area))
+//								                    .peek(area->System.out.println(area))
 								                    .filter(areaFraction->areaFraction>0.5)
 								                    .findAny()
 								                    .isPresent();
                 	
                 	if(sigOverlap){
-                		System.out.println("Sig overlap");
+                		
                 		return;
                 	}
                 	//if(ctab.getNodesInsideShape(nshape, 0).isEmpty())return;
@@ -1032,7 +1045,7 @@ public class StructureImageExtractor {
         
         List<Shape> ocrMeaningful=bestGuessOCR.keySet()
 				   .stream()
-				   .peek(t->System.out.println(bestGuessOCR.get(t)))
+//				   .peek(t->System.out.println(bestGuessOCR.get(t)))
 				   .filter(s->BranchNode.interpretOCRStringAsAtom(bestGuessOCR.get(s))!=null)
 				   .collect(Collectors.toList());
         
@@ -1087,7 +1100,7 @@ public class StructureImageExtractor {
         
         
         ctab.makeMissingBondsToNeighbors(bitmap,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MAX_TOLERANCE_FOR_SINGLE_BONDS,likelyOCR,OCR_TO_BOND_MAX_DISTANCE, (t)->{
-        	System.out.println("Tol found for add:" + t.k());
+//        	System.out.println("Tol found for add:" + t.k());
         	if(t.k()>MAX_TOLERANCE_FOR_SINGLE_BONDS){
         		t.v().setDashed(true);
         	}
@@ -1101,7 +1114,7 @@ public class StructureImageExtractor {
         GeomUtil.groupShapesIfClosestPointsMatchCriteria(likelyOCR, (t)->{
         	
         	Point2D[] pts=t.v();
-        	if(pts[0].distance(pts[1])<ctab.getAverageBondLength()*.8){
+        	if(pts[0].distance(pts[1])<ctab.getAverageBondLength()){
         		//It should also have at least 1 line segment between the two
         		Shape cshape = GeomUtil.add(t.k()[0], t.k()[1]);
         		boolean containsLine=lj.stream()
@@ -1109,7 +1122,6 @@ public class StructureImageExtractor {
         							   .findAny()
         							   .isPresent();
         		if(containsLine){
-	        		System.out.println("Probably connected");
 	        		return true;
         		}else{
         			return false;
@@ -1125,7 +1137,7 @@ public class StructureImageExtractor {
         	  .flatMap(nds->nds.stream())
         	  .distinct()
         	  .collect(Collectors.toList());
-        	System.out.println("nodes:" + nodes.size());
+        	//System.out.println("nodes:" + nodes.size());
         	if(nodes.size()==2){
         		Node n1=nodes.get(0);
         		Node n2=nodes.get(1);
@@ -1158,7 +1170,7 @@ public class StructureImageExtractor {
         	    												 .collect(Collectors.toList());
         	    	
         	    	if(things.size()>0){
-        	    		System.out.println("Triangle found");
+        	    		//System.out.println("Triangle found");
         	    		Point2D p1=n1.getPoint();
 	        	    	Point2D p2=n2.getPoint();
 	        	    	Point2D p3=things.get(0).k().getPoint();
@@ -1167,7 +1179,7 @@ public class StructureImageExtractor {
 	        	    	
 	        	    	double expected = Math.sqrt(3)/4*Math.pow(e.getBondLength(),2);
 	        	    	if(tarea<expected*0.5){
-	        	    		System.out.println("It's a bad one");
+	        	    		//System.out.println("It's a bad one");
 	        	    		ctab.removeEdge(e);
 	        	    	}else{
 	        	    		things.stream()
@@ -1208,7 +1220,7 @@ public class StructureImageExtractor {
         	String sym=bestGuessOCR.get(s);
         	BranchNode actual=BranchNode.interpretOCRStringAsAtom(sym);
         	if(actual!=null && actual.isRealNode()){
-        		System.out.println(actual.toString());
+        		//System.out.println(actual.toString());
         		List<Node> nlist=ctab.setNodeToSymbol(s, actual.getSymbol());
         		
         		if(nlist.size()==1){
