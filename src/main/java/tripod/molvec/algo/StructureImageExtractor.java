@@ -103,7 +103,13 @@ public class StructureImageExtractor {
 	
 	private final double MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING=0.3;
 	private final double MAX_THETA_FOR_OCR_SEPERATION=45 * Math.PI/180.0;
-	private final double MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.5;
+	
+	
+	//This number is likely one of the most important to adjust.
+	//It may have to have some changes done to the algorithm using it too
+	private final double MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.42;
+	
+	
 	private final double MIN_LONGEST_WIDTH_RATIO_FOR_OCR_TO_AVERAGE=0.7;
 	
 	//For finding high order bonds
@@ -969,6 +975,7 @@ public class StructureImageExtractor {
 		                }
                     }
                 });
+
         
         
         ctab.mergeNodesExtendingTo(likelyOCR,0.5);
@@ -1040,7 +1047,9 @@ public class StructureImageExtractor {
 	        	
 	        	
 	        });
-        
+
+        ctab.standardCleanEdges();
+        ctabRaw=ctab.cloneTab();
 
         
         List<Shape> ocrMeaningful=bestGuessOCR.keySet()
@@ -1054,6 +1063,8 @@ public class StructureImageExtractor {
         	BranchNode actual=BranchNode.interpretOCRStringAsAtom(sym);
         	if(actual!=null && actual.isRealNode()){
         		Point2D center = GeomUtil.findCenterOfShape(s);
+        		
+        		//This is likely the source of lots of problems
         		ctab.mergeAllNodesInside(s, MAX_BOND_RATIO_FOR_MERGING_TO_OCR*ctab.getAverageBondLength(),(n)->{
         			if(sym.equals("H")){
         				if(GeomUtil.findClosestShapeTo(ocrMeaningful, n.getPoint()).k() !=s){
@@ -1081,23 +1092,7 @@ public class StructureImageExtractor {
         		});
         	}
         }
-        ctab.cleanMeaninglessEdges();
-        ctab.cleanDuplicateEdges((e1,e2)->{
-        	if(e1.getOrder()>e2.getOrder()){
-        		return e1;
-        	}else if(e1.getOrder()>e2.getOrder()){
-        		return e2;
-        	}else{
-        		if(e1.getDashed())return e2;
-        		if(e2.getDashed())return e1;
-        		if(e1.getWedge())return e1;
-        		if(e2.getWedge())return e2;
-        	}
-        	return e1;
-        });
-        
-        
-        
+        ctab.standardCleanEdges();
         
         ctab.makeMissingBondsToNeighbors(bitmap,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MAX_TOLERANCE_FOR_SINGLE_BONDS,likelyOCR,OCR_TO_BOND_MAX_DISTANCE, (t)->{
 //        	System.out.println("Tol found for add:" + t.k());
@@ -1114,7 +1109,7 @@ public class StructureImageExtractor {
         GeomUtil.groupShapesIfClosestPointsMatchCriteria(likelyOCR, (t)->{
         	
         	Point2D[] pts=t.v();
-        	if(pts[0].distance(pts[1])<ctab.getAverageBondLength()){
+        	if(pts[0].distance(pts[1])<ctab.getAverageBondLength()*.8){
         		//It should also have at least 1 line segment between the two
         		Shape cshape = GeomUtil.add(t.k()[0], t.k()[1]);
         		boolean containsLine=lj.stream()

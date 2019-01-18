@@ -229,6 +229,24 @@ public class ConnectionTable{
 		return this;
 	}
 	
+	public ConnectionTable standardCleanEdges(){
+		this.cleanMeaninglessEdges();
+        this.cleanDuplicateEdges((e1,e2)->{
+        	if(e1.getOrder()>e2.getOrder()){
+        		return e1;
+        	}else if(e1.getOrder()>e2.getOrder()){
+        		return e2;
+        	}else{
+        		if(e1.getDashed())return e2;
+        		if(e2.getDashed())return e1;
+        		if(e1.getWedge())return e1;
+        		if(e2.getWedge())return e2;
+        	}
+        	return e1;
+        });
+        return this;
+	}
+	
 	public ConnectionTable cleanDuplicateEdges(BinaryOperator<Edge> combiner){
 		edges=edges.stream().map(e->e.standardize())
 		              .map(e->Tuple.of(e,e.n1+"_" + e.n2))

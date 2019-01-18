@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -18,6 +19,10 @@ public class RegressionTest {
 		CORRECT,
 		LARGEST_FRAGMENT_CORRECT,
 		WEIRD_SOURCE,
+		ATOMS_RIGHT_WRONG_BONDS,
+		LARGEST_FRAGMENT_ATOM_RIGHT_WRONG_BONDS,
+		ATOM_COUNT_BOND_COUNT_RIGHT_WRONG_LABELS_OR_CONNECTIVITY,
+		LARGEST_FRAGMENT_ATOM_COUNT_BOND_COUNT_RIGHT_WRONG_LABELS_OR_CONNECTIVITY,
 		RIGHT_HEVAY_ATOMS,
 		RIGHT_BONDS,
 		LARGEST_FRAGMENT_RIGHT_BONDS,
@@ -34,6 +39,7 @@ public class RegressionTest {
 	}
 	
 	
+	
 	public static Result testMolecule(File image, File sdf){
 		
 		try{
@@ -46,20 +52,40 @@ public class RegressionTest {
 			sie.load(image);
 			Chemical c=sie.getChemical();
 			
+			c1.makeHydrogensImplicit();
+			c.makeHydrogensImplicit();
+			
+			int ratomCount=c1.getAtomCount();
+			int iatomCount=c.getAtomCount();
+			
+			int rbondCount=c1.getBondCount();
+			int ibondCount=c.getBondCount();
+			
+			
 			String smilesReal=c1.toSmiles();
 			String smilesFound=c.toSmiles();
+			
+			String formReal=c1.getFormula();
+			String formFound=c.getFormula();
 			
 			System.out.println("Real:" + c1.toSmiles());
 			System.out.println("Image:" + c.toSmiles());
 			
+			if(smilesFound.equals("")){
+				return Result.FOUND_NOTHING;
+			}
 			
-			if(c1.getFormula().equals(c.getFormula())){
-				System.out.println("Matched!");
+			if(formReal.equals(formFound)){
+				//System.out.println("Matched!");
 				return Result.CORRECT;
 			}else{
-				if(smilesFound.equals("")){
-					return Result.FOUND_NOTHING;
+				String withoutHydrogensReal =formReal.replaceAll("H[0-9]*", "");
+				String withoutHydrogensFound=formFound.replaceAll("H[0-9]*", "");
+				
+				if(withoutHydrogensReal.equals(withoutHydrogensFound)){
+					return Result.ATOMS_RIGHT_WRONG_BONDS;
 				}
+				
 				if(smilesReal.contains(".") || smilesFound.contains(".") ){
 					String largestR=Arrays.stream(smilesReal.split("[.]"))
 					      .map(t->Tuple.of(t,t.length()).withVComparator())
@@ -78,15 +104,32 @@ public class RegressionTest {
 						System.out.println("LARGEST MATCHED!");
 						return Result.LARGEST_FRAGMENT_CORRECT;
 					}
+					String fragwHReal =clargestR.getFormula().replaceAll("H[0-9]*", "");
+					String fragwHFound=clargestF.getFormula().replaceAll("H[0-9]*", "");
+					
+					if(fragwHReal.equals(fragwHFound)){
+						return Result.LARGEST_FRAGMENT_ATOM_RIGHT_WRONG_BONDS;
+					}
+					clargestR.makeHydrogensImplicit();
+					clargestF.makeHydrogensImplicit();
+					
+					int fratomCount=clargestR.getAtomCount();
+					int fiatomCount=clargestF.getAtomCount();
+					
+					int frbondCount=clargestR.getBondCount();
+					int fibondCount=clargestF.getBondCount();
+					if(fratomCount==fiatomCount && frbondCount == fibondCount){
+						return Result.LARGEST_FRAGMENT_ATOM_COUNT_BOND_COUNT_RIGHT_WRONG_LABELS_OR_CONNECTIVITY;
+					}
 				}
 				if(smilesReal.contains("|")){
 					return Result.WEIRD_SOURCE;
 				}
+				if(ratomCount==iatomCount && rbondCount == ibondCount){
+					return Result.ATOM_COUNT_BOND_COUNT_RIGHT_WRONG_LABELS_OR_CONNECTIVITY;
+				}
 				
-				
-				
-				
-				System.out.println("NO MATCH!");
+				//System.out.println("NO MATCH!");
 				return Result.INCORRECT;
 			}
 		}catch(Exception e){
@@ -108,6 +151,7 @@ public class RegressionTest {
 		      .values()
 		      .stream()
 		      .filter(l->l.size()==2)
+		      
 		      .map(l->{
 		    	  	if(!l.get(0).getName().endsWith("sdf")){
 		    	  		List<File> flist = new ArrayList<File>();
@@ -124,9 +168,10 @@ public class RegressionTest {
 		      .map(t->t.swap())
 		      .collect(Tuple.toGroupedMap())
 		      .forEach((r,fl)->{
+		    	  System.out.println("======================================");
+		    	  System.out.println(r.toString() + "\t" + fl.size());
 		    	  System.out.println("--------------------------------------");
-		    	  System.out.println("RESULT:" + r.toString());
-		    	  System.out.println("COUNT:" + fl.size());
+		    	  System.out.println(fl.stream().map(f->f.get(1).getAbsolutePath()).collect(Collectors.joining("\n")));
 		      });
 	}
 	
