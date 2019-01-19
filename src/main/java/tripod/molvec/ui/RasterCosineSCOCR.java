@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.imageio.ImageIO;
 
-public class RasterCosineSCOCR extends SCOCR {
+public class RasterCosineSCOCR implements SCOCR {
 	Set<Character> _alphabet;
 	Map<Character, Collection<int[][]>> charVal = new HashMap<Character, Collection<int[][]>>();
 	Map<Character, Double> WH_RATIO = new HashMap<Character, Double>();

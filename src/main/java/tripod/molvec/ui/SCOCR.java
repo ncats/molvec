@@ -25,7 +25,7 @@ import java.util.Set;
  * 
  * 
  */
-public abstract class SCOCR {
+public interface SCOCR {
 
 	public static Set<Character> SET_ALPHA_UPPER() {
 		Set<Character> toRet = new LinkedHashSet<Character>();
@@ -103,7 +103,7 @@ public abstract class SCOCR {
 		return toRet;
 	}
 
-	private static Map<Character, Number> bestOf(Map<Character, Number>... map) {
+	public static Map<Character, Number> bestOf(Map<Character, Number>... map) {
 		for (char c : map[0].keySet()) {
 			double largest = map[0].get(c).doubleValue();
 			for (int i = 1; i < map.length; i++) {
@@ -113,7 +113,8 @@ public abstract class SCOCR {
 		}
 		return map[0];
 	}
-	private static List<Entry<Character, Number>> sortMap(
+	
+	public static List<Entry<Character, Number>> sortMap(
 			Map<Character, Number> rmap) {
 		List<Entry<Character, Number>> ranks = new ArrayList<Entry<Character, Number>>(
 				rmap.entrySet());
@@ -129,8 +130,8 @@ public abstract class SCOCR {
 	}
 
 	//Setters:
-	public abstract void setAlphabet(Set<Character> charSet);
-	public void setAlphabet(String alphaString) {
+	public void setAlphabet(Set<Character> charSet);
+	public default void setAlphabet(String alphaString) {
 		Set<Character> toRet = new LinkedHashSet<Character>();
 		for (char c : alphaString.toCharArray()) {
 			toRet.add(c);
@@ -139,12 +140,12 @@ public abstract class SCOCR {
 	}
 	
 	//Getters:
-	public abstract Set<Character> getAlphabet();
-	public abstract Map<Character, Number> getRanking(Raster r);
-	public Entry<Character, Number> getBestMatch(Raster... r) {
+	public Set<Character> getAlphabet();
+	public Map<Character, Number> getRanking(Raster r);
+	public default Entry<Character, Number> getBestMatch(Raster... r) {
 		return getNBestMatches(1, r).get(0);
 	}
-	public List<Entry<Character, Number>> getNBestMatches(int n, Raster... r) {
+	public default List<Entry<Character, Number>> getNBestMatches(int n, Raster... r) {
 		Map[] g = new Map[r.length];
 		for (int i = 0; i < r.length; i++) {
 			g[i] = getRanking(r[i]);
@@ -156,6 +157,55 @@ public abstract class SCOCR {
 		}
 		return retRanks;
 	}
+	
+	public static class OrElseSCOCR implements SCOCR{
+		private double keepCutoff =0.6;
+		
+		List<SCOCR> scocrList = new ArrayList<>();
+		
+		
+		public OrElseSCOCR(List<SCOCR> scocrlist, double c){
+			this.scocrList=scocrlist;
+			keepCutoff=c;
+		}
+		
+		@Override
+		public void setAlphabet(Set<Character> charSet) {
+			for(SCOCR s:scocrList){
+				s.setAlphabet(charSet);
+			}
+		}
 
+		@Override
+		public Set<Character> getAlphabet() {
+			for(SCOCR s:scocrList){
+				return s.getAlphabet();
+			}
+			return null;
+		}
+
+		@Override
+		public Map<Character, Number> getRanking(Raster r) {
+			Map<Character, Number> res=new HashMap<>();
+			for(SCOCR s:scocrList){
+				res=s.getRanking(r);
+				boolean pres=res.values()
+				   .stream()
+				   .filter(n->n.doubleValue()>this.keepCutoff)
+				   .findAny()
+				   .isPresent();
+				if(pres)return res;
+			}
+			return res;
+		}
+	}
+	
+	public default OrElseSCOCR orElse(SCOCR backup, double cut){
+		List<SCOCR> nlist = new ArrayList<>();
+		nlist.add(this);
+		nlist.add(backup);
+		return new OrElseSCOCR(nlist,cut);
+	}
+	
 
 }

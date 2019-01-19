@@ -10,6 +10,7 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -807,16 +808,41 @@ public class ConnectionTable{
 						Point2D pt1=n1.point;
 						Point2D pt2=n2.point;
 						
-						if(t1!=null && t1.v()<ocrTol){
-							pt1=GeomUtil.closestPointOnShape(t1.k(), pt2);
+						List<Line2D> lines = new ArrayList<Line2D>();
+						lines.add(new Line2D.Double(pt1,pt2));
+						
+						
+						if(t1!=null){
+							lines=lines.stream()
+									   .map(l->GeomUtil.getLinesNotInside(l, t1.k()))
+									   .flatMap(ll->ll.stream())
+									   .collect(Collectors.toList());
 						}
-						if(t2!=null && t2.v()<ocrTol){
-							pt2=GeomUtil.closestPointOnShape(t2.k(), pt1);
+						if(t2!=null){
+							lines=lines.stream()
+									   .map(l->GeomUtil.getLinesNotInside(l, t2.k()))
+									   .flatMap(ll->ll.stream())
+									   .collect(Collectors.toList());
 						}
 						
+						
+						Line2D tline=lines.stream().map(l->Tuple.of(l,GeomUtil.length(l)).withVComparator())
+						                .max(Comparator.naturalOrder())
+						                .map(t->t.k())
+						                .orElse(null);
+						
+						
+//						if(t1!=null && t1.v()<ocrTol){
+//							pt1=GeomUtil.closestPointOnShape(t1.k(), pt2);
+//						}
+//						if(t2!=null && t2.v()<ocrTol){
+//							pt2=GeomUtil.closestPointOnShape(t2.k(), pt1);
+//						}
+//						
+//						tline=new Line2D.Double(pt1,pt2);
 						
 						Edge e= new Edge(i,j,1);
-						double score=bm.getLineLikeScore(new Line2D.Double(pt1,pt2));
+						double score=bm.getLineLikeScore(tline);
 						//System.out.println("Score:" + score);
 						if(score<tol){
 							this.edges.add(e);

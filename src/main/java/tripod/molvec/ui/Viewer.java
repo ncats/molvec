@@ -134,7 +134,10 @@ public class Viewer extends JPanel
     Map<Shape,String> bestGuessOCR=null;
     
     ConnectionTable ctab = null;
-    ConnectionTable ctabRaw = null;
+    List<ConnectionTable> ctabRaw = null;
+    
+    private int ctabIndex = 0;
+    
 
     NearestNeighbors<Shape> knn = new NearestNeighbors<Shape>
         (5, new CentroidEuclideanMetric<Shape>());
@@ -763,7 +766,9 @@ public class Viewer extends JPanel
     }
 
     void drawCTRaw(Graphics2D g2){
-    	ctabRaw.draw(g2);
+    	if(ctabRaw!=null && !ctabRaw.isEmpty()){
+    		ctabRaw.get(ctabIndex%ctabRaw.size()).draw(g2);
+    	}
     }
     
     void drawPolygons (Graphics2D g2) {
@@ -1187,7 +1192,20 @@ public class Viewer extends JPanel
             ab.setToolTipText("Show Connection Table Raw");
             ab.addActionListener(this);
             
-            
+            {
+           	 Box hbox2 = Box.createHorizontalBox();
+                hbox2.add(new JLabel ("CT Step"));
+                hbox2.add(Box.createHorizontalStrut(5));
+                JSpinner spinner2 = new JSpinner 
+                    (new SpinnerNumberModel (0, 0, 150, 1));
+                spinner2.addChangeListener(e->{
+                	viewer.ctabIndex=((Number)spinner2.getValue()).intValue();
+                	viewer.resetAndRepaint();
+                });
+                hbox2.add(spinner2);
+                hbox2.add(Box.createHorizontalGlue());
+                toolbar.add(hbox2);
+           }
             
             {
 	            toolbar.addSeparator();
@@ -1202,19 +1220,7 @@ public class Viewer extends JPanel
 	            toolbar.add(hbox);
 	        }
             
-            {
-            	 Box hbox2 = Box.createHorizontalBox();
-                 hbox2.add(new JLabel ("Segment Joins"));
-                 hbox2.add(Box.createHorizontalStrut(5));
-                 JSpinner spinner2 = new JSpinner 
-                     (new SpinnerNumberModel (5, 0, 10000, 1));
-                 spinner2.addChangeListener(e->{
-                	 Bitmap.MAX_REPS=((Number)spinner2.getValue()).intValue();
-                 });
-                 hbox2.add(spinner2);
-                 hbox2.add(Box.createHorizontalGlue());
-                 toolbar.add(hbox2);
-            }
+           
             
             
             JPanel pane = new JPanel (new BorderLayout (0, 2));

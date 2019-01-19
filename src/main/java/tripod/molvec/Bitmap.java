@@ -1507,7 +1507,7 @@ public class Bitmap implements Serializable, TiffTags {
     	if(len<1)return 0;
     	double mult=1/len;
     	
-    	int widthDistance=(int)(Math.round(len/3));
+    	int widthDistance=(int)(Math.round(len/4));
     	
     	double stepX=dx*mult;
     	double stepY=dy*mult;
@@ -1543,7 +1543,7 @@ public class Bitmap implements Serializable, TiffTags {
     	if(len<1)return 0;
     	double mult=1/len;
     	
-    	int widthDistance=(int)(Math.round(len/3));
+    	int widthDistance=(int)(Math.round(len/4));
     	
     	double stepX=dx*mult;
     	double stepY=dy*mult;

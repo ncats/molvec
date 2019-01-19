@@ -67,7 +67,7 @@ public class StructureImageExtractor {
     
     
     private ConnectionTable ctab;
-    private ConnectionTable ctabRaw;
+    private List<ConnectionTable> ctabRaw = new ArrayList<ConnectionTable>();
     
     
     private final double MAX_REPS = 10;
@@ -77,18 +77,18 @@ public class StructureImageExtractor {
     private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 0.5;
     
 
-    private final double MAX_TOLERANCE_FOR_DASH_BONDS = 3.5;
+    private final double MAX_TOLERANCE_FOR_DASH_BONDS = 3.0;
     private final double MAX_TOLERANCE_FOR_SINGLE_BONDS = 0.4;
     
 	private final double OCRcutoffCosine=0.65;
 	private final double OCRcutoffCosineRescue=0.50;
 	
-	private final double MAX_BOND_TO_AVG_BOND_RATIO_TO_KEEP = 1.5;
+	private final double MAX_BOND_TO_AVG_BOND_RATIO_TO_KEEP = 1.8;
 	private final double MIN_DISTANCE_BEFORE_MERGING_NODES = 4.0;
 	private final double maxRatioForIntersection = 1.2;
 	private final double maxPerLineDistanceRatioForIntersection = 2;
 	private final double minPerLineDistanceRatioForIntersection = 0.7;
-	private final double OCR_TO_BOND_MAX_DISTANCE=2.0;
+	private final double OCR_TO_BOND_MAX_DISTANCE=3.0;
 	private final double maxCandidateRatioForIntersection = 1.9;        
 	private final double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN = 1;
 	private final double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL = 0.5;
@@ -167,6 +167,7 @@ public class StructureImageExtractor {
      	   !"-".equalsIgnoreCase(t) &&
      	   !"/".equalsIgnoreCase(t) &&
      	   !"K".equalsIgnoreCase(t) &&
+     	   !"t".equalsIgnoreCase(t) &&
      	   !"Y".equalsIgnoreCase(t) &&
      	   !"W".equalsIgnoreCase(t) &&
      	   !"f".equals(t) &&
@@ -440,6 +441,7 @@ public class StructureImageExtractor {
     
      
     public StructureImageExtractor load(File file) throws IOException{
+    	ctabRaw.clear();
     	SCOCR[] socr=new SCOCR[]{OCR_DEFAULT};
     	
     	double[] maxBondLength=new double[]{INITIAL_MAX_BOND_LENGTH};    
@@ -620,7 +622,7 @@ public class StructureImageExtractor {
      
         int reps=0;
         boolean tooLongBond=true;
-        
+        ctabRaw.clear();
         while(tooLongBond){
         	List<Tuple<Line2D,Integer>> linesOrderRestricted =linesOrder.stream()
         	          .filter(t->{
@@ -636,7 +638,7 @@ public class StructureImageExtractor {
 	        		minPerLineDistanceRatioForIntersection,
 	        		l-> (GeomUtil.length(l) < maxBondLength[0]))
 	        		       .mergeNodesCloserThan(MIN_DISTANCE_BEFORE_MERGING_NODES);
-	        
+	        ctabRaw.add(ctab.cloneTab());
 	        
 //	        ctab.getTolerancesForAllEdges(bitmap)
 //	    	    .forEach(t->{
@@ -646,41 +648,35 @@ public class StructureImageExtractor {
 //	    	    	}
 //	    	    });
 	        
-	        ctabRaw=ctab.cloneTab();
+	        
 	        
 	        for(Shape s: likelyOCR){
 	        	ctab.mergeAllNodesInsideCenter(s, OCR_TO_BOND_MAX_DISTANCE);
 	        }
 	        //double bl1=ctab.getAverageBondLength();
+	        
 	        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO);
 	        ctab.mergeAllNodesOnParLines();
-	        ctab.cleanMeaninglessEdges();
-	        ctab.cleanDuplicateEdges((e1,e2)->{
-	        	if(e1.getOrder()>e2.getOrder()){
-	        		return e1;
-	        	}
-	        	return e2;
-	        });
-	        
-	        
+	        ctab.standardCleanEdges();
 	        ctab.createNodesOnIntersectingLines();
 	        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO);
-	        ctab.cleanMeaninglessEdges();
-	        ctab.cleanDuplicateEdges((e1,e2)->{
-	        	if(e1.getOrder()>e2.getOrder()){
-	        		return e1;
-	        	}
-	        	return e2;
-	        });
+	        ctab.standardCleanEdges();
 	        ctab.mergeNodesExtendingTo(likelyOCR,0.5);
-	        
 	        ctab.removeOrphanNodes();
 	        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO);
+	        ctab.mergeNodesExtendingTo(likelyOCR,0.5);
 	        
+	        //basic stuff
+	        ctabRaw.add(ctab.cloneTab());
+	        for(Shape s: likelyOCR){
+	        	ctab.mergeAllNodesInsideCenter(s, OCR_TO_BOND_MAX_DISTANCE);
+	        }
+	        ctabRaw.add(ctab.cloneTab());
 	        
 	        ctab.makeMissingNodesForShapes(likelyOCR,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL);
 	        
 	        Set<Node> toRemove = new HashSet<Node>();
+
 	        
 	        ctab.makeMissingBondsToNeighbors(bitmap,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MAX_TOLERANCE_FOR_DASH_BONDS,likelyOCR,OCR_TO_BOND_MAX_DISTANCE, (t)->{
 //	        	System.out.println("Tol found:" + t.k());
@@ -710,22 +706,29 @@ public class StructureImageExtractor {
 		        		double distance2=n2.getPoint().distance(cp);
 		        		double sumd=distance1+distance2;
 		        		double ddelta=Math.abs(sumd-e.getBondLength());
-		        		if(ddelta<MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC){
-		        			toRemove.add(cn);
+		        		if(cn.getEdges().size()==2){
+			        		if(ddelta<MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC){
+			        			toRemove.add(cn);
+			        		}
 		        		}
 		        		alreadyExists=true;
 	        		}
 	        	}
 	        	
 	        	
-	        	//System.out.println("Tol found for add:" + t.k());
+	        	System.out.println("Tol found for add:" + t.k());
 	        	if(t.k()>MAX_TOLERANCE_FOR_SINGLE_BONDS){
+	        		
 	        		t.v().setDashed(true);
 	        	}
 	        });
+	      //fuzzy adding missing stuff
+	        ctabRaw.add(ctab.cloneTab());
 	        toRemove.forEach(n->ctab.removeNodeAndEdges(n));
 	        ctab.removeOrphanNodes();
 	        
+	        //fuzzy adding missing stuff
+	        ctabRaw.add(ctab.cloneTab());
 	     	        
 	        double avgBondLength=ctab.getAverageBondLength();
 	        maxBondLength[0]=avgBondLength*MAX_BOND_TO_AVG_BOND_RATIO_TO_KEEP;
@@ -746,15 +749,14 @@ public class StructureImageExtractor {
 	        }
 	        if(reps>MAX_REPS)break;
         }
-        
         ctab.getEdges()
         .forEach(e->{
         	double wl=bitmap.getWedgeLikeScore(e.getLine());
         	//System.out.println("WL:" + wl);
-        	if(wl>.8){
+        	if(wl>.85){
         		e.setWedge(true);            		
         	}
-        	else if(wl<-.8){
+        	else if(wl<-.85){
         		e.setWedge(true);
         		e.switchNodes();
         	}            	
@@ -925,7 +927,7 @@ public class StructureImageExtractor {
         	//}
         	
         });
-       
+        ctabRaw.add(ctab.cloneTab());
         
         
         GeomUtil.mergeOverlappingShapes(toAddAllOCR)
@@ -979,6 +981,9 @@ public class StructureImageExtractor {
         
         
         ctab.mergeNodesExtendingTo(likelyOCR,0.5);
+        
+        
+        ctabRaw.add(ctab.cloneTab());
         
         double cosThetaOCRShape =Math.cos(MAX_THETA_FOR_OCR_SEPERATION);
         
@@ -1056,7 +1061,6 @@ public class StructureImageExtractor {
 	        });
 
         ctab.standardCleanEdges();
-        ctabRaw=ctab.cloneTab();
 
         
         List<Shape> ocrMeaningful=bestGuessOCR.keySet()
@@ -1065,6 +1069,7 @@ public class StructureImageExtractor {
 				   .filter(s->BranchNode.interpretOCRStringAsAtom(bestGuessOCR.get(s))!=null)
 				   .collect(Collectors.toList());
         
+        ctabRaw.add(ctab.cloneTab());
         for(Shape s: bestGuessOCR.keySet()){
         	String sym=bestGuessOCR.get(s);
         	BranchNode actual=BranchNode.interpretOCRStringAsAtom(sym);
@@ -1101,56 +1106,80 @@ public class StructureImageExtractor {
         }
         ctab.standardCleanEdges();
         
+        ctabRaw.add(ctab.cloneTab());
+        
         ctab.makeMissingBondsToNeighbors(bitmap,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MAX_TOLERANCE_FOR_SINGLE_BONDS,likelyOCR,OCR_TO_BOND_MAX_DISTANCE, (t)->{
-//        	System.out.println("Tol found for add:" + t.k());
+        	
         	if(t.k()>MAX_TOLERANCE_FOR_SINGLE_BONDS){
         		t.v().setDashed(true);
         	}
         });
         
+        ctabRaw.add(ctab.cloneTab());
+        
         List<Line2D> lj =linesJoined.stream()
                    .flatMap(l->GeomUtil.getLinesNotInside(l, likelyOCR).stream())
+                   .filter(l->GeomUtil.length(l)>3)
                    .collect(Collectors.toList());
-                   
+
+        //linesJoined=lj;
+        
+       
         
         GeomUtil.groupShapesIfClosestPointsMatchCriteria(likelyOCR, (t)->{
         	
         	Point2D[] pts=t.v();
         	if(pts[0].distance(pts[1])<ctab.getAverageBondLength()*.8){
-        		//It should also have at least 1 line segment between the two
-        		Shape cshape = GeomUtil.add(t.k()[0], t.k()[1]);
-        		boolean containsLine=lj.stream()
-        							   .filter(l1->cshape.contains(l1.getP1()))
-        							   .findAny()
-        							   .isPresent();
-        		if(containsLine){
-	        		return true;
-        		}else{
-        			return false;
-        		}
+        		return true;
         	}
         	return false;
         })
         .stream()
         .filter(ls->ls.size()>=2)
-        .forEach(ls->{
-        	List<Node> nodes = ls.stream()
+        .flatMap(ls->{
+        	return GeomUtil.eachCombination(ls)
+        	        .map(t->{
+        	        	//It should also have at least 1 line segment between the two
+        	    		Shape cshape = GeomUtil.add(t.k(), t.v());
+        	    		
+        	    		Optional<Line2D> opl=lj.stream()
+        	    							   .filter(l1->cshape.contains(GeomUtil.findCenterOfShape(l1)))
+        	    		
+        	    							   .findAny();
+        	    		
+        	    		return Tuple.of(t,opl);
+        	        });
+        	        
+        })
+        .forEach(lst->{
+        	List<Node> nodes = Stream.of(lst.k().k(),lst.k().v())
         	  .map(s->ctab.getNodesInsideShape(s, 0))
         	  .flatMap(nds->nds.stream())
         	  .distinct()
         	  .collect(Collectors.toList());
-        	//System.out.println("nodes:" + nodes.size());
         	if(nodes.size()==2){
         		Node n1=nodes.get(0);
         		Node n2=nodes.get(1);
-        		boolean already=ctab.getEdgeBetweenNodes(n1, n2).isPresent();
-        		if(!already){
+        		Edge alreadyEdge=ctab.getEdgeBetweenNodes(n1, n2).orElse(null);
+        		Line2D possibleLine = lst.v().orElse(null);
+        		
+        		
+        		boolean already=(alreadyEdge!=null);
+        		System.out.println("Edge already exists? " +  already + " has bond:" + lst.v());
+        		if(!already && possibleLine!=null){
         			ctab.addEdge(nodes.get(0).getIndex(), nodes.get(1).getIndex(), 1);
+        		}else if(!already && possibleLine==null){
+        			//do nothing
+        		}else if(already && possibleLine == null){
+        			ctab.removeEdge(alreadyEdge);
+        		}else{
+        			System.out.println("keep, due to line:" + possibleLine.getP1() + "," + possibleLine.getP2());
+        			//do nothing
         		}
         	}
-        	          
         });
-        
+        System.out.println(ctabRaw.size());
+        ctabRaw.add(ctab.cloneTab());
         //remove triangles that are obviously wrong
         {
         	double avgL = ctab.getAverageBondLength();
@@ -1215,7 +1244,7 @@ public class StructureImageExtractor {
         	    });
         	
         }
-        
+        ctabRaw.add(ctab.cloneTab());
         double fbondlength=ctab.getAverageBondLength();
         
         for(Shape s: bestGuessOCR.keySet()){
@@ -1267,7 +1296,7 @@ public class StructureImageExtractor {
         	}
         	
         }
-        
+        ctabRaw.add(ctab.cloneTab());
         
         //ctab=ctabRaw;
         
@@ -1317,7 +1346,7 @@ public class StructureImageExtractor {
 
 
 
-	public ConnectionTable getCtabRaw() {
+	public List<ConnectionTable> getCtabRaw() {
 		return this.ctabRaw;
 	}
 
