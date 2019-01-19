@@ -250,5 +250,22 @@ public class FragmentTest {
 		assertEquals(0,ctab.getEdges().stream().filter(e->e.getDashed()).count());
 	}
 	
+	@Test
+	public void aromaticFragmentWithExplicitAtomOnDirectLineFromRingBondShouldHaveCorrectReading() throws Exception {
+		File f=getFile("fragmentTest/explicitCarbonAromatic.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		ConnectionTable ctab = sie.getCtab();
+		
+		
+		assertEquals(11,ctab.getNodes().size());
+		assertEquals(11,ctab.getEdges().size());	
+		assertEquals(5,ctab.getEdges().stream().filter(e->e.getOrder()==2).count());
+		assertEquals(6,ctab.getEdges().stream().filter(e->e.getOrder()==1).count());
+		assertEquals(3,ctab.getNodes().stream().filter(n->n.getSymbol().equals("O")).count());
+		assertEquals(8,ctab.getNodes().stream().filter(n->n.getSymbol().equals("C")).count());
+		assertEquals(0,ctab.getEdges().stream().filter(e->e.getDashed()).count());
+	}
+	
 	
 }

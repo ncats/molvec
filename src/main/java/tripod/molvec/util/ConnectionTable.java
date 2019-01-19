@@ -357,6 +357,38 @@ public class ConnectionTable{
 		return this.mergeNodes(toMerge, merger);
 	}
 	
+	public List<Tuple<Edge,Tuple<Node,Node>>> getAllEdgesEntering(Shape s, double tol){
+		
+		List<Node> toMerge = new ArrayList<Node>();
+		for(int i=nodes.size()-1;i>=0;i--){
+			Point2D pn = nodes.get(i).point;
+			if(GeomUtil.distanceTo(s,pn)<tol){
+				toMerge.add(nodes.get(i));
+			}
+		}
+		return toMerge.stream()
+				.flatMap(n->n.getEdges().stream())
+				.distinct()
+				.map(e->{
+					Node n1=e.getRealNode1();
+					Node n2=e.getRealNode2();
+					boolean containsN1=toMerge.contains(n1);
+					boolean containsN2=toMerge.contains(n2);
+					if(containsN1 && containsN2){
+						return Tuple.of(e,Tuple.of(n1,(Node)null));
+					}else if(containsN1){
+						return Tuple.of(e,Tuple.of(n1,n2));
+					}else if(containsN2){
+						return Tuple.of(e,Tuple.of(n2,n1));
+					}
+					return Tuple.of(e,Tuple.of((Node)null,(Node)null));
+				})
+				.filter(t->t.v().k()!=null)
+				.filter(t->t.v().v()!=null)
+		        .collect(Collectors.toList());
+			
+	}
+	
 	public ConnectionTable mergeAllNodesInsideCenter(Shape s, double tol){
 		Rectangle2D r=s.getBounds2D();
 		Point2D p = new Point2D.Double(r.getCenterX(),r.getCenterY());
@@ -840,13 +872,14 @@ public class ConnectionTable{
 //						}
 //						
 //						tline=new Line2D.Double(pt1,pt2);
-						
-						Edge e= new Edge(i,j,1);
-						double score=bm.getLineLikeScore(tline);
-						//System.out.println("Score:" + score);
-						if(score<tol){
-							this.edges.add(e);
-							econs.accept(Tuple.of(score,e));
+						if(tline!=null){
+							Edge e= new Edge(i,j,1);
+							double score=bm.getLineLikeScore(tline);
+							//System.out.println("Score:" + score);
+							if(score<tol){
+								this.edges.add(e);
+								econs.accept(Tuple.of(score,e));
+							}
 						}
 					}
 				}

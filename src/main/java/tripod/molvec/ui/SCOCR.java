@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Function;
+
+import tripod.molvec.algo.Tuple;
 
 /**
  * @author peryeata
@@ -206,6 +209,37 @@ public interface SCOCR {
 		nlist.add(backup);
 		return new OrElseSCOCR(nlist,cut);
 	}
+	
+	public default SCOCR adjustWeights(Function<Tuple<Character,Number>,Tuple<Character,Number>> transform){
+		SCOCR _this=this;
+		return new SCOCR(){
+
+			@Override
+			public void setAlphabet(Set<Character> charSet) {
+				_this.setAlphabet(charSet);
+				
+			}
+
+			@Override
+			public Set<Character> getAlphabet() {
+				return _this.getAlphabet();
+			}
+
+			@Override
+			public Map<Character, Number> getRanking(Raster r) {
+				Map<Character, Number> map = _this.getRanking(r);
+				
+				return map.entrySet()
+				   .stream()
+				   .map(Tuple::of)
+				   .map(transform)
+				   .collect(Tuple.toMap());
+			}
+			
+		};
+	}
+	
+	
 	
 
 }

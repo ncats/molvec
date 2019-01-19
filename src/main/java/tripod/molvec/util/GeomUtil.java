@@ -1068,7 +1068,7 @@ public class GeomUtil {
 		
 		return groupMultipleBonds(lines,maxDeltaTheta,maxDeltaOffset,minProjectionRatio,minLargerProjectionRatio)
 				.stream()
-				.map(l->GeomUtil.stitchSufficientlyStitchableLines(l, maxStitchLineDistanceDelta))
+				//.map(l->GeomUtil.stitchSufficientlyStitchableLines(l, maxStitchLineDistanceDelta))
 				.map(l->GeomUtil.getLineOffsetsToLongestLine(l))
 				.map(l->{
 					double doff=l.stream()
@@ -1232,6 +1232,18 @@ public class GeomUtil {
 		return new Point2D.Double(projVec[0]+l.getX1(), projVec[1]+l.getY1());
 	}
 	
+	public static Tuple<Point2D, Double> projectPointOntoLineWithRejection(Line2D l, Point2D p){
+		double[] vec=asVector(l);
+		double[] pvec = new double[]{p.getX()-l.getX1(),p.getY()-l.getY1()};
+		double dot=dot(vec, pvec);
+		double proj=dot/Math.pow(l2Norm(vec),2);
+		double[] projVec= new double[]{proj*vec[0],proj*vec[1]};
+		Point2D pr=new Point2D.Double(projVec[0]+l.getX1(), projVec[1]+l.getY1());;
+		double r=GeomUtil.rejection(vec, pvec);
+		
+		return Tuple.of(pr,r);
+	}
+	
 	public static Point2D[] getPairOfFarthestPoints(Shape s){
 		return getPairOfFarthestPoints(vertices(s));
 	}
@@ -1247,8 +1259,17 @@ public class GeomUtil {
 		         .orElse(null);
 	}
 	
-	public static List<Shape> mergeOverlappingShapes(List<Shape> shapes){
-		return GeomUtil.groupShapes(shapes, t->intersects(t.k(),t.v()))
+	public static List<Shape> mergeOverlappingShapes(List<Shape> shapes, double minOverlapRatio){
+		return GeomUtil.groupShapes(shapes, t->{
+			if(intersects(t.k(),t.v())){
+				double areaCombined=area(add(t.k(),t.v()));
+				double areaIntersect=getIntersectionShape(t.k(), t.v()).map(s->area(s)).orElse(0.0);
+				if(areaIntersect/areaCombined>minOverlapRatio){
+					return true;
+				}
+			}
+			return false;
+		})
 					.stream()
 					.map(ll->ll.stream().reduce((s1,s2)->add(s1,s2)).orElse(null))
 					.filter(s->s!=null)

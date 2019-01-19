@@ -340,6 +340,61 @@ public class MoleculeTest {
 		assertEquals(cReal.getFormula(),form);
 		//
 	}
-	
+	@Test
+	public void structureWhichWithOxygenOffCenterInRing() throws Exception {
+		File f=getFile("moleculeTest/connectedOxygen.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("COc1cc2CN(C)c3c(ccc4cc5OCOc5cc34)-c2cc1OC").build();
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+		//
+	}
 	//
+	//CC(=O)CC(C)=O
+	
+	@Test
+	public void structureWithExplicitCarbons() throws Exception {
+		File f=getFile("moleculeTest/explicitCarbons.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("CC(=O)CC(C)=O").build();
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+		//
+	}
+	//ClC(Cl)(Cl)c1nc(nc(n1)C(Cl)(Cl)Cl)-c2ccc3OCOc3c2
+	@Test
+	public void structureWithCarbonsThatAreSometimesMistakenForOxygens() throws Exception {
+		File f=getFile("moleculeTest/carbonVsOxygen.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("ClC(Cl)(Cl)c1nc(nc(n1)C(Cl)(Cl)Cl)-c2ccc3OCOc3c2").build();
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+		//
+	}
+	//
+	@Test
+	public void structureWithVeryCloseExplicitLinearAtoms() throws Exception {
+		File f=getFile("moleculeTest/closeOCRShapesVeryExplicit.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("CCC(C)(C)COC(=O)c1ccc(cc1)C(=O)OC").build();
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+		//
+	}
 }
