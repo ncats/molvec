@@ -246,7 +246,7 @@ class BranchNode{
 		}
 		if(s.contains("H")){
 			
-			return interpretOCRStringAsAtom(s.replaceAll("H[0-9]*", ""),tokenOnly);
+			return interpretOCRStringAsAtom(s.replaceAll("H[1-9][0-9]*", "").replace("H", ""),tokenOnly);
 		}
 		if(s.contains("I")){
 			return interpretOCRStringAsAtom(s.replace("I", "l"),tokenOnly);

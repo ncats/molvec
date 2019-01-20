@@ -281,10 +281,6 @@ public class ConnectionTable{
 				if(mergedOne)break;
 			}
 		}
-		
-		
-		
-
 		resetCaches();
 
 		return this;
@@ -395,7 +391,7 @@ public class ConnectionTable{
 		return mergeAllNodesInside(s,tol,n->true,(l)->p);
 	}
 	
-	public ConnectionTable mergeNodesExtendingTo(List<Shape> shapes,double maxAvgBondRatio){
+	public ConnectionTable mergeNodesExtendingTo(List<Shape> shapes,double maxAvgBondRatio, double maxTotalAvgBondRatio){
 		double avg = this.getAverageBondLength();
 		edges.stream()
 		     .filter(e->e.getBondLength()<avg)
@@ -422,25 +418,57 @@ public class ConnectionTable{
 		    	 if(minDistp1>avg*maxAvgBondRatio && minDistp2>avg*maxAvgBondRatio){
 		    		 return;
 		    	 }
-		    	 Node closestNode = this.nodes.get(e.n1);
-		    	 Point2D newPoint = null;
+		    	 Point2D newPoint1=e.getPoint1();
+		    	 Point2D newPoint2=e.getPoint2();
 		    	 Line2D newLine = null;
-		    	 if(minDistp1>minDistp2){
-		    		 closestNode = this.nodes.get(e.n2);
-		    		 newPoint=new Point2D.Double(closest2.getBounds2D().getCenterX(),closest2.getBounds2D().getCenterY());
-		    		 newLine=new Line2D.Double(p1,newPoint);
-		    	 }else{
-		    		 newPoint=new Point2D.Double(closest1.getBounds2D().getCenterX(),closest1.getBounds2D().getCenterY());
-		    		 newLine=new Line2D.Double(p2,newPoint);
+		    	 boolean onlyOne=true;
+		    	 if(minDistp1<avg*maxAvgBondRatio && minDistp2<avg*maxAvgBondRatio && 
+		    		closest1!=closest2){
+		    		 onlyOne=false;
+		    		newPoint1=GeomUtil.findCenterOfShape(closest1);
+		    		newPoint2=GeomUtil.findCenterOfShape(closest2);
+		    		newLine=new Line2D.Double(newPoint1,newPoint2);
+		    		double nl=GeomUtil.length(newLine);
+		    		if(nl> maxTotalAvgBondRatio*avg ){
+		    			
+			    		 onlyOne=true;
+			    	 }
+			    	 double cosTheta = Math.abs(GeomUtil.cosTheta(newLine,e.getLine()));
+			    	 if(cosTheta<Math.cos(20.0*Math.PI/180.0)){
+			    		 onlyOne=true;
+			    	 }
+		    		
+		    				    		 
 		    	 }
-		    	 if(GeomUtil.length(newLine)> 1.3*avg){
+		    	 
+		    	 if(onlyOne){
+			    	 //Node closestNode = this.nodes.get(e.n1);
+			    	 //Point2D newPoint = null;
+			    	// Line2D newLine = null;
+			    	 if(minDistp1>minDistp2){
+			    	//	 closestNode = this.nodes.get(e.n2);
+			    		 newPoint2=GeomUtil.findCenterOfShape(closest2);
+			    		 newPoint1=e.getPoint1();
+			    		 //newLine=new Line2D.Double(p1,newPoint);
+			    	 }else{
+			    		 newPoint1=GeomUtil.findCenterOfShape(closest1);
+			    		 newPoint2=e.getPoint2();
+			    		 //newLine=new Line2D.Double(p2,newPoint);
+			    	 }
+		    	 }
+		    	 newLine=new Line2D.Double(newPoint1,newPoint2);
+		    	 if(GeomUtil.length(newLine)> maxTotalAvgBondRatio*avg){
 		    		 return;
 		    	 }
 		    	 double cosTheta = Math.abs(GeomUtil.cosTheta(newLine,e.getLine()));
 		    	 if(cosTheta<Math.cos(20.0*Math.PI/180.0)){
 		    		 return;
 		    	 }
-		    	 closestNode.point=newPoint;
+		    	 //closestNode.point=newPoint;
+		    	 
+		    	 this.nodes.get(e.n1).setPoint(newPoint1);
+		    	 this.nodes.get(e.n2).setPoint(newPoint2);
+		    	 
 		     });
 		this.mergeNodesCloserThan(avg/20);
 		
@@ -636,6 +664,16 @@ public class ConnectionTable{
 			return this;
 			
 		}
+
+		public int getEdgesCount() {
+			return this.getEdges().size();
+		}
+
+		public Node setPoint(Point2D ppnt) {
+			this.point=ppnt;
+			return this;
+			
+		}
 		
 	}
 	public class Edge{
@@ -727,6 +765,10 @@ public class ConnectionTable{
 
 		public void setOrder(int order) {
 			this.order = order;
+		}
+		
+		public String toString(){
+			return "Edge: " + this.n1 + " to " + this.n2 + ", order=" + this.order + ", dash=" + this.isDash + ", wedge=" + this.isWedge;
 		}
 		
 	}

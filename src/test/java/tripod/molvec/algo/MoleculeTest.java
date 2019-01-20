@@ -383,6 +383,20 @@ public class MoleculeTest {
 		assertEquals(cReal.getFormula(),form);
 		//
 	}
+	
+	@Test
+	public void structureWithOxygensThatAreSometimesMistakenForCarbons() throws Exception {
+		File f=getFile("moleculeTest/carbonVsOxygen2.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("CCOC(=O)CC1CCN(CC1)C(=O)CC2OC(c3cc(Cl)ccc3-n4cccc24)c5cccc6ccccc56").build();
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+		//
+	}
 	//
 	@Test
 	public void structureWithVeryCloseExplicitLinearAtoms() throws Exception {
@@ -391,6 +405,63 @@ public class MoleculeTest {
 		sie.load(f);
 		
 		Chemical cReal=ChemicalBuilder.createFromSmiles("CCC(C)(C)COC(=O)c1ccc(cc1)C(=O)OC").build();
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+		//
+	}
+	//OC(c1cccc2OCCOc12)c3cc(Cl)ccc3-n4cccc4\C=C\C(=O)OCc5ccccc5
+	@Test
+	public void structureWithDoubelBondAngleSimilarToN() throws Exception {
+		File f=getFile("moleculeTest/doubleBondSometimesSeenAsNAtom.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("OC(c1cccc2OCCOc12)c3cc(Cl)ccc3-n4cccc4\\C=C\\C(=O)OCc5ccccc5").build();
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+		//
+	}
+	//OCCCCCNc1ncccc1C(=O)Nc2ccc(cc2)-n3nc(cc3C(F)(F)F)-c4cccnc4
+	@Test
+	public void structureWithCloseNitrogens() throws Exception {
+		File f=getFile("moleculeTest/nitrogensSometimesBondedByMistake.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("OCCCCCNc1ncccc1C(=O)Nc2ccc(cc2)-n3nc(cc3C(F)(F)F)-c4cccnc4").build();
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+		//
+	}
+	@Test
+	public void structureWithVeryShortSingleBondBetweenCarbons() throws Exception {
+		File f=getFile("moleculeTest/verySmallSingleBondBetweenExplicitCarbons.png");
+		
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("C(C=Cc1ccc(cc1)N(c2ccccc2)c3ccc(cc3)-c4ccc(cc4)N(c5ccccc5)c6ccc(C=CC=Cc7ccccc7)cc6)=Cc8ccccc8").build();
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+		//
+	}
+	//CC(=C)C(=O)OCCOC(=O)c1ccc(C(=O)OCCOC(=O)C=C)c(c1)C(=O)OCC(O)COc2ccc(cc2)C(C)(C)c3ccc(OCC4CO4)cc3
+	@Test
+	public void structureWithGapInSmallRing() throws Exception {
+		File f=getFile("moleculeTest/moleculeWithGapInSmallRing.png");
+		
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("CC(=C)C(=O)OCCOC(=O)c1ccc(C(=O)OCCOC(=O)C=C)c(c1)C(=O)OCC(O)COc2ccc(cc2)C(C)(C)c3ccc(OCC4CO4)cc3").build();
 		
 		Chemical c=sie.getChemical();
 		String form=c.getFormula();
