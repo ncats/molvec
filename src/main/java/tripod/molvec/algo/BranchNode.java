@@ -232,7 +232,10 @@ class BranchNode{
 
 	private static BranchNode interpretOCRStringAsAtom(String s, boolean tokenOnly){
 		if((s.equalsIgnoreCase("CO2H")
-			|| s.equalsIgnoreCase("CO2"))){
+			|| s.equalsIgnoreCase("CO2")
+			|| s.equalsIgnoreCase("COOH")
+			|| s.equalsIgnoreCase("HOOC")
+				)){
 			BranchNode bn = new BranchNode("C");
 			bn.addChild(new BranchNode("O").setOrderToParent(2));
 			bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());

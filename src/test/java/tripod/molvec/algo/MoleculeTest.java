@@ -341,7 +341,7 @@ public class MoleculeTest {
 		//
 	}
 	@Test
-	public void structureWhichWithOxygenOffCenterInRing() throws Exception {
+	public void structureWithOxygenOffCenterInRing() throws Exception {
 		File f=getFile("moleculeTest/connectedOxygen.png");
 		StructureImageExtractor sie = new StructureImageExtractor();
 		sie.load(f);
@@ -354,7 +354,19 @@ public class MoleculeTest {
 		//
 	}
 	//
-	//CC(=O)CC(C)=O
+	@Test
+	public void structureWithOxygenConnectedToBonds() throws Exception {
+		File f=getFile("moleculeTest/connectedOxygen2.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("Oc1ccc-2c(Cc3c-2c4Cc5cc(O)ccc5-c4c6Cc7cc(O)ccc7-c36)c1").build();
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+		//
+	}
 	
 	@Test
 	public void structureWithExplicitCarbons() throws Exception {

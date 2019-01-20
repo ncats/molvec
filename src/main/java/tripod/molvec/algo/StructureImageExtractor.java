@@ -488,6 +488,17 @@ public class StructureImageExtractor {
       				             .collect(Collectors.toList());
 	       		 	}
 		       	 }
+	       	if(chars.contains("K") && chars.contains("X")){
+	       		double areareal=GeomUtil.area(s);
+	       		double areabox=GeomUtil.area(s.getBounds2D());
+	       		if(areareal/areabox <0.5){
+	       			
+			       		potential = potential.stream()
+			       							 .map(Tuple.vmap(n->(Number)0.0))
+			       				             .collect(Collectors.toList());
+	       			
+	       		}
+	       	 }
         	
         	 onFind.accept(s, potential);
         }
@@ -705,7 +716,7 @@ public class StructureImageExtractor {
         linesOrder=GeomUtil.reduceMultiBonds(preprocess, MAX_ANGLE_FOR_PARALLEL, largestBond/3, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS, MIN_BIGGER_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS,MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC);
         
               
-        
+        List<Shape> rescueOCRCandidates = new ArrayList<>();
         
         
      
@@ -749,9 +760,16 @@ public class StructureImageExtractor {
 	        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO, (nl)->{
 	        	Point2D center= GeomUtil.findCenterOfVertices(nl.stream().map(n->n.getPoint()).collect(Collectors.toList()));
 	        	
-//	        	if(nl.size()>3){
-//	        		return center;
-//	        	}
+	        	if(nl.size()>3){
+	        		Shape candidate=GeomUtil.convexHull(nl.stream().map(n->n.getPoint()).toArray(i->new Point2D[i]));
+	        		
+	        		if(GeomUtil.area(candidate)>0.5*averageAreaOCR){
+	        			candidate=GeomUtil.growShape(candidate,4);
+	        			rescueOCRCandidates.add(candidate);
+	        			polygons.add(candidate);
+	        		}
+	        		//return center;
+	        	}
 	        	
 	        	double rad=ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO;
 	        	
@@ -933,13 +951,12 @@ public class StructureImageExtractor {
         //8. Add everything that is OKAY to the OCR sets
         
         double avgbond=ctab.getAverageBondLength();
-        double SEED_BOND_RATIO_FOR_OCR_WIDTH=0.20;
-        double PROBLEM_BOND_LENGTH_RATIO=0.8;
-        double PROBLEM_TOLERANCE_RATIO=1.0;
+        double SEED_BOND_RATIO_FOR_OCR_WIDTH=0.0;
         
         double SEED_BOND_RATIO_FOR_OCR_WIDTH_FOR_CENTROID=0.5;
         
         List<Node> unmatchedNodes=ctab.getNodesNotInShapes(likelyOCR, OCR_TO_BOND_MAX_DISTANCE + avgbond*SEED_BOND_RATIO_FOR_OCR_WIDTH);
+        
         
         
         
@@ -960,7 +977,7 @@ public class StructureImageExtractor {
         
         
         unmatchedNodes.forEach(n->{
-        	Tuple<Edge,Double> worstEdge=ctab.getWorstToleranceForNode(n,bitmap,likelyOCR);
+//        	Tuple<Edge,Double> worstEdge=ctab.getWorstToleranceForNode(n,bitmap,likelyOCR);
         	
 //        	System.out.println("Avg tol:" + avgTol);
 //        	System.out.println("Worst tol here:" + worstEdge.v());
@@ -987,6 +1004,13 @@ public class StructureImageExtractor {
         	
         	
         	Point2D cpt=n.getPoint();
+        	
+        	cpt=rescueOCRCandidates.stream()
+        	                   .filter(sc->sc.contains(n.getPoint()))
+        	                   .peek(sc->System.out.println("Found candidate from earlier"))
+        	                   .findAny()
+        	                   .map(sc->GeomUtil.findCenterOfShape(sc))
+        	                   .orElse(cpt);
         	
         	
         	int numEdges=n.getEdges().size();
@@ -1025,7 +1049,7 @@ public class StructureImageExtractor {
         		if(arean < averageAreaOCR*MIN_AREA_RATIO_FOR_OCR_TO_AVERAGE){
         			keep=false;
                 }
-        		//polygons.add(nshape);
+        		polygons.add(nshape);
             	radius=Math.max(averageLargestOCR/2,r/2);
             	//cpt=GeomUtil.findCenterOfVertices(Arrays.asList(GeomUtil.vertices(nshape)));
             	cpt=GeomUtil.findCenterOfShape(nshape);
@@ -1326,11 +1350,11 @@ public class StructureImageExtractor {
         	        	//It should also have at least 1 line segment between the two
         	    		Shape cshape = t.v();
         	    		
-        	    		Optional<Line2D> opl=lj.stream()
+        	    		List<Line2D> opl=lj.stream()
         	    							   .filter(l1->cshape.contains(GeomUtil.findCenterOfShape(l1)))
         	    							   //.map(l1->Tuple.of(l1,taken.add(l1)))
         	    							   //.map(l1->Tuple.of(l1,true))
-        	    							   .findAny();
+        	    							   .collect(Collectors.toList());
         	    		
         	    		return Tuple.of(t.k(),opl);
         	        });
@@ -1346,22 +1370,22 @@ public class StructureImageExtractor {
         		Node n1=nodes.get(0);
         		Node n2=nodes.get(1);
         		Edge alreadyEdge=ctab.getEdgeBetweenNodes(n1, n2).orElse(null);
-        		Line2D possibleLine = lst.v().orElse(null);
+        		boolean haspossibleLine = !lst.v().isEmpty();
         		
         		
         		boolean already=(alreadyEdge!=null);
         		System.out.println("Edge already exists? " +  already + " has bond:" + lst.v());
         		
         		
-        		if(!already && possibleLine!=null){
-        			edgesToMake.add(Tuple.of(possibleLine,Tuple.of(nodes.get(0),nodes.get(1))));
-        		}else if(!already && possibleLine==null){
+        		if(!already && haspossibleLine){
+        			edgesToMake.add(Tuple.of(lst.v().get(0),Tuple.of(nodes.get(0),nodes.get(1))));
+        		}else if(!already && !haspossibleLine){
         			//do nothing
-        		}else if(already && possibleLine == null){
+        		}else if(already && !haspossibleLine){
         			ctab.removeEdge(alreadyEdge);
         		}else{
-        			System.out.println("keep, due to line:" + possibleLine.getP1() + "," + possibleLine.getP2());
-        			taken.add(possibleLine);
+        			//System.out.println("keep, due to line:" + possibleLine.getP1() + "," + possibleLine.getP2());
+        			taken.addAll(lst.v());
         			//do nothing
         		}
         	}
