@@ -395,6 +395,21 @@ public class MoleculeTest {
 		assertEquals(cReal.getFormula(),form);
 		//
 	}
+	//bridgeHeadMolecule
+	//CC1C2C3OC3C1C(C2C(=O)OCC=C)C(=O)OCC(C)=C
+	@Test
+	public void structureWithBridgeHeadInsideRing() throws Exception {
+		File f=getFile("moleculeTest/bridgeHeadMolecule.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("CC1C2C3OC3C1C(C2C(=O)OCC=C)C(=O)OCC(C)=C").build();
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+		//
+	}
 	
 	@Test
 	public void structureWithOxygensThatAreSometimesMistakenForCarbons() throws Exception {

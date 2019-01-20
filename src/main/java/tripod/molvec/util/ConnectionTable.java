@@ -394,7 +394,7 @@ public class ConnectionTable{
 	public ConnectionTable mergeNodesExtendingTo(List<Shape> shapes,double maxAvgBondRatio, double maxTotalAvgBondRatio){
 		double avg = this.getAverageBondLength();
 		edges.stream()
-		     .filter(e->e.getBondLength()<avg)
+		     //.filter(e->e.getBondLength()<avg)
 		     .forEach(e->{
 		    	 Point2D p1=e.getPoint1();
 		    	 Point2D p2=e.getPoint2();
@@ -434,7 +434,7 @@ public class ConnectionTable{
 			    		 onlyOne=true;
 			    	 }
 			    	 double cosTheta = Math.abs(GeomUtil.cosTheta(newLine,e.getLine()));
-			    	 if(cosTheta<Math.cos(20.0*Math.PI/180.0)){
+			    	 if(cosTheta<Math.cos(12.0*Math.PI/180.0)){
 			    		 onlyOne=true;
 			    	 }
 		    		
@@ -461,7 +461,7 @@ public class ConnectionTable{
 		    		 return;
 		    	 }
 		    	 double cosTheta = Math.abs(GeomUtil.cosTheta(newLine,e.getLine()));
-		    	 if(cosTheta<Math.cos(20.0*Math.PI/180.0)){
+		    	 if(cosTheta<Math.cos(12.0*Math.PI/180.0)){
 		    		 return;
 		    	 }
 		    	 //closestNode.point=newPoint;
@@ -547,7 +547,7 @@ public class ConnectionTable{
 		return this;
 	}
 	
-	public ConnectionTable createNodesOnIntersectingLines(){
+	public ConnectionTable createNodesOnIntersectingLines(double tol){
 		
 		boolean splitOne =true;
 		while(splitOne){
@@ -558,11 +558,23 @@ public class ConnectionTable{
 				Set<Integer> i1set=e1.getNodeSet();
 				for(int j=0;j<edges.size();j++){
 					Edge e2=edges.get(j);
+					//can't share a neighbor
 					if(i1set.contains(e2.n1) || i1set.contains(e2.n2)){
 						continue;
 					}
-					if(e1.getLine().intersectsLine(e2.getLine())){
-						Point2D np=GeomUtil.intersection(e1.getLine(),e2.getLine());
+					Point2D np=GeomUtil.intersection(e1.getLine(), e2.getLine());
+					if(np==null)continue;
+					
+					
+					double dist1=e1.getLine().ptSegDist(np);
+					double dist2=e2.getLine().ptSegDist(np);
+					if(dist1<tol && dist2<tol){
+						if(e1.getPoint1().distance(np) <tol ||e1.getPoint2().distance(np) <tol){
+							if(e2.getPoint1().distance(np) <tol ||e2.getPoint2().distance(np) <tol){
+								continue;
+							}
+						}
+						//Point2D np=GeomUtil.intersection(e1.getLine(),e2.getLine());
 						int nodeNew = this.nodes.size();
 						this.addNode(np);
 						Edge nedge1 = new Edge(e1.n1, nodeNew, e1.getOrder());
