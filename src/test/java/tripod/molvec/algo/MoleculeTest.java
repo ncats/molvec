@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.nio.charset.Charset;
+import java.util.Comparator;
 
 import org.junit.Test;
 
@@ -460,6 +461,41 @@ public class MoleculeTest {
 		sie.load(f);
 		
 		Chemical cReal=ChemicalBuilder.createFromSmiles("OCCCCCNc1ncccc1C(=O)Nc2ccc(cc2)-n3nc(cc3C(F)(F)F)-c4cccnc4").build();
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+		//
+	}
+	//O=C(Oc1ccc(OC(=O)c2ccc3C(=O)OC(=O)c3c2)cc1)c4ccc5C(=O)OC(=O)c5c4
+	@Test
+	public void structureWithVeryLongErroneousLineAndNoisyLine() throws Exception {
+		File f=getFile("moleculeTest/longBadLineNoisyLine.png");
+		
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("O=C(Oc1ccc(OC(=O)c2ccc3C(=O)OC(=O)c3c2)cc1)c4ccc5C(=O)OC(=O)c5c4").build();
+		
+		Chemical c1=sie.getChemical();
+		Chemical c=c1.connectedComponentsAsStream()
+		  .map(ct->Tuple.of(ct,ct.getAtomCount()).withVComparator())
+		  .max(Comparator.naturalOrder())
+		  .map(t->t.k())
+		  .orElse(c1);
+		
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+		//
+	}
+	@Test
+	public void structureWithVeryCloseAromaticRings() throws Exception {
+		File f=getFile("moleculeTest/veryCloseAromaticRings.png");
+		
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("COc1ccc(cc1)C2(c3ccccc3-c4ccccc24)c5ccc(OC)cc5").build();
 		
 		Chemical c=sie.getChemical();
 		String form=c.getFormula();

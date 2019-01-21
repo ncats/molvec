@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -81,7 +82,9 @@ public class StructureImageExtractor {
     
     private final double MAX_REPS = 10;
     private final double INITIAL_MAX_BOND_LENGTH=Double.MAX_VALUE;
-    private final double MIN_BOND_TO_AVG_BOND_RATIO = 1/2.7;
+    private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE = 1/3.0;
+    private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE_INITIAL = 1/2.7;
+    
     private final double MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 1.3;
     private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 0.5;
     
@@ -93,7 +96,7 @@ public class StructureImageExtractor {
 	private final double OCRcutoffCosineRescue=0.50;
 	
 	private final double MAX_BOND_TO_AVG_BOND_RATIO_TO_KEEP = 1.8;
-	private final double MIN_DISTANCE_BEFORE_MERGING_NODES = 4.0;
+	private final double MAX_DISTANCE_BEFORE_MERGING_NODES = 4.0;
 	private final double maxRatioForIntersection = 1.2;
 	private final double maxPerLineDistanceRatioForIntersection = 2;
 	private final double minPerLineDistanceRatioForIntersection = 0.7;
@@ -165,7 +168,9 @@ public class StructureImageExtractor {
     	}
     	if(ch.equalsIgnoreCase("X") || ch.equalsIgnoreCase("+") || ch.equals("h")){
     		invScore=invScore*1.5; // penalize
-    	}else if(ch.equalsIgnoreCase("N") || ch.equalsIgnoreCase("C") || ch.equalsIgnoreCase("O")){
+    	}else if(ch.equalsIgnoreCase("N") 
+    		  || ch.equalsIgnoreCase("C") 
+    		  || ch.equalsIgnoreCase("O")){
     		invScore=invScore*(0.85); // promote
     	}
     	
@@ -447,6 +452,10 @@ public class StructureImageExtractor {
     
     private void processOCRShape(SCOCR socr, Shape s, Bitmap bitmap, Bitmap thin,BiConsumer<Shape,List<Tuple<Character,Number>>> onFind){
     	if(s.getBounds2D().getWidth()>0 && s.getBounds2D().getHeight()>0){
+    		 double areareal=GeomUtil.area(s);
+    		 
+    		 if(areareal<=5)return;
+    		 
 	       	 LinkedHashSet<String> chars = new LinkedHashSet<String>();
 	       	 
 	       	 List<Tuple<Character,Number>> potential = socr.getNBestMatches(4,
@@ -464,7 +473,7 @@ public class StructureImageExtractor {
 	        			.collect(Collectors.toList());
 	        	
 	       	 if(chars.contains("N") || chars.contains("S")|| chars.contains("s")){
-	       		double areareal=GeomUtil.area(s);
+	       		
 	       		double areabox=GeomUtil.area(s.getBounds2D());
 	       		 
 		       		//this usually means it's not a real "N"
@@ -498,7 +507,6 @@ public class StructureImageExtractor {
 	       		 	}
 		       	 }
 	       	if(chars.contains("K") && chars.contains("X")){
-	       		double areareal=GeomUtil.area(s);
 	       		double areabox=GeomUtil.area(s.getBounds2D());
 	       		if(areareal/areabox <0.5){
 	       			
@@ -507,6 +515,18 @@ public class StructureImageExtractor {
 			       				             .collect(Collectors.toList());
 	       			
 	       		}
+	       	 }
+	       	
+	       	if(chars.contains("S") && chars.contains("s")&& chars.contains("8")){
+	       		//It's probably an S in this case, slightly adjust numbers for those
+	       		potential = potential.stream()
+				             .map(t->{
+				            	 if(t.k().toString().equalsIgnoreCase("S")){
+				            		 return Tuple.of(t.k(),(Number)Math.max(0, (1-(1-t.v().doubleValue())*0.8)));
+				            	 }
+				            	 return t;
+				             })
+				             .collect(Collectors.toList());
 	       	 }
         	
         	 onFind.accept(s, potential);
@@ -660,6 +680,7 @@ public class StructureImageExtractor {
                  .mapToDouble(t->t.v())
                  .sorted()
                  .toArray();
+        
         OptionalDouble avgDistOCRToLine = Optional.of(0)
         		.filter(d->lDistOCRToLine.length>0)
         		.map(d->lDistOCRToLine[lDistOCRToLine.length/2])
@@ -724,12 +745,19 @@ public class StructureImageExtractor {
        // if(true)return this;
         
         
-        double largestBond=linesJoined.stream()
+        double largestBond=smallLines.stream()
 		           .mapToDouble(l->GeomUtil.length(l))
 		           .max()
 		           .orElse(0);
-       
-
+        
+        double averageLine=smallLines.stream()
+							        .mapToDouble(l->GeomUtil.length(l))
+							        .average()
+							        .orElse(0);
+        
+        if(largestBond>2*averageLine){
+    	   largestBond=1.4*averageLine;
+        }
         
         List<Line2D> preprocess= GeomUtil.reduceMultiBonds(linesJoined, MAX_ANGLE_FOR_PARALLEL, MAX_DISTANCE_TO_MERGE_PARALLEL_LINES, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS,0,MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC)
         		                         .stream()
@@ -758,12 +786,12 @@ public class StructureImageExtractor {
         	          .collect(Collectors.toList());
         	
 	        ctab = GeomUtil.getConnectionTable(linesOrderRestricted, likelyOCR, 
-	        		maxRatioForIntersection, 
-	        		maxCandidateRatioForIntersection,
-	        		maxPerLineDistanceRatioForIntersection,
-	        		minPerLineDistanceRatioForIntersection,
-	        		l-> (GeomUtil.length(l) < maxBondLength[0]))
-	        		       .mergeNodesCloserThan(MIN_DISTANCE_BEFORE_MERGING_NODES);
+							        		maxRatioForIntersection, 
+							        		maxCandidateRatioForIntersection,
+							        		maxPerLineDistanceRatioForIntersection,
+							        		minPerLineDistanceRatioForIntersection,
+							        		l-> (GeomUtil.length(l) < maxBondLength[0]))
+	        		       .mergeNodesCloserThan(MAX_DISTANCE_BEFORE_MERGING_NODES);
 	        ctabRaw.add(ctab.cloneTab());
 	        
 //	        ctab.getTolerancesForAllEdges(bitmap)
@@ -783,21 +811,11 @@ public class StructureImageExtractor {
 	        ctabRaw.add(ctab.cloneTab());
 	        
 	        
-	        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO, (nl)->{
+	        List<List<Node>> newNodesForMerge = new ArrayList<>();
+	        
+	        Function<List<Node>,Point2D> bestIntersectionPoint = (nl)->{
 	        	Point2D center= GeomUtil.findCenterOfVertices(nl.stream().map(n->n.getPoint()).collect(Collectors.toList()));
-	        	
-	        	if(nl.size()>3){
-	        		Shape candidate=GeomUtil.convexHull(nl.stream().map(n->n.getPoint()).toArray(i->new Point2D[i]));
-	        		
-	        		if(GeomUtil.area(candidate)>0.5*averageAreaOCR){
-	        			candidate=GeomUtil.growShape(candidate,4);
-	        			rescueOCRCandidates.add(candidate);
-	        			polygons.add(candidate);
-	        		}
-	        		//return center;
-	        	}
-	        	
-	        	double rad=ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO;
+	        	double rad=ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE;
 	        	
 	        	List<Edge> el=nl.stream()
 	        					.flatMap(n->n.getEdges().stream())
@@ -814,16 +832,125 @@ public class StructureImageExtractor {
 	        	        .collect(Collectors.toList());
 	        	
 	        	if(!intersections.isEmpty()){
+	        		//return GeomUtil.findCenterOfVertices(intersections);
 	        		return GeomUtil.findCenterMostPoint(intersections);
 	        	}else{
 	        		return center;
 	        	}
+	        };
+	        
+	        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE_INITIAL, (nl)->{
+	        	Point2D[] far=GeomUtil.getPairOfFarthestPoints(nl.stream().map(n->n.getPoint()).collect(Collectors.toList()));
+	        	
+	        	//This is pretty hacky (as if most of this code isn't)
+	        	
+	        	if(nl.size()==2 && far[0].distance(far[1])>MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE){
+	        		return null;
+	        	}
+	        	
+	        	if(far[0].distance(far[1])>0.9*ctab.getAverageBondLength()){
+	        		//something is wrong here, there must be some bad nodes
+	        		//flag for merge
+	        		List<Node> group1=new ArrayList<>();
+	        		List<Node> group2=new ArrayList<>();
+	        		nl.forEach(n->{
+	        			if(n.getPoint().distance(far[0])<n.getPoint().distance(far[1])){
+	        				group1.add(n);
+	        			}else{
+	        				group2.add(n);
+	        			}
+	        		});
+	        		
+	        		newNodesForMerge.add(group1);
+	        		newNodesForMerge.add(group2);
+	        		//cancel the merge
+	        		return null;
+	        	}
+	        	
+	        	
+	        	if(nl.size()>3){
+	        		Shape candidate=GeomUtil.convexHull(nl.stream().map(n->n.getPoint()).toArray(i->new Point2D[i]));
+	        		double area=GeomUtil.area(candidate);
+	        		System.out.println("Area is:" + area);
+	        		if(GeomUtil.area(candidate)>0.5*averageAreaOCR){
+	        			candidate=GeomUtil.growShape(candidate,4);
+	        			rescueOCRCandidates.add(candidate);
+	        			polygons.add(candidate);
+	        			System.out.println("Candidate");
+	        			return GeomUtil.findCenterOfVertices(nl.stream().map(n->n.getPoint()).collect(Collectors.toList()));
+	        		}
+	        		//return center;
+	        	}
+	        	
+	        	return bestIntersectionPoint.apply(nl);
 	        	
 	        });
-	       // ctab.mergeAllNodesOnParLines();
+	        
+	        newNodesForMerge.forEach(ln->{
+	        	Point2D center= bestIntersectionPoint.apply(ln);
+	        	ctab.mergeNodes(ln.stream().map(n->n.getIndex()).collect(Collectors.toList()), (ll)->{
+	        		return center;
+	        	});
+	        });
+	        
+	        ctabRaw.add(ctab.cloneTab());
+	        
+	        
+	        //ctab.mergeAllNodesOnParLines();
+	        ctab.removeOrphanNodes();
 	        ctab.standardCleanEdges();
+	        
+	        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE, (nl)->{
+//	        	Point2D[] far=GeomUtil.getPairOfFarthestPoints(nl.stream().map(n->n.getPoint()).collect(Collectors.toList()));
+//	        	
+//	        	//This is pretty hacky (as if most of this code isn't)
+//	        	if(far[0].distance(far[1])>0.9*ctab.getAverageBondLength()){
+//	        		//something is wrong here, there must be some bad nodes
+//	        		//flag for merge
+//	        		List<Node> group1=new ArrayList<>();
+//	        		List<Node> group2=new ArrayList<>();
+//	        		nl.forEach(n->{
+//	        			if(n.getPoint().distance(far[0])<n.getPoint().distance(far[1])){
+//	        				group1.add(n);
+//	        			}else{
+//	        				group2.add(n);
+//	        			}
+//	        		});
+//	        		
+//	        		newNodesForMerge.add(group1);
+//	        		newNodesForMerge.add(group2);
+//	        		//cancel the merge
+//	        		return null;
+//	        	}
+	        	
+	        	
+	        	if(nl.size()>3){
+	        		Shape candidate=GeomUtil.convexHull(nl.stream().map(n->n.getPoint()).toArray(i->new Point2D[i]));
+	        		double area=GeomUtil.area(candidate);
+	        		System.out.println("Area is:" + area);
+	        		if(GeomUtil.area(candidate)>0.5*averageAreaOCR){
+	        			candidate=GeomUtil.growShape(candidate,4);
+	        			rescueOCRCandidates.add(candidate);
+	        			polygons.add(candidate);
+	        			System.out.println("Candidate");
+	        			return GeomUtil.findCenterOfVertices(nl.stream().map(n->n.getPoint()).collect(Collectors.toList()));
+	        		}
+	        		//return center;
+	        	}
+	        	
+	        	return bestIntersectionPoint.apply(nl);
+	        	
+	        });
+
+	        ctab.removeOrphanNodes();
+	        ctab.standardCleanEdges();
+
+	        ctabRaw.add(ctab.cloneTab());
+	        
 	        ctab.createNodesOnIntersectingLines(1);
-	        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO);
+	        ctabRaw.add(ctab.cloneTab());
+	        
+	        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE);
 	        ctab.standardCleanEdges();
 	        
 	        ctabRaw.add(ctab.cloneTab());
@@ -852,8 +979,11 @@ public class StructureImageExtractor {
 	        }
 	        
 	        ctab.mergeNodesExtendingTo(likelyOCR,maxRatio,maxTotalRatio);
+	        System.out.println("Extended the first time:" + ctabRaw.size());
+	        ctabRaw.add(ctab.cloneTab());
+	        
 	        ctab.removeOrphanNodes();
-	        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO);
+	        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE);
 	        
 	        ctab.mergeNodesExtendingTo(likelyOCR,maxRatio,maxTotalRatio);
 	        
@@ -903,7 +1033,12 @@ public class StructureImageExtractor {
 		        		if(edges.size()==2){
 			        		if(ddelta<MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC){
 			        			toRemove.add(cn);
-			        			int o=edges.stream().mapToInt(e1->e1.getOrder()).max().orElse(1);
+			        			int o=edges.stream().map(et->Tuple.of(et,et.getBondLength()).withVComparator())
+			        					            .sorted(Comparator.reverseOrder())
+			        					            .map(ett->ett.k())
+			        					            .mapToInt(e1->e1.getOrder())
+			        					            .findFirst()
+			        					            .orElse(1);
 			        			t.v().setOrder(o);
 			        		}
 			        		if(!edges.stream().anyMatch(e2->e2.getDashed())){
@@ -1002,54 +1137,47 @@ public class StructureImageExtractor {
         
         
         //List<Point2D> vertices=lines.stream().flatMap(l->Stream.of(l.getP1(),l.getP2())).collect(Collectors.toList());
-        List<Line2D> verticesJl=linesJoined.stream()
+        List<Line2D> verticesNonJoinedLines=lines.stream()
+        								  // .flatMap(l->GeomUtil.splitLineIn2(l).stream())
         								  // .flatMap(l->GeomUtil.getLinesNotInside(l, likelyOCR).stream())
         								  // .filter(l->GeomUtil.length(l)>1)
         								   .collect(Collectors.toList());
-        List<Point2D> verticesJ=verticesJl.stream()
+        List<Point2D> verticesNonJoined=verticesNonJoinedLines.stream()
 				                           .flatMap(l->Stream.of(l.getP1(),l.getP2()))
         		                           .collect(Collectors.toList());
+        
+        List<Line2D> verticesJl=linesJoined.stream()
+				  // .flatMap(l->GeomUtil.getLinesNotInside(l, likelyOCR).stream())
+				  // .filter(l->GeomUtil.length(l)>1)
+				   .collect(Collectors.toList());
+		List<Point2D> verticesJ=verticesJl.stream()
+		                 .flatMap(l->Stream.of(l.getP1(),l.getP2()))
+		                 .collect(Collectors.toList());
         
         
         
         List<Shape> toAddAllOCR=new ArrayList<Shape>();
         
+        List<Shape> connectedComponents = polygons.stream()
+        		                                  .map(s->GeomUtil.growShape(s, 2))
+        		                                  .collect(Collectors.toList());
+        
+        
         
         unmatchedNodes.forEach(n->{
-//        	Tuple<Edge,Double> worstEdge=ctab.getWorstToleranceForNode(n,bitmap,likelyOCR);
-        	
-//        	System.out.println("Avg tol:" + avgTol);
-//        	System.out.println("Worst tol here:" + worstEdge.v());
-        	
-        	
-        	//The worst bond isn't so bad, maybe it's not worth looking
-//        	if(worstEdge.v()<avgTol*PROBLEM_TOLERANCE_RATIO){
-//        		
-//        		//double check to see if the shortest bond is too short
-//        		//if it isn't, then skip this one, it's probably fine.
-//        		boolean tooSmallBond=n.getEdges()
-//        				              .stream()
-//						              .mapToDouble(e->e.getBondLength())
-//						              .filter(d->d<avgbond*PROBLEM_BOND_LENGTH_RATIO)
-//						              .findAny()
-//						              .isPresent();
-//        		if(tooSmallBond){
-//        			//continue
-//        		}else{
-//        			return;
-//        		}
-//        	}
-        	
-        	
         	
         	Point2D cpt=n.getPoint();
         	
-        	cpt=rescueOCRCandidates.stream()
+        	//Do another step for likely candidates
+        	
+        	
+        	Point2D centerRescue=rescueOCRCandidates.stream()
         	                   .filter(sc->sc.contains(n.getPoint()))
-        	                   .peek(sc->System.out.println("Found candidate from earlier"))
+        	                   //.peek(sc->System.out.println("Found candidate from earlier"))
         	                   .findAny()
         	                   .map(sc->GeomUtil.findCenterOfShape(sc))
-        	                   .orElse(cpt);
+        	                   .orElse(null);
+        	
         	
         	
         	int numEdges=n.getEdges().size();
@@ -1057,22 +1185,51 @@ public class StructureImageExtractor {
         	Shape nshape=null;
         	double radius=Math.max(avgbond*SEED_BOND_RATIO_FOR_OCR_WIDTH_FOR_CENTROID,averageLargestOCR/2);
         	
+        	List<Point2D> allVertices = verticesJ;
+        	
+        	
+        	
+        	if(centerRescue!=null){
+        		cpt=centerRescue;
+        		//allVertices=verticesNonJoined;
+        		System.out.println("In rescue shape");
+        	}
+        	Point2D tpt=cpt;
+        	List<Shape> containedZone = connectedComponents.stream()
+					   .filter(z->z.contains(tpt))
+					   .collect(Collectors.toList());
+        	if(containedZone.isEmpty())return;
+        	
+        	
         	boolean keep=true;
         	for(int i=0;i<3;i++){
         		keep=true;
         		area[0]=GeomUtil.makeShapeAround(cpt,radius);
         		
         		//
-            	List<Point2D> insideVertices=verticesJ.stream()
+            	List<Point2D> insideVertices=allVertices.stream()
     							        	        .filter(v->area[0].contains(v))
     							        	        .collect(Collectors.toList());
 	        	if(insideVertices.size()<=numEdges+1){
 	        		keep=false;
 	        	}
-	        	List<Point2D> insideVertices2=verticesJ.stream()
+	        	List<Point2D> insideVertices2=allVertices.stream()
 	        	        .filter(v->area[0].contains(v))
 	        	        .collect(Collectors.toList());
-        		nshape = GeomUtil.convexHull(insideVertices2.toArray(new Point2D[0]));
+	        	
+//	        	List<Point2D> sameZoneVerts=containedZone.stream()
+//	        				 .map(z->Tuple.of(z,insideVertices2))
+//	        				 .map(t->Tuple.of(t.k(),t.v().stream()
+//	        						      .filter(vt->t.k().contains(vt))
+//	        						      .collect(Collectors.toList())))
+//	        				 .map(t->Tuple.of(t.k(),Tuple.of(t.v(),t.v().size()).withVComparator()))
+//	        				 .map(t->t.withVComparator())
+//	        				 .max(Comparator.naturalOrder())
+//	        				 .map(t->t.v().k())
+//	        				 .orElse(insideVertices2);
+	        	List<Point2D> sameZoneVerts=insideVertices2;
+	        	
+        		nshape = GeomUtil.convexHull(sameZoneVerts.toArray(new Point2D[0]));
         		
         		Point2D[] far=GeomUtil.getPairOfFarthestPoints(nshape);
         		
@@ -1093,6 +1250,8 @@ public class StructureImageExtractor {
             	//cpt=GeomUtil.findCenterOfVertices(Arrays.asList(GeomUtil.vertices(nshape)));
             	cpt=GeomUtil.findCenterOfShape(nshape);
         	}
+        	
+        	
         	
         	if(keep){
         	
@@ -1186,7 +1345,7 @@ public class StructureImageExtractor {
         
         ctab.mergeNodesExtendingTo(likelyOCR,0.5,1.4);
         
-        
+        System.out.println("Merged extending to OCR:" + ctabRaw.size());
         ctabRaw.add(ctab.cloneTab());
         
         double cosThetaOCRShape =Math.cos(MAX_THETA_FOR_OCR_SEPERATION);
@@ -1210,7 +1369,7 @@ public class StructureImageExtractor {
         		
         		return false;
         	}
-        	lines.add(l2);
+        	
         	Point2D cs1=GeomUtil.findCenterOfShape(shapes[0]);
         	Point2D cs2=GeomUtil.findCenterOfShape(shapes[1]);
         	
@@ -1277,6 +1436,7 @@ public class StructureImageExtractor {
 				   .filter(s->BranchNode.interpretOCRStringAsAtom(bestGuessOCR.get(s))!=null)
 				   .collect(Collectors.toList());
         
+        System.out.println("Cleaned edges:" + ctabRaw.size());
         ctabRaw.add(ctab.cloneTab());
         
         
@@ -1356,6 +1516,7 @@ public class StructureImageExtractor {
         ctab.standardCleanEdges();
         
 
+        System.out.println("Merged into atoms:" + ctabRaw.size());
         ctabRaw.add(ctab.cloneTab());
 
         List<Shape> growLikelyOCR=likelyOCR.stream().map(s->GeomUtil.growShape(s, 1)).collect(Collectors.toList());
@@ -1447,6 +1608,7 @@ public class StructureImageExtractor {
         
         ctab.standardCleanEdges();
         
+        System.out.println("Made/removed bonds to OCR:" + ctabRaw.size());
         
         ctabRaw.add(ctab.cloneTab());
         
@@ -1599,7 +1761,7 @@ public class StructureImageExtractor {
         
         
         //Now get all the nodes with 2 edges which have shorter than average bond length,
-        //and which are not in OCR, and where the sum of the distances of the bonds is within 95%
+        //and which are not in OCR, and where the sum of the distances of the bonds is within 97%
         //of the distance of the two neighbors. Those are nodes to remove
         List<Node> toRemove = new ArrayList<Node>();
         do{
@@ -1621,13 +1783,21 @@ public class StructureImageExtractor {
             	Node n2=t.v().get(0).k();
             	Node n3=t.v().get(1).k();
             	if(toRemove.contains(n2) || toRemove.contains(n3))return;
+            	
+            	
+            	
+            	
             	double d1=n1.distanceTo(n2) + n1.distanceTo(n3);
             	double d2=n2.distanceTo(n3);
             	if(d2/d1>.95){
-            		System.out.println("Adding edge:" + n2.getIndex() + "->" + n3.getIndex());
-            		System.out.println("Then remove:" + n1.getIndex());
-            		ctab.addEdge(n2.getIndex(), n3.getIndex(), 1);
-            		toRemove.add(n1);
+            		Line2D longLine=new Line2D.Double(n2.getPoint(),n3.getPoint());
+                	Point2D np=GeomUtil.projectPointOntoLine(longLine, n1.getPoint());
+                	if(np.distance(n1.getPoint())<3){
+	                	System.out.println("Adding edge:" + n2.getIndex() + "->" + n3.getIndex());
+	            		System.out.println("Then remove:" + n1.getIndex());
+	            		ctab.addEdge(n2.getIndex(), n3.getIndex(), 1);
+	            		toRemove.add(n1);
+                	}
             	}
             });        
         toRemove.forEach(n->ctab.removeNodeAndEdges(n));

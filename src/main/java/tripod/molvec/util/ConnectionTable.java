@@ -235,7 +235,7 @@ public class ConnectionTable{
         this.cleanDuplicateEdges((e1,e2)->{
         	if(e1.getOrder()>e2.getOrder()){
         		return e1;
-        	}else if(e1.getOrder()>e2.getOrder()){
+        	}else if(e1.getOrder()<e2.getOrder()){
         		return e2;
         	}else{
         		if(e1.getDashed())return e2;
@@ -302,9 +302,11 @@ public class ConnectionTable{
 			List<Integer> nindexs = ml.stream().map(n->n.getIndex()).collect(Collectors.toList());
 			//System.out.println("NIA:" + nindexs);
 			Point2D centerpt = combiner.apply(ml);
-			this.mergeNodes(nindexs, (pl)->{
-				return centerpt;
-			});			
+			if(centerpt!=null){
+				this.mergeNodes(nindexs, (pl)->{
+					return centerpt;
+				});			
+			}
 		});
 		return this;
 	}
@@ -470,7 +472,7 @@ public class ConnectionTable{
 		    	 this.nodes.get(e.n2).setPoint(newPoint2);
 		    	 
 		     });
-		this.mergeNodesCloserThan(avg/20);
+		this.mergeNodesCloserThan(avg/40);
 		
 		return this;
 	}
