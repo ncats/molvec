@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -476,18 +477,18 @@ public class StructureImageExtractor {
 	       		
 	       		double areabox=GeomUtil.area(s.getBounds2D());
 	       		 
-		       		//this usually means it's not a real "N"
+		       		//this usually means it's not a real "N" or S
 		       		
 		       		if(areareal/areabox <0.5){
 		       			if(chars.contains("\\") ||chars.contains("X")||chars.contains("K")||chars.contains("-")){
 				       		potential = potential.stream()
 				       				             .filter(t->!t.k().toString().equals("N"))
-				       				             .filter(t->!t.k().toString().equals("S"))
+				       				             .filter(t->!t.k().toString().equalsIgnoreCase("S"))
 				       				             .collect(Collectors.toList());
 		       			}
 		       		}
 		       		Rectangle2D rbox = s.getBounds2D();
-		       		//probably not an N
+		       		//probably not an N or S
 	       		 	if(rbox.getWidth()>rbox.getHeight()*1.3){
 		       		 	potential = potential.stream()
 	  				             .filter(t->!t.k().toString().equals("N"))
@@ -526,6 +527,15 @@ public class StructureImageExtractor {
 				            	 }
 				            	 return t;
 				             })
+				             .map(t->t.withVComparator())
+				             .sorted(Comparator.reverseOrder())
+				             .collect(Collectors.toList());
+	       	 }
+	       	
+	       	if(chars.contains("D") && (chars.contains("U") || chars.contains("u"))){
+	       		//It's probably an O, just got flagged wrong
+	       		potential = potential.stream()
+				             .map(Tuple.kmap(c->'O'))
 				             .collect(Collectors.toList());
 	       	 }
         	
@@ -951,10 +961,16 @@ public class StructureImageExtractor {
 	        ctab.removeOrphanNodes();
 	        ctab.standardCleanEdges();
 
+	        
 	        ctabRaw.add(ctab.cloneTab());
 	        
-	        ctab.createNodesOnIntersectingLines(1);
+	        ctab.createNodesOnIntersectingLines(2, elist->{
+	        	return true;
+	        });
+	        
+	        System.out.println("First intersection split:" + ctabRaw.size());
 	        ctabRaw.add(ctab.cloneTab());
+	        
 	        
 	        ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE);
 	        ctab.standardCleanEdges();
@@ -1065,11 +1081,17 @@ public class StructureImageExtractor {
 	        		}
 	        	}
 	        });
+	        
+	        
+	        
 	        System.out.println("Made new bonds:" + ctabRaw.size());
 	      //fuzzy adding missing stuff
 	        ctabRaw.add(ctab.cloneTab());
 	        toRemove.forEach(n->ctab.removeNodeAndEdges(n));
 	        ctab.removeOrphanNodes();
+	        
+	        
+	        
 	        
 	        //fuzzy adding missing stuff
 	        ctabRaw.add(ctab.cloneTab());
@@ -1093,6 +1115,30 @@ public class StructureImageExtractor {
 	        }
 	        if(reps>MAX_REPS)break;
         }
+        
+
+        AtomicBoolean anyOtherIntersections = new AtomicBoolean(false);
+
+        ctab.createNodesOnIntersectingLines(3, elist->{
+        	
+        	long longEnoughBonds=elist.stream()
+        		//	.peek(e->System.out.println("BL:" + e.getBondLength()))
+        	     .filter(e->e.getBondLength()>0.8*ctab.getAverageBondLength())
+        	     .count();
+        	if(longEnoughBonds<3)return false;
+        	anyOtherIntersections.set(true);
+        	return true;
+        });
+        
+        if(anyOtherIntersections.get()){
+        	System.out.println("Second intersection split:" + ctabRaw.size());
+            ctabRaw.add(ctab.cloneTab());
+        	ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE);
+        	ctab.standardCleanEdges();
+        }
+        
+        
+        
         ctab.getEdges()
         .forEach(e->{
         	double wl=bitmap.getWedgeLikeScore(e.getLine());
@@ -1105,6 +1151,8 @@ public class StructureImageExtractor {
         		e.switchNodes();
         	}            	
         });
+        
+        
         
         double shortestRealBondRatio = .3;
         ctab.fixBondOrders(likelyOCR,shortestRealBondRatio, e->{

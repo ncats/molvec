@@ -549,7 +549,7 @@ public class ConnectionTable{
 		return this;
 	}
 	
-	public ConnectionTable createNodesOnIntersectingLines(double tol){
+	public ConnectionTable createNodesOnIntersectingLines(double tol, Predicate<List<Edge>> shouldSplitEdges){
 		
 		boolean splitOne =true;
 		while(splitOne){
@@ -576,19 +576,30 @@ public class ConnectionTable{
 								continue;
 							}
 						}
-						//Point2D np=GeomUtil.intersection(e1.getLine(),e2.getLine());
-						int nodeNew = this.nodes.size();
-						this.addNode(np);
-						Edge nedge1 = new Edge(e1.n1, nodeNew, e1.getOrder());
-						Edge nedge2 = new Edge(e1.n2, nodeNew, e1.getOrder());
-						Edge nedge3 = new Edge(e2.n1, nodeNew, e2.getOrder());
-						Edge nedge4 = new Edge(e2.n2, nodeNew, e2.getOrder());
-						edges.set(i, nedge1);
-						edges.set(j, nedge2);
-						edges.add(nedge3);
-						edges.add(nedge4);
-						splitOne=true;
-						break;
+						
+							//Point2D np=GeomUtil.intersection(e1.getLine(),e2.getLine());
+							int nodeNew = this.nodes.size();
+							this.addNode(np);
+							Edge nedge1 = new Edge(e1.n1, nodeNew, e1.getOrder());
+							Edge nedge2 = new Edge(e1.n2, nodeNew, e1.getOrder());
+							Edge nedge3 = new Edge(e2.n1, nodeNew, e2.getOrder());
+							Edge nedge4 = new Edge(e2.n2, nodeNew, e2.getOrder());
+							edges.set(i, nedge1);
+							edges.set(j, nedge2);
+							edges.add(nedge3);
+							edges.add(nedge4);
+							if(!shouldSplitEdges.test(Stream.of(nedge1,nedge2,nedge3,nedge4).collect(Collectors.toList()))){
+								edges.set(i, e1);
+								edges.set(j, e2);
+								edges.remove(edges.size()-1);
+								edges.remove(edges.size()-1);
+								this.removeNode(nodeNew);
+								//this.nodes.remove(nodeNew);
+							}else{
+								splitOne=true;
+							}
+							break;
+						
 					}
 				}
 				if(splitOne)break;

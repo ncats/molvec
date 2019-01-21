@@ -341,6 +341,37 @@ public class MoleculeTest {
 		assertEquals(cReal.getFormula(),form);
 		//
 	}
+	//[#6]-c1cc(CN2C(=O)C3=C(CCCC3)C2=O)c(O)c(c1)-n4nc5ccccc5n4
+	//
+	
+	@Test
+	public void structureWithTightBondToNitrogens() throws Exception {
+		File f=getFile("moleculeTest/tightBondsToNitrogens.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("C-c1cc(CN2C(=O)C3=C(CCCC3)C2=O)c(O)c(c1)-n4nc5ccccc5n4").build();
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+		//
+	}
+	
+	@Test
+	public void structureWithLongLookingBondInAromaticRing() throws Exception {
+		File f=getFile("moleculeTest/longLookingBondInAromaticRing.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("C(\\C=C\\c1ccc(cc1)N(c2ccccc2)c3ccc(\\C=N\\N(c4ccccc4)c5ccccc5)cc3)=C/c6ccccc6").build();
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+		//
+	}
+	
 	//[H]n1c(Cl)nc2n(CCC3CC3)c(=O)n([H])c(=O)c12
 	//smallLineCl.png
 	@Test
