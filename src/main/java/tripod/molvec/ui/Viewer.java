@@ -773,9 +773,12 @@ public class Viewer extends JPanel
     
     void drawPolygons (Graphics2D g2) {
 		g2.setPaint(Color.red);
+		Stroke st=g2.getStroke();
+		g2.setStroke(new BasicStroke((float) (1/sx)));
 		for (Shape a : polygons) {
 	    g2.draw(a);
         }
+		g2.setStroke(st);;
     }
     
     void drawBestGuessOCR (Graphics2D g2) {

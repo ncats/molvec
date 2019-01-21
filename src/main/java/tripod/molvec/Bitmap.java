@@ -85,7 +85,8 @@ public class Bitmap implements Serializable, TiffTags {
      */
     public static enum Bbox {
         Rectangular,
-            Polygon
+            Polygon,
+            DoublePolygon
             }
 
     static final int[] MASK = new int[]{
@@ -1298,6 +1299,9 @@ public class Bitmap implements Serializable, TiffTags {
         case Polygon:
             comps = connectedComponentPolygonShapes (eqvtab, labels);
             break;
+        case DoublePolygon:
+            comps = connectedComponentDoublePrecisionPolygonShapes (eqvtab, labels);
+            break;
 
         case Rectangular:
         default:
@@ -1346,12 +1350,53 @@ public class Bitmap implements Serializable, TiffTags {
 
         List<Shape> comps = new ArrayList<Shape> ();
         for (List<Point> pts : coords.values ()) {
-            Polygon hull = GeomUtil.convexHull (pts.toArray (new Point[0]));
+            Polygon hull = GeomUtil.convexHullOldIntPrecision (pts.toArray (new Point[0]));
             comps.add (hull);
         }
 
         return comps;
     }
+    List<Shape> connectedComponentDoublePrecisionPolygonShapes
+	    (short[] eqvtab, short[][] labels) {
+	
+	    Map<Short, List<Point>> coords = new HashMap<Short, List<Point>> ();
+	    for (int y = 0; y < height; ++y)
+	        for (int x = 0; x < width; ++x) {
+	            short label = labels[y][x];
+	            if (label != 0) {
+	                short l = label;
+	                /* find equivalence class */
+	                while (eqvtab[l] > 0)
+	                    l = eqvtab[l];
+	
+	                labels[y][x] = l;
+	
+	                List<Point> pts = coords.get (l);
+	                if (pts == null) {
+	                    coords.put (l, pts = new ArrayList<Point> ());
+	                }
+	                pts.add (new Point (x, y));
+	            }
+	        }
+	
+	    List<Shape> comps = new ArrayList<Shape> ();
+	    for (List<Point> pts : coords.values ()) {
+	    	Point2D[] ptsadjusted=pts.stream()
+	    	    .flatMap(pt->{
+	    	    	return Stream.of(new Point2D.Double(pt.getX(),pt.getY())
+	    	    					 //,new Point2D.Double(pt.getX()+1,pt.getY()),
+	    	    					 //,new Point2D.Double(pt.getX()+1,pt.getY()+1),
+	    	    					 //,new Point2D.Double(pt.getX(),pt.getY()+1
+	    	    			);
+	    	    })
+	    	    .toArray(i->new Point2D[i]);
+	    	Shape hull = GeomUtil.convexHull2 (ptsadjusted);
+	    	
+	        comps.add (hull);
+	    }
+	
+	    return comps;
+	}
 
     List<Shape> connectedComponentRectangularShapes
         (short[] eqvtab, short[][] labels) {

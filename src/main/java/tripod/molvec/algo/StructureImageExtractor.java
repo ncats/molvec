@@ -869,7 +869,7 @@ public class StructureImageExtractor {
 	        	
 	        	
 	        	if(nl.size()>3){
-	        		Shape candidate=GeomUtil.convexHull(nl.stream().map(n->n.getPoint()).toArray(i->new Point2D[i]));
+	        		Shape candidate=GeomUtil.convexHull2(nl.stream().map(n->n.getPoint()).toArray(i->new Point2D[i]));
 	        		double area=GeomUtil.area(candidate);
 	        		System.out.println("Area is:" + area);
 	        		if(GeomUtil.area(candidate)>0.5*averageAreaOCR){
@@ -925,7 +925,7 @@ public class StructureImageExtractor {
 	        	
 	        	
 	        	if(nl.size()>3){
-	        		Shape candidate=GeomUtil.convexHull(nl.stream().map(n->n.getPoint()).toArray(i->new Point2D[i]));
+	        		Shape candidate=GeomUtil.convexHull2(nl.stream().map(n->n.getPoint()).toArray(i->new Point2D[i]));
 	        		double area=GeomUtil.area(candidate);
 	        		System.out.println("Area is:" + area);
 	        		if(GeomUtil.area(candidate)>0.5*averageAreaOCR){
@@ -1229,7 +1229,7 @@ public class StructureImageExtractor {
 //	        				 .orElse(insideVertices2);
 	        	List<Point2D> sameZoneVerts=insideVertices2;
 	        	
-        		nshape = GeomUtil.convexHull(sameZoneVerts.toArray(new Point2D[0]));
+        		nshape = GeomUtil.convexHull2(sameZoneVerts.toArray(new Point2D[0]));
         		
         		Point2D[] far=GeomUtil.getPairOfFarthestPoints(nshape);
         		
@@ -1265,7 +1265,7 @@ public class StructureImageExtractor {
                 	nmap=bitmap.crop(nshape);
                     nthinmap=thin.crop(nshape);
                     
-                    List<Shape> slist=nmap.connectedComponents(Bitmap.Bbox.Polygon);
+                    List<Shape> slist=nmap.connectedComponents(Bitmap.Bbox.DoublePolygon);
                     
                     Shape bshape=slist.stream()
 			                            .map(s->Tuple.of(s,s.getBounds2D().getWidth()*s.getBounds2D().getHeight()).withVComparator())

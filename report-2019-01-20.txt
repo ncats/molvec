@@ -148,17 +148,17 @@ INCORRECT	65
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008094741_34_chem.tif
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008063265_97_chem.tif
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008047814_2_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008168439_6_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008275779_18_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008170399_18_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008255018_22_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008208129_1092_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008239640_6_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008185692_22_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008074947_29_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008094847_337_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008291277_3_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008106016_165_chem.tif
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008168439_6_chem.tif -- very silly problem with OCR, thinks nonsense says C73, makes long chain
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008275779_18_chem.tif -- overlapping OCR with bond
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008170399_18_chem.tif -- bad OCR becausue too thin
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008255018_22_chem.tif -- noisy, also weird OCR problem with C
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008208129_1092_chem.tif -- noisy, blur might help
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008239640_6_chem.tif -- weird bond order problem, fixable
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008185692_22_chem.tif -- probably fixable, it combines edges it shouldn't at the end, and marks a bad intersection in the begginning
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008074947_29_chem.tif -- noisy, might fix if difference of blurs
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008094847_337_chem.tif -- oxygen is touching H, might be fixable if reprocess with new candidates after finding them
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008291277_3_chem.tif -- Lots of explicit carbons. This one sucks.
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008106016_165_chem.tif -- Might be doable to fix, bridgehead
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008214389_11_chem.tif
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008239616_1072_chem.tif
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008225485_44_chem.tif

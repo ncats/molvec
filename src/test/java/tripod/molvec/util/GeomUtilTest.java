@@ -3,7 +3,7 @@ package tripod.molvec.util;
 import static org.junit.Assert.assertEquals;
 import static tripod.molvec.util.GeomUtil.area;
 import static tripod.molvec.util.GeomUtil.areaTriangle;
-import static tripod.molvec.util.GeomUtil.convexHull;
+import static tripod.molvec.util.GeomUtil.convexHullOldIntPrecision;
 import static tripod.molvec.util.GeomUtil.shapeFromVertices;
 import static tripod.molvec.util.GeomUtil.vertices;
 
@@ -273,7 +273,7 @@ public class GeomUtilTest {
     
     @Test
     public void testIntersectingShape(){
-    	Shape s = GeomUtil.convexHull(new Point2D.Double(0, 0),new Point2D.Double(1, 0),new Point2D.Double(0, 1), new Point2D.Double(1,1));
+    	Shape s = GeomUtil.convexHull2(new Point2D.Double(0, 0),new Point2D.Double(1, 0),new Point2D.Double(0, 1), new Point2D.Double(1,1));
     	
     	AffineTransform at = new AffineTransform();
     	at.scale(10, 10);
@@ -308,22 +308,46 @@ public class GeomUtilTest {
 		for(int i=0;i<icoords.length;i+=2){
 			pts[i/2]=new Point2D.Double(icoords[i], icoords[i+1]);
 		}
-		Shape s= convexHull(pts);
+		Shape s= GeomUtil.convexHull2(pts);
 		System.out.println(Arrays.toString(vertices(s)));
 		
 		for(Point2D p : pts){
 			Assert.assertTrue(GeomUtil.distanceTo(s,p)<0.001);
 		}
 		Assert.assertTrue(s.contains(3, 3));
-		
-		
-		
-    	
     }
+    
+    @Test
+    public void convexHullDoublePrecissionShouldEliminateInnerPointsTest(){
+		double[] coords = new double[] { 	.2,  .2,
+											.2,  .2,
+											 1, .0,
+											.0, .0, 
+			 								.0, .0,
+			 								.0,  1,
+			 								.0,  1.0002,
+			 								.0,  1.0};
+		
+		double[] icoords = Arrays.stream(coords).toArray(); 
+		
+		Point2D[] pts = new Point2D[coords.length/2];
+		for(int i=0;i<icoords.length;i+=2){
+			pts[i/2]=new Point2D.Double(icoords[i], icoords[i+1]);
+		}
+		Shape s= GeomUtil.convexHull2(pts);
+		System.out.println(Arrays.toString(vertices(s)));
+		
+		for(Point2D p : pts){
+			Assert.assertTrue(GeomUtil.distanceTo(s,p)<0.001);
+		}
+		Assert.assertTrue(s.contains(.3, .3));
+    }
+    
+    
     @Test
     public void traingleAreaTest(){
     	double expected= 0.5;
-    	Shape si= convexHull(new Point2D[]{new Point2D.Double(2,1),new Point2D.Double(1,0),new Point2D.Double(2,0)});
+    	Shape si= GeomUtil.convexHull2(new Point2D[]{new Point2D.Double(2,1),new Point2D.Double(1,0),new Point2D.Double(2,0)});
     	int nrot=100;
     	for(int k=0;k<2;k++){
     		AffineTransform atflip =new AffineTransform();
@@ -349,7 +373,7 @@ public class GeomUtilTest {
     @Test
     public void traingleAreaTest2(){
     	double expected= 0.5;
-    	Shape si= convexHull(new Point2D[]{new Point2D.Double(2,1),new Point2D.Double(1,0),new Point2D.Double(2,0)});
+    	Shape si= GeomUtil.convexHull2(new Point2D[]{new Point2D.Double(2,1),new Point2D.Double(1,0),new Point2D.Double(2,0)});
     	int nrot=100;
     	for(int k=0;k<2;k++){
     		AffineTransform atflip =new AffineTransform();

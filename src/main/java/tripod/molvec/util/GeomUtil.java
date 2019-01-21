@@ -6,6 +6,7 @@ import java.awt.Shape;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.GeneralPath;
 import java.awt.geom.Line2D;
+import java.awt.geom.NoninvertibleTransformException;
 import java.awt.geom.Path2D;
 import java.awt.geom.PathIterator;
 import java.awt.geom.Point2D;
@@ -87,7 +88,7 @@ public class GeomUtil {
     /**
      * Graham scan algorithm for convex hull
      */
-    public static Polygon convexHull (Point2D... pts) {
+    public static Polygon convexHullOldIntPrecision (Point2D... pts) {
         if (pts.length < 3) {
             Polygon poly = new Polygon ();
             for (Point2D pt : pts) {
@@ -235,7 +236,203 @@ public class GeomUtil {
 //        	System.err.println("Not hull:" + Arrays.toString(vertices(hull)));
 
         	
-        	hull= convexHull(vertices(hull));
+        	hull= convexHullOldIntPrecision(vertices(hull));
+        }
+        
+        
+
+        return hull;
+    }
+    
+    /**
+     * Graham scan algorithm for convex hull
+     */
+    public static Shape convexHull2 (Point2D... pts) {
+    	if(true)return convexHullOldIntPrecision(pts);
+    	if(pts.length==0){
+    		GeneralPath poly = new GeneralPath ();
+    		return poly;
+    	}
+    	if (pts.length < 3) {
+            GeneralPath poly = new GeneralPath ();
+            int i=0;
+            
+            for (Point2D pt : pts) {
+            	if(i==0)poly.moveTo(pt.getX(), pt.getY());
+            	else poly.lineTo(pt.getX(), pt.getY());
+            	i++;
+            }
+            poly.closePath();
+            return poly;
+        }
+
+//    	AffineTransform at = new AffineTransform();
+//    	at.scale(1000, 1000);
+//    	
+//    	Point2D[] tpts = Arrays.stream(pts)
+//    			               .map(p->at.transform(p, null))
+//    			               .toArray(i->new Point2D[i]);
+//    	
+//    	Shape oShape=GeomUtil.convexHullOldIntPrecision(tpts);
+//    	AffineTransform atInv=null;
+//		try {
+//			atInv = at.createInverse();
+//		} catch (NoninvertibleTransformException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//    	if(true)return atInv.createTransformedShape(oShape);
+    	     
+    	
+    	
+        Point2D anchor = null;
+        for (Point2D pt : pts) {
+            if (anchor == null || pt.getY () < anchor.getY ()) {
+                anchor = pt;
+            } else if (pt.getY () == anchor.getY ()
+                       && pt.getX () < anchor.getX ()) {
+                anchor = pt;
+            }
+        }
+
+        final Point2D p0 = anchor;
+        Arrays.sort (pts, new Comparator<Point2D> () {
+                         public int compare (Point2D a, Point2D b) {
+                             double a0 = angle (p0, a), a1 = angle (p0, b);
+                             /*
+                               System.err.println("p0=("+p0.x+","+p0.y+") a=("+a.x+","+a.y+") "
+                               +"b=("+b.x+","+b.y+") ccw="+ccw(p0,a,b)
+                               +" theta(p0,a)="+a0+" theta(p0,b)="+a1);
+                             */
+                             if (a0 < a1) return -1;
+                             if (a0 > a1) return 1;
+
+                             double d0 = a.distance (p0), d1 = b.distance (p0);
+                             if (d0 < d1) return -1;
+                             if (d0 > d1) return 1;
+                             return 0;
+                         }
+                     });
+
+        if (DEBUG) {
+            logger.info ("Starting point: " + p0);
+            logger.info ("Points..." + pts.length);
+            for (int i = 0; i < pts.length; ++i) {
+                System.err.println (i + ": " + pts[i]);
+            }
+        }
+
+        LinkedList<Point2D> stack = new LinkedList<Point2D> ();
+        stack.push (pts[0]);
+        stack.push (pts[1]);
+        stack.push (pts[2]);
+        for (int i = 3; i < pts.length; ++i) {
+            Point2D pi = pts[i];
+            while (true) {
+                Point2D p2 = stack.pop ();
+                Point2D p1 = stack.peek ();
+                double dir = ccw (p1, p2, pi);
+                if (DEBUG) {
+                    System.err.println ("p1=(" + p1.getX () + "," + p1.getY () + ") p2=("
+                                        + p2.getX () + "," + p2.getY () + ") p"
+                                        + i + "=(" + pi.getX () + "," + pi.getY ()
+                                        + ") ccw=" + dir);
+                }
+                if (dir >= 0.) { // push back
+                    stack.push (p2);
+                    break;
+                }
+                if (DEBUG) {
+                    logger.info ("removing " + p2);
+                }
+            }
+
+            stack.push (pi);
+        }
+
+        if (DEBUG) {
+            logger.info ("Convex hull: " + stack.size ());
+        }
+
+        GeneralPath hull = new GeneralPath ();
+        double px=Integer.MIN_VALUE;
+        double py=Integer.MIN_VALUE;
+        
+        boolean hasDelta=false;
+        boolean hasPrevious=false;
+        
+        double pdx=Integer.MIN_VALUE;
+        double pdy=Integer.MIN_VALUE;
+        int rej=0;
+        boolean error=false;
+        
+        Stack<double[]> pointsToAdd = new Stack<double[]>();
+        
+        for (ListIterator<Point2D> it = stack.listIterator (stack.size ());
+             it.hasPrevious (); ) {
+            Point2D pt = it.previous ();
+            // should prune collinear points
+            if (DEBUG) {
+                System.err.println (" " + pt);
+            }
+            double nx= pt.getX ();
+            double ny= pt.getY ();
+            
+            
+            if(hasPrevious && (Math.abs(nx-px)<ZERO_DISTANCE_TOLERANCE && Math.abs(ny-py)<ZERO_DISTANCE_TOLERANCE)){
+            	
+            }else{
+
+            	double ndx=nx-px;
+        		double ndy=ny-py;
+        		
+            	
+            	if(hasDelta){
+            		int nrej = (int)Math.signum(ndx*pdy - ndy*pdx);
+            		
+            		if(nrej==0){
+            			pointsToAdd.pop();
+            		}else{
+	            		if(rej!=0){
+	            			if(rej!=nrej){
+	            				error=true;
+	            			}
+	            		}
+	            		rej=nrej;
+            		}
+            	}
+           		pointsToAdd.push(new double[]{nx,ny});
+           		
+       			if(hasPrevious){
+            		pdx=ndx;
+            		pdy=ndy;
+            		hasDelta=true;
+            	}
+                px=nx;
+                py=ny;
+                hasPrevious=true;
+            }
+        }
+        int i=0;
+        
+        for(double[] xy : pointsToAdd){
+        	if(i==0){
+        		hull.moveTo(xy[0], xy[1]);	
+        	}else{
+        		hull.lineTo(xy[0], xy[1]);
+        	}
+        	i++;
+        }
+        hull.closePath();
+    	
+        if(error){
+        	//TODO: There must be a bug in this code, because this should never get called, but it is called sometimes.
+        	
+        	System.err.println("Not hull:" + Arrays.toString(pts));
+        	System.err.println("Not hull:" + Arrays.toString(vertices(hull)));
+
+        	
+        	hull= (GeneralPath)convexHull2(vertices(hull));
         }
         
         
@@ -247,16 +444,10 @@ public class GeomUtil {
         return (Math.abs (p1.x - p2.x) <= 1 && Math.abs (p1.y - p2.y) <= 1);
     }
 
-    public static Polygon toPolygon (Shape shape) {
-        Polygon poly = new Polygon ();
-        for (Point2D p : vertices (shape)) {
-            poly.addPoint ((int) (p.getX () + .5), (int) (p.getY () + .5));
-        }
-        return poly;
-    }
+   
 
     // create a new convex hull shape from two given shapes
-    public static Polygon add (Shape s1, Shape s2) {
+    public static Shape add (Shape s1, Shape s2) {
         ArrayList<Point2D> pts = new ArrayList<Point2D> ();
         for (Point2D p : vertices (s1)) {
             pts.add (p);
@@ -264,7 +455,7 @@ public class GeomUtil {
         for (Point2D p : vertices (s2)) {
             pts.add (p);
         }
-        return convexHull (pts.toArray (new Point2D[0]));
+        return convexHull2(pts.toArray (new Point2D[0]));
     }
 
     public static Point2D[] vertices (Shape shape) {
@@ -1425,7 +1616,7 @@ public class GeomUtil {
 		if(ips.size()>2){
 			System.out.println("Line:" + l);
 			System.out.println("Shape:" + Arrays.toString(vertices(s)));
-			System.out.println("Shape:" + Arrays.toString(vertices(convexHull(vertices(s)))));
+			System.out.println("Shape:" + Arrays.toString(vertices(convexHull2(vertices(s)))));
 			throw new IllegalStateException("Line should not intersect with convex hull more than twice, maybe the shape isn't a convux hull?");
 		}
 		
@@ -1499,7 +1690,7 @@ public class GeomUtil {
 		allPoints.addAll(pp);
 		
 		if(allPoints.isEmpty() || allPoints.size()<3)return Optional.empty();
-		return Optional.ofNullable(convexHull(allPoints.toArray(new Point2D[0])));
+		return Optional.ofNullable(convexHull2(allPoints.toArray(new Point2D[0])));
 	}
 //	
 //	public static Shape[] splitInHalf(Shape s){
