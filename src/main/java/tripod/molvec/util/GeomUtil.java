@@ -248,10 +248,28 @@ public class GeomUtil {
      * Graham scan algorithm for convex hull
      */
     public static Shape convexHull2 (Point2D... pts) {
-    	if(true)return convexHullOldIntPrecision(pts);
+    	//if(true)return convexHullOldIntPrecision(pts);
+    	
+    	AffineTransform at = new AffineTransform();
+    	at.scale(1, 1);
+    	
+    	Point2D[] tpts = Arrays.stream(pts)
+    			               .map(p->at.transform(p, null))
+    			               .toArray(i->new Point2D[i]);
+    	
+    	Shape oShape=GeomUtil.convexHullOldIntPrecision(tpts);
+    	AffineTransform atInv=null;
+		try {
+			atInv = at.createInverse();
+		} catch (NoninvertibleTransformException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	if(true)return atInv.createTransformedShape(oShape);
+    	
     	if(pts.length==0){
-    		GeneralPath poly = new GeneralPath ();
-    		return poly;
+    		//GeneralPath poly = new GeneralPath ();
+    		return convexHullOldIntPrecision(pts);
     	}
     	if (pts.length < 3) {
             GeneralPath poly = new GeneralPath ();
@@ -266,22 +284,7 @@ public class GeomUtil {
             return poly;
         }
 
-//    	AffineTransform at = new AffineTransform();
-//    	at.scale(1000, 1000);
-//    	
-//    	Point2D[] tpts = Arrays.stream(pts)
-//    			               .map(p->at.transform(p, null))
-//    			               .toArray(i->new Point2D[i]);
-//    	
-//    	Shape oShape=GeomUtil.convexHullOldIntPrecision(tpts);
-//    	AffineTransform atInv=null;
-//		try {
-//			atInv = at.createInverse();
-//		} catch (NoninvertibleTransformException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//    	if(true)return atInv.createTransformedShape(oShape);
+
     	     
     	
     	

@@ -341,6 +341,21 @@ public class MoleculeTest {
 		assertEquals(cReal.getFormula(),form);
 		//
 	}
+	//[H]n1c(Cl)nc2n(CCC3CC3)c(=O)n([H])c(=O)c12
+	//smallLineCl.png
+	@Test
+	public void structureWithSmallLineForCl() throws Exception {
+		File f=getFile("moleculeTest/smallLineCl.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("[H]n1c(Cl)nc2n(CCC3CC3)c(=O)n([H])c(=O)c12").build();
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+		//
+	}
 	@Test
 	public void structureWithOxygenOffCenterInRing() throws Exception {
 		File f=getFile("moleculeTest/connectedOxygen.png");

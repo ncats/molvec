@@ -544,7 +544,7 @@ public class StructureImageExtractor {
         
         bitmap = Bitmap.read(file).clean();
 
-        polygons = bitmap.connectedComponents(Bitmap.Bbox.Polygon);
+        polygons = bitmap.connectedComponents(Bitmap.Bbox.DoublePolygon);
 
         boolean isLarge = false;
         if (!polygons.isEmpty()) {
@@ -565,11 +565,17 @@ public class StructureImageExtractor {
          * Looks at each polygon, and gets the likely OCR chars.
          */   
         
+        List<Shape> initialDebug = new ArrayList<>();
+        
     	processOCR(socr[0],polygons,bitmap,thin,(s,potential)->{
     		 ocrAttmept.put(s, potential);
+    		 initialDebug.add(s);
+    		 System.out.println("initial found:" +potential.get(0).k());
              if(potential.stream().filter(e->e.v().doubleValue()>OCRcutoffCosine).findAny().isPresent()){
             	 	if(OCRIsLikely(potential.get(0))){
                  		likelyOCR.add(s);
+                 		
+                 		System.out.println("initial found:" +potential.get(0).k());
                  	}
                  	likelyOCRAll.add(s);
                  	
@@ -700,10 +706,10 @@ public class StructureImageExtractor {
         	ShapeInfo st=computeShapeType(s, linesJoined, OCRcutoffCosine, bitmap, thin);
         	shapeTypes.put(s, st);
         	
-        	if(st.t.equals(ShapeType.NOISE)){
-        		likelyOCR.remove(s);
-        		likelyOCRAll.remove(s);
-        	}
+//        	if(st.t.equals(ShapeType.NOISE)){
+//        		likelyOCR.remove(s);
+//        		likelyOCRAll.remove(s);
+//        	}
         	
         	
         	//System.out.println(st);
@@ -1267,6 +1273,7 @@ public class StructureImageExtractor {
                     
                     List<Shape> slist=nmap.connectedComponents(Bitmap.Bbox.DoublePolygon);
                     
+                    
                     Shape bshape=slist.stream()
 			                            .map(s->Tuple.of(s,s.getBounds2D().getWidth()*s.getBounds2D().getHeight()).withVComparator())
 			                            .max(CompareUtil.naturalOrder())
@@ -1283,7 +1290,9 @@ public class StructureImageExtractor {
                    
                     if(nmap!=null && nthinmap!=null){
                     	processOCRShape(socr[0],nshape,bitmap,thin,(s,potential)->{
+                    		
                     		if(potential.get(0).v().doubleValue()>OCRcutoffCosineRescue){
+                    			
                     			String st=potential.get(0).k().toString();
                     			if(BranchNode.interpretOCRStringAsAtom(st)!=null){
                     				toAddAllOCR.add(s);	
@@ -1330,6 +1339,7 @@ public class StructureImageExtractor {
                 	if(nmap!=null && nthinmap!=null){
                 		processOCRShape(socr[0],nshape,bitmap,thin,(s,potential)->{
                 			ocrAttmept.put(s, potential);
+                			System.out.println("rescue found:" +potential.get(0).k());
     		                polygons.add(s);
     		                if(potential.stream().findFirst().filter(e->e.v().doubleValue()>OCRcutoffCosineRescue).isPresent()){
     			                if(OCRIsLikely(potential.get(0))){
