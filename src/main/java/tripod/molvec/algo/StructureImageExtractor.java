@@ -1718,7 +1718,9 @@ public class StructureImageExtractor {
 	        	    	double expected = Math.sqrt(3)/4*Math.pow(e.getBondLength(),2);
 	        	    	if(tarea<expected*0.5){
 	        	    		//System.out.println("It's a bad one");
-	        	    		if(oedge1.getDashed() && oedge2.getDashed() && !e.getDashed()){
+	        	    		if(!e.getDashed() && (oedge1.getDashed() && oedge2.getDashed()) ||
+	        	    				(oedge1.getDashed() || oedge2.getDashed() && e.getOrder()>1)
+	        	    				){
 	        	    			ctab.removeEdge(oedge1);
 	        	    			ctab.removeEdge(oedge2);
 	        	    		}else{
@@ -1738,6 +1740,7 @@ public class StructureImageExtractor {
         	//for each edge, 
         	
         }
+        ctab.removeOrphanNodes();
         System.out.println("Removed Triangles:" + ctabRaw.size());
         ctabRaw.add(ctab.cloneTab());
         

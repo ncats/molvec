@@ -371,7 +371,25 @@ public class MoleculeTest {
 		assertEquals(cReal.getFormula(),form);
 		//
 	}
-	
+	//c1ccc2cc3cc4cc5ccccc5cc4cc3cc2c1
+	@Test
+	public void structureWithAromaticSystemWhichSometimesChoosesWrongDoubleBond() throws Exception {
+		File f=getFile("moleculeTest/aromaticSystemSometimesWrongDoubleBondChosen.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("c1ccc2cc3cc4cc5ccccc5cc4cc3cc2c1").build();
+		
+		Chemical c1=sie.getChemical();
+		Chemical c=c1.connectedComponentsAsStream()
+		  .map(ct->Tuple.of(ct,ct.getAtomCount()).withVComparator())
+		  .max(Comparator.naturalOrder())
+		  .map(t->t.k())
+		  .orElse(c1);
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+		//
+	}
 	//[H]n1c(Cl)nc2n(CCC3CC3)c(=O)n([H])c(=O)c12
 	//smallLineCl.png
 	@Test
