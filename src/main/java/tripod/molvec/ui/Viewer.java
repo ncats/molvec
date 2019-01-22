@@ -113,7 +113,7 @@ public class Viewer extends JPanel
 
     HistogramChart lineHistogram;
 
-    static final SCOCR OCR=new RasterCosineSCOCR();
+    static final SCOCR OCR=new DeprecatedFontBasedRasterCosineSCOCR();
     static{
     	OCR.setAlphabet(SCOCR.SET_COMMON_CHEM_ALL());
     }

@@ -1,6 +1,8 @@
 package tripod.molvec.algo;
 
 import java.io.File;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -43,7 +45,12 @@ public class RegressionTest {
 	public static Result testMolecule(File image, File sdf){
 		
 		try{
-			Chemical c1=ChemicalBuilder.createFromMol(sdf).build();
+			String rawMol = Files.lines(sdf.toPath())
+					.filter(l->!l.contains("SUP"))
+					.filter(l->!l.contains("SGROUP"))
+					.collect(Collectors.joining("\n"));
+			
+			Chemical c1=ChemicalBuilder.createFromMol(rawMol,Charset.defaultCharset()).build();
 			System.out.println("--------------------------------");
 			System.out.println(sdf.getAbsolutePath());
 			System.out.println("--------------------------------");
@@ -139,13 +146,14 @@ public class RegressionTest {
 	}
 	
 	
-	@Ignore
+	//@Ignore
 	@Test
 	public void test1(){
-		File dir1 = getFile("regressionTest/testSet1");
+		File dir1 = getFile("regressionTest/sgroupTest1");
 		
 		Arrays.stream(dir1.listFiles())
 		      .filter(f->f.getName().contains("."))
+		      //.filter(f->f.getName().contains("2008058707_41_chem"))
 		      .map(f->Tuple.of(f.getName().split("[.]")[0],f))
 		      .collect(Tuple.toGroupedMap())
 		      .values()

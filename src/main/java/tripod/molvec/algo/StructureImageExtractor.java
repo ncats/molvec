@@ -30,8 +30,9 @@ import gov.nih.ncats.chemkit.api.Chemical;
 import tripod.molvec.Bitmap;
 import tripod.molvec.CachedSupplier;
 import tripod.molvec.algo.Tuple.KEqualityTuple;
-import tripod.molvec.ui.RasterCosineSCOCR;
+import tripod.molvec.ui.FontBasedRasterCosineSCOCR;
 import tripod.molvec.ui.SCOCR;
+import tripod.molvec.ui.StupidestPossibleSCOCRSans;
 import tripod.molvec.util.CompareUtil;
 import tripod.molvec.util.ConnectionTable;
 import tripod.molvec.util.ConnectionTable.Edge;
@@ -39,8 +40,10 @@ import tripod.molvec.util.ConnectionTable.Node;
 import tripod.molvec.util.GeomUtil;
 
 public class StructureImageExtractor {
-	static final SCOCR OCR_DEFAULT=new RasterCosineSCOCR(RasterCosineSCOCR.SANS_SERIF_FONTS());
-	static final SCOCR OCR_BACKUP=new RasterCosineSCOCR(RasterCosineSCOCR.SERIF_FONTS()).adjustWeights(t->{
+	
+	//static final SCOCR OCR_DEFAULT=new StupidestPossibleSCOCRSans();
+	static final SCOCR OCR_DEFAULT=new FontBasedRasterCosineSCOCR(FontBasedRasterCosineSCOCR.SANS_SERIF_FONTS());
+	static final SCOCR OCR_BACKUP=new FontBasedRasterCosineSCOCR(FontBasedRasterCosineSCOCR.SERIF_FONTS()).adjustWeights(t->{
 		double ov=t.v().doubleValue();
 		Tuple<Character,Number> ret=t;
 		if("N".equals(t.k()+"")){
@@ -50,7 +53,7 @@ public class StructureImageExtractor {
 	});
 	
 	
-	static final SCOCR OCR_ALL=new RasterCosineSCOCR();
+	static final SCOCR OCR_ALL=new FontBasedRasterCosineSCOCR();
    
 	static{
 		Set<Character> alpha=SCOCR.SET_COMMON_CHEM_ALL();
@@ -62,6 +65,8 @@ public class StructureImageExtractor {
     	Set<Character> alphaAll=SCOCR.SET_COMMON_PUCTUATION();
     	alphaAll.addAll(SCOCR.SET_ALPHANUMERIC());
     	OCR_ALL.setAlphabet(alphaAll);
+    	
+    	//((FontBasedRasterCosineSCOCR)OCR_DEFAULT).debug();
     }
     
 	private Bitmap bitmap; // original bitmap
@@ -125,7 +130,7 @@ public class StructureImageExtractor {
 	
 	//This number is likely one of the most important to adjust.
 	//It may have to have some changes done to the algorithm using it too
-	private final double MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.33;
+	private final double MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.3165;
 	
 	
 	private final double MIN_LONGEST_WIDTH_RATIO_FOR_OCR_TO_AVERAGE=0.5;
@@ -1699,7 +1704,7 @@ public class StructureImageExtractor {
         })
         .forEach(lst->{
         	List<Node> nodes = Stream.of(lst.k().k(),lst.k().v())
-        	  .map(s->ctab.getNodesInsideShape(s, 0))
+        	  .map(s->ctab.getNodesInsideShape(s, 2))
         	  .flatMap(nds->nds.stream())
         	  .distinct()
         	  .collect(Collectors.toList());

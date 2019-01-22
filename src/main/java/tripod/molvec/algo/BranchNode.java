@@ -231,10 +231,12 @@ class BranchNode{
 	}
 
 	private static BranchNode interpretOCRStringAsAtom(String s, boolean tokenOnly){
-		if((s.equalsIgnoreCase("CO2H")
+		if((   s.equalsIgnoreCase("CO2H")
 			|| s.equalsIgnoreCase("CO2")
 			|| s.equalsIgnoreCase("COOH")
 			|| s.equalsIgnoreCase("HOOC")
+			|| s.equalsIgnoreCase("OOC")
+			|| s.equalsIgnoreCase("COO")
 				)){
 			BranchNode bn = new BranchNode("C");
 			bn.addChild(new BranchNode("O").setOrderToParent(2));
@@ -248,7 +250,15 @@ class BranchNode{
 				//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
 				return bn;
 			}
-		
+		if((s.equalsIgnoreCase("SO3")
+				|| s.equalsIgnoreCase("O3S"))){
+				BranchNode bn = new BranchNode("S");
+				bn.addChild(new BranchNode("O").setOrderToParent(2));
+				bn.addChild(new BranchNode("O").setOrderToParent(2));
+				bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
+				//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
+				return bn;
+			}
 		if(accept.contains(s)){
 			return new BranchNode(s);
 		}else if(accept.contains(s.toUpperCase())){

@@ -24,15 +24,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.imageio.ImageIO;
 
-public class RasterCosineSCOCR implements SCOCR {
+public class DeprecatedFontBasedRasterCosineSCOCR implements SCOCR {
 	Set<Character> _alphabet;
 	Map<Character, Collection<int[][]>> charVal = new HashMap<Character, Collection<int[][]>>();
 	Map<Character, Double> WH_RATIO = new HashMap<Character, Double>();
 
 	static int DEF_WIDTH = 20;
 	static int DEF_HEIGHT = 20;
-	private static BufferedImage bi = new BufferedImage(DEF_WIDTH, DEF_HEIGHT,
-			BufferedImage.TYPE_BYTE_GRAY);
+	private static BufferedImage bi = new BufferedImage(DEF_WIDTH, DEF_HEIGHT,BufferedImage.TYPE_BYTE_GRAY);
+	
+	
 	private List<Font> fontList = new ArrayList<Font>();
 	
 	public static List<Font> DEFAULT_FONTS(){
@@ -56,11 +57,11 @@ public class RasterCosineSCOCR implements SCOCR {
 				});
 	}
 	
-	public RasterCosineSCOCR(List<Font> flist) {
+	public DeprecatedFontBasedRasterCosineSCOCR(List<Font> flist) {
 		fontList.addAll(flist);
 	}
 	
-	public RasterCosineSCOCR() {
+	public DeprecatedFontBasedRasterCosineSCOCR() {
 		this(Arrays.asList(new Font[] {
 				new Font(Font.SANS_SERIF, Font.BOLD, 8),
 				new Font(Font.SANS_SERIF, Font.PLAIN, 8),
