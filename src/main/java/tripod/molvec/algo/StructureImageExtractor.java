@@ -32,7 +32,8 @@ import tripod.molvec.CachedSupplier;
 import tripod.molvec.algo.Tuple.KEqualityTuple;
 import tripod.molvec.ui.FontBasedRasterCosineSCOCR;
 import tripod.molvec.ui.SCOCR;
-import tripod.molvec.ui.StupidestPossibleSCOCRSans;
+import tripod.molvec.ui.StupidestPossibleSCOCRSansSerif;
+import tripod.molvec.ui.StupidestPossibleSCOCRSerif;
 import tripod.molvec.util.CompareUtil;
 import tripod.molvec.util.ConnectionTable;
 import tripod.molvec.util.ConnectionTable.Edge;
@@ -41,17 +42,19 @@ import tripod.molvec.util.GeomUtil;
 
 public class StructureImageExtractor {
 	
-	//static final SCOCR OCR_DEFAULT=new StupidestPossibleSCOCRSans();
-	static final SCOCR OCR_DEFAULT=new FontBasedRasterCosineSCOCR(FontBasedRasterCosineSCOCR.SANS_SERIF_FONTS());
-	static final SCOCR OCR_BACKUP=new FontBasedRasterCosineSCOCR(FontBasedRasterCosineSCOCR.SERIF_FONTS()).adjustWeights(t->{
-		double ov=t.v().doubleValue();
-		Tuple<Character,Number> ret=t;
-		if("N".equals(t.k()+"")){
-			ret= Tuple.of(t.k(),(Number)(Math.max(1-(1-ov)*1.1,0)));
-		}
-		return ret;
-	});
-	
+	static final SCOCR OCR_DEFAULT=new StupidestPossibleSCOCRSansSerif();
+	//static final SCOCR OCR_DEFAULT=new FontBasedRasterCosineSCOCR(FontBasedRasterCosineSCOCR.SANS_SERIF_FONTS());
+	//static final SCOCR OCR_BACKUP=new FontBasedRasterCosineSCOCR(FontBasedRasterCosineSCOCR.SERIF_FONTS())
+	static final SCOCR OCR_BACKUP=new StupidestPossibleSCOCRSerif()
+			.adjustWeights(t->{
+					double ov=t.v().doubleValue();
+					Tuple<Character,Number> ret=t;
+					if("N".equals(t.k()+"")){
+						ret= Tuple.of(t.k(),(Number)(Math.max(1-(1-ov)*1.1,0)));
+					}
+					return ret;
+				});
+				
 	
 	static final SCOCR OCR_ALL=new FontBasedRasterCosineSCOCR();
    
@@ -66,7 +69,7 @@ public class StructureImageExtractor {
     	alphaAll.addAll(SCOCR.SET_ALPHANUMERIC());
     	OCR_ALL.setAlphabet(alphaAll);
     	
-    	//((FontBasedRasterCosineSCOCR)OCR_DEFAULT).debug();
+    	//((FontBasedRasterCosineSCOCR)OCR_BACKUP).debug();
     }
     
 	private Bitmap bitmap; // original bitmap
@@ -490,7 +493,7 @@ public class StructureImageExtractor {
 		       		//this usually means it's not a real "N" or S
 		       		
 		       		if(areareal/areabox <0.5){
-		       			if(chars.contains("\\") ||chars.contains("X")||chars.contains("K")||chars.contains("-")){
+		       			if(chars.contains("\\") ||chars.contains("X")||chars.contains("K")||chars.contains("k")||chars.contains("-")){
 				       		potential = potential.stream()
 				       				             .filter(t->!t.k().toString().equals("N"))
 				       				             .filter(t->!t.k().toString().equalsIgnoreCase("S"))

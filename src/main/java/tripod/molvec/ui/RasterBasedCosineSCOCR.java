@@ -288,7 +288,7 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 				}
 			}
 			double whrat = (double) twidth / (double) theight;
-			whrat = rc.rect.getWidth()/rc.rect.getHeight();
+			whrat = (rc.rect.getWidth()/rc.rect.getHeight()) / whrat;
 			if (whrat > 1)
 				whrat = 1 / whrat;
 			whrat = 1 - Math.pow(1 - whrat, 2);
