@@ -120,6 +120,7 @@ public class StructureImageExtractor {
 	private final double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL = 0.5;
 	private final double MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS = 6;
 	private final double MIN_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS = 2;
+	private final double MAX_BOND_TO_AVG_BOND_RATIO_FOR_INTERSECTION= 0.8;
 	
 	private final double MAX_ANGLE_FOR_JOINING_SEGMENTS=25 * Math.PI/180.0;
 	private final double MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS=8.0;
@@ -596,12 +597,12 @@ public class StructureImageExtractor {
     	processOCR(socr[0],polygons,bitmap,thin,(s,potential)->{
     		 ocrAttmept.put(s, potential);
     		 initialDebug.add(s);
-    		 System.out.println("initial found:" +potential.get(0).k());
+//    		 System.out.println("initial found:" +potential.get(0).k());
              if(potential.stream().filter(e->e.v().doubleValue()>OCRcutoffCosine).findAny().isPresent()){
             	 	if(OCRIsLikely(potential.get(0))){
                  		likelyOCR.add(s);
                  		
-                 		System.out.println("initial found:" +potential.get(0).k());
+//                 		System.out.println("initial found:" +potential.get(0).k());
                  	}
                  	likelyOCRAll.add(s);
                  	
@@ -749,19 +750,19 @@ public class StructureImageExtractor {
         	//System.out.println(st);
         }
         
-        double OCRAvgLineDensity=polygons.stream()
-                .filter(s->likelyOCR.contains(s))
-                .mapToDouble(s->shapeTypes.get(s).getLineDensity())
-                .average()
-                .orElse(0);
-        double nonOCRAvgLineDensity=polygons.stream()
-                .filter(s->!likelyOCR.contains(s))
-                .mapToDouble(s->shapeTypes.get(s).getLineDensity())
-                .average()
-                .orElse(0);
+//        double OCRAvgLineDensity=polygons.stream()
+//                .filter(s->likelyOCR.contains(s))
+//                .mapToDouble(s->shapeTypes.get(s).getLineDensity())
+//                .average()
+//                .orElse(0);
+//        double nonOCRAvgLineDensity=polygons.stream()
+//                .filter(s->!likelyOCR.contains(s))
+//                .mapToDouble(s->shapeTypes.get(s).getLineDensity())
+//                .average()
+//                .orElse(0);
         
-        System.out.println("OCR LD:" + OCRAvgLineDensity);
-        System.out.println("non-OCR LD:" +nonOCRAvgLineDensity);
+//        System.out.println("OCR LD:" + OCRAvgLineDensity);
+//        System.out.println("non-OCR LD:" +nonOCRAvgLineDensity);
         
 //        
 //        GeomUtil.groupThings(shapeTypes.values().stream().collect(Collectors.toList()), (tm)->{
@@ -897,7 +898,7 @@ public class StructureImageExtractor {
 	        	if(far[0].distance(far[1])>0.9*ctab.getAverageBondLength()){
 	        		//something is wrong here, there must be some bad nodes
 	        		//flag for merge
-	        		System.out.println("Wait just a gosh darn minute");
+//	        		System.out.println("Wait just a gosh darn minute");
 	        		//Maybe still add as candidate? IDK.
 	        		 
 	        		List<Node> group1=new ArrayList<>();
@@ -929,12 +930,12 @@ public class StructureImageExtractor {
 	        	if(missingPoints.size()>3){
 	        		Shape candidate=GeomUtil.convexHull2(missingPoints.stream().toArray(i->new Point2D[i]));
 	        		double area=GeomUtil.area(candidate);
-	        		System.out.println("Area is:" + area);
+//	        		System.out.println("Area is:" + area);
 	        		if(GeomUtil.area(candidate)>0.5*averageAreaOCR){
 	        			candidate=GeomUtil.growShape(candidate,4);
 	        			rescueOCRCandidates.add(candidate);
 	        			//polygons.add(candidate);
-	        			System.out.println("Candidate");
+//	        			System.out.println("Candidate");
 	        			return GeomUtil.findCenterOfVertices(missingPoints);
 	        		}
 	        		//polygons.add(candidate);
@@ -976,12 +977,12 @@ public class StructureImageExtractor {
 	        	if(missingPoints.size()>3){
 	        		Shape candidate=GeomUtil.convexHull2(missingPoints.stream().toArray(i->new Point2D[i]));
 	        		double area=GeomUtil.area(candidate);
-	        		System.out.println("Area is:" + area);
+//	        		System.out.println("Area is:" + area);
 	        		if(GeomUtil.area(candidate)>0.5*averageAreaOCR){
 	        			candidate=GeomUtil.growShape(candidate,4);
 	        			rescueOCRCandidates.add(candidate);
 	        			//polygons.add(candidate);
-	        			System.out.println("Candidate");
+//	        			System.out.println("Candidate");
 	        			return GeomUtil.findCenterOfVertices(missingPoints);
 	        		}
 	        		//polygons.add(candidate);
@@ -1030,7 +1031,7 @@ public class StructureImageExtractor {
 	        	return true;
 	        });
 	        
-	        System.out.println("First intersection split:" + ctabRaw.size());
+//	        System.out.println("First intersection split:" + ctabRaw.size());
 	        ctabRaw.add(ctab.cloneTab());
 	        
 	        
@@ -1063,7 +1064,7 @@ public class StructureImageExtractor {
 	        }
 	        
 	        ctab.mergeNodesExtendingTo(likelyOCR,maxRatio,maxTotalRatio);
-	        System.out.println("Extended the first time:" + ctabRaw.size());
+//	        System.out.println("Extended the first time:" + ctabRaw.size());
 	        ctabRaw.add(ctab.cloneTab());
 	        
 	        ctab.removeOrphanNodes();
@@ -1077,7 +1078,7 @@ public class StructureImageExtractor {
 	        	ctab.mergeAllNodesInsideCenter(s, OCR_TO_BOND_MAX_DISTANCE);
 	        }
 	        
-	        System.out.println("Adding back missing OCR:" + ctabRaw.size());
+//	        System.out.println("Adding back missing OCR:" + ctabRaw.size());
 	        ctabRaw.add(ctab.cloneTab());
 	        
 	        ctab.makeMissingNodesForShapes(likelyOCR,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL);
@@ -1145,7 +1146,7 @@ public class StructureImageExtractor {
 	        
 	        
 	        
-	        System.out.println("Made new bonds:" + ctabRaw.size());
+//	        System.out.println("Made new bonds:" + ctabRaw.size());
 	      //fuzzy adding missing stuff
 	        ctabRaw.add(ctab.cloneTab());
 	        toRemove.forEach(n->ctab.removeNodeAndEdges(n));
@@ -1184,7 +1185,7 @@ public class StructureImageExtractor {
         	
         	long longEnoughBonds=elist.stream()
         		//	.peek(e->System.out.println("BL:" + e.getBondLength()))
-        	     .filter(e->e.getBondLength()>0.8*ctab.getAverageBondLength())
+        	     .filter(e->e.getBondLength()>MAX_BOND_TO_AVG_BOND_RATIO_FOR_INTERSECTION*ctab.getAverageBondLength())
         	     .count();
         	if(longEnoughBonds<3)return false;
         	anyOtherIntersections.set(true);
@@ -1192,7 +1193,7 @@ public class StructureImageExtractor {
         });
         
         if(anyOtherIntersections.get()){
-        	System.out.println("Second intersection split:" + ctabRaw.size());
+//        	System.out.println("Second intersection split:" + ctabRaw.size());
             ctabRaw.add(ctab.cloneTab());
         	ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE);
         	ctab.standardCleanEdges();
@@ -1429,9 +1430,9 @@ public class StructureImageExtractor {
                 	boolean sigOverlap = 
                 	likelyOCR.stream()
 								                    .map(s->Tuple.of(s,GeomUtil.getIntersectionShape(nshape, s)))
-								                    .peek(t->{
-								                    	System.out.println("Overlap:" + ocrAttmept.get(t.k()).stream().findFirst().get().k());
-								                    })
+//								                    .peek(t->{
+//								                    	System.out.println("Overlap:" + ocrAttmept.get(t.k()).stream().findFirst().get().k());
+//								                    })
 								                    .filter(os->os.v().isPresent())
 								                    .map(Tuple.vmap(os->os.get()))
 								                    .map(Tuple.vmap(s->GeomUtil.area(s)))
@@ -1452,7 +1453,7 @@ public class StructureImageExtractor {
                 	if(nmap!=null && nthinmap!=null){
                 		processOCRShape(socr[0],nshape,bitmap,thin,(s,potential)->{
                 			ocrAttmept.put(s, potential);
-                			System.out.println("rescue found:" +potential.get(0).k());
+//                			System.out.println("rescue found:" +potential.get(0).k());
     		                polygons.add(s);
     		                if(potential.stream().findFirst().filter(e->e.v().doubleValue()>OCRcutoffCosineRescue).isPresent()){
     			                if(OCRIsLikely(potential.get(0))){
@@ -1468,7 +1469,7 @@ public class StructureImageExtractor {
         
         ctab.mergeNodesExtendingTo(likelyOCR,0.5,1.4);
         
-        System.out.println("Merged extending to OCR:" + ctabRaw.size());
+//        System.out.println("Merged extending to OCR:" + ctabRaw.size());
         ctabRaw.add(ctab.cloneTab());
         
         double cosThetaOCRShape =Math.cos(MAX_THETA_FOR_OCR_SEPERATION);
@@ -1503,7 +1504,7 @@ public class StructureImageExtractor {
         	if(cosTheta>cosThetaOCRShape){
         		return true;
         	}
-        	System.out.println("Angle was wrong:" + cosTheta + " vs " + cosThetaOCRShape);
+//        	System.out.println("Angle was wrong:" + cosTheta + " vs " + cosThetaOCRShape);
         	return false;
         });
         
@@ -1559,7 +1560,7 @@ public class StructureImageExtractor {
 				   .filter(s->BranchNode.interpretOCRStringAsAtom(bestGuessOCR.get(s))!=null)
 				   .collect(Collectors.toList());
         
-        System.out.println("Cleaned edges:" + ctabRaw.size());
+//        System.out.println("Cleaned edges:" + ctabRaw.size());
         ctabRaw.add(ctab.cloneTab());
         //ctab.removeOrphanNodes();
         
@@ -1653,7 +1654,7 @@ public class StructureImageExtractor {
         ctab.standardCleanEdges();
         
 
-        System.out.println("Merged into atoms:" + ctabRaw.size());
+//        System.out.println("Merged into atoms:" + ctabRaw.size());
         ctabRaw.add(ctab.cloneTab());
 
         List<Shape> growLikelyOCR=likelyOCR.stream().map(s->GeomUtil.growShape(s, 1)).collect(Collectors.toList());
@@ -1719,7 +1720,7 @@ public class StructureImageExtractor {
         		
         		
         		boolean already=(alreadyEdge!=null);
-        		System.out.println("Edge already exists? " +  already + " has bond:" + lst.v());
+//        		System.out.println("Edge already exists? " +  already + " has bond:" + lst.v());
         		
         		
         		if(!already && haspossibleLine){
@@ -1781,7 +1782,7 @@ public class StructureImageExtractor {
         
         ctab.standardCleanEdges();
         
-        System.out.println("Made/removed bonds to OCR:" + ctabRaw.size());
+//        System.out.println("Made/removed bonds to OCR:" + ctabRaw.size());
         
         ctabRaw.add(ctab.cloneTab());
         
@@ -1792,7 +1793,7 @@ public class StructureImageExtractor {
         	}
         });
         
-        System.out.println("Made new bonds again:" + ctabRaw.size());
+//        System.out.println("Made new bonds again:" + ctabRaw.size());
         ctabRaw.add(ctab.cloneTab());
         //remove triangles that are obviously wrong
         {
@@ -1856,7 +1857,7 @@ public class StructureImageExtractor {
         	
         }
         ctab.removeOrphanNodes();
-        System.out.println("Removed Triangles:" + ctabRaw.size());
+//        System.out.println("Removed Triangles:" + ctabRaw.size());
         ctabRaw.add(ctab.cloneTab());
         
         //final cleanup
@@ -1882,7 +1883,7 @@ public class StructureImageExtractor {
         
         for(Shape s: bestGuessOCR.keySet()){
         	String sym=bestGuessOCR.get(s);
-        	System.out.println(sym);
+//        	System.out.println(sym);
         	BranchNode actual=BranchNode.interpretOCRStringAsAtom(sym);
         	if(actual!=null && actual.isRealNode()){
         		appliedOCR.add(s);
@@ -1931,7 +1932,7 @@ public class StructureImageExtractor {
         	}
         	
         }
-        System.out.println("Added Branch nodes:" + ctabRaw.size());
+//        System.out.println("Added Branch nodes:" + ctabRaw.size());
         ctabRaw.add(ctab.cloneTab());
         
         
@@ -1969,8 +1970,8 @@ public class StructureImageExtractor {
             		Line2D longLine=new Line2D.Double(n2.getPoint(),n3.getPoint());
                 	Point2D np=GeomUtil.projectPointOntoLine(longLine, n1.getPoint());
                 	if(np.distance(n1.getPoint())<3){
-	                	System.out.println("Adding edge:" + n2.getIndex() + "->" + n3.getIndex());
-	            		System.out.println("Then remove:" + n1.getIndex());
+//	                	System.out.println("Adding edge:" + n2.getIndex() + "->" + n3.getIndex());
+//	            		System.out.println("Then remove:" + n1.getIndex());
 	            		ctab.addEdge(n2.getIndex(), n3.getIndex(), 1);
 	            		toRemove.add(n1);
                 	}
@@ -2017,7 +2018,7 @@ public class StructureImageExtractor {
 	     	        		//change point
 	     	        		//add edge to long bond other node
 	     	        		
-	     	        		System.out.println("Gonna remove edge:" + t.v().toString());
+//	     	        		System.out.println("Gonna remove edge:" + t.v().toString());
 	     	        		tnode.setPoint(ppnt);
 	     	        		ctab.addEdge(tnode.getIndex(), t.v().getOtherNode(n).getIndex(), t.v().getOrder());
 	     	        		ctab.removeEdge(t.v());
@@ -2030,7 +2031,7 @@ public class StructureImageExtractor {
         ctab.standardCleanEdges();
         
         
-        System.out.println("Finished:" + ctabRaw.size());
+//        System.out.println("Finished:" + ctabRaw.size());
         ctabRaw.add(ctab.cloneTab());
         rescueOCRShapes=rescueOCRCandidates;
         
