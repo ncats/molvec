@@ -36,7 +36,6 @@ import tripod.molvec.Bitmap;
 import tripod.molvec.CachedSupplier;
 import tripod.molvec.algo.Tuple;
 import tripod.molvec.algo.Tuple.KEqualityTuple;
-import tripod.molvec.util.ConnectionTable.Node;
 
 public class ConnectionTable{
 	private List<Node> nodes = new ArrayList<Node>();
@@ -340,6 +339,15 @@ public class ConnectionTable{
 	
 	public ConnectionTable mergeAllNodesInside(Shape s, double tol,Predicate<Node> allow, Function<List<Point2D>, Point2D> merger){
 		
+		List<Integer> toMerge = getAllNodeIndexesInsideShape(s,tol);
+		toMerge=toMerge.stream()
+		       .filter(i->allow.test(nodes.get(i)))
+		        .collect(Collectors.toList());
+			
+		return this.mergeNodes(toMerge, merger);
+	}
+	
+	private List<Integer> getAllNodeIndexesInsideShape(Shape s,double tol){
 		List<Integer> toMerge = new ArrayList<Integer>();
 		for(int i=nodes.size()-1;i>=0;i--){
 			Point2D pn = nodes.get(i).point;
@@ -347,13 +355,12 @@ public class ConnectionTable{
 				toMerge.add(i);
 			}
 		}
-		toMerge=toMerge.stream()
-		       .filter(i->allow.test(nodes.get(i)))
-		        .collect(Collectors.toList());
-			
-		
-		return this.mergeNodes(toMerge, merger);
+		return toMerge;
 	}
+	public List<Node> getAllNodesInsideShape(Shape s,double tol){
+		return getAllNodeIndexesInsideShape(s,tol).stream().map(i->this.nodes.get(i)).collect(Collectors.toList());
+	}
+	
 	
 	public List<Tuple<Edge,Tuple<Node,Node>>> getAllEdgesEntering(Shape s, double tol){
 		
@@ -690,7 +697,7 @@ public class ConnectionTable{
 			
 		}
 
-		public int getEdgesCount() {
+		public int getEdgeCount() {
 			return this.getEdges().size();
 		}
 
@@ -1073,6 +1080,19 @@ public class ConnectionTable{
 		
 		
 		return ctab2;
+	}
+
+	public List<Edge> getBondsThatCross(Node n1, Node n2) {
+		
+		Line2D tline = new Line2D.Double(n1.getPoint(),n2.getPoint());
+		
+		return this.edges.stream()
+		          .filter(e->e.getRealNode1()!=n1 && e.getRealNode1()!=n2)
+		          .filter(e->e.getRealNode2()!=n1 && e.getRealNode2()!=n2)
+		          .filter(e->GeomUtil.segmentIntersection(e.getLine(), tline).isPresent())
+		          .collect(Collectors.toList());
+		
+		
 	}
 
 	
