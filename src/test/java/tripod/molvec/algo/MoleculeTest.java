@@ -405,6 +405,8 @@ public class MoleculeTest {
 		assertEquals(cReal.getFormula(),form);
 		//
 	}
+	
+	
 	@Test
 	public void structureWithOxygenOffCenterInRing() throws Exception {
 		File f=getFile("moleculeTest/connectedOxygen.png");

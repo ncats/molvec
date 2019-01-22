@@ -997,12 +997,14 @@ public class GeomUtil {
     }
     
     public static double l2Norm(double[] v){
+    	if(v.length==2)return Math.sqrt(v[0]*v[0]+v[1]*v[1]);
     	return Math.sqrt(IntStream.range(0,v.length)
    			 .mapToDouble(i->v[i])
    			 .map(d->d*d)
    			 .sum());
     }
     public static double dot(double[] a, double[] b){
+    	if(a.length==2)return a[0]*b[0]+a[1]*b[1];
     	return IntStream.range(0,a.length)
       			 .mapToDouble(i->a[i]*b[i])
       			 .sum();

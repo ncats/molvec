@@ -458,11 +458,22 @@ public class StructureImageExtractor {
     	 /*
 	     * Looks at each polygon, and gets the likely OCR chars.
 	     */   
-	    for (Shape s : polygons) {
-	         if(s.getBounds2D().getWidth()>0 && s.getBounds2D().getHeight()>0){
-	        	 processOCRShape(socr,s,bitmap,thin,onFind);
-	         }
-	    }
+    	
+	    polygons.stream()
+	    		.parallel()
+	    	    .flatMap(s->{
+	    	    	List<Tuple<Shape,List<Tuple<Character,Number>>>> got= new ArrayList<>();
+	    	    	 if(s.getBounds2D().getWidth()>0 && s.getBounds2D().getHeight()>0){
+	    	        	 processOCRShape(socr,s,bitmap,thin,(sf,lf)->{
+	    	        		 got.add(Tuple.of(sf,lf));
+	    	        	 });
+	    	         }
+	    	    	 return got.stream();
+	    	     })
+	    	    .collect(Collectors.toList())
+	    	    .forEach(t->{
+	    	    	onFind.accept(t.k(), t.v());
+	    	    });;
     }
     
     private void processOCRShape(SCOCR socr, Shape s, Bitmap bitmap, Bitmap thin,BiConsumer<Shape,List<Tuple<Character,Number>>> onFind){

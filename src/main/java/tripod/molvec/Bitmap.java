@@ -907,6 +907,8 @@ public class Bitmap implements Serializable, TiffTags {
         int x1 = Math.min (width, r.x + r.width);
         int y1 = Math.min (height, r.y + r.height);
         int x0 = r.x, y0 = r.y;
+        
+        
 
         int i, j = 0;
         for (int y = y0; y <= y1; ++y, ++j) {
