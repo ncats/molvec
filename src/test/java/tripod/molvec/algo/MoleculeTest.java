@@ -433,6 +433,21 @@ public class MoleculeTest {
 		//
 	}
 	
+	
+	@Test
+	public void structureWithOxygenConnectedToBonds2() throws Exception {
+		File f=getFile("moleculeTest/connectedOxygen3.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		
+		Chemical cReal=ChemicalBuilder.createFromSmiles("O=C(Oc1ccc(OC(=O)C2CCC3C(C2)C(=O)OC3=O)cc1)C4CCC5C(C4)C(=O)OC5=O").build();
+		
+		Chemical c=sie.getChemical();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+		//
+	}
+	
 	@Test
 	public void structureWithExplicitCarbons() throws Exception {
 		File f=getFile("moleculeTest/explicitCarbons.png");

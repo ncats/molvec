@@ -251,7 +251,7 @@ public class GeomUtil {
     	//if(true)return convexHullOldIntPrecision(pts);
     	
     	AffineTransform at = new AffineTransform();
-    	at.scale(1, 1);
+    	at.scale(5, 5);
     	
     	Point2D[] tpts = Arrays.stream(pts)
     			               .map(p->at.transform(p, null))

@@ -93,7 +93,8 @@ public class Viewer extends JPanel
     static final int CTAB_RAW = 1<<11;    
     static final int SEGMENTS_JOINED = 1<<9;
     static final int OCR_BOUNDS_SHAPES = 1<<10;
-    static final int ALL = SEGMENTS|POLYGONS|THINNING|BITMAP|COMPOSITE|HISTOGRAM|OCR_SHAPES|LINE_ORDERS|CTAB|SEGMENTS_JOINED|OCR_BOUNDS_SHAPES|CTAB_RAW;
+    static final int OCR_RESCUE_BOUNDS_SHAPES = 1<<12;
+    static final int ALL = SEGMENTS|POLYGONS|THINNING|BITMAP|COMPOSITE|HISTOGRAM|OCR_SHAPES|LINE_ORDERS|CTAB|SEGMENTS_JOINED|OCR_BOUNDS_SHAPES|CTAB_RAW|OCR_RESCUE_BOUNDS_SHAPES;
 
     static final Color HL_COLOR = new Color (0xdd, 0xdd, 0xdd, 120);
     static final Color KNN_COLOR = new Color (0x70, 0x5a, 0x9c, 120);
@@ -719,7 +720,9 @@ public class Viewer extends JPanel
         if ((show & OCR_BOUNDS_SHAPES) != 0) {
         	drawBestGuessOCR(g2);
         }
-        
+        if ((show & OCR_RESCUE_BOUNDS_SHAPES)!=0){
+        	drawRescuePolygons(g2);
+        }
         
     }
 
@@ -778,6 +781,19 @@ public class Viewer extends JPanel
 		for (Shape a : polygons) {
 	    g2.draw(a);
         }
+		g2.setStroke(st);;
+    }
+    void drawRescuePolygons (Graphics2D g2) {
+    	if(sie==null)return;
+		g2.setPaint(Color.blue);
+		Stroke st=g2.getStroke();
+		g2.setStroke(new BasicStroke((float) (1/sx)));
+		List<Shape> resc=sie.getRescueOCRShapes();
+		if(resc!=null){
+			for (Shape a : resc) {
+		    g2.draw(a);
+	        }
+		}
 		g2.setStroke(st);;
     }
     
@@ -1181,7 +1197,13 @@ public class Viewer extends JPanel
                 ("Show polygons for grouped sets of likely strings");
             ab.addActionListener(this);
             
-            //
+            toolbar.add(ab = new JCheckBox ("OCR Rescue"));
+            ab.putClientProperty("MASK", Viewer.OCR_RESCUE_BOUNDS_SHAPES);
+            ab.setToolTipText
+                ("Show polygons around areas attempted for OCR rescue");
+            ab.addActionListener(this);
+            
+            //OCR_BOUNDS_SHAPES
             
             toolbar.add(ab = new JCheckBox ("Connection Tab"));
             ab.putClientProperty("MASK", CTAB);
@@ -1323,6 +1345,9 @@ public class Viewer extends JPanel
             }
             else if (cmd.equalsIgnoreCase("OCR Guesses")) {
                 viewer.setVisible(Viewer.OCR_BOUNDS_SHAPES, show);
+            }
+            else if (cmd.equalsIgnoreCase("OCR Rescue")) {
+                viewer.setVisible(Viewer.OCR_RESCUE_BOUNDS_SHAPES, show);
             }
             else if (cmd.equalsIgnoreCase("thinning")) {
                 viewer.setVisible(THINNING, show);

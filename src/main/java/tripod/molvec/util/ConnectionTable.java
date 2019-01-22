@@ -864,7 +864,7 @@ public class ConnectionTable{
 	
 	public double getAverageToleranceForNode(Node n, Bitmap bm,List<Shape> shapes){
 		return n.getEdges().stream()
-		          .map(e->Tuple.of(e,bm.getLineLikeScore(e.getLine())))
+		          .map(e->Tuple.of(e,getToleranceForEdge(e,bm,shapes)))
 		          .mapToDouble(t->t.v())
 		          .average()
 		          .orElse(0);
@@ -872,15 +872,15 @@ public class ConnectionTable{
 	
 	public Tuple<Edge,Double> getWorstToleranceForNode(Node n, Bitmap bm,List<Shape> shapes){
 		return n.getEdges().stream()
-		          .map(e->Tuple.of(e,bm.getLineLikeScore(e.getLine())))
+		          .map(e->Tuple.of(e,getToleranceForEdge(e,bm,shapes)))
 		          .map(t->t.withVComparator())
 		          .max(CompareUtil.naturalOrder())
 		          .orElse(null);
 	}
 	
-	public List<Tuple<Edge,Double>> getDashLikeScoreForAllEdges(Bitmap bm){
+	public List<Tuple<Edge,Double>> getDashLikeScoreForAllEdges(Bitmap bm,List<Shape> shapes){
 		return this.edges.stream()
-		          .map(e->Tuple.of(e,bm.getDashLikeScore(e.getLine())))
+		          .map(e->Tuple.of(e,getToleranceForEdge(e,bm,shapes)))
 		          .collect(Collectors.toList());
 	}
 

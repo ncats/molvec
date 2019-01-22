@@ -241,6 +241,13 @@ class BranchNode{
 			bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
 			return bn;
 		}
+		if((s.equalsIgnoreCase("CN")
+				|| s.equalsIgnoreCase("cN"))){
+				BranchNode bn = new BranchNode("C");
+				bn.addChild(new BranchNode("N").setOrderToParent(3));
+				//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
+				return bn;
+			}
 		
 		if(accept.contains(s)){
 			return new BranchNode(s);
