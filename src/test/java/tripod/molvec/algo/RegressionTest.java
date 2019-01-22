@@ -149,7 +149,7 @@ public class RegressionTest {
 	@Ignore
 	@Test
 	public void test1(){
-		File dir1 = getFile("regressionTest/sgroupTest1");
+		File dir1 = getFile("regressionTest/testSet1");
 		
 		Arrays.stream(dir1.listFiles())
 		      .filter(f->f.getName().contains("."))
