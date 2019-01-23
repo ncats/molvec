@@ -1777,6 +1777,7 @@ public class GeomUtil {
 		return path;
 	}
 	
+	
 	public static double area(Shape s){
 		return Math.abs(areaVerticesCW(vertices(s)));
 	}

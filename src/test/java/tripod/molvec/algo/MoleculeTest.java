@@ -10,6 +10,7 @@ import org.junit.Test;
 
 import gov.nih.ncats.chemkit.api.Chemical;
 import gov.nih.ncats.chemkit.api.ChemicalBuilder;
+import gov.nih.ncats.chemkit.api.inchi.Inchi;
 
 public class MoleculeTest {
 
@@ -28,6 +29,17 @@ public class MoleculeTest {
 		Chemical c=sie.getChemical();
 		String form=c.getFormula();
 		assertEquals("C17H18F3NO",form);
+	}
+	
+	@Test
+	public void lipitorWikiTest() throws Exception {
+		File f=getFile("moleculeTest/lipitor.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		Chemical c=sie.getChemical();
+		String key=Inchi.asStdInchi(c).getKey();
+		//String form=c.getFormula();
+		assertEquals("XUKUURHRXDUEBC-KAYWLYCHSA-N",key);
 	}
 	
 	@Test
