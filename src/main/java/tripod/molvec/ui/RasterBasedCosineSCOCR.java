@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
@@ -236,24 +237,8 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 
 	@Override
 	public Map<Character, Number> getRanking(Bitmap r) {
-		Map<Character, Number> myMap = new HashMap<Character, Number>();
-//		int[][] bmap = new int[r.getHeight()][r.getWidth()];
-//		for (int i = 0; i < r.getHeight(); i++) {
-//			r.getPixels(0, i, r.getWidth(), 1, bmap[i]);
-//		}
-//		int[][] bmap2 = new int[r.getWidth()][r.getHeight()];
-//		int twidth = bmap2.length;
-//		int theight = bmap2[0].length;
-//		for (int j = 0; j < theight; j++) {
-//			for (int i = 0; i < twidth; i++) {
-//				bmap2[i][j] = (bmap[j][i] > 0) ? 0 : 1;
-//			}
-//		}
-		// debugPrintBmap(bmap2);
-		for (char c2 : _alphabet) {
-			myMap.put(c2, correlation(r, c2));
-		}
-		return myMap;
+		return _alphabet.parallelStream()
+				.collect(Collectors.toMap(Function.identity(), c2->correlation(r, c2)));
 	}
 
 	public static void debugPrintBmap(int[][] test) {
