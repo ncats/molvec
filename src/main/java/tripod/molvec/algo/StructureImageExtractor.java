@@ -432,7 +432,7 @@ public class StructureImageExtractor {
 //	    	    .collect(Collectors.toList())
 	    	    .forEach(t->{
 	    	    	onFind.accept(t.k(), t.v());
-	    	    });;
+	    	    });
     }
     
     private void processOCRShape(SCOCR socr, Shape s, Bitmap bitmap, Bitmap thin,BiConsumer<Shape,List<Tuple<Character,Number>>> onFind){
