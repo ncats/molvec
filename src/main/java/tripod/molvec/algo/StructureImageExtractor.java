@@ -1387,7 +1387,9 @@ public class StructureImageExtractor {
 	        	Shape making=null;
 	        	
 	        	for(Shape s: sorted){
-	        		String v=(ocrAttmept.get(s).get(0).k() + "");
+	        		List<Tuple<Character, Number>> list = ocrAttmept.get(s);
+					String v= (list ==null || list.isEmpty())? "":list.get(0).k().toString();
+					
 	        		if(v.equals("-")){
 	        			if(making!=null){
 	        				bestGuessOCR.put(making, soFar);
