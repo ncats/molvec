@@ -1610,6 +1610,7 @@ public class StructureImageExtractor {
         	        
         })
         .forEach(lst->{
+        	
         	List<Node> nodes = Stream.of(lst.k().k(),lst.k().v())
         	  .map(s->ctab.getNodesInsideShape(s, 2))
         	  .flatMap(nds->nds.stream())
@@ -1737,8 +1738,10 @@ public class StructureImageExtractor {
 	        	    	double expected = Math.sqrt(3)/4*Math.pow(e.getBondLength(),2);
 	        	    	if(tarea<expected*0.5){
 	        	    		//System.out.println("It's a bad one");
-	        	    		if(!e.getDashed() && (oedge1.getDashed() && oedge2.getDashed()) ||
-	        	    				(oedge1.getDashed() || oedge2.getDashed() && e.getOrder()>1)
+	        	    		
+	        	    		if((e.getBondLength()<avgL*1.8) &&
+	        	    		   (!e.getDashed() && (oedge1.getDashed() && oedge2.getDashed()) ||
+	        	    		   (oedge1.getDashed() || oedge2.getDashed() && e.getOrder()>1))
 	        	    				){
 	        	    			ctab.removeEdge(oedge1);
 	        	    			ctab.removeEdge(oedge2);
