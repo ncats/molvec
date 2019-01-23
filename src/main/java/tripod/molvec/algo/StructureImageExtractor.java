@@ -1049,7 +1049,7 @@ public class StructureImageExtractor {
 			        			double o2=edges.stream().map(et->Tuple.of(et,et.getBondLength()))
 			        					            .mapToDouble(e1->(e1.k().getOrder() * e1.v()))
 			        					            .sum();
-			        			int o=(int)Math.round(((o2/sumd)+0.2));
+			        			int o=(int)Math.round(((o2/sumd)+0.05));
 			        			t.v().setOrder(o);
 			        		}
 			        		if(!edges.stream().anyMatch(e2->e2.getDashed())){
@@ -1994,6 +1994,15 @@ public class StructureImageExtractor {
                 		e.setDashed(true);
                 	}
                 });
+        
+        ctab.getEdges()
+        .stream()
+        .filter(e->e.getDashed())
+        .forEach(e->{
+        	if(e.getRealNode1().getEdgeCount()<3){
+        		e.switchNodes();
+        	}
+        });
         
         /*
          * long c=polygons.stream()

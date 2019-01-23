@@ -33,6 +33,18 @@ public class MoleculeTest {
 	}
 	
 	@Test
+	public void reallyHardPeptideTest() throws Exception {
+		File f=getFile("moleculeTest/peptideFragment.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		Chemical c=sie.getChemical();
+		String key=Inchi.asStdInchi(c).getKey();
+		//String form=c.getFormula();
+		assertEquals("PLIFXMBNBJXWIM-MUGJNUQGSA-N",key);
+	}
+
+	//
+	@Test
 	public void lipitorWikiTest() throws Exception {
 		File f=getFile("moleculeTest/lipitor.png");
 		StructureImageExtractor sie = new StructureImageExtractor();
@@ -479,6 +491,7 @@ public class MoleculeTest {
 		assertEquals(cReal.getFormula(),form);
 		//
 	}
+	
 	//ClC(Cl)(Cl)c1nc(nc(n1)C(Cl)(Cl)Cl)-c2ccc3OCOc3c2
 	@Test
 	public void structureWithCarbonsThatAreSometimesMistakenForOxygens() throws Exception {
