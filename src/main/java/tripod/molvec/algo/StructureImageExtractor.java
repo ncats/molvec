@@ -594,6 +594,7 @@ public class StructureImageExtractor {
 		});
 
 		lines= GeomUtil.asLines(thin.segments());
+		ctabRaw.clear();
 
 		AtomicBoolean foundNewOCR=new AtomicBoolean(true);
 		while(foundNewOCR.get()){
@@ -757,7 +758,6 @@ public class StructureImageExtractor {
 
 			int reps=0;
 			boolean tooLongBond=true;
-			ctabRaw.clear();
 
 			while(tooLongBond){
 				rescueOCRCandidates.clear();
@@ -1261,6 +1261,9 @@ public class StructureImageExtractor {
 					}
 
 					if(arean < GeomUtil.area(nshape.getBounds2D())*MIN_AREA_RATIO_FOR_HULL_TO_BBOX_OCR){
+						keep=false;
+					}
+					if(GeomUtil.area(nshape.getBounds2D())>avgbond*avgbond*0.5){
 						keep=false;
 					}
 					if(GeomUtil.area(nshape.getBounds2D()) < averageAreaOCR*MIN_AREA_RATIO_FOR_OCR_TO_AVERAGE){
@@ -2026,6 +2029,7 @@ public class StructureImageExtractor {
 			//ctab=ctabRaw;
 
 		}
+		ctab.simpleClean();
 
 		return this;
 	}

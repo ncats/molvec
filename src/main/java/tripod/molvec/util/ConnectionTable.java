@@ -10,6 +10,7 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1100,6 +1101,37 @@ public class ConnectionTable{
 		          .filter(e->e.getRealNode2()!=n1 && e.getRealNode2()!=n2)
 		          .filter(e->GeomUtil.segmentIntersection(e.getLine(), tline).isPresent())
 		          .collect(Collectors.toList());
+		
+		
+	}
+	
+	
+	public ConnectionTable simpleClean(){
+		this.nodes.stream()
+		          .filter(n->n.getEdgeCount()==3)
+		          .filter(n->n.getEdges().stream().filter(e->e.getOrder()>1).map(e->e.getOtherNode(n).getSymbol()).anyMatch(s->!"C".equals(s)))
+		          .forEach(n->{
+		        	  Point2D cpoint=n.getPoint();
+		        	  Point2D[] pts=n.getNeighborNodes().stream()
+		        	                      .map(nn->nn.k().getPoint())
+		        	                      .toArray(i->new Point2D[i]);
+		        	  Shape tri=GeomUtil.convexHull2(pts);
+		        	  
+		        	  if(tri.contains(cpoint)){
+		        		 Point2D cpt=GeomUtil.findCenterOfVertices(Arrays.asList(pts));
+		        		 Point2D pp1=GeomUtil.projectPointOntoLine(new Line2D.Double(pts[0],cpt), cpoint);
+		        		 Point2D pp2=GeomUtil.projectPointOntoLine(new Line2D.Double(pts[1],cpt), cpoint);
+		        		 Point2D pp3=GeomUtil.projectPointOntoLine(new Line2D.Double(pts[2],cpt), cpoint);
+		        		 Point2D np=Stream.of(pp1,pp2,pp3)
+		        		       .map(p->Tuple.of(p,cpt.distance(p)).withVComparator())
+		        		       .min(Comparator.naturalOrder())
+		        		       .map(t->t.k())
+		        		       .orElse(cpt);
+		        		 n.setPoint(np);
+		        		 
+		        	  }
+		          });
+		return this;
 		
 		
 	}
