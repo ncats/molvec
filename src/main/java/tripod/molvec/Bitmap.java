@@ -479,7 +479,7 @@ public class Bitmap implements Serializable, TiffTags {
     	
     	
     	
-    	for (int r = 0; r<5;r++){
+//    	for (int r = 0; r<5;r++){
 	    	for (int y = 0; y < this.height; ++y) {
 	    		int yoff=y*nscan;
 	    		
@@ -513,11 +513,10 @@ public class Bitmap implements Serializable, TiffTags {
 	          				distanceX[loc] =ndx;
 	      					distanceY[loc] =ndy;
 	          			 }
-	          		 }else{
 	          		 }
 	            }
 	       }
-    	}
+//    	}
     	for (int y = 0; y < this.height; ++y) {
     		int yoff=y*nscan;
     		

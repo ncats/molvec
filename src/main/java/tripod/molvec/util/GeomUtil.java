@@ -474,6 +474,9 @@ public class GeomUtil {
     
 
     public static Point2D[] vertices (Shape shape, AffineTransform afx) {
+    	if(shape ==null){
+    		return new Point2D[0];
+    	}
         PathIterator p = shape.getPathIterator (afx);
         List<Point2D> vertices = new ArrayList<Point2D> ();
         double[] coord = new double[6];
