@@ -158,7 +158,7 @@ public class MoleculeTest {
 	
 	
 	//This one needs work, it's an outlier
-	@Ignore
+	//@Ignore
 	@Test
 	public void subscriptImplicitAtomsF3Test() throws Exception {
 		File f=getFile("moleculeTest/withSubscriptForF.png");
