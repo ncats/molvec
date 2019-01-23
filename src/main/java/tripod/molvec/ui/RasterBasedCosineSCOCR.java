@@ -271,7 +271,7 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 					int val = cM[cx][cy];
 					int asInt = test.getAsInt(i,j);
 					cor += val * asInt;
-					//isn't test[i][j] either a 1 or a 0 ?  how is squaring going to do anything?
+					//TODO isn't test[i][j] either a 1 or a 0 ?  how is squaring going to do anything?
 //					total += test[i][j] * test[i][j];
 					total += asInt;
 					totalC += val * val;

@@ -424,20 +424,13 @@ public class StructureImageExtractor {
 	    polygons.stream()
 	    		.parallel()
 	    	    .forEach(s->{
-//	    	    	List<Tuple<Shape,List<Tuple<Character,Number>>>> got= new ArrayList<>();
 	    	    	 Rectangle2D bounds2d = s.getBounds2D();
 					if(bounds2d.getWidth()>0 && bounds2d.getHeight()>0){
 	    	        	 processOCRShape(socr,s,bitmap,thin,(sf,lf)->{
-//	    	        		 got.add(Tuple.of(sf,lf));
 	    	        		 onFind.accept(sf, lf);
 	    	        	 });
 	    	         }
-//	    	    	 return got.stream();
 	    	     });
-//	    	    .collect(Collectors.toList())
-//	    	    .forEach(t->{
-//	    	    	onFind.accept(t.k(), t.v());
-//	    	    });
     }
     
     private void processOCRShape(SCOCR socr, Shape s, Bitmap bitmap, Bitmap thin,BiConsumer<Shape,List<Tuple<Character,Number>>> onFind){
@@ -474,7 +467,6 @@ public class StructureImageExtractor {
 	        				if(c < 128){
 	        					asciiCache[c]=1;
 	        				}
-//	        				chars.add(t.k());
 	        			})
 	        			.collect(Collectors.toList());
 	        	
@@ -602,19 +594,6 @@ public class StructureImageExtractor {
              }
     	});
         
-//        if(likelyOCR.isEmpty()){
-//        	socr[0]=OCR_BACKUP;
-//        	likelyOCRAll.clear();
-//        	processOCR(socr[0],polygons,bitmap,thin,(s,potential)->{
-//       		 ocrAttmept.put(s, potential);
-//                if(potential.stream().filter(e->e.v().doubleValue()>OCRcutoffCosine).findAny().isPresent()){
-//               	 	if(OCRIsLikely(potential.get(0))){
-//                    		likelyOCR.add(s);
-//                    	}
-//                    	likelyOCRAll.add(s);
-//                }
-//        	});
-//        }
         
         double averageLargestOCR=likelyOCR.stream()
 							              .map(s->GeomUtil.getPairOfFarthestPoints(s))
@@ -868,7 +847,7 @@ public class StructureImageExtractor {
         		
 	        	if(missingPoints.size()>3){
 	        		Shape candidate=GeomUtil.convexHull2(missingPoints.stream().toArray(i->new Point2D[i]));
-	        		double area=GeomUtil.area(candidate);
+//	        		double area=GeomUtil.area(candidate);
 //	        		System.out.println("Area is:" + area);
 	        		if(GeomUtil.area(candidate)>0.5*averageAreaOCR){
 	        			candidate=GeomUtil.growShape(candidate,4);

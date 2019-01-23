@@ -29,12 +29,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -55,7 +53,6 @@ import com.sun.media.jai.codec.TIFFField;
 import tripod.molvec.algo.Tuple;
 import tripod.molvec.image.ImageUtil;
 import tripod.molvec.image.TiffTags;
-import tripod.molvec.image.binarization.AdaptiveThreshold;
 import tripod.molvec.image.binarization.SigmaThreshold;
 import tripod.molvec.util.GeomUtil;
 import tripod.molvec.util.GeomUtil.LineDistanceCalculator;
@@ -2120,46 +2117,7 @@ public class Bitmap implements Serializable, TiffTags {
             }
         }
 
-        /*
-          for (int x = 4; x < 6; ++x) {
-          //bm.set(x, 4, true);
-          bm.set(x, 5, true);
-          }
-
-          for (int y = 6; y < 10; ++y) {
-          for (int x = 2; x < 8; ++x) {
-          boolean on = rand.nextDouble() > .5;
-          if (on) {
-          //System.out.println("pixel on at "+x+" "+y);
-          ++n;
-          }
-          bm.set(x, y, true);
-          }
-          }
-
-          bm.dump(System.out);
-          System.out.println(n + " pixels on!");
-          ChainCodeSequence ccs = bm.chainCode();
-          System.out.println("chain code "+ccs.length());
-
-          Bitmap thin = bm.skeleton();
-          thin.dump(System.out);
-
-          List<Rectangle> bboxes = bm.connectedComponents();
-          System.out.println(bboxes.size()+ " connected components!");
-          for (Rectangle r : bboxes) {
-          System.out.println(r);
-          Bitmap c = bm.crop(r);
-          c.dump(System.out);
-          }
-          bm.write("png", new File ("bitmap.png"));
-
-          List<Point> corners = bm.corners(3);
-          System.out.println(corners.size()+ " corners!");
-          for (Point pt : corners) {
-          System.out.println(pt);
-          }
-        */
+       
 
         if (argv.length == 0) {
             System.err.println ("Usage: Bitmap FILE.tif");
