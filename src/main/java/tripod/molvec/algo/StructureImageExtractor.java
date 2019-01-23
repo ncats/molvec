@@ -112,7 +112,8 @@ public class StructureImageExtractor {
 	private final double OCRcutoffCosine=0.65;
 	private final double OCRcutoffCosineRescue=0.50;
 	
-	private final double WEDGE_LIKE_PEARSON_SCORE_CUTOFF=.80;
+	private final double WEDGE_LIKE_PEARSON_SCORE_CUTOFF=.70;
+	private final double WEDGE_LIKE_PEARSON_SCORE_CUTOFF_DOUBLE=.80;
 	
 	private final double MAX_BOND_TO_AVG_BOND_RATIO_TO_KEEP = 1.8;
 	private final double MAX_DISTANCE_BEFORE_MERGING_NODES = 4.0;
@@ -144,6 +145,7 @@ public class StructureImageExtractor {
 	
 	private final double MIN_LONGEST_WIDTH_RATIO_FOR_OCR_TO_AVERAGE=0.5;
 	private final double MIN_AREA_RATIO_FOR_OCR_TO_AVERAGE=0.6;
+	private final double MIN_AREA_RATIO_FOR_HULL_TO_BBOX_OCR=0.5;
 	
 	
 	
@@ -553,6 +555,8 @@ public class StructureImageExtractor {
      
     public StructureImageExtractor load(File file) throws IOException{
     	ctabRaw.clear();
+    	ocrAttmept.clear();
+    	
     	SCOCR[] socr=new SCOCR[]{OCR_DEFAULT.orElse(OCR_BACKUP, OCRcutoffCosine)};
     	
     	double[] maxBondLength=new double[]{INITIAL_MAX_BOND_LENGTH};    
@@ -1207,10 +1211,12 @@ public class StructureImageExtractor {
         	
         	List<Point2D> allVertices = verticesJ;
         	
+        	boolean isresc=false;
         	
         	
         	if(centerRescue!=null){
         		cpt=centerRescue;
+        		isresc=true;
         	}
         	
         	boolean keep=true;
@@ -1229,9 +1235,25 @@ public class StructureImageExtractor {
 	        	        .filter(v->area[0].contains(v))
 	        	        .collect(Collectors.toList());
 	        	
+	        	Point2D center=GeomUtil.findCenterOfVertices(insideVertices2);;
+    			//remove outliers
 	        	
+    			double distanceMean= insideVertices2.stream()
+    					                           .mapToDouble(pt->center.distance(pt))
+    					                           .average()
+    					                           .orElse(0);
+    			double distanceVar= insideVertices2.stream()
+                        .mapToDouble(pt->Math.pow(distanceMean - center.distance(pt),2))
+                        .sum();
+    			double distanceSTDEV=Math.sqrt(distanceVar/(insideVertices2.size()-1));
+    			//distanceStDev = Math.sqrt(distanceMean*distanceMean-distanceStDev);
+    			
+    			List<Point2D> realMissing=insideVertices2.stream()
+    			             .filter(pt->center.distance(pt)<distanceMean+distanceSTDEV*2.5)
+    			             .collect(Collectors.toList());
 	        	
-        		nshape = GeomUtil.convexHull2(insideVertices2.toArray(new Point2D[0]));
+        		nshape = GeomUtil.convexHull2(realMissing.toArray(new Point2D[0]));
+        		
         		
         		Point2D[] far=GeomUtil.getPairOfFarthestPoints(nshape);
         		
@@ -1244,10 +1266,14 @@ public class StructureImageExtractor {
         		if(r < averageLargestOCR*MIN_LONGEST_WIDTH_RATIO_FOR_OCR_TO_AVERAGE){
         			keep=false;
                 }
-        		if(arean < averageAreaOCR*MIN_AREA_RATIO_FOR_OCR_TO_AVERAGE){
-        			keep=false;
+        		
+    			if(arean < GeomUtil.area(nshape.getBounds2D())*MIN_AREA_RATIO_FOR_HULL_TO_BBOX_OCR){
+    				keep=false;	
                 }
-        		//polygons.add(nshape);
+    			if(GeomUtil.area(nshape.getBounds2D()) < averageAreaOCR*MIN_AREA_RATIO_FOR_OCR_TO_AVERAGE){
+    				keep=false;
+    			}
+        		
             	radius=Math.max(averageLargestOCR/2,r/2);
             	//cpt=GeomUtil.findCenterOfVertices(Arrays.asList(GeomUtil.vertices(nshape)));
             	cpt=GeomUtil.findCenterOfShape(nshape);
@@ -1338,7 +1364,7 @@ public class StructureImageExtractor {
                 	}
                 	ocrAttmept.put(nshape, matches);
                 	//System.out.println("rescue found:" +potential.get(0).k());
-                	polygons.add(nshape);
+                	//polygons.add(nshape);
 					if (matches.get(0).v().doubleValue() > OCRcutoffCosineRescue) {
 						if (OCRIsLikely(matches.get(0))) {
 							likelyOCR.add(nshape);
@@ -1938,19 +1964,57 @@ public class StructureImageExtractor {
         	        .map(t->t.k())
         	        .orElse(null);
         	if(useLine!=null){
+        		
         		int mult=1;
         		if(e.getPoint1().distance(useLine.getP1())< e.getPoint2().distance(useLine.getP1())){
         			mult=-1;
         		}
 	        	double wl=mult*bitmap.getWedgeLikeScore(useLine);
-	        	if(wl>WEDGE_LIKE_PEARSON_SCORE_CUTOFF){
+	        	double cutoff=WEDGE_LIKE_PEARSON_SCORE_CUTOFF;
+	        	if(e.getRealNode1().getEdges().stream().filter(ed->ed.getOrder()>1).findAny().isPresent()){
+        			cutoff=WEDGE_LIKE_PEARSON_SCORE_CUTOFF_DOUBLE;
+        		}
+	        	if(e.getRealNode2().getEdges().stream().filter(ed->ed.getOrder()>1).findAny().isPresent()){
+        			cutoff=WEDGE_LIKE_PEARSON_SCORE_CUTOFF_DOUBLE;
+        		}
+	        	if(wl>cutoff){
 	        		e.setWedge(true);	
 	        		e.switchNodes();
-	        	}else if(wl<-WEDGE_LIKE_PEARSON_SCORE_CUTOFF){
+	        	}else if(wl<-cutoff){
 	        		e.setWedge(true);
-	        	}           
+	        	}
         	}
         });
+        
+        GeomUtil.eachCombination(ctab.getNodes())
+                .filter(t->t.k().distanceTo(t.v())<1.2*ctab.getAverageBondLength())
+                .filter(t->!t.k().getBondTo(t.v()).isPresent())
+                .forEach(t1->{
+                	Line2D l2 = new Line2D.Double(t1.k().getPoint(),t1.v().getPoint());
+                	Line2D useLine=GeomUtil.getLinesNotInside(l2, growLikelyOCR)
+                	        .stream()
+                	        .map(l->Tuple.of(l, GeomUtil.length(l)).withVComparator())
+                	        .max(Comparator.naturalOrder())
+                	        .map(t->t.k())
+                	        .orElse(null);
+                	long c=polygons.stream()
+	        		        .filter(s->GeomUtil.getIntersection(s, useLine).isPresent())
+	        		        .count();
+                	if(c>2){
+                		ctab.addEdge(t1.k().getIndex(), t1.v().getIndex(), 1);
+                		Edge e=ctab.getEdges().get(ctab.getEdges().size()-1);
+                		e.setDashed(true);
+                	}
+                });
+        
+        /*
+         * long c=polygons.stream()
+	        		        .filter(s->GeomUtil.getIntersection(s, useLine).isPresent())
+	        		        .count();
+         */
+        
+        
+        
         //ctab=ctabRaw;
         
         

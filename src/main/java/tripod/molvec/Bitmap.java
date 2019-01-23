@@ -1574,8 +1574,9 @@ public class Bitmap implements Serializable, TiffTags {
 				}
 			}
 		}
+		int[] rc = Arrays.stream(c).filter(cr->cr>0).toArray();
 		
-		return GeomUtil.ordinalCorrel(c);
+		return GeomUtil.ordinalCorrel(rc);
     }
     
     //0 means not wedge like

@@ -629,7 +629,7 @@ public class GeomUtil {
     	return IntStream.range(0, points.size())
     	         .mapToObj(i->Tuple.of(groups[i],i))
     	         .map(Tuple.vmap(i->points.get(i)))
-    	         .collect(Tuple.toGroupedMap())
+    	         .collect(Tuple.toLinkedGroupedMap())
     	         .values()
     	         .stream()
     	         .collect(Collectors.toList());
@@ -993,7 +993,7 @@ public class GeomUtil {
     	double a1=(IntStream.range(0,v.length)
    			 .mapToDouble(i->v[i])
    			 .average()
-   			 .getAsDouble());
+   			 .orElse(0));
     	
     	
     	return IntStream.range(0,v.length)
@@ -1454,12 +1454,14 @@ public class GeomUtil {
 		return getPairOfFarthestPoints(Arrays.asList(pts));
 	}
 	public static Point2D[] getPairOfFarthestPoints(List<Point2D> pts){
+		//not sure if this is really what should be done
+		if(pts.size()==0)return new Point2D[]{new Point2D.Double(0,0),new Point2D.Double(0,0)};
 		return eachCombination(pts)
 		         .map(t->Tuple.of(t,t.k().distance(t.v())).withVComparator())
 		         .max(CompareUtil.naturalOrder())
 		         .map(t->t.k())
 		         .map(t->new Point2D[]{t.k(),t.v()})
-		         .orElse(null);
+		         .orElse(new Point2D[]{pts.get(0),pts.get(0)});
 	}
 	
 	public static List<Shape> mergeOverlappingShapes(List<Shape> shapes, double minOverlapRatio){
