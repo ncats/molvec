@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -19,6 +20,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -86,7 +88,7 @@ public class StructureImageExtractor {
 	private List<Line2D> lines;
     private List<Line2D> linesJoined;
     private List<Tuple<Line2D,Integer>> linesOrder;    
-    private Map<Shape,List<Tuple<Character,Number>>> ocrAttmept = new HashMap<>();
+    private Map<Shape,List<Tuple<Character,Number>>> ocrAttmept = new ConcurrentHashMap<>();
     private Map<Shape,String> bestGuessOCR = new HashMap<>();
     private Map<Shape,ShapeInfo> shapeTypes = new HashMap<>();
     
@@ -419,20 +421,21 @@ public class StructureImageExtractor {
     	
 	    polygons.stream()
 	    		.parallel()
-	    	    .flatMap(s->{
-	    	    	List<Tuple<Shape,List<Tuple<Character,Number>>>> got= new ArrayList<>();
+	    	    .forEach(s->{
+//	    	    	List<Tuple<Shape,List<Tuple<Character,Number>>>> got= new ArrayList<>();
 	    	    	 Rectangle2D bounds2d = s.getBounds2D();
 					if(bounds2d.getWidth()>0 && bounds2d.getHeight()>0){
 	    	        	 processOCRShape(socr,s,bitmap,thin,(sf,lf)->{
-	    	        		 got.add(Tuple.of(sf,lf));
+//	    	        		 got.add(Tuple.of(sf,lf));
+	    	        		 onFind.accept(sf, lf);
 	    	        	 });
 	    	         }
-	    	    	 return got.stream();
-	    	     })
+//	    	    	 return got.stream();
+	    	     });
 //	    	    .collect(Collectors.toList())
-	    	    .forEach(t->{
-	    	    	onFind.accept(t.k(), t.v());
-	    	    });
+//	    	    .forEach(t->{
+//	    	    	onFind.accept(t.k(), t.v());
+//	    	    });
     }
     
     private void processOCRShape(SCOCR socr, Shape s, Bitmap bitmap, Bitmap thin,BiConsumer<Shape,List<Tuple<Character,Number>>> onFind){
@@ -572,13 +575,13 @@ public class StructureImageExtractor {
             throw new IllegalStateException("Cannot support images with over 4000 line segments at this time");
         }
 
-        List<Shape> likelyOCR=new ArrayList<Shape>();
-        List<Shape> likelyOCRAll=new ArrayList<Shape>();
+        List<Shape> likelyOCR= Collections.synchronizedList(new ArrayList<Shape>());
+        List<Shape> likelyOCRAll=Collections.synchronizedList(new ArrayList<Shape>());
         /*
          * Looks at each polygon, and gets the likely OCR chars.
          */   
         
-        List<Shape> initialDebug = new ArrayList<>();
+        List<Shape> initialDebug = Collections.synchronizedList(new ArrayList<>());
         
     	processOCR(socr[0],polygons,bitmap,thin,(s,potential)->{
     		 ocrAttmept.put(s, potential);
