@@ -626,7 +626,7 @@ public class GeomUtil {
     	return IntStream.range(0, points.size())
     	         .mapToObj(i->Tuple.of(groups[i],i))
     	         .map(Tuple.vmap(i->points.get(i)))
-    	         .collect(Tuple.toGroupedMap())
+    	         .collect(Tuple.toLinkedGroupedMap())
     	         .values()
     	         .stream()
     	         .collect(Collectors.toList());

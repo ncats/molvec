@@ -2,6 +2,7 @@ package tripod.molvec.algo;
 
 
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -120,6 +121,16 @@ public class Tuple<K,V> implements Comparable<Tuple<K,V>>{
      */
     public static <T,U,V> Collector<Tuple<T,U>,?,Map<T,V>> toGroupedMap(Collector<U,?,V> collect){
         return Collectors.groupingBy(t->t.k(), Collectors.mapping(t->t.v(), collect));
+    }
+    
+  
+    public static <T,U,V> Collector<Tuple<T,U>,?,LinkedHashMap<T,V>> toLinkedGroupedMap(Collector<U,?,V> collect){
+        return Collectors.groupingBy(t->t.k(),()->new LinkedHashMap<T,V>(), Collectors.mapping(t->t.v(), collect));
+    }
+    
+
+    public static <T,U> Collector<Tuple<T,U>,?,LinkedHashMap<T,List<U>>> toLinkedGroupedMap(){
+        return toLinkedGroupedMap(Collectors.toList());
     }
 	
 	

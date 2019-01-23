@@ -19,6 +19,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -86,7 +87,7 @@ public class StructureImageExtractor {
 	private List<Line2D> lines;
     private List<Line2D> linesJoined;
     private List<Tuple<Line2D,Integer>> linesOrder;    
-    private Map<Shape,List<Tuple<Character,Number>>> ocrAttmept = new HashMap<>();
+    private Map<Shape,List<Tuple<Character,Number>>> ocrAttmept = new ConcurrentHashMap<>();
     private Map<Shape,String> bestGuessOCR = new HashMap<>();
     private Map<Shape,ShapeInfo> shapeTypes = new HashMap<>();
     
@@ -431,7 +432,7 @@ public class StructureImageExtractor {
 	    	         }
 	    	    	 return got.stream();
 	    	     })
-//	    	    .collect(Collectors.toList())
+	    	    .collect(Collectors.toList())
 	    	    .forEach(t->{
 	    	    	onFind.accept(t.k(), t.v());
 	    	    });;
@@ -535,6 +536,8 @@ public class StructureImageExtractor {
      
     public StructureImageExtractor load(File file) throws IOException{
     	ctabRaw.clear();
+    	ocrAttmept.clear();
+    	
     	SCOCR[] socr=new SCOCR[]{OCR_DEFAULT.orElse(OCR_BACKUP, OCRcutoffCosine)};
     	
     	double[] maxBondLength=new double[]{INITIAL_MAX_BOND_LENGTH};    
@@ -557,6 +560,8 @@ public class StructureImageExtractor {
             throw new IllegalStateException("Cannot support images with over 4000 line segments at this time");
         }
 
+        
+        
         List<Shape> likelyOCR=new ArrayList<Shape>();
         List<Shape> likelyOCRAll=new ArrayList<Shape>();
         /*
