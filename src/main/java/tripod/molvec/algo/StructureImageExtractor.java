@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
@@ -463,14 +464,15 @@ public class StructureImageExtractor {
 	    		.parallel()
 	    	    .flatMap(s->{
 	    	    	List<Tuple<Shape,List<Tuple<Character,Number>>>> got= new ArrayList<>();
-	    	    	 if(s.getBounds2D().getWidth()>0 && s.getBounds2D().getHeight()>0){
+	    	    	 Rectangle2D bounds2d = s.getBounds2D();
+					if(bounds2d.getWidth()>0 && bounds2d.getHeight()>0){
 	    	        	 processOCRShape(socr,s,bitmap,thin,(sf,lf)->{
 	    	        		 got.add(Tuple.of(sf,lf));
 	    	        	 });
 	    	         }
 	    	    	 return got.stream();
 	    	     })
-	    	    .collect(Collectors.toList())
+//	    	    .collect(Collectors.toList())
 	    	    .forEach(t->{
 	    	    	onFind.accept(t.k(), t.v());
 	    	    });;
@@ -485,9 +487,8 @@ public class StructureImageExtractor {
 	       	 LinkedHashSet<String> chars = new LinkedHashSet<String>();
 	       	 
 	       	 List<Tuple<Character,Number>> potential = socr.getNBestMatches(4,
-	                    bitmap.crop(s).createRaster(),
-	                    thin.crop(s).createRaster()
-	                    )
+	                    bitmap.crop(s),
+	                    thin.crop(s))
 	        			.stream()
 	        			.map(Tuple::of)
 	        			.map(t->adjustConfidence(t))
@@ -652,6 +653,7 @@ public class StructureImageExtractor {
         
                 		 
         likelyOCRAll.retainAll(likelyOCRAll.stream()
+        			.filter(Objects::nonNull)
                     .map(s->Tuple.of(s,GeomUtil.getPairOfFarthestPoints(s)))
                     .filter(t->t.v()[0].distance(t.v()[1]) > averageLargestOCR*MIN_LONGEST_WIDTH_RATIO_FOR_OCR_TO_AVERAGE)
                     .map(t->t.k())
@@ -1490,8 +1492,11 @@ public class StructureImageExtractor {
         List<List<Shape>> ocrGroupList=GeomUtil.groupShapesIfClosestPointsMatchCriteria(likelyOCRAll, t->{
         	Point2D[] pts=t.v();
         	Shape[] shapes =t.k();
-        	String v1=(ocrAttmept.get(shapes[0]).get(0).k() + "");
-        	String v2=(ocrAttmept.get(shapes[1]).get(0).k() + "");
+        	
+        	List<Tuple<Character, Number>> attempt0 = ocrAttmept.get(shapes[0]);
+        	List<Tuple<Character, Number>> attempt1 = ocrAttmept.get(shapes[1]);
+			String v1= (attempt0 ==null || attempt0.isEmpty())? "" : attempt0.get(0).k().toString();
+        	String v2= (attempt1 ==null || attempt1.isEmpty())? "" : attempt1.get(0).k().toString();
         	if(v1.equals("\\") || v1.equals("/") || 
         	   v2.equals("\\") || v2.equals("/")){
         		return false;

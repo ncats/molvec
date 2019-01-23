@@ -751,6 +751,9 @@ public class Bitmap implements Serializable, TiffTags {
         return height;
     }
 
+    public int getAsInt (int x, int y) {
+    	return get(x,y) ? 1: 0;
+    }
     public boolean get (int x, int y) {
         if (x >= 0 && x < width && y >= 0 && y < height) {
             return ((data[y * scanline + x / 8] & 0xff) & MASK[x % 8]) != 0;

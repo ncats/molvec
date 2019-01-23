@@ -22,7 +22,9 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Stack;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -1788,8 +1790,8 @@ public class GeomUtil {
 		double tx;
 		double ty;
 		for(int i=0;i<tot;i++){
-			tx=r.getMinX()+r.getWidth()*Math.random();
-			ty=r.getMinY()+r.getHeight()*Math.random();
+			tx=r.getMinX()+ ThreadLocalRandom.current().nextDouble(0, r.getWidth());
+			ty=r.getMinY()+ ThreadLocalRandom.current().nextDouble(0, r.getHeight());
 			if(s.contains(tx, ty))hits++;
 		}
 		return wid*hi*(hits)/(double)tot;

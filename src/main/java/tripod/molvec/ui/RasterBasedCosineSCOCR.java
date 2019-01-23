@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 
+import tripod.molvec.Bitmap;
 import tripod.molvec.algo.Tuple;
 
 public abstract class RasterBasedCosineSCOCR implements SCOCR{
@@ -234,23 +235,23 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 	}
 
 	@Override
-	public Map<Character, Number> getRanking(Raster r) {
+	public Map<Character, Number> getRanking(Bitmap r) {
 		Map<Character, Number> myMap = new HashMap<Character, Number>();
-		int[][] bmap = new int[r.getHeight()][r.getWidth()];
-		for (int i = 0; i < r.getHeight(); i++) {
-			r.getPixels(0, i, r.getWidth(), 1, bmap[i]);
-		}
-		int[][] bmap2 = new int[r.getWidth()][r.getHeight()];
-		int twidth = bmap2.length;
-		int theight = bmap2[0].length;
-		for (int j = 0; j < theight; j++) {
-			for (int i = 0; i < twidth; i++) {
-				bmap2[i][j] = (bmap[j][i] > 0) ? 0 : 1;
-			}
-		}
+//		int[][] bmap = new int[r.getHeight()][r.getWidth()];
+//		for (int i = 0; i < r.getHeight(); i++) {
+//			r.getPixels(0, i, r.getWidth(), 1, bmap[i]);
+//		}
+//		int[][] bmap2 = new int[r.getWidth()][r.getHeight()];
+//		int twidth = bmap2.length;
+//		int theight = bmap2[0].length;
+//		for (int j = 0; j < theight; j++) {
+//			for (int i = 0; i < twidth; i++) {
+//				bmap2[i][j] = (bmap[j][i] > 0) ? 0 : 1;
+//			}
+//		}
 		// debugPrintBmap(bmap2);
 		for (char c2 : _alphabet) {
-			myMap.put(c2, correlation(bmap2, c2));
+			myMap.put(c2, correlation(r, c2));
 		}
 		return myMap;
 	}
@@ -268,12 +269,12 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 
 	}
 
-	public double correlation(int[][] test, Character c) {
+	public double correlation(Bitmap test, Character c) {
 		double maxCor = Double.MIN_VALUE;
 		for (RasterChar rc: charVal.get(c)) {
 			int[][] cM = rc.data;
-			int twidth = test.length;
-			int theight = test[0].length;
+			int twidth = test.width();
+			int theight = test.height();
 			int total = 0;
 			int totalC = 0;
 			double cor = 0;
@@ -282,8 +283,11 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 					int cx = Math.round((i * DEF_WIDTH) / twidth);
 					int cy = Math.round((j * DEF_HEIGHT) / theight);
 					int val = cM[cx][cy];
-					cor += val * test[i][j];
-					total += test[i][j] * test[i][j];
+					int asInt = test.getAsInt(i,j);
+					cor += val * asInt;
+					//isn't test[i][j] either a 1 or a 0 ?  how is squaring going to do anything?
+//					total += test[i][j] * test[i][j];
+					total += asInt;
 					totalC += val * val;
 				}
 			}
