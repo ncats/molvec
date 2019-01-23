@@ -17,6 +17,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
@@ -36,6 +37,7 @@ import tripod.molvec.Bitmap;
 import tripod.molvec.CachedSupplier;
 import tripod.molvec.algo.Tuple;
 import tripod.molvec.algo.Tuple.KEqualityTuple;
+import tripod.molvec.util.ConnectionTable.Node;
 
 public class ConnectionTable{
 	private List<Node> nodes = new ArrayList<Node>();
@@ -705,6 +707,13 @@ public class ConnectionTable{
 			this.point=ppnt;
 			return this;
 			
+		}
+
+		public Optional<Edge> getBondTo(Node v) {
+			return this.getEdges()
+			    .stream()
+			    .filter(e->e.getOtherNode(this) == v)
+			    .findFirst();
 		}
 		
 	}

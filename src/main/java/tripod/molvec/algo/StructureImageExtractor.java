@@ -109,7 +109,8 @@ public class StructureImageExtractor {
 	private final double OCRcutoffCosine=0.65;
 	private final double OCRcutoffCosineRescue=0.50;
 	
-	private final double WEDGE_LIKE_PEARSON_SCORE_CUTOFF=.80;
+	private final double WEDGE_LIKE_PEARSON_SCORE_CUTOFF=.70;
+	private final double WEDGE_LIKE_PEARSON_SCORE_CUTOFF_DOUBLE=.80;
 	
 	private final double MAX_BOND_TO_AVG_BOND_RATIO_TO_KEEP = 1.8;
 	private final double MAX_DISTANCE_BEFORE_MERGING_NODES = 4.0;
@@ -614,6 +615,12 @@ public class StructureImageExtractor {
                     .map(t->t.k())
                     .collect(Collectors.toList()));
         
+        likelyOCR.retainAll(likelyOCR.stream()
+                .map(s->Tuple.of(s,GeomUtil.getPairOfFarthestPoints(s)))
+                .filter(t->t.v()[0].distance(t.v()[1]) > averageLargestOCR*MIN_LONGEST_WIDTH_RATIO_FOR_OCR_TO_AVERAGE)
+                .map(t->t.k())
+                .collect(Collectors.toList()));
+        
         lines= GeomUtil.asLines(thin.segments());
         
         
@@ -671,6 +678,8 @@ public class StructureImageExtractor {
         List<Point2D> removedTinyVertices = removedTinyLines.stream()
         		                                            .flatMap(l->Stream.of(l.getP1(),l.getP2()))
         		                                            .collect(Collectors.toList());
+        
+        
         
         smallLines=smallLines.stream()
                 .filter(l->GeomUtil.length(l)>MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS)
@@ -1221,7 +1230,7 @@ public class StructureImageExtractor {
         		if(arean < averageAreaOCR*MIN_AREA_RATIO_FOR_OCR_TO_AVERAGE){
         			keep=false;
                 }
-        		//polygons.add(nshape);
+        		rescueOCRCandidates.add(nshape);
             	radius=Math.max(averageLargestOCR/2,r/2);
             	//cpt=GeomUtil.findCenterOfVertices(Arrays.asList(GeomUtil.vertices(nshape)));
             	cpt=GeomUtil.findCenterOfShape(nshape);
@@ -1312,7 +1321,7 @@ public class StructureImageExtractor {
                 	}
                 	ocrAttmept.put(nshape, matches);
                 	//System.out.println("rescue found:" +potential.get(0).k());
-                	polygons.add(nshape);
+                	//polygons.add(nshape);
 					if (matches.get(0).v().doubleValue() > OCRcutoffCosineRescue) {
 						if (OCRIsLikely(matches.get(0))) {
 							likelyOCR.add(nshape);
@@ -1907,19 +1916,57 @@ public class StructureImageExtractor {
         	        .map(t->t.k())
         	        .orElse(null);
         	if(useLine!=null){
+        		
         		int mult=1;
         		if(e.getPoint1().distance(useLine.getP1())< e.getPoint2().distance(useLine.getP1())){
         			mult=-1;
         		}
 	        	double wl=mult*bitmap.getWedgeLikeScore(useLine);
-	        	if(wl>WEDGE_LIKE_PEARSON_SCORE_CUTOFF){
+	        	double cutoff=WEDGE_LIKE_PEARSON_SCORE_CUTOFF;
+	        	if(e.getRealNode1().getEdges().stream().filter(ed->ed.getOrder()>1).findAny().isPresent()){
+        			cutoff=WEDGE_LIKE_PEARSON_SCORE_CUTOFF_DOUBLE;
+        		}
+	        	if(e.getRealNode2().getEdges().stream().filter(ed->ed.getOrder()>1).findAny().isPresent()){
+        			cutoff=WEDGE_LIKE_PEARSON_SCORE_CUTOFF_DOUBLE;
+        		}
+	        	if(wl>cutoff){
 	        		e.setWedge(true);	
 	        		e.switchNodes();
-	        	}else if(wl<-WEDGE_LIKE_PEARSON_SCORE_CUTOFF){
+	        	}else if(wl<-cutoff){
 	        		e.setWedge(true);
-	        	}           
+	        	}
         	}
         });
+        
+        GeomUtil.eachCombination(ctab.getNodes())
+                .filter(t->t.k().distanceTo(t.v())<1.2*ctab.getAverageBondLength())
+                .filter(t->!t.k().getBondTo(t.v()).isPresent())
+                .forEach(t1->{
+                	Line2D l2 = new Line2D.Double(t1.k().getPoint(),t1.v().getPoint());
+                	Line2D useLine=GeomUtil.getLinesNotInside(l2, growLikelyOCR)
+                	        .stream()
+                	        .map(l->Tuple.of(l, GeomUtil.length(l)).withVComparator())
+                	        .max(Comparator.naturalOrder())
+                	        .map(t->t.k())
+                	        .orElse(null);
+                	long c=polygons.stream()
+	        		        .filter(s->GeomUtil.getIntersection(s, useLine).isPresent())
+	        		        .count();
+                	if(c>2){
+                		ctab.addEdge(t1.k().getIndex(), t1.v().getIndex(), 1);
+                		Edge e=ctab.getEdges().get(ctab.getEdges().size()-1);
+                		e.setDashed(true);
+                	}
+                });
+        
+        /*
+         * long c=polygons.stream()
+	        		        .filter(s->GeomUtil.getIntersection(s, useLine).isPresent())
+	        		        .count();
+         */
+        
+        
+        
         //ctab=ctabRaw;
         
         

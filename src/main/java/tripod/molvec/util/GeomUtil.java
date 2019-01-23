@@ -988,7 +988,7 @@ public class GeomUtil {
     	double a1=(IntStream.range(0,v.length)
    			 .mapToDouble(i->v[i])
    			 .average()
-   			 .getAsDouble());
+   			 .orElse(0));
     	
     	
     	return IntStream.range(0,v.length)
