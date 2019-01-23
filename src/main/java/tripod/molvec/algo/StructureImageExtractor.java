@@ -611,6 +611,7 @@ public class StructureImageExtractor {
         
         double averageLargestOCR=likelyOCR.stream()
 							              .map(s->GeomUtil.getPairOfFarthestPoints(s))
+							              .filter(p -> p !=null && p.length ==2)
 							              .mapToDouble(p->p[0].distance(p[1]))
 							              .average()
 							              .orElse(0);
@@ -620,7 +621,10 @@ public class StructureImageExtractor {
 	              .orElse(0);
         
         double averageWidthOCR=likelyOCR.stream()
-	              .mapToDouble(s->s.getBounds2D().getWidth())
+        		  .map(Shape::getBounds2D)
+        		  .filter(Objects::nonNull)
+	              .mapToDouble(Rectangle2D::getWidth)	
+	              .filter(Objects::nonNull) //sometimes get NPEs here not sure why or how
 	              .average()
 	              .orElse(0);
         //System.out.println("avg ocr:" + averageLargestOCR);

@@ -478,8 +478,9 @@ public class Bitmap implements Serializable, TiffTags {
     	int[] dy = new int[]{-1,-1,-1, 0,0, 1,1,1};
     	
     	
-    	
-//    	for (int r = 0; r<5;r++){
+    	boolean changedSomething=true;
+    	for (int r = 0; changedSomething && r<5;r++){
+    		changedSomething=false;
 	    	for (int y = 0; y < this.height; ++y) {
 	    		int yoff=y*nscan;
 	    		
@@ -510,13 +511,17 @@ public class Bitmap implements Serializable, TiffTags {
 	          				 }	 
 	          			 }
 	          			 if(mini>=0){
+//	          				 if(r > 0){
+//	          					 System.out.println("HERE !!!! R = " +r);
+//	          				 }
+	          				changedSomething=true;
 	          				distanceX[loc] =ndx;
 	      					distanceY[loc] =ndy;
 	          			 }
 	          		 }
 	            }
 	       }
-//    	}
+    	}
     	for (int y = 0; y < this.height; ++y) {
     		int yoff=y*nscan;
     		

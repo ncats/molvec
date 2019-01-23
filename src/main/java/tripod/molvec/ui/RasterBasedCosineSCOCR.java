@@ -264,9 +264,10 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 			int totalC = 0;
 			double cor = 0;
 			for (int i = 0; i < twidth; i++) {
+				int cx = (i * DEF_WIDTH) / twidth;
 				for (int j = 0; j < theight; j++) {
-					int cx = Math.round((i * DEF_WIDTH) / twidth);
-					int cy = Math.round((j * DEF_HEIGHT) / theight);
+					
+					int cy = (j * DEF_HEIGHT) / theight;
 					int val = cM[cx][cy];
 					int asInt = test.getAsInt(i,j);
 					cor += val * asInt;
