@@ -146,7 +146,7 @@ public class StructureImageExtractor {
 	private final double MIN_LONGEST_WIDTH_RATIO_FOR_OCR_TO_AVERAGE=0.5;
 	private final double MIN_AREA_RATIO_FOR_OCR_TO_AVERAGE=0.6;
 	private final double MIN_AREA_RATIO_FOR_HULL_TO_BBOX_OCR=0.5;
-	
+
 	
 	
 	//For finding high order bonds
@@ -437,12 +437,12 @@ public class StructureImageExtractor {
     	//this is a critical section that is called thousands of times
     	//so some work as been put in to optimize it
     	//shaving off a few ms really adds up!
-    	
+
     	if(s.getBounds2D().getWidth()>0 && s.getBounds2D().getHeight()>0){
     		 double areareal=GeomUtil.area(s);
     		 //we compute this a couple of times in the if statements below so cache it.
     		 CachedSupplier<Double> areaRealDivByAreaBox = CachedSupplier.of(() ->areareal/ GeomUtil.area(s.getBounds2D()));
-    		 
+
     		 if(areareal<=5)return;
     		 //we only really care about the "best" character and never update that value
     		 //even after filtering...
@@ -470,7 +470,7 @@ public class StructureImageExtractor {
 	        			.collect(Collectors.toList());
 	        	
 	       	 if(asciiCache['N']==1 || asciiCache['S']==1|| asciiCache['s']==1){
-	       		
+
 	       		 
 		       		//this usually means it's not a real "N" or S
 		       		boolean alreadyFiltered=false;
@@ -529,7 +529,7 @@ public class StructureImageExtractor {
 	       	 }
 	       	
 	       	if(asciiCache['D']==1 && (asciiCache['U']==1 ||asciiCache['u']==1)){
-	       		
+
 	       		if(best[0] != null && (best.equals('D') || best.equals('U') || best.equals('u'))){
 	       		//It's probably an O, just got flagged wrong
 	       		potential = potential.stream()
@@ -547,7 +547,7 @@ public class StructureImageExtractor {
     public StructureImageExtractor load(File file) throws IOException{
     	ctabRaw.clear();
     	ocrAttmept.clear();
-    	
+
     	SCOCR[] socr=new SCOCR[]{OCR_DEFAULT.orElse(OCR_BACKUP, OCRcutoffCosine)};
     	
     	double[] maxBondLength=new double[]{INITIAL_MAX_BOND_LENGTH};    
@@ -592,7 +592,7 @@ public class StructureImageExtractor {
                  	
              }
     	});
-        
+
         
         double averageLargestOCR=likelyOCR.stream()
 							              .map(s->GeomUtil.getPairOfFarthestPoints(s))
@@ -608,7 +608,7 @@ public class StructureImageExtractor {
         double averageWidthOCR=likelyOCR.stream()
         		  .map(Shape::getBounds2D)
         		  .filter(Objects::nonNull)
-	              .mapToDouble(Rectangle2D::getWidth)	
+	              .mapToDouble(Rectangle2D::getWidth)
 	              .filter(Objects::nonNull) //sometimes get NPEs here not sure why or how
 	              .average()
 	              .orElse(0);
@@ -622,6 +622,12 @@ public class StructureImageExtractor {
                     .map(t->t.k())
                     .collect(Collectors.toList()));
         
+        likelyOCR.retainAll(likelyOCR.stream()
+                .map(s->Tuple.of(s,GeomUtil.getPairOfFarthestPoints(s)))
+                .filter(t->t.v()[0].distance(t.v()[1]) > averageLargestOCR*MIN_LONGEST_WIDTH_RATIO_FOR_OCR_TO_AVERAGE)
+                .map(t->t.k())
+                .collect(Collectors.toList()));
+
         lines= GeomUtil.asLines(thin.segments());
         
         
@@ -680,6 +686,8 @@ public class StructureImageExtractor {
         		                                            .flatMap(l->Stream.of(l.getP1(),l.getP2()))
         		                                            .collect(Collectors.toList());
         
+
+
         smallLines=smallLines.stream()
                 .filter(l->GeomUtil.length(l)>MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS)
                 .collect(Collectors.toList());
@@ -849,11 +857,13 @@ public class StructureImageExtractor {
 //	        		double area=GeomUtil.area(candidate);
 //	        		System.out.println("Area is:" + area);
 	        		if(GeomUtil.area(candidate)>0.5*averageAreaOCR){
+	        			Point2D center=GeomUtil.findCenterOfVertices(missingPoints);;
+
 	        			candidate=GeomUtil.growShape(candidate,4);
 	        			rescueOCRCandidates.add(candidate);
 	        			//polygons.add(candidate);
 //	        			System.out.println("Candidate");
-	        			return GeomUtil.findCenterOfVertices(missingPoints);
+	        			return center;
 	        		}
 	        		//polygons.add(candidate);
 	        		//return center;
@@ -1038,7 +1048,7 @@ public class StructureImageExtractor {
 			        			double o2=edges.stream().map(et->Tuple.of(et,et.getBondLength()))
 			        					            .mapToDouble(e1->(e1.k().getOrder() * e1.v()))
 			        					            .sum();
-			        			int o=(int)Math.round(((o2/sumd)+0.2));
+			        			int o=(int)Math.round(((o2/sumd)+0.05));
 			        			t.v().setOrder(o);
 			        		}
 			        		if(!edges.stream().anyMatch(e2->e2.getDashed())){
@@ -1190,7 +1200,7 @@ public class StructureImageExtractor {
         	List<Point2D> allVertices = verticesJ;
         	
         	boolean isresc=false;
-        	
+
         	
         	if(centerRescue!=null){
         		cpt=centerRescue;
@@ -1215,7 +1225,7 @@ public class StructureImageExtractor {
 	        	
 	        	Point2D center=GeomUtil.findCenterOfVertices(insideVertices2);;
     			//remove outliers
-	        	
+
     			double distanceMean= insideVertices2.stream()
     					                           .mapToDouble(pt->center.distance(pt))
     					                           .average()
@@ -1225,14 +1235,14 @@ public class StructureImageExtractor {
                         .sum();
     			double distanceSTDEV=Math.sqrt(distanceVar/(insideVertices2.size()-1));
     			//distanceStDev = Math.sqrt(distanceMean*distanceMean-distanceStDev);
-    			
+
     			List<Point2D> realMissing=insideVertices2.stream()
     			             .filter(pt->center.distance(pt)<distanceMean+distanceSTDEV*2.5)
     			             .collect(Collectors.toList());
-	        	
+
         		nshape = GeomUtil.convexHull2(realMissing.toArray(new Point2D[0]));
         		
-        		
+
         		Point2D[] far=GeomUtil.getPairOfFarthestPoints(nshape);
         		
         		double arean = GeomUtil.area(nshape);
@@ -1244,14 +1254,14 @@ public class StructureImageExtractor {
         		if(r < averageLargestOCR*MIN_LONGEST_WIDTH_RATIO_FOR_OCR_TO_AVERAGE){
         			keep=false;
                 }
-        		
+
     			if(arean < GeomUtil.area(nshape.getBounds2D())*MIN_AREA_RATIO_FOR_HULL_TO_BBOX_OCR){
-    				keep=false;	
+    				keep=false;
                 }
     			if(GeomUtil.area(nshape.getBounds2D()) < averageAreaOCR*MIN_AREA_RATIO_FOR_OCR_TO_AVERAGE){
     				keep=false;
     			}
-        		
+
             	radius=Math.max(averageLargestOCR/2,r/2);
             	//cpt=GeomUtil.findCenterOfVertices(Arrays.asList(GeomUtil.vertices(nshape)));
             	cpt=GeomUtil.findCenterOfShape(nshape);
@@ -1600,6 +1610,7 @@ public class StructureImageExtractor {
         	        
         })
         .forEach(lst->{
+
         	List<Node> nodes = Stream.of(lst.k().k(),lst.k().v())
         	  .map(s->ctab.getNodesInsideShape(s, 2))
         	  .flatMap(nds->nds.stream())
@@ -1727,8 +1738,10 @@ public class StructureImageExtractor {
 	        	    	double expected = Math.sqrt(3)/4*Math.pow(e.getBondLength(),2);
 	        	    	if(tarea<expected*0.5){
 	        	    		//System.out.println("It's a bad one");
-	        	    		if(!e.getDashed() && (oedge1.getDashed() && oedge2.getDashed()) ||
-	        	    				(oedge1.getDashed() || oedge2.getDashed() && e.getOrder()>1)
+
+	        	    		if((e.getBondLength()<avgL*1.8) &&
+	        	    		   (!e.getDashed() && (oedge1.getDashed() && oedge2.getDashed()) ||
+	        	    		   (oedge1.getDashed() || oedge2.getDashed() && e.getOrder()>1))
 	        	    				){
 	        	    			ctab.removeEdge(oedge1);
 	        	    			ctab.removeEdge(oedge2);
@@ -1942,7 +1955,7 @@ public class StructureImageExtractor {
         	        .map(t->t.k())
         	        .orElse(null);
         	if(useLine!=null){
-        		
+
         		int mult=1;
         		if(e.getPoint1().distance(useLine.getP1())< e.getPoint2().distance(useLine.getP1())){
         			mult=-1;
@@ -1963,7 +1976,7 @@ public class StructureImageExtractor {
 	        	}
         	}
         });
-        
+
         GeomUtil.eachCombination(ctab.getNodes())
                 .filter(t->t.k().distanceTo(t.v())<1.2*ctab.getAverageBondLength())
                 .filter(t->!t.k().getBondTo(t.v()).isPresent())
@@ -1984,15 +1997,24 @@ public class StructureImageExtractor {
                 		e.setDashed(true);
                 	}
                 });
-        
+
+        ctab.getEdges()
+        .stream()
+        .filter(e->e.getDashed())
+        .forEach(e->{
+        	if(e.getRealNode1().getEdgeCount()<3){
+        		e.switchNodes();
+        	}
+        });
+
         /*
          * long c=polygons.stream()
 	        		        .filter(s->GeomUtil.getIntersection(s, useLine).isPresent())
 	        		        .count();
          */
-        
-        
-        
+
+
+
         //ctab=ctabRaw;
         
         
