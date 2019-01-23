@@ -436,12 +436,22 @@ public class StructureImageExtractor {
     }
     
     private void processOCRShape(SCOCR socr, Shape s, Bitmap bitmap, Bitmap thin,BiConsumer<Shape,List<Tuple<Character,Number>>> onFind){
+    	//this is a critical section that is called thousands of times
+    	//so some work as been put in to optimize it
+    	//shaving off a few ms really adds up!
+    	
     	if(s.getBounds2D().getWidth()>0 && s.getBounds2D().getHeight()>0){
     		 double areareal=GeomUtil.area(s);
+    		 //we compute this a couple of times in the if statements below so cache it.
+    		 CachedSupplier<Double> areaRealDivByAreaBox = CachedSupplier.of(() ->areareal/ GeomUtil.area(s.getBounds2D()));
     		 
     		 if(areareal<=5)return;
-    		 
-	       	 LinkedHashSet<String> chars = new LinkedHashSet<String>();
+    		 //we only really care about the "best" character and never update that value
+    		 //even after filtering...
+    		 //the rest of the time char lookups just look for contains without worrying about order
+    		 Character[] best =new Character[1]; //this is done to set it in a lambda
+    		 char[] asciiCache = new char[128]; // we only check against ASCII values
+	       	 LinkedHashSet<Character> chars = new LinkedHashSet<Character>();
 	       	 
 	       	 List<Tuple<Character,Number>> potential = socr.getNBestMatches(4,
 	                    bitmap.crop(s),
@@ -452,47 +462,54 @@ public class StructureImageExtractor {
 	        			.map(t->t.withVComparator())
 	        			.sorted(Comparator.reverseOrder())
 	        			.peek(t->{
-	        				chars.add(t.k().toString());
+	        				if(best[0] ==null){
+	        					best[0] = t.k();
+	        				}
+	        				char c = t.k();
+	        				if(c < 128){
+	        					asciiCache[c]=1;
+	        				}
+//	        				chars.add(t.k());
 	        			})
 	        			.collect(Collectors.toList());
 	        	
-	       	 if(chars.contains("N") || chars.contains("S")|| chars.contains("s")){
+	       	 if(asciiCache['N']==1 || asciiCache['S']==1|| asciiCache['s']==1){
 	       		
-	       		double areabox=GeomUtil.area(s.getBounds2D());
 	       		 
 		       		//this usually means it's not a real "N" or S
-		       		
-		       		if(areareal/areabox <0.5){
-		       			if(chars.contains("\\") ||chars.contains("X")||chars.contains("K")||chars.contains("k")||chars.contains("-")){
+		       		boolean alreadyFiltered=false;
+		       		if(areaRealDivByAreaBox.get() <0.5){
+		       			if(asciiCache['\\']==1 || asciiCache['X']==1 || asciiCache['K']==1 ||
+		       					asciiCache['k']==1 || asciiCache['-']==1){
 				       		potential = potential.stream()
-				       				             .filter(t->!t.k().toString().equals("N"))
-				       				             .filter(t->!t.k().toString().equalsIgnoreCase("S"))
+				       				             .filter(t->!t.k().equals('N') && !t.k().equals('S') && !t.k().equals('s'))
 				       				             .collect(Collectors.toList());
+				       		alreadyFiltered=true;
 		       			}
 		       		}
-		       		Rectangle2D rbox = s.getBounds2D();
-		       		//probably not an N or S
-	       		 	if(rbox.getWidth()>rbox.getHeight()*1.3){
-		       		 	potential = potential.stream()
-	  				             .filter(t->!t.k().toString().equals("N"))
-	  				             .filter(t->!t.k().toString().equalsIgnoreCase("S"))
-	  				             .collect(Collectors.toList());
-	       		 	}
+		       		if(!alreadyFiltered){
+			       		Rectangle2D rbox = s.getBounds2D();
+			       		//probably not an N or S
+		       		 	if(rbox.getWidth()>rbox.getHeight()*1.3){
+			       		 	potential = potential.stream()
+			       		 		 .filter(t->!t.k().equals('N') && !t.k().equals('S') && !t.k().equals('s'))
+		  				             .collect(Collectors.toList());
+		       		 	}
+		       		}
 	       	 }
 	       	 
-	       	 if(chars.iterator().next().equals("L")){
+	       	 if(Character.valueOf('L').equals(best[0])){
 	       		 	Rectangle2D rbox = s.getBounds2D();
 	       		 	if(rbox.getWidth()>rbox.getHeight()*0.6){
 	       		 		//Too wide for an L, but since it's the highest confidence, it's
 	       		 		//probably just part of a bond system. 
 	       		 		potential = potential.stream()
-      				             .map(Tuple.vmap(n->(Number)0.0))
+      				             .map(Tuple.vmap(n->(Number)Double.valueOf(0D)))
       				             .collect(Collectors.toList());
 	       		 	}
 		       	 }
-	       	if(chars.contains("K") && chars.contains("X")){
-	       		double areabox=GeomUtil.area(s.getBounds2D());
-	       		if(areareal/areabox <0.5){
+	       	if(asciiCache['K']==1  && asciiCache['X']==1){
+	       		if(areaRealDivByAreaBox.get() <0.5){
 	       			
 			       		potential = potential.stream()
 			       							 .map(Tuple.vmap(n->(Number)0.0))
@@ -501,11 +518,11 @@ public class StructureImageExtractor {
 	       		}
 	       	 }
 	       	
-	       	if(chars.contains("S") && chars.contains("s")&& chars.contains("8")){
+	       	if(chars.contains('S') && chars.contains('s')&& chars.contains('8')){
 	       		//It's probably an S in this case, slightly adjust numbers for those
 	       		potential = potential.stream()
 				             .map(t->{
-				            	 if(t.k().toString().equalsIgnoreCase("S")){
+				            	 if(t.k().equals('S') || t.k().equals('s')){
 				            		 return Tuple.of(t.k(),(Number)Math.max(0, (1-(1-t.v().doubleValue())*0.8)));
 				            	 }
 				            	 return t;
@@ -515,9 +532,9 @@ public class StructureImageExtractor {
 				             .collect(Collectors.toList());
 	       	 }
 	       	
-	       	if(chars.contains("D") && (chars.contains("U") || chars.contains("u"))){
-	       		String best=chars.iterator().next();
-	       		if(best.equals("D") || best.equalsIgnoreCase("U")){
+	       	if(asciiCache['D']==1 && (asciiCache['U']==1 ||asciiCache['u']==1)){
+	       		
+	       		if(best[0] != null && (best.equals('D') || best.equals('U') || best.equals('u'))){
 	       		//It's probably an O, just got flagged wrong
 	       		potential = potential.stream()
 				             .map(Tuple.kmap(c->'O'))
