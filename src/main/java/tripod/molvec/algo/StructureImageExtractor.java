@@ -143,6 +143,7 @@ public class StructureImageExtractor {
 	
 	private final double MIN_LONGEST_WIDTH_RATIO_FOR_OCR_TO_AVERAGE=0.5;
 	private final double MIN_AREA_RATIO_FOR_OCR_TO_AVERAGE=0.6;
+	private final double MIN_AREA_RATIO_FOR_HULL_TO_BBOX_OCR=0.5;
 	
 	
 	
@@ -852,11 +853,13 @@ public class StructureImageExtractor {
 	        		double area=GeomUtil.area(candidate);
 //	        		System.out.println("Area is:" + area);
 	        		if(GeomUtil.area(candidate)>0.5*averageAreaOCR){
+	        			Point2D center=GeomUtil.findCenterOfVertices(missingPoints);;
+        			
 	        			candidate=GeomUtil.growShape(candidate,4);
 	        			rescueOCRCandidates.add(candidate);
 	        			//polygons.add(candidate);
 //	        			System.out.println("Candidate");
-	        			return GeomUtil.findCenterOfVertices(missingPoints);
+	        			return center;
 	        		}
 	        		//polygons.add(candidate);
 	        		//return center;
@@ -1192,10 +1195,11 @@ public class StructureImageExtractor {
         	
         	List<Point2D> allVertices = verticesJ;
         	
-        	
+        	boolean isresc=false;
         	
         	if(centerRescue!=null){
         		cpt=centerRescue;
+        		isresc=true;
         	}
         	
         	boolean keep=true;
@@ -1214,9 +1218,25 @@ public class StructureImageExtractor {
 	        	        .filter(v->area[0].contains(v))
 	        	        .collect(Collectors.toList());
 	        	
+	        	Point2D center=GeomUtil.findCenterOfVertices(insideVertices2);;
+    			//remove outliers
 	        	
+    			double distanceMean= insideVertices2.stream()
+    					                           .mapToDouble(pt->center.distance(pt))
+    					                           .average()
+    					                           .orElse(0);
+    			double distanceVar= insideVertices2.stream()
+                        .mapToDouble(pt->Math.pow(distanceMean - center.distance(pt),2))
+                        .sum();
+    			double distanceSTDEV=Math.sqrt(distanceVar/(insideVertices2.size()-1));
+    			//distanceStDev = Math.sqrt(distanceMean*distanceMean-distanceStDev);
+    			
+    			List<Point2D> realMissing=insideVertices2.stream()
+    			             .filter(pt->center.distance(pt)<distanceMean+distanceSTDEV*2.5)
+    			             .collect(Collectors.toList());
 	        	
-        		nshape = GeomUtil.convexHull2(insideVertices2.toArray(new Point2D[0]));
+        		nshape = GeomUtil.convexHull2(realMissing.toArray(new Point2D[0]));
+        		
         		
         		Point2D[] far=GeomUtil.getPairOfFarthestPoints(nshape);
         		
@@ -1229,10 +1249,14 @@ public class StructureImageExtractor {
         		if(r < averageLargestOCR*MIN_LONGEST_WIDTH_RATIO_FOR_OCR_TO_AVERAGE){
         			keep=false;
                 }
-        		if(arean < averageAreaOCR*MIN_AREA_RATIO_FOR_OCR_TO_AVERAGE){
-        			keep=false;
+        		
+    			if(arean < GeomUtil.area(nshape.getBounds2D())*MIN_AREA_RATIO_FOR_HULL_TO_BBOX_OCR){
+    				keep=false;	
                 }
-        		rescueOCRCandidates.add(nshape);
+    			if(GeomUtil.area(nshape.getBounds2D()) < averageAreaOCR*MIN_AREA_RATIO_FOR_OCR_TO_AVERAGE){
+    				keep=false;
+    			}
+        		
             	radius=Math.max(averageLargestOCR/2,r/2);
             	//cpt=GeomUtil.findCenterOfVertices(Arrays.asList(GeomUtil.vertices(nshape)));
             	cpt=GeomUtil.findCenterOfShape(nshape);
@@ -1241,7 +1265,7 @@ public class StructureImageExtractor {
         	
         	
         	if(keep){
-        	
+        		//rescueOCRCandidates.add(nshape);
         		
         		
         		Bitmap nmap=bitmap.crop(nshape);
