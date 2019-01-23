@@ -449,7 +449,6 @@ public class StructureImageExtractor {
     		 //the rest of the time char lookups just look for contains without worrying about order
     		 Character[] best =new Character[1]; //this is done to set it in a lambda
     		 char[] asciiCache = new char[128]; // we only check against ASCII values
-	       	 LinkedHashSet<Character> chars = new LinkedHashSet<Character>();
 	       	 
 	       	 List<Tuple<Character,Number>> potential = socr.getNBestMatches(4,
 	                    bitmap.crop(s),
@@ -515,7 +514,7 @@ public class StructureImageExtractor {
 	       		}
 	       	 }
 	       	
-	       	if(chars.contains('S') && chars.contains('s')&& chars.contains('8')){
+	       	if(asciiCache['S']==1  && asciiCache['s']==1 && asciiCache['8']==1){
 	       		//It's probably an S in this case, slightly adjust numbers for those
 	       		potential = potential.stream()
 				             .map(t->{
