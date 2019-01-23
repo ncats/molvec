@@ -24,6 +24,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.imageio.ImageIO;
 
+import tripod.molvec.Bitmap;
+
 public class DeprecatedFontBasedRasterCosineSCOCR implements SCOCR {
 	Set<Character> _alphabet;
 	Map<Character, Collection<int[][]>> charVal = new HashMap<Character, Collection<int[][]>>();
@@ -270,23 +272,11 @@ public class DeprecatedFontBasedRasterCosineSCOCR implements SCOCR {
 	}
 
 	@Override
-	public Map<Character, Number> getRanking(Raster r) {
+	public Map<Character, Number> getRanking(Bitmap r) {
 		Map<Character, Number> myMap = new HashMap<Character, Number>();
-		int[][] bmap = new int[r.getHeight()][r.getWidth()];
-		for (int i = 0; i < r.getHeight(); i++) {
-			r.getPixels(0, i, r.getWidth(), 1, bmap[i]);
-		}
-		int[][] bmap2 = new int[r.getWidth()][r.getHeight()];
-		int twidth = bmap2.length;
-		int theight = bmap2[0].length;
-		for (int j = 0; j < theight; j++) {
-			for (int i = 0; i < twidth; i++) {
-				bmap2[i][j] = (bmap[j][i] > 0) ? 0 : 1;
-			}
-		}
 		// debugPrintBmap(bmap2);
 		for (char c2 : _alphabet) {
-			myMap.put(c2, correlation(bmap2, c2));
+			myMap.put(c2, correlation(r, c2));
 		}
 		return myMap;
 	}
@@ -304,11 +294,11 @@ public class DeprecatedFontBasedRasterCosineSCOCR implements SCOCR {
 
 	}
 
-	public double correlation(int[][] test, Character c) {
+	public double correlation(Bitmap test, Character c) {
 		double maxCor = Double.MIN_VALUE;
 		for (int[][] cM : charVal.get(c)) {
-			int twidth = test.length;
-			int theight = test[0].length;
+			int twidth = test.width();
+			int theight = test.height();
 			int total = 0;
 			int totalC = 0;
 			double cor = 0;
@@ -317,8 +307,10 @@ public class DeprecatedFontBasedRasterCosineSCOCR implements SCOCR {
 					int cx = Math.round((i * DEF_WIDTH) / twidth);
 					int cy = Math.round((j * DEF_HEIGHT) / theight);
 					int val = cM[cx][cy];
-					cor += val * test[i][j];
-					total += test[i][j] * test[i][j];
+					int asInt = test.getAsInt(i,j);
+					cor += val * asInt;
+					total += asInt;
+//					total += test[i][j] * test[i][j];
 					totalC += val * val;
 				}
 			}

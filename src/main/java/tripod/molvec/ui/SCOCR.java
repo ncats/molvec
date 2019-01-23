@@ -12,6 +12,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Function;
 
+import tripod.molvec.Bitmap;
 import tripod.molvec.algo.Tuple;
 
 /**
@@ -144,11 +145,11 @@ public interface SCOCR {
 	
 	//Getters:
 	public Set<Character> getAlphabet();
-	public Map<Character, Number> getRanking(Raster r);
-	public default Entry<Character, Number> getBestMatch(Raster... r) {
+	public Map<Character, Number> getRanking(Bitmap r);
+	public default Entry<Character, Number> getBestMatch(Bitmap... r) {
 		return getNBestMatches(1, r).get(0);
 	}
-	public default List<Entry<Character, Number>> getNBestMatches(int n, Raster... r) {
+	public default List<Entry<Character, Number>> getNBestMatches(int n, Bitmap... r) {
 		Map[] g = new Map[r.length];
 		for (int i = 0; i < r.length; i++) {
 			g[i] = getRanking(r[i]);
@@ -188,7 +189,7 @@ public interface SCOCR {
 		}
 
 		@Override
-		public Map<Character, Number> getRanking(Raster r) {
+		public Map<Character, Number> getRanking(Bitmap r) {
 			Map<Character, Number> res=new HashMap<>();
 			for(SCOCR s:scocrList){
 				res=s.getRanking(r);
@@ -226,7 +227,7 @@ public interface SCOCR {
 			}
 
 			@Override
-			public Map<Character, Number> getRanking(Raster r) {
+			public Map<Character, Number> getRanking(Bitmap r) {
 				Map<Character, Number> map = _this.getRanking(r);
 				
 				return map.entrySet()
