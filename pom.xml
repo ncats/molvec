@@ -7,7 +7,7 @@
   <groupId>gov.nih.ncats</groupId>
   <artifactId>molvec</artifactId>
   <packaging>jar</packaging>
-  <version>0.1</version>
+  <version>0.5</version>
   <name>MolVec</name>
 
   <repositories>
@@ -37,6 +37,11 @@
   </properties>
   
 <dependencies>
+    <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>4.12</version>
+    </dependency>
 <dependency>
     <groupId>com.sun.media</groupId>
     <artifactId>jai-codec</artifactId>

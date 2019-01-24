@@ -21,8 +21,7 @@ public class FragmentTest {
 	@Test
 	public void thinBenzeneShouldHave6BondsWith3DoubleAnd3Single() throws Exception {
 		File f=getFile("fragmentTest/benzene.png");
-		StructureImageExtractor sie = new StructureImageExtractor();
-		sie.load(f);
+		StructureImageExtractor sie = new StructureImageExtractor(f);
 		ConnectionTable ctab = sie.getCtab();
 		
 		
@@ -37,8 +36,7 @@ public class FragmentTest {
 	@Test
 	public void thickTolueneShouldHaveCorrectReading() throws Exception {
 		File f=getFile("fragmentTest/wiggly.png");
-		StructureImageExtractor sie = new StructureImageExtractor();
-		sie.load(f);
+		StructureImageExtractor sie = new StructureImageExtractor(f);
 		ConnectionTable ctab = sie.getCtab();
 		
 		
@@ -54,8 +52,7 @@ public class FragmentTest {
 	@Test
 	public void smallRingSystemWithDashedBondsShouldHaveCorrectCarbonBonds() throws Exception {
 		File f=getFile("fragmentTest/cyclopropane.png");
-		StructureImageExtractor sie = new StructureImageExtractor();
-		sie.load(f);
+		StructureImageExtractor sie = new StructureImageExtractor(f);
 		ConnectionTable ctab = sie.getCtab();
 		
 		assertEquals(5,ctab.getNodes().stream().filter(n->n.getSymbol().equals("C")).count());
@@ -66,8 +63,7 @@ public class FragmentTest {
 	@Test
 	public void smallRingSystemWithDashedBondsShouldHaveCorrectReading() throws Exception {
 		File f=getFile("fragmentTest/cyclopropane.png");
-		StructureImageExtractor sie = new StructureImageExtractor();
-		sie.load(f);
+		StructureImageExtractor sie = new StructureImageExtractor(f);
 		ConnectionTable ctab = sie.getCtab();
 		System.out.println(sie.getChemical().toMol());
 		
@@ -84,8 +80,7 @@ public class FragmentTest {
 	@Test
 	public void complexThinStructureShouldHaveCorrectReading() throws Exception {
 		File f=getFile("fragmentTest/thin_with_spaces2.png");
-		StructureImageExtractor sie = new StructureImageExtractor();
-		sie.load(f);
+		StructureImageExtractor sie = new StructureImageExtractor(f);
 		ConnectionTable ctab = sie.getCtab();
 		
 		assertEquals(13,ctab.getNodes().size());
@@ -100,8 +95,7 @@ public class FragmentTest {
 	@Test
 	public void thickSubstitutedNapthaShouldHaveCorrectReading() throws Exception {
 		File f=getFile("fragmentTest/wiggly2.png");
-		StructureImageExtractor sie = new StructureImageExtractor();
-		sie.load(f);
+		StructureImageExtractor sie = new StructureImageExtractor(f);
 		ConnectionTable ctab = sie.getCtab();
 		
 		
@@ -118,8 +112,7 @@ public class FragmentTest {
 	@Test
 	public void bromineContainingCompoundShouldHaveBromine() throws Exception {
 		File f=getFile("fragmentTest/bromineContaining.png");
-		StructureImageExtractor sie = new StructureImageExtractor();
-		sie.load(f);
+		StructureImageExtractor sie = new StructureImageExtractor(f);
 		ConnectionTable ctab = sie.getCtab();
 		
 		
@@ -134,8 +127,7 @@ public class FragmentTest {
 	@Test
 	public void multiRingFragmentWithOxygensShouldHaveCorrectReading() throws Exception {
 		File f=getFile("fragmentTest/frag1.png");
-		StructureImageExtractor sie = new StructureImageExtractor();
-		sie.load(f);
+		StructureImageExtractor sie = new StructureImageExtractor(f);
 		ConnectionTable ctab = sie.getCtab();
 		
 		
@@ -150,8 +142,7 @@ public class FragmentTest {
 	@Test
 	public void thinFragmentWithLargerSpacesShouldHaveCorrectReading() throws Exception {
 		File f=getFile("fragmentTest/thin_with_spaces.png");
-		StructureImageExtractor sie = new StructureImageExtractor();
-		sie.load(f);
+		StructureImageExtractor sie = new StructureImageExtractor(f);
 		ConnectionTable ctab = sie.getCtab();
 		
 		
@@ -167,8 +158,7 @@ public class FragmentTest {
 	@Test
 	public void fuzzyFragmentWithProblemDoubleBondShouldHaveCorrectReading() throws Exception {
 		File f=getFile("fragmentTest/fuzzy_chain.png");
-		StructureImageExtractor sie = new StructureImageExtractor();
-		sie.load(f);
+		StructureImageExtractor sie = new StructureImageExtractor(f);
 		ConnectionTable ctab = sie.getCtab();
 		
 		
@@ -183,8 +173,7 @@ public class FragmentTest {
 	@Test
 	public void fuzzyFragmentWithSmallRingShouldHaveCorrectReading() throws Exception {
 		File f=getFile("fragmentTest/fuzzy_small_ring.png");
-		StructureImageExtractor sie = new StructureImageExtractor();
-		sie.load(f);
+		StructureImageExtractor sie = new StructureImageExtractor(f);
 		ConnectionTable ctab = sie.getCtab();
 		
 		
@@ -200,8 +189,7 @@ public class FragmentTest {
 	@Test
 	public void thinWigglingFragmentWith2x1DiagonalShouldHaveCorrectReading() throws Exception {
 		File f=getFile("fragmentTest/thin_wiggly.png");
-		StructureImageExtractor sie = new StructureImageExtractor();
-		sie.load(f);
+		StructureImageExtractor sie = new StructureImageExtractor(f);
 		ConnectionTable ctab = sie.getCtab();
 		
 		
@@ -218,8 +206,7 @@ public class FragmentTest {
 	@Test
 	public void carboxylicShorthandShouldBeExpanded() throws Exception {
 		File f=getFile("fragmentTest/carboxylic_fragment.png");
-		StructureImageExtractor sie = new StructureImageExtractor();
-		sie.load(f);
+		StructureImageExtractor sie = new StructureImageExtractor(f);
 		ConnectionTable ctab = sie.getCtab();
 		
 		
@@ -235,8 +222,7 @@ public class FragmentTest {
 	@Test
 	public void simpleFragmentWithALittleNoiseShouldHaveCorrectReading() throws Exception {
 		File f=getFile("fragmentTest/simple_frag_with_little_noise.png");
-		StructureImageExtractor sie = new StructureImageExtractor();
-		sie.load(f);
+		StructureImageExtractor sie = new StructureImageExtractor(f);
 		ConnectionTable ctab = sie.getCtab();
 		
 		
@@ -253,8 +239,7 @@ public class FragmentTest {
 	@Test
 	public void aromaticFragmentWithExplicitAtomOnDirectLineFromRingBondShouldHaveCorrectReading() throws Exception {
 		File f=getFile("fragmentTest/explicitCarbonAromatic.png");
-		StructureImageExtractor sie = new StructureImageExtractor();
-		sie.load(f);
+		StructureImageExtractor sie = new StructureImageExtractor(f);
 		ConnectionTable ctab = sie.getCtab();
 		
 		
@@ -269,8 +254,7 @@ public class FragmentTest {
 	@Test
 	public void fragmentWithSmallGapInBondShoundHaveCorrectReading() throws Exception {
 		File f=getFile("fragmentTest/smallGapInBond.png");
-		StructureImageExtractor sie = new StructureImageExtractor();
-		sie.load(f);
+		StructureImageExtractor sie = new StructureImageExtractor(f);
 		ConnectionTable ctab = sie.getCtab();
 		
 		
