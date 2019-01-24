@@ -408,6 +408,15 @@ public class ConnectionTable{
 		edges.stream()
 		     //.filter(e->e.getBondLength()<avg)
 		     .forEach(e->{
+		    	 boolean term = (e.getRealNode1().getEdgeCount()==1) ||
+		    			        (e.getRealNode2().getEdgeCount()==1);
+		    	 
+		    	 double maxR=maxAvgBondRatio;
+		    	 double maxTR=maxTotalAvgBondRatio;
+		    	 
+		    	 if(!term)maxR = 1;
+		    	 if(!term)maxTR = 1;
+		    	 
 		    	 Point2D p1=e.getPoint1();
 		    	 Point2D p2=e.getPoint2();
 		    	 double minDistp1=Double.MAX_VALUE;
@@ -427,21 +436,21 @@ public class ConnectionTable{
 		    			 closest2=s;
 		    		 }
 		    	 }
-		    	 if(minDistp1>avg*maxAvgBondRatio && minDistp2>avg*maxAvgBondRatio){
+		    	 if(minDistp1>avg*maxR && minDistp2>avg*maxR){
 		    		 return;
 		    	 }
 		    	 Point2D newPoint1=e.getPoint1();
 		    	 Point2D newPoint2=e.getPoint2();
 		    	 Line2D newLine = null;
 		    	 boolean onlyOne=true;
-		    	 if(minDistp1<avg*maxAvgBondRatio && minDistp2<avg*maxAvgBondRatio && 
+		    	 if(minDistp1<avg*maxR && minDistp2<avg*maxR && 
 		    		closest1!=closest2){
 		    		 onlyOne=false;
 		    		newPoint1=GeomUtil.findCenterOfShape(closest1);
 		    		newPoint2=GeomUtil.findCenterOfShape(closest2);
 		    		newLine=new Line2D.Double(newPoint1,newPoint2);
 		    		double nl=GeomUtil.length(newLine);
-		    		if(nl> maxTotalAvgBondRatio*avg ){
+		    		if(nl> maxTR*avg ){
 		    			
 			    		 onlyOne=true;
 			    	 }
@@ -469,7 +478,7 @@ public class ConnectionTable{
 			    	 }
 		    	 }
 		    	 newLine=new Line2D.Double(newPoint1,newPoint2);
-		    	 if(GeomUtil.length(newLine)> maxTotalAvgBondRatio*avg){
+		    	 if(GeomUtil.length(newLine)> maxTR*avg){
 		    		 return;
 		    	 }
 		    	 double cosTheta = Math.abs(GeomUtil.cosTheta(newLine,e.getLine()));

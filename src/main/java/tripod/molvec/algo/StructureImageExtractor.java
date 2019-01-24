@@ -1766,15 +1766,27 @@ public class StructureImageExtractor {
 						double expected = Math.sqrt(3)/4*Math.pow(e.getBondLength(),2);
 						if(tarea<expected*0.5){
 							//System.out.println("It's a bad one");
+							
+							boolean removeLong=true;
 
 							if((e.getBondLength()<avgL*1.8) &&
 									(!e.getDashed() && (oedge1.getDashed() && oedge2.getDashed()) ||
-											(oedge1.getDashed() || oedge2.getDashed() && e.getOrder()>1))
+									(oedge1.getDashed() || oedge2.getDashed() && e.getOrder()>1))
 									){
+								removeLong=false;
+							}else{
+								if(oedge1.getBondLength()<avgL*0.7 && oedge2.getBondLength()<avgL*0.7){
+									removeLong=false;
+								}else{
+									removeLong=true;
+								}
+							}
+							
+							if(removeLong){
+								ctab.removeEdge(e);
+							}else{
 								ctab.removeEdge(oedge1);
 								ctab.removeEdge(oedge2);
-							}else{
-								ctab.removeEdge(e);	
 							}
 						}else{
 							things.stream()
@@ -1791,7 +1803,7 @@ public class StructureImageExtractor {
 
 			}
 			ctab.removeOrphanNodes();
-			//        System.out.println("Removed Triangles:" + ctabRaw.size());
+			System.out.println("Removed Triangles:" + ctabRaw.size());
 			ctabRaw.add(ctab.cloneTab());
 
 			//final cleanup

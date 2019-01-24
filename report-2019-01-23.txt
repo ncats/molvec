@@ -31,36 +31,36 @@ ATOMS_RIGHT_WRONG_BONDS	19
 ======================================
 INCORRECT	108
 --------------------------------------
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008058707_41_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008001754_7_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008201756_13_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008239616_810_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008226648_8_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008101015_439_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008056680_130_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008063341_35_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008208129_1088_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008110966_12_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008144129_30_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008101187_15_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008137925_10_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008218445_5_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008246832_44_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008115166_145_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008150621_5_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008044229_8_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008073993_3_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008152203_25_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008133264_118_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008165156_6_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008069363_9_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008050544_6_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008152128_22_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008131436_5_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008247887_306_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008013664_32_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008115389_28_chem.tif
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008130784_22_chem.tif
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008058707_41_chem.tif -- B instead of H
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008001754_7_chem.tif -- text connects to molecule
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008201756_13_chem.tif -- text throws off spacing
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008239616_810_chem.tif -- super noisy
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008226648_8_chem.tif -- 2 missing from SO2
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008101015_439_chem.tif -- correct
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008056680_130_chem.tif -- bad rescue OCR
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008063341_35_chem.tif -- noisy thinning, very messy
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008208129_1088_chem.tif -- bad initial intersection
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008110966_12_chem.tif -- Bond gets put in as "I", some OCR too close
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008144129_30_chem.tif -- removes too many things on clean
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008101187_15_chem.tif -- weird erroneous bond
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008137925_10_chem.tif -- OH's too close together
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008218445_5_chem.tif -- missing tiny bond to N
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008246832_44_chem.tif -- correct
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008115166_145_chem.tif -- F and O too close
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008150621_5_chem.tif -- correct
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008044229_8_chem.tif -- wrong spacing due to text
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008073993_3_chem.tif -- very wide spacing
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008152203_25_chem.tif -- caged structure (very hard unless explicitly dealt with)
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008133264_118_chem.tif -- correct
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008165156_6_chem.tif -- bad initial intersection, spacing weird
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008069363_9_chem.tif -- Broken N, doesn't extend correctly
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008050544_6_chem.tif -- double bond not "between" two OCR shapes, serif font on H "looks like" a B/8
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008152128_22_chem.tif -- misses C on H3C, thinks H3 is an atom, doesn't know what to do with it, makes it a C
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008131436_5_chem.tif -- very wide spacing
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008247887_306_chem.tif -- very small, bold font connected to bonds (very close though!)
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008013664_32_chem.tif -- gap in cross bonds makes it do stupid things. Probably fixable
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008115389_28_chem.tif -- noisy, pixelated
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008130784_22_chem.tif -- 2 not close enough to SO for it to register
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008201756_10_chem.tif
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008152170_10_chem.tif
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008056680_159_chem.tif
