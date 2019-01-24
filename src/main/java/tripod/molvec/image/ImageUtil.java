@@ -130,7 +130,7 @@ public class ImageUtil implements TiffTags {
         return big;
     }
 
-    public static BufferedImage decode (BufferedImage bi) {    	
+    public static BufferedImage decode (BufferedImage bi) {
         Raster raster = bi.getData();
 
     	int max = 0;
