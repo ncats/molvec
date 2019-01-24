@@ -30,7 +30,17 @@ public class MoleculeTest {
 		String form=c.getFormula();
 		assertEquals("C17H18F3NO",form);
 	}
-	//C[C@@](C)(C)c1cc(\C=C\c2ccc(cc2)N(c3ccccc3)c4cccc(\C=C\c5cc(cc(c5)[C@](C)(C)C)[C@@](C)(C)C)c4)cc(c1)[C@](C)(C)C
+	//c1ccc(cc1)-c2c3c4ccc5c6cccc7cccc(c8ccc(c3c(-c9ccccc9)c%10ccccc2%10)c4c58)c67
+	@Test
+	public void aromaticRingSystemSometimesDoubleCounted() throws Exception {
+		File f=getFile("moleculeTest/ringSystemProblem.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		Chemical c=sie.getChemical();
+		Chemical cReal=ChemicalBuilder.createFromSmiles("c1ccc(cc1)-c2c3c4ccc5c6cccc7cccc(c8ccc(c3c(-c9ccccc9)c%10ccccc2%10)c4c58)c67").build();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
+	}
 	@Test
 	public void lotsOfMethyls3SometimesSeenAsS() throws Exception {
 		File f=getFile("moleculeTest/lotsOfMethyls.png");
