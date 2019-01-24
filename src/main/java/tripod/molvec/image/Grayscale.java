@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.logging.Logger;
+import java.util.Arrays;
 import java.util.logging.Level;
 
 import java.awt.image.BufferedImage;
@@ -84,9 +85,12 @@ public class Grayscale {
                 (new BandedSampleModel
                  (DataBuffer.TYPE_BYTE, width, height, 1), null);
         double[] sample = new double[Math.max(raster.getNumBands(),3)];
+        
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
+            	
                 int s = grayscale (raster.getPixel(x, y, sample)) & 0xff;
+                //System.out.println(Arrays.toString(sample));
                 outRaster.setSample (x, y, 0, s);
                 ++histogram[s];
             }
@@ -163,6 +167,11 @@ public class Grayscale {
     }
 
     public static int grayscale (double[] rgb) {
-        return (int) (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5);
+    	if(rgb.length==4){
+    		
+    		return (int) ((0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5) * (1-(1.0/255.0)*rgb[3]));
+    	}else{
+    		return (int) (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5);
+    	}
     }
 }
