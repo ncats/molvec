@@ -18,7 +18,8 @@ public class ImageUtil implements TiffTags {
     private static final Logger logger = Logger.getLogger
 	(ImageUtil.class.getName());
     public static BufferedImage decodeTIFF (byte[] file) throws IOException {
-        return decodeTiff( ImageCodec.createImageDecoder("TIFF", new ByteArrayInputStream(file), new TIFFDecodeParam ()));
+        System.out.printf("beginning value is %02x %02x%n", file[0], file[1]);
+        return decodeTiff( ImageCodec.createImageDecoder("TIFF", new ByteArraySeekableStream(file), new TIFFDecodeParam ()));
     }
 
 
@@ -169,6 +170,16 @@ public class ImageUtil implements TiffTags {
         return image;
     }
 
+    public static BufferedImage grayscale (byte[] file) throws IOException {
+        try {
+            return decodeTIFF (file);
+        }
+        catch (Exception ex) {
+            logger.info("## bytearray not a TIFF image ("
+                    +ex.getMessage()+"); trying generic decoding... ");
+            return decode (ImageIO.read(new ByteArrayInputStream(file)));
+        }
+    }
     public static BufferedImage grayscale (File file) throws IOException {
         try {
             return decodeTIFF (file);

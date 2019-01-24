@@ -55,8 +55,8 @@ public class RegressionTest {
 			System.out.println(sdf.getAbsolutePath());
 			System.out.println("--------------------------------");
 			
-			StructureImageExtractor sie = new StructureImageExtractor();
-			sie.load(image);
+			StructureImageExtractor sie = new StructureImageExtractor(image);
+
 			Chemical c=sie.getChemical();
 			
 			c1.makeHydrogensImplicit();

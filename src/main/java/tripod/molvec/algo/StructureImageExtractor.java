@@ -168,9 +168,13 @@ public class StructureImageExtractor {
 
 
 
-	public StructureImageExtractor(){
-
+	public StructureImageExtractor(byte[] file) throws IOException{
+		load(file);
 	}
+	public StructureImageExtractor(File file) throws IOException{
+		load(file);
+	}
+
 
 	private static Tuple<Character,Number> adjustConfidence(Tuple<Character,Number> tup){
 		String ch=tup.k()+"";
@@ -542,9 +546,18 @@ public class StructureImageExtractor {
 		}
 	}
 
+	private void load(byte[] file) throws IOException{
+		load(bitmap = Bitmap.read(file).clean());
+
+	}
+	private void load(File file) throws IOException{
+		load(bitmap = Bitmap.read(file).clean());
+
+	}
+
+	private void load(Bitmap aBitMap) throws IOException{
 
 
-	public StructureImageExtractor load(File file) throws IOException{
 		ctabRaw.clear();
 		ocrAttmept.clear();
 
@@ -553,7 +566,7 @@ public class StructureImageExtractor {
 		double[] maxBondLength=new double[]{INITIAL_MAX_BOND_LENGTH};    
 
 
-		bitmap = Bitmap.read(file).clean();
+
 
 		polygons = bitmap.connectedComponents(Bitmap.Bbox.DoublePolygon);
 
@@ -2031,7 +2044,6 @@ public class StructureImageExtractor {
 		}
 		ctab.simpleClean();
 
-		return this;
 	}
 
 

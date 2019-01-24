@@ -35,13 +35,7 @@ import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
 
-import com.sun.media.jai.codec.ImageCodec;
-import com.sun.media.jai.codec.ImageDecoder;
-import com.sun.media.jai.codec.ImageEncoder;
-import com.sun.media.jai.codec.TIFFDecodeParam;
-import com.sun.media.jai.codec.TIFFDirectory;
-import com.sun.media.jai.codec.TIFFEncodeParam;
-import com.sun.media.jai.codec.TIFFField;
+import com.sun.media.jai.codec.*;
 
 import tripod.molvec.algo.Tuple;
 import tripod.molvec.image.ImageUtil;
@@ -687,10 +681,10 @@ public class Bitmap implements Serializable, TiffTags {
 
     public static Bitmap read (byte[] file) throws IOException {
         try {
-            return readtif (new ByteArrayInputStream(file));
+            return readtif (new ByteArraySeekableStream(file));
         }
         catch (Exception ex) {
-            return createBitmap (ImageUtil.decodeTIFF(file).getData());
+            return createBitmap (ImageUtil.grayscale(file).getData());
         }
     }
     public static Bitmap read (File file) throws IOException {

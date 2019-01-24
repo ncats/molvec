@@ -122,7 +122,7 @@ public class Viewer extends JPanel
     File currentFile = null;
     
     FileDialog fileDialog;
-    StructureImageExtractor sie = new StructureImageExtractor();
+    StructureImageExtractor sie;
     Bitmap bitmap; // original bitmap
     Bitmap thin; // thinned bitmap
     BufferedImage image; // buffered image
@@ -330,9 +330,8 @@ public class Viewer extends JPanel
 
         available = ALL;
         
-        sie = new StructureImageExtractor();
-        
-        sie.load(file);
+        sie = new StructureImageExtractor(file);
+
         
         bitmap=sie.getBitmap();
         thin=sie.getThin();

@@ -43,23 +43,19 @@ public class MoleculeTest {
 
 
 
-    public StructureImageExtractor sie;
 
     private TestSpec spec;
 
     public MoleculeTest(String ignored, TestSpec spec){
         this.spec = spec;
     }
-    @Before
-    public void setup(){
-        sie = new StructureImageExtractor();
-    }
+
 
     @Test
     public void testAsFile() throws Exception {
         File f=getFile(spec.filePath);
 
-        sie.load(f);
+        StructureImageExtractor sie = new StructureImageExtractor(f);
         spec.assertionConsumer.accept(sie.getChemical());
     }
     @Test
@@ -77,7 +73,7 @@ public class MoleculeTest {
             }
         }
 
-        sie.load(out.toByteArray());
+        StructureImageExtractor sie = new StructureImageExtractor(out.toByteArray());
         spec.assertionConsumer.accept(sie.getChemical());
     }
 
