@@ -1,22 +1,120 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<module type="JAVA_MODULE" version="4">
-  <component name="NewModuleRootManager" inherit-compiler-output="true">
-    <exclude-output />
+<module org.jetbrains.idea.maven.project.MavenProjectsManager.isMavenModule="true" type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_8">
+    <output url="file://$MODULE_DIR$/binaries" />
+    <output-test url="file://$MODULE_DIR$/target/test-classes" />
     <content url="file://$MODULE_DIR$">
-      <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/main/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/test/java" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/src/test/resources" type="java-test-resource" />
+      <excludeFolder url="file://$MODULE_DIR$/binaries" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/jai_codec.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="library" name="lib" level="project" />
+    <orderEntry type="library" name="Maven: junit:junit:4.12" level="project" />
+    <orderEntry type="library" name="Maven: org.hamcrest:hamcrest-core:1.3" level="project" />
+    <orderEntry type="library" name="Maven: com.sun.media:jai-codec:1.1.3" level="project" />
+    <orderEntry type="library" name="Maven: javax.media:jai-core:1.1.3" level="project" />
+    <orderEntry type="library" name="Maven: gov.nih.ncats:chemkit-api:0.8.1" level="project" />
+    <orderEntry type="library" name="Maven: uk.ac.cam.ch.opsin:opsin-core:2.3.1" level="project" />
+    <orderEntry type="library" name="Maven: dk.brics.automaton:automaton:1.11-8" level="project" />
+    <orderEntry type="library" name="Maven: org.codehaus.woodstox:woodstox-core-asl:4.4.1" level="project" />
+    <orderEntry type="library" name="Maven: javax.xml.stream:stax-api:1.0-2" level="project" />
+    <orderEntry type="library" name="Maven: org.codehaus.woodstox:stax2-api:3.1.4" level="project" />
+    <orderEntry type="library" name="Maven: commons-io:commons-io:2.4" level="project" />
+    <orderEntry type="library" name="Maven: commons-cli:commons-cli:1.3.1" level="project" />
+    <orderEntry type="library" name="Maven: log4j:log4j:1.2.17" level="project" />
+    <orderEntry type="library" name="Maven: gov.nih.ncats:chemkit-cdk:0.8.1" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-bundle:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-interfaces:2.2" level="project" />
+    <orderEntry type="library" name="Maven: javax.vecmath:vecmath:1.5.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-core:2.2" level="project" />
+    <orderEntry type="library" name="Maven: com.google.guava:guava:17.0" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-standard:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-atomtype:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-valencycheck:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-diff:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-data:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-ioformats:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-silent:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-isomorphism:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-datadebug:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-io:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-formula:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-dict:2.2" level="project" />
+    <orderEntry type="library" name="Maven: xom:xom:1.2.5" level="project" />
+    <orderEntry type="library" name="Maven: xerces:xercesImpl:2.8.0" level="project" />
+    <orderEntry type="library" name="Maven: xalan:xalan:2.7.0" level="project" />
+    <orderEntry type="library" name="Maven: xml-apis:xml-apis:1.3.03" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-pdb:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-ctab:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-libiocml:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.xml-cml:cmlxom:3.1" level="project" />
+    <orderEntry type="library" name="Maven: org.xml-cml:euclid:1.0.1" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.commons:commons-math:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.ccil.cowan.tagsoup:tagsoup:1.2" level="project" />
+    <orderEntry type="library" name="Maven: joda-time:joda-time:1.6.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-smiles:2.2" level="project" />
+    <orderEntry type="library" name="Maven: uk.ac.ebi.beam:beam-core:1.2" level="project" />
+    <orderEntry type="library" name="Maven: uk.ac.ebi.beam:beam-func:1.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-extra:2.2" level="project" />
+    <orderEntry type="library" name="Maven: gov.nist.math:jama:1.0.3" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-smarts:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-reaction:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-fingerprint:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.commons:commons-math3:3.1.1" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-cip:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-signature:2.2" level="project" />
+    <orderEntry type="library" name="Maven: com.github.gilleain.signatures:signatures:1.1" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-charges:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-forcefield:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-sdg:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-builder3dtools:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-builder3d:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-qsar:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-ionpot:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-qsaratomic:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-qsarbond:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-hash:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-fragment:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-model:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-qsarmolecular:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-qsarcml:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-qsarionpot:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-qsarprotein:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-render:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-renderbasic:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-renderawt:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-renderextra:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-control:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-qm:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-iordf:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.jena:jena-core:2.7.4" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.jena:jena-iri:0.9.4" level="project" />
+    <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.6.4" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-libiomd:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-pdbcml:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-inchi:2.2" level="project" />
+    <orderEntry type="library" name="Maven: net.sf.jni-inchi:jni-inchi:0.8" level="project" />
+    <orderEntry type="library" name="Maven: net.sf.jnati:jnati-deploy:0.4" level="project" />
+    <orderEntry type="library" name="Maven: net.sf.jnati:jnati-core:0.4" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-group:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-pcore:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-smsd:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-structgen:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-tautomer:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-legacy:2.2" level="project" />
+    <orderEntry type="library" name="Maven: jgrapht:jgrapht:0.6.0" level="project" />
+    <orderEntry type="library" name="Maven: org.openscience.cdk:cdk-depict:2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.freehep:freehep-graphicsio-svg:2.4" level="project" />
+    <orderEntry type="library" name="Maven: org.freehep:freehep-graphics2d:2.4" level="project" />
+    <orderEntry type="library" name="Maven: org.freehep:freehep-graphicsio:2.4" level="project" />
+    <orderEntry type="library" name="Maven: org.freehep:freehep-io:2.2.2" level="project" />
+    <orderEntry type="library" name="Maven: org.freehep:freehep-graphicsio-tests:2.4" level="project" />
+    <orderEntry type="library" name="Maven: org.freehep:freehep-graphicsbase:2.4" level="project" />
+    <orderEntry type="library" name="Maven: org.freehep:freehep-graphicsio-pdf:2.4" level="project" />
+    <orderEntry type="library" name="Maven: org.freehep:freehep-graphicsio-ps:2.4" level="project" />
+    <orderEntry type="library" name="Maven: gov.nih.ncats:chemkit-renderer:0.8.1" level="project" />
   </component>
 </module>
-

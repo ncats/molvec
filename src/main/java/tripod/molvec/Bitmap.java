@@ -15,14 +15,7 @@ import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.io.Serializable;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -691,8 +684,15 @@ public class Bitmap implements Serializable, TiffTags {
         }
     	return clone;
     }
-    
 
+    public static Bitmap read (byte[] file) throws IOException {
+        try {
+            return readtif (new ByteArrayInputStream(file));
+        }
+        catch (Exception ex) {
+            return createBitmap (ImageUtil.decodeTIFF(file).getData());
+        }
+    }
     public static Bitmap read (File file) throws IOException {
         try {
             return readtif (file);

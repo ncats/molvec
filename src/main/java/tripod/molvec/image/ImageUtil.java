@@ -1,5 +1,6 @@
 package tripod.molvec.image;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.awt.*;
@@ -16,27 +17,32 @@ import com.sun.media.jai.codec.*;
 public class ImageUtil implements TiffTags {
     private static final Logger logger = Logger.getLogger
 	(ImageUtil.class.getName());
-    
+    public static BufferedImage decodeTIFF (byte[] file) throws IOException {
+        return decodeTiff( ImageCodec.createImageDecoder("TIFF", new ByteArrayInputStream(file), new TIFFDecodeParam ()));
+    }
+
+
     public static BufferedImage decodeTIFF (File file) throws IOException {
-	ImageDecoder decoder = ImageCodec.createImageDecoder
-	    ("TIFF", file, new TIFFDecodeParam ());
+	return decodeTiff(ImageCodec.createImageDecoder("TIFF", file, new TIFFDecodeParam ()));
+    }
 
-	int ndirs = decoder.getNumPages();
-	TIFFDirectory tif = new TIFFDirectory 
-	    (decoder.getInputStream(), 0);
-	TIFFField[] fields = tif.getFields();
+    private static BufferedImage decodeTiff(ImageDecoder decoder) throws IOException{
+        int ndirs = decoder.getNumPages();
+        TIFFDirectory tif = new TIFFDirectory
+                (decoder.getInputStream(), 0);
+        TIFFField[] fields = tif.getFields();
 
-	double width = 0, height = 0;
-	String unit = "";
-	double xres = 0., yres = 0.;
+        double width = 0, height = 0;
+        String unit = "";
+        double xres = 0., yres = 0.;
         double rows = -1;
-	int photometric = -1, bpp = -1;
-	for (int j = 0; j < fields.length; ++j) {
-	    TIFFField f = fields[j];
-	    int tag = f.getTag();
+        int photometric = -1, bpp = -1;
+        for (int j = 0; j < fields.length; ++j) {
+            TIFFField f = fields[j];
+            int tag = f.getTag();
             try {
                 switch (tag) {
-                case TAG_RESOLUTIONUNIT:
+                    case TAG_RESOLUTIONUNIT:
                     {
                         int u = f.getAsInt(0);
                         if (u == RESOLUTIONUNIT_NONE) {
@@ -49,41 +55,41 @@ public class ImageUtil implements TiffTags {
                         }
                     }
                     break;
-                    
-                case TAG_XRESOLUTION:
-                    xres = f.getAsFloat(0);
-                    break;
-                    
-                case TAG_YRESOLUTION:
-                    yres = f.getAsFloat(0);
-		break;
-                
-                case TAG_ROWSPERSTRIP:
-                    rows = f.getAsFloat(0);
-                    break;
-                    
-                case TAG_PHOTOMETRIC:
-                    photometric = f.getAsInt(0);
-                    break;
-                    
-                case TAG_BITSPERSAMPLE:
-                    bpp = f.getAsInt(0);
-                    break;
-                    
-                case TAG_IMAGEWIDTH: 
-                    width = f.getAsFloat(0);
-                    break;
-                    
-                case TAG_IMAGELENGTH:	
-                    height = f.getAsFloat(0);
-                    break;
+
+                    case TAG_XRESOLUTION:
+                        xres = f.getAsFloat(0);
+                        break;
+
+                    case TAG_YRESOLUTION:
+                        yres = f.getAsFloat(0);
+                        break;
+
+                    case TAG_ROWSPERSTRIP:
+                        rows = f.getAsFloat(0);
+                        break;
+
+                    case TAG_PHOTOMETRIC:
+                        photometric = f.getAsInt(0);
+                        break;
+
+                    case TAG_BITSPERSAMPLE:
+                        bpp = f.getAsInt(0);
+                        break;
+
+                    case TAG_IMAGEWIDTH:
+                        width = f.getAsFloat(0);
+                        break;
+
+                    case TAG_IMAGELENGTH:
+                        height = f.getAsFloat(0);
+                        break;
                 }
             }
             catch (Exception ex) {
                 logger.warning("## TIFF decoder tag="
-                               +tag+"; "+ex.getMessage());
+                        +tag+"; "+ex.getMessage());
             }
-	}
+        }
 
 	/*
 	if (xres > 0) {
@@ -94,25 +100,25 @@ public class ImageUtil implements TiffTags {
 	}
 	*/
 
-	logger.info(file + " has " + ndirs + " image; width="+width
-                    +" height="+height +" xres="+xres+unit
-                    +" yres="+yres+unit+" bpp="+bpp
-                    +" photometric="+photometric+" rows="+rows);
+        logger.info( tif.toString() + " has " + ndirs + " image; width="+width
+                +" height="+height +" xres="+xres+unit
+                +" yres="+yres+unit+" bpp="+bpp
+                +" photometric="+photometric+" rows="+rows);
 
-	RenderedImage decodedImage = decoder.decodeAsRenderedImage();
-	//ImageIO.write(decodedImage, "png", new File("tmp.png"));
-	Raster raster = decodedImage.getData();
+        RenderedImage decodedImage = decoder.decodeAsRenderedImage();
+        //ImageIO.write(decodedImage, "png", new File("tmp.png"));
+        Raster raster = decodedImage.getData();
 	/*
 	if (raster.getNumBands() > 1) {
-	    throw new IllegalArgumentException 
+	    throw new IllegalArgumentException
 		("Sorry, can't support multiband image at the moment!");
 	}
 	*/
 
-	logger.info("sample model: nbands="+raster.getNumBands()
-                    +" "+raster.getSampleModel().getClass());
+        logger.info("sample model: nbands="+raster.getNumBands()
+                +" "+raster.getSampleModel().getClass());
         /*
-	MultiPixelPackedSampleModel packed = 
+	MultiPixelPackedSampleModel packed =
 	    (MultiPixelPackedSampleModel)raster.getSampleModel();
 	logger.info("scanline: "+packed.getScanlineStride());
 	logger.info("bit stride: "+packed.getPixelBitStride());
@@ -120,7 +126,7 @@ public class ImageUtil implements TiffTags {
 
         Grayscale grayscale = new Grayscale (raster);
         BufferedImage big=grayscale.getImage();
-        //ImageIO.write(decodedImage, "png", new File("tmp-gray.png"));    
+        //ImageIO.write(decodedImage, "png", new File("tmp-gray.png"));
         return big;
     }
 
