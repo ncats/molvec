@@ -83,7 +83,7 @@ public class Grayscale {
         WritableRaster outRaster = Raster.createWritableRaster
                 (new BandedSampleModel
                  (DataBuffer.TYPE_BYTE, width, height, 1), null);
-        double[] sample = new double[raster.getNumBands()];
+        double[] sample = new double[Math.max(raster.getNumBands(),3)];
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
                 int s = grayscale (raster.getPixel(x, y, sample)) & 0xff;
