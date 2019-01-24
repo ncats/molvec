@@ -6,7 +6,6 @@ import java.io.File;
 import java.nio.charset.Charset;
 import java.util.Comparator;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import gov.nih.ncats.chemkit.api.Chemical;
@@ -30,6 +29,17 @@ public class MoleculeTest {
 		Chemical c=sie.getChemical();
 		String form=c.getFormula();
 		assertEquals("C17H18F3NO",form);
+	}
+	//C[C@@](C)(C)c1cc(\C=C\c2ccc(cc2)N(c3ccccc3)c4cccc(\C=C\c5cc(cc(c5)[C@](C)(C)C)[C@@](C)(C)C)c4)cc(c1)[C@](C)(C)C
+	@Test
+	public void lotsOfMethyls3SometimesSeenAsS() throws Exception {
+		File f=getFile("moleculeTest/lotsOfMethyls.png");
+		StructureImageExtractor sie = new StructureImageExtractor();
+		sie.load(f);
+		Chemical c=sie.getChemical();
+		Chemical cReal=ChemicalBuilder.createFromSmiles("C[C@@](C)(C)c1cc(\\C=C\\c2ccc(cc2)N(c3ccccc3)c4cccc(\\C=C\\c5cc(cc(c5)[C@](C)(C)C)[C@@](C)(C)C)c4)cc(c1)[C@](C)(C)C").build();
+		String form=c.getFormula();
+		assertEquals(cReal.getFormula(),form);
 	}
 	
 	@Test
@@ -369,7 +379,7 @@ public class MoleculeTest {
 		assertEquals(cReal.getFormula(),form);
 		//
 	}
-	//[#6]-c1cc(CN2C(=O)C3=C(CCCC3)C2=O)c(O)c(c1)-n4nc5ccccc5n4
+	//C-c1cc(CN2C(=O)C3=C(CCCC3)C2=O)c(O)c(c1)-n4nc5ccccc5n4
 	//
 	
 	@Test

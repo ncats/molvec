@@ -597,7 +597,10 @@ public class StructureImageExtractor {
 		ctabRaw.clear();
 
 		AtomicBoolean foundNewOCR=new AtomicBoolean(true);
-		while(foundNewOCR.get()){
+		int maxFullRepeats=5;
+		int repeats=0;
+		while(foundNewOCR.get() && repeats<maxFullRepeats){
+			repeats++;
 			foundNewOCR.set(false);
 			System.out.println("Another pass:" + ctabRaw.size());
 			double averageLargestOCR=likelyOCR.stream()
@@ -1015,6 +1018,7 @@ public class StructureImageExtractor {
 				ctab.makeMissingNodesForShapes(likelyOCR,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL);
 
 				Set<Node> toRemove = new HashSet<Node>();
+				
 
 
 				ctab.makeMissingBondsToNeighbors(bitmap,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MAX_TOLERANCE_FOR_DASH_BONDS,likelyOCR,OCR_TO_BOND_MAX_DISTANCE, (t)->{
@@ -1048,13 +1052,16 @@ public class StructureImageExtractor {
 							List<Edge> edges=cn.getEdges();
 							if(edges.size()==2){
 								if(ddelta<MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC){
-									toRemove.add(cn);
-
+									if(!toRemove.contains(n1) && !toRemove.contains(n2)){
+										toRemove.add(cn);
+	
+									}
 									double o2=edges.stream().map(et->Tuple.of(et,et.getBondLength()))
 											.mapToDouble(e1->(e1.k().getOrder() * e1.v()))
 											.sum();
 									int o=(int)Math.round(((o2/sumd)+0.05));
 									t.v().setOrder(o);
+
 								}
 								if(!edges.stream().anyMatch(e2->e2.getDashed())){
 									alreadyExists=true;	
@@ -1436,6 +1443,18 @@ public class StructureImageExtractor {
 				for(Shape s: sorted){
 					List<Tuple<Character, Number>> list = ocrAttmept.get(s);
 					String v= (list ==null || list.isEmpty())? "":list.get(0).k().toString();
+					
+					if(s.getBounds2D().getWidth()<averageWidthOCR*0.8){
+						if(v.equalsIgnoreCase("S")){
+							//probably a 3
+							Tuple<Character,Number> tc=list.stream().filter(c->c.k().toString().equals("3")).findFirst().orElse(null);
+							if(tc!=null){
+								if(tc.v().doubleValue()>OCRcutoffCosineRescue){
+									v="3";
+								}
+							}
+						}
+					}
 
 					if(v.equals("-")){
 						if(making!=null){
@@ -1993,6 +2012,7 @@ public class StructureImageExtractor {
 						.max(Comparator.naturalOrder())
 						.map(t->t.k())
 						.orElse(null);
+				if(useLine==null)return;
 				long c=polygons.stream()
 						.filter(s->GeomUtil.getIntersection(s, useLine).isPresent())
 						.count();

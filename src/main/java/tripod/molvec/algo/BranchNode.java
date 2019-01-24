@@ -231,12 +231,19 @@ class BranchNode{
 	}
 
 	private static BranchNode interpretOCRStringAsAtom(String s, boolean tokenOnly){
-		if((   s.equalsIgnoreCase("CO2H")
+		if((  s.equalsIgnoreCase("CO2H")
 			|| s.equalsIgnoreCase("CO2")
 			|| s.equalsIgnoreCase("COOH")
 			|| s.equalsIgnoreCase("HOOC")
 			|| s.equalsIgnoreCase("OOC")
 			|| s.equalsIgnoreCase("COO")
+			
+			|| s.equalsIgnoreCase("C02H")
+			|| s.equalsIgnoreCase("C02")
+			|| s.equalsIgnoreCase("C00H")
+			|| s.equalsIgnoreCase("H00C")
+			|| s.equalsIgnoreCase("O00")
+			|| s.equalsIgnoreCase("C00")
 				)){
 			BranchNode bn = new BranchNode("C");
 			bn.addChild(new BranchNode("O").setOrderToParent(2));
