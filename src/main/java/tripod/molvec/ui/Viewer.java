@@ -100,6 +100,7 @@ public class Viewer extends JPanel
     static final Color KNN_COLOR = new Color (0x70, 0x5a, 0x9c, 120);
     static final Color ZONE_COLOR = new Color (0x9e, 0xe6, 0xcd, 120);
 
+    
     static Color[] colors = new Color[]{
     		Color.black,
     		Color.RED,

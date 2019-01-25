@@ -29,6 +29,7 @@ class BranchNode{
 	}).get();
 	
 	String symbol = "C";
+	int charge=0;
 	boolean pseudo=false;
 	boolean isRepeat=false;
 	int rep=0;
@@ -57,6 +58,14 @@ class BranchNode{
 	public BranchNode setOrderToParent(int o){
 		this.orderToParent=o;
 		return this;
+	}
+	
+	public BranchNode setCharge(int c){
+		this.charge=c;
+		return this;
+	}
+	public int getCharge(){
+		return this.charge;
 	}
 	
 	public BranchNode generateCoordinates(){
@@ -235,6 +244,7 @@ class BranchNode{
 			|| s.equalsIgnoreCase("CO2")
 			|| s.equalsIgnoreCase("COOH")
 			|| s.equalsIgnoreCase("HOOC")
+			|| s.equalsIgnoreCase("HO2C")
 			|| s.equalsIgnoreCase("OOC")
 			|| s.equalsIgnoreCase("COO")
 			
@@ -242,6 +252,7 @@ class BranchNode{
 			|| s.equalsIgnoreCase("C02")
 			|| s.equalsIgnoreCase("C00H")
 			|| s.equalsIgnoreCase("H00C")
+			|| s.equalsIgnoreCase("H02C")
 			|| s.equalsIgnoreCase("O00")
 			|| s.equalsIgnoreCase("C00")
 				)){
@@ -250,8 +261,8 @@ class BranchNode{
 			bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
 			return bn;
 		}
-		if((s.equalsIgnoreCase("CN")
-				|| s.equalsIgnoreCase("cN"))){
+		if((       s.equalsIgnoreCase("CN")
+				|| s.equalsIgnoreCase("NC"))){
 				BranchNode bn = new BranchNode("C");
 				bn.addChild(new BranchNode("N").setOrderToParent(3));
 				//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
@@ -266,10 +277,32 @@ class BranchNode{
 				//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
 				return bn;
 			}
+		if((s.equalsIgnoreCase("NO2")
+				|| s.equalsIgnoreCase("O2N"))){
+				BranchNode bn = new BranchNode("N").setCharge(1);
+				bn.addChild(new BranchNode("O").setOrderToParent(2));
+				bn.addChild(new BranchNode("O").setOrderToParent(1).setCharge(-1));
+				//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
+				return bn;
+			}
+		if(s.equals("Me")||s.equals("Mc")||s.equals("MC")){
+				BranchNode bn = new BranchNode("C");
+				return bn;
+		}
+		
+		//TODO:
+		
+		// Et
+		// Me
+		// Ph
+		
 		if(accept.contains(s)){
 			return new BranchNode(s);
 		}else if(accept.contains(s.toUpperCase())){
 			return new BranchNode(s.toUpperCase());
+		}
+		if(s.contains("Ct") ||s.contains("Ct")){
+			return interpretOCRStringAsAtom(s.replaceAll("C[tT]", "Cl"),tokenOnly);
 		}
 		if(s.contains("H")){
 			

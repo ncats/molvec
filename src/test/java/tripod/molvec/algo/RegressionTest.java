@@ -48,6 +48,7 @@ public class RegressionTest {
 			String rawMol = Files.lines(sdf.toPath())
 					.filter(l->!l.contains("SUP"))
 					.filter(l->!l.contains("SGROUP"))
+					.filter(l->!l.contains("M  S"))
 					.collect(Collectors.joining("\n"));
 			
 			Chemical c1=ChemicalBuilder.createFromMol(rawMol,Charset.defaultCharset()).build();
@@ -149,7 +150,7 @@ public class RegressionTest {
 	@Ignore
 	@Test
 	public void test1(){
-		File dir1 = getFile("regressionTest/testSet1");
+		File dir1 = getFile("regressionTest/uspto");
 		
 		Arrays.stream(dir1.listFiles())
 		      .filter(f->f.getName().contains("."))
@@ -161,7 +162,7 @@ public class RegressionTest {
 		      .filter(l->l.size()==2)
 		      
 		      .map(l->{
-		    	  	if(!l.get(0).getName().endsWith("sdf")){
+		    	  	if(!l.get(1).getName().toLowerCase().endsWith("tif")){
 		    	  		List<File> flist = new ArrayList<File>();
 		    	  		flist.add(l.get(1));
 		    	  		flist.add(l.get(0));
@@ -173,6 +174,8 @@ public class RegressionTest {
 		      .peek(t->{
 		    	  System.out.println(t.v());
 		      })
+		      .skip(100)
+		      .limit(100)
 		      .map(t->t.swap())
 		      .collect(Tuple.toGroupedMap())
 		      .forEach((r,fl)->{

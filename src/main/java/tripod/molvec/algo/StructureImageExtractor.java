@@ -186,7 +186,7 @@ public class StructureImageExtractor {
 				ch.equalsIgnoreCase("A")||
 				ch.equalsIgnoreCase("Z")||
 				ch.equalsIgnoreCase("-")||
-				ch.equalsIgnoreCase("m")||
+				ch.equals("m")||
 				ch.equalsIgnoreCase("W")||
 
 				ch.equals("n")){
@@ -631,6 +631,13 @@ public class StructureImageExtractor {
 					.map(Shape::getBounds2D)
 					.filter(Objects::nonNull)
 					.mapToDouble(Rectangle2D::getWidth)
+					.filter(Objects::nonNull) //sometimes get NPEs here not sure why or how
+					.average()
+					.orElse(0);
+			double averageHeightOCR=likelyOCR.stream()
+					.map(Shape::getBounds2D)
+					.filter(Objects::nonNull)
+					.mapToDouble(Rectangle2D::getHeight)
 					.filter(Objects::nonNull) //sometimes get NPEs here not sure why or how
 					.average()
 					.orElse(0);
@@ -1457,7 +1464,7 @@ public class StructureImageExtractor {
 					List<Tuple<Character, Number>> list = ocrAttmept.get(s);
 					String v= (list ==null || list.isEmpty())? "":list.get(0).k().toString();
 					
-					if(s.getBounds2D().getWidth()<averageWidthOCR*0.8){
+					if(s.getBounds2D().getHeight()<averageHeightOCR*0.8){
 						if(v.equalsIgnoreCase("S")){
 							//probably a 3
 							Tuple<Character,Number> tc=list.stream().filter(c->c.k().toString().equals("3")).findFirst().orElse(null);
@@ -1851,6 +1858,7 @@ public class StructureImageExtractor {
 
 					if(nlist.size()==1){
 						Node pnode=nlist.get(0);
+						pnode.setCharge(actual.getCharge());
 						Point2D ppoint=pnode.getPoint();
 						if(actual.hasChildren()){
 							actual.generateCoordinates();
@@ -1880,7 +1888,8 @@ public class StructureImageExtractor {
 								}
 
 								Node n= ctab.addNode(curN.suggestedPoint)
-										.setSymbol(curN.getSymbol());
+										    .setSymbol(curN.getSymbol())
+										    .setCharge(curN.getCharge());
 								ctab.addEdge(mpnode.getIndex(), n.getIndex(), curN.getOrderToParent());
 								parentNodes.put(curN, n);
 							});

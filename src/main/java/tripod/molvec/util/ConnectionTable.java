@@ -73,6 +73,9 @@ public class ConnectionTable{
 		for(int i=0;i<nodes.size();i++){
 			Node n = nodes.get(i);
 			atoms[i]=cb.addAtom(n.symbol,n.point.getX(),-n.point.getY());
+			if(n.getCharge()!=0){
+				atoms[i].setCharge(n.getCharge());
+			}
 		}
 		for(Edge e : edges){
 			if(e.getOrder()==1){
@@ -666,6 +669,7 @@ public class ConnectionTable{
 	public class Node{
 		Point2D point;
 		String symbol="C";
+		int charge=0;
 		
 		
 		public List<KEqualityTuple<Node,Edge>> getNeighborNodes(){
@@ -674,6 +678,16 @@ public class ConnectionTable{
 				.map(ne->Tuple.of(ne.getOtherNode(this),ne).withKEquality())
 				.collect(Collectors.toList());
 		}
+		
+		public int getCharge(){
+			return this.charge;
+		}
+		
+		public Node setCharge(int c){
+			this.charge=c;
+			return this;
+		}
+		
 		
 		public Node(Point2D p, String s){
 			this.point=p;
