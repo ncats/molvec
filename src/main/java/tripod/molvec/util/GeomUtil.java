@@ -444,6 +444,51 @@ public class GeomUtil {
 
         return hull;
     }
+    
+    public static Point2D centerOfMass(Shape s1){
+    	//works pretty roughly
+    	Line2D[] lines=GeomUtil.lines(s1);
+    	double sumLength = Arrays.stream(lines).mapToDouble(l->length(l)).sum()*2;
+    	
+    	
+    	Point2D centerPoint = Arrays.stream(lines)
+//    							  .flatMap(l->GeomUtil.splitLineIn2(l).stream())
+//    							  .flatMap(l->GeomUtil.splitLineIn2(l).stream())
+    							  .flatMap(l->Stream.of(Tuple.of(l.getP1(), length(l)),Tuple.of(l.getP2(), length(l))))
+    							  .map(t->Tuple.of(t.k().getX()*t.v(), t.k().getY()*t.v()))
+    							  .reduce((t1,t2)->Tuple.of(t1.k() + t2.k(), t1.v()+t2.v()))
+    							  .map(Tuple.vmap(d->d/sumLength))
+    							  .map(Tuple.kmap(d->d/sumLength))
+    							  .map(t->new Point2D.Double(t.k(),t.v()))
+    							  .orElse(new Point2D.Double(0, 0));
+    	return centerPoint;
+    }
+    
+    public static Tuple<Point2D,double[]> getCircumscribedAndInscribedCircles(Shape s1){
+    	Point2D centerOfMass=centerOfMass(s1);
+    	
+
+    	Line2D[] lines=GeomUtil.lines(s1);
+    	
+    	double min=Arrays.stream(lines)
+    			.map(l->GeomUtil.projectPointOntoLine(l, centerOfMass))
+			    	      .mapToDouble(lp->lp.distance(centerOfMass))
+			    	      .min()
+			    	      .orElse(0);
+    	double max=Arrays.stream(vertices(s1))
+	    	      .mapToDouble(v->v.distance(centerOfMass))
+	    	      .max()
+	    	      .orElse(0);
+    	
+    	return Tuple.of(centerOfMass,new double[]{min,max});
+    }
+    
+    public static double getCircleLikeScore(Shape s){
+    	Tuple<Point2D,double[]> circles=getCircumscribedAndInscribedCircles(s);
+    	double[] rads=circles.v();
+    	return rads[0]*rads[0]/(rads[1]*rads[1]);
+    }
+    
 
     public static boolean isNeighbor (Point p1, Point p2) {
         return (Math.abs (p1.x - p2.x) <= 1 && Math.abs (p1.y - p2.y) <= 1);
@@ -521,7 +566,7 @@ public class GeomUtil {
             p.next ();
         }
 
-        return lines.toArray (new Line2D[0]);
+        return lines.stream().filter(l->!l.getP1().equals(l.getP2())).toArray(i->new Line2D[i]);
     }
 
     public static Optional<Point2D> segmentIntersection(Line2D l1, Line2D l2){

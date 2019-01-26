@@ -1,9 +1,8 @@
 package tripod.molvec.util;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static tripod.molvec.util.GeomUtil.area;
 import static tripod.molvec.util.GeomUtil.areaTriangle;
-import static tripod.molvec.util.GeomUtil.convexHullOldIntPrecision;
 import static tripod.molvec.util.GeomUtil.shapeFromVertices;
 import static tripod.molvec.util.GeomUtil.vertices;
 
@@ -11,6 +10,7 @@ import java.awt.Shape;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -47,6 +47,52 @@ public class GeomUtilTest {
     		assertEquals(p.getX(),proj.getX(), 0.0001);
     	}
     }
+    
+    @Test
+    public void centerOfMassOfSquareShouldBeCenter(){
+    	Rectangle2D rect = new Rectangle2D.Double(0,0,10,10);
+    	
+    	Point2D originalCenter = new Point2D.Double(5.0, 5.0);
+    	
+    	for(int j=1;j<10;j++){
+	    	for(int i=1;i<10;i++){
+		    	for(int x=0;x<10;x++){
+		    		for(int y=0;y<10;y++){
+		    			AffineTransform at = new AffineTransform();
+		    			at.translate(x, y);
+		    			at.scale(i, j);
+		    			Shape trans=at.createTransformedShape(rect);
+		    			Point2D transCenter=at.transform(originalCenter, null);
+		    	
+		
+		    	    	Point2D center=GeomUtil.centerOfMass(trans);
+		    	    	assertEquals(transCenter.getX(),center.getX(),0.0001);
+		    	    	assertEquals(transCenter.getY(),center.getY(),0.0001);
+		    			
+		    		}
+		    	}
+	    	}
+    	}
+    }
+    
+    @Test
+    public void veryRegularPolygonShouldHaveStrongCircleLikeScore(){
+    	int totSections = 100;
+    	Point2D[] pts = IntStream.range(0, totSections)
+    			                 .mapToDouble(i->2*i*Math.PI/totSections)
+    			                 .mapToObj(t->new Point2D.Double(100*Math.cos(t),100*Math.sin(t)))
+    			                 .toArray(i->new Point2D[i]);
+    	
+    	Shape regPoly=GeomUtil.convexHull2(pts);
+    	
+    	double cscore=GeomUtil.getCircleLikeScore(regPoly);
+    	
+    	assertTrue(cscore>0.99);
+    	
+    	
+    }
+    
+    
     @Test
     public void cosThetaOfOrthoLinesShouldBeZero() throws Exception {
     	

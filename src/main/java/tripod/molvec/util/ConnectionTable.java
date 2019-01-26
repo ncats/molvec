@@ -9,8 +9,11 @@ import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -77,6 +80,10 @@ public class ConnectionTable{
 				atoms[i].setCharge(n.getCharge());
 			}
 		}
+		cb.aromatize(true);
+		
+		List<Tuple<String,String>> changeBonds = new ArrayList<>();
+		
 		for(Edge e : edges){
 			if(e.getOrder()==1){
 				Bond b=cb.addBond(atoms[e.n1],atoms[e.n2],BondType.SINGLE);
@@ -90,14 +97,46 @@ public class ConnectionTable{
 			}else if(e.getOrder()==2){
 				cb.addBond(atoms[e.n1],atoms[e.n2],BondType.DOUBLE);
 			}else if(e.getOrder()==3){
-				cb.addBond(atoms[e.n1],atoms[e.n2],BondType.TRIPLE);
+				cb.addBond(atoms[e.n1],atoms[e.n2],BondType.TRIPLE);				
+			}else if(e.getOrder()==4){
+				//doesn't work for some reason, so fix in the molfile and reload
+				int n1=e.n1+1;
+				int n2=e.n2+1;
+				String s1=("   " + n1);
+				String s2=("   " + n2);
+				s1=s1.substring(s1.length()-3);
+				s2=s2.substring(s2.length()-3);
+				
+				changeBonds.add(Tuple.of(s1 + s2 + "  1", s1 + s2 + "  4"));
 				
 				
-			}else{
-				cb.addBond(atoms[e.n1],atoms[e.n2],BondType.SINGLE);
+				cb.addBond(atoms[e.n1],atoms[e.n2],BondType.AROMATIC);
+				
+				
 			}
 		}
-		return cb.build();
+		
+		Chemical tc=cb.build();
+		if(!changeBonds.isEmpty()){
+			try {
+				
+				String nmol=Arrays.stream(tc.toMol().split("\n"))
+				      .map(l->{
+				    	  return changeBonds.stream()
+				    	  			 .filter(lc->l.startsWith(lc.k()))
+				    	  			 .findFirst()
+				    	  			 .map(t->l.replace(t.k(), t.v()))
+				    	  			 .orElse(l);
+				      })
+				      .collect(Collectors.joining("\n"));
+				//System.out.println(nmol);
+				return ChemicalBuilder.createFromMol(nmol, Charset.defaultCharset()).build();
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		}
+		return tc;
 	}
 	
 	public ConnectionTable mergeNodesAverage(int n1, int n2){
@@ -1166,6 +1205,13 @@ public class ConnectionTable{
 		          });
 		return this;
 		
+		
+	}
+
+	public List<Edge> getEdgesWithCenterWithin(Point2D c, double d) {
+		return this.edges.stream()
+		          .filter(e->GeomUtil.findCenterOfShape(e.getLine()).distance(c)<d)
+		          .collect(Collectors.toList());
 		
 	}
 

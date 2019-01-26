@@ -237,6 +237,13 @@ public class MoleculeTest {
 			assertEquals(cReal.getFormula(),form);
 		} )});
 		
+		list.add(new Object[]{"circleAromaticTest", new TestSpec("moleculeTest/circleAromatic.png", c->{
+			Chemical cReal=ChemicalBuilder.createFromSmiles("CC1CCCc2c(O)ccc(O)c12").build();
+
+			String form=c.getFormula();
+			assertEquals(cReal.getFormula(),form);
+		} )});
+		
 		list.add(new Object[]{"problematicIntersectionTest", new TestSpec("moleculeTest/problematicIntersection.png", c->{
 			Chemical cReal=ChemicalBuilder.createFromMol("\n" + 
 					"  CDK     01261912223D\n" + 

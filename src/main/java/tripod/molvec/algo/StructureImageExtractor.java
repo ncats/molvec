@@ -100,7 +100,7 @@ public class StructureImageExtractor {
 	private final double MAX_REPS = 10;
 	private final double INITIAL_MAX_BOND_LENGTH=Double.MAX_VALUE;
 	private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE = 1/3.0;
-	private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE_INITIAL = 1/2.7;
+	private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE_INITIAL = 1/2.9;
 
 	private final double MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 1.3;
 	private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 0.5;
@@ -659,8 +659,27 @@ public class StructureImageExtractor {
 
 			}
 		});
-
-		lines= GeomUtil.asLines(thin.segments());
+		List<Shape> circles =  polygons.stream()
+		        .filter(p->!likelyOCRAll.contains(p))
+		        .map(s->Tuple.of(s,GeomUtil.getCircleLikeScore(s)))
+		        .filter(t->t.v()>0.9)
+		        .map(t->t.k())
+		        .map(s->GeomUtil.growShape(s, 2))
+		        .collect(Collectors.toList());
+		
+		
+		lines= GeomUtil.asLines(thin.segments())
+				.stream()
+				.filter(l->!circles.stream()
+						           .filter(s->s.contains(l.getP1()) || s.contains(l.getP1()))
+						           .findFirst()
+						           .isPresent())
+				.collect(Collectors.toList());
+		
+		
+		
+		
+		
 		ctabRaw.clear();
 
 		AtomicBoolean foundNewOCR=new AtomicBoolean(true);
@@ -2197,6 +2216,16 @@ public class StructureImageExtractor {
 
 		}
 		ctab.simpleClean();
+		circles.stream()
+		       .map(c->GeomUtil.findCenterOfShape(c))
+		       .forEach(cp->{
+		    	   ctab.getEdgesWithCenterWithin(cp,ctab.getAverageBondLength())
+				       .stream()
+				       .forEach(e->{
+				    	   e.setOrder(4);
+				       });
+		       });
+		
 
 	}
 
