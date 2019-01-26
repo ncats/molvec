@@ -36,6 +36,7 @@ class BranchNode{
 	int orderToParent=1;
 	private int thetaOffset=0;
 	
+	private boolean combineLinearly = false;
 	
 	private BranchNode childForCombine=null;
 	
@@ -111,7 +112,7 @@ class BranchNode{
 	}
 	
 	public boolean shouldComineLinearly(){
-		if(this.getSymbol().equals("C")){
+		if(combineLinearly){
 			return true;
 		}
 		return false;
@@ -211,6 +212,14 @@ class BranchNode{
 	
 	public BranchNode(String s){
 		this.symbol=s;
+		if(this.symbol.equals("C")){
+			combineLinearly=true;
+		}
+	}
+	
+	public BranchNode setShouldCombineLinearly(boolean t){
+		this.combineLinearly=t;
+		return this;
 	}
 	
 	public String toString(){
@@ -286,7 +295,7 @@ class BranchNode{
 				return bn;
 			}
 		if(s.equals("Me")||s.equals("Mc")||s.equals("MC")){
-				BranchNode bn = new BranchNode("C");
+				BranchNode bn = new BranchNode("C").setShouldCombineLinearly(false);
 				return bn;
 		}
 		
@@ -364,7 +373,11 @@ class BranchNode{
 		return null;		
 	}
 	public static BranchNode interpretOCRStringAsAtom(String s){
-		return interpretOCRStringAsAtom(s,false);
+		try{
+			return interpretOCRStringAsAtom(s,false);
+		}catch(Exception e){
+			return null;
+		}
 	}
 	
 }

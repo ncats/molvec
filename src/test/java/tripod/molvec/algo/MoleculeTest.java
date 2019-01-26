@@ -216,7 +216,14 @@ public class MoleculeTest {
 			String form=c.getFormula();
 			assertEquals(cReal.getFormula(),form);
 		} )});
+//
+		list.add(new Object[]{"nHConnectedTogetherTest", new TestSpec("moleculeTest/NHConnectedTogether.png", c->{
+			Chemical cReal=ChemicalBuilder.createFromSmiles("[H]C(O)(C(O)=O)C([H])(O)C(O)=O.Brc1c(ccc2nccnc12)\\N=C3\\NCCN3").build();
 
+			String form=c.getFormula();
+			assertEquals(cReal.getFormula(),form);
+		} )});
+		
 		list.add(new Object[]{"zerosForOxygensAndSmallInnerBondTest", new TestSpec("moleculeTest/withZerosAsOxygens.png", c->{
 			Chemical cReal=ChemicalBuilder.createFromSmiles("CC1C2C=CC1C(C2C(=O)OCC(C)=C)C(=O)OCC(C)=C").build();
 
@@ -254,6 +261,14 @@ public class MoleculeTest {
 
 		list.add(new Object[]{"nCarbonChainTest", new TestSpec("moleculeTest/carbonChainShorthand.png", c->{
 			Chemical cReal=ChemicalBuilder.createFromSmiles("CCCc1ccc(CCC)c2cc3c(-c4ccccc4)c5cc6c(CCC)ccc(CCC)c6cc5c(-c7ccccc7)c3cc12").build();
+
+			String form=c.getFormula();
+			assertEquals(cReal.getFormula(),form);
+		} )});
+		//CCOC(=O)C[C@H](NS(=O)(=O)c1ccccc1)c2ccc3N(CC)C(C)Cc3c2
+		
+		list.add(new Object[]{"nCarbonChainTest", new TestSpec("moleculeTest/NHOnTopOfEachOther.png", c->{
+			Chemical cReal=ChemicalBuilder.createFromSmiles("CCOC(=O)C[C@H](NS(=O)(=O)c1ccccc1)c2ccc3N(CC)C(C)Cc3c2").build();
 
 			String form=c.getFormula();
 			assertEquals(cReal.getFormula(),form);

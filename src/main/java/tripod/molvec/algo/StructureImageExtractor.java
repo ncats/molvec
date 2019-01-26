@@ -196,8 +196,9 @@ public class StructureImageExtractor {
 			invScore=invScore*1.5; // penalize
 		}else if(ch.equalsIgnoreCase("N") 
 				|| ch.equalsIgnoreCase("C") 
-				|| ch.equalsIgnoreCase("O")){
-			invScore=invScore*(0.85); // promote
+				|| ch.equalsIgnoreCase("O")
+				){
+			invScore=invScore*(0.87); // promote
 		}
 
 		return Tuple.of(tup.k(),Math.max(0,1-invScore));
@@ -426,13 +427,66 @@ public class StructureImageExtractor {
 		 */   
 
 		polygons.stream()
+//		.collect(Collectors.toList())
+//		.stream()
+		
 		.parallel()
 		.forEach(s->{
 			Rectangle2D bounds2d = s.getBounds2D();
 			if(bounds2d.getWidth()>0 && bounds2d.getHeight()>0){
+				List<Tuple<Character,Number>> ll = new ArrayList<>();
+				
 				processOCRShape(socr,s,bitmap,thin,(sf,lf)->{
-					onFind.accept(sf, lf);
+					ll.addAll(lf);
+					//onFind.accept(sf, lf);
 				});
+				
+				double bestMatch = ll.stream().findFirst().map(t->t.v().doubleValue()).orElse(0.0);
+				
+				
+				
+				// if the width is too wide, it might be two chars pushed together
+				// but that's only really likely if the shape is pretty close to being a box
+				if(bounds2d.getWidth() >  bounds2d.getHeight()){
+					double sarea=GeomUtil.area(s);
+					double bbarea=GeomUtil.area(bounds2d);
+					if(sarea/bbarea > 0.8 && bounds2d.getHeight()>4){
+						List<Tuple<Shape,List<Tuple<Character,Number>>>> splitMatches = new ArrayList<>();
+						
+						Shape box1= new Rectangle2D.Double(bounds2d.getMinX(), bounds2d.getMinY(), bounds2d.getWidth()/2, bounds2d.getHeight());
+						Shape box2= new Rectangle2D.Double(bounds2d.getMinX() + bounds2d.getWidth()/2, bounds2d.getMinY(), bounds2d.getWidth()/2, bounds2d.getHeight());
+						
+						Shape cropShape1=GeomUtil.getIntersectionShape(box1, s).get();
+						Shape cropShape2=GeomUtil.getIntersectionShape(box2, s).get();
+						//System.out.println("Gonna look at half");
+//						polygons.add(cropShape1);
+//						polygons.add(cropShape2);
+						processOCRShape(socr,cropShape1,bitmap,thin,(sf,lf)->{
+							if(lf.get(0).v().doubleValue()>bestMatch){
+								splitMatches.add(Tuple.of(sf,lf));
+							}
+							//onFind.accept(sf, lf);
+						});
+						processOCRShape(socr,cropShape2,bitmap,thin,(sf,lf)->{
+							if(lf.get(0).v().doubleValue()>bestMatch){
+								splitMatches.add(Tuple.of(sf,lf));
+							}
+						});
+						if(splitMatches.size()>1){
+							splitMatches.forEach(t->{
+								onFind.accept(t.k(),t.v());	
+							});
+						}else{
+							onFind.accept(s, ll);
+						}
+					}else{
+						onFind.accept(s, ll);
+					}
+				}else{
+					onFind.accept(s, ll);
+				}
+				
+				
 			}
 		});
 	}
@@ -1404,7 +1458,8 @@ public class StructureImageExtractor {
 			ctabRaw.add(ctab.cloneTab());
 
 			double cosThetaOCRShape =Math.cos(MAX_THETA_FOR_OCR_SEPERATION);
-
+			
+		
 
 
 			List<List<Shape>> ocrGroupList=GeomUtil.groupShapesIfClosestPointsMatchCriteria(likelyOCRAll, t->{
@@ -1424,7 +1479,6 @@ public class StructureImageExtractor {
 				double dist=GeomUtil.length(l2);
 				double cutoff=Math.max(ctab.getAverageBondLength()*MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING,averageWidthOCR);
 				if(dist>cutoff){
-
 					return false;
 				}
 
@@ -1443,6 +1497,14 @@ public class StructureImageExtractor {
 			});
 
 			bestGuessOCR.clear();
+			
+			
+			//Now need to group if H on top or bottom of single letter thing
+			// and missing / intersecting shapes?
+			
+			
+			
+			
 
 			ocrGroupList.stream()
 			//.filter(l->l.size()>1)
@@ -1495,9 +1557,41 @@ public class StructureImageExtractor {
 				if(making!=null){
 					bestGuessOCR.put(making, soFar);
 				}
-
-
 			});
+			
+			bestGuessOCR.entrySet()
+						.stream()
+						.map(Tuple::of)
+						.filter(t->t.v().equals("H"))
+						.collect(Collectors.toList())
+						.stream()
+						.forEach(t->{
+							double cutoff=Math.max(ctab.getAverageBondLength()*MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING,averageWidthOCR);
+							
+							Tuple<Shape,String> toConnect=bestGuessOCR.entrySet()
+							            .stream()
+							            .map(Tuple::of)
+							            .filter(t1->t1.k()!=t.k())
+							            .filter(t1->t1.v().equals("N") || t1.v().equals("O") || t1.v().equals("S"))
+							            .filter(t1->GeomUtil.distance(t.k(), t1.k())<cutoff)
+							            .filter(t1->(Math.abs(t1.k().getBounds2D().getMinX()-t.k().getBounds2D().getMinX())< cutoff/3.0))
+							            .filter(t1->(Math.abs(t1.k().getBounds2D().getMaxX()-t.k().getBounds2D().getMaxX())< cutoff/3.0))
+							            .findFirst()
+							            .orElse(null);
+							            ;
+							            
+							 if(toConnect!=null){
+								 Shape nshape=GeomUtil.add(t.k(),toConnect.k());
+								 String nstring=toConnect.v() + t.v();
+								 bestGuessOCR.put(nshape, nstring);
+								 bestGuessOCR.remove(t.k());
+								 bestGuessOCR.remove(toConnect.k());
+							 }
+						});
+			
+			
+			
+			
 
 			ctab.standardCleanEdges();
 
