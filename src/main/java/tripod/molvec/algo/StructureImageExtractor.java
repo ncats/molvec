@@ -117,11 +117,11 @@ public class StructureImageExtractor {
 
 	private final double MAX_BOND_TO_AVG_BOND_RATIO_TO_KEEP = 1.8;
 	private final double MAX_DISTANCE_BEFORE_MERGING_NODES = 4.0;
-	private final double maxRatioForIntersection = 1.2;
-	private final double maxPerLineDistanceRatioForIntersection = 2;
+	private final double maxRatioForIntersection = 1.10;
+	private final double maxPerLineDistanceRatioForIntersection = 1.6;
 	private final double minPerLineDistanceRatioForIntersection = 0.7;
 	private final double OCR_TO_BOND_MAX_DISTANCE=3.0;
-	private final double maxCandidateRatioForIntersection = 1.8;        
+	private final double maxCandidateRatioForIntersection = 1.65;        
 	private final double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN = 1;
 	private final double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL = 0.5;
 	private final double MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS = 6;
@@ -140,7 +140,7 @@ public class StructureImageExtractor {
 
 	//This number is likely one of the most important to adjust.
 	//It may have to have some changes done to the algorithm using it too
-	private final double MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.3165;
+	private final double MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.30;
 
 
 	private final double MIN_LONGEST_WIDTH_RATIO_FOR_OCR_TO_AVERAGE=0.5;
@@ -1983,7 +1983,8 @@ public class StructureImageExtractor {
 
 								Node n= ctab.addNode(curN.suggestedPoint)
 										    .setSymbol(curN.getSymbol())
-										    .setCharge(curN.getCharge());
+										    .setCharge(curN.getCharge())
+										    .setInvented(true);
 								ctab.addEdge(mpnode.getIndex(), n.getIndex(), curN.getOrderToParent());
 								parentNodes.put(curN, n);
 							});
@@ -2093,13 +2094,31 @@ public class StructureImageExtractor {
 			ctab.standardCleanEdges();
 
 
-
-
+			
+//			//Some edges are nonsense part of rings
+//			ctab.getEdges()
+//			.stream()
+//			.filter(e->!e.getRealNode1().isInvented() && !e.getRealNode2().isInvented())
+//			.forEach(e->{
+//
+//				Line2D useLine=GeomUtil.getLinesNotInside(e.getLine(), growLikelyOCR)
+//						.stream()
+//						.map(l->Tuple.of(l, GeomUtil.length(l)).withVComparator())
+//						.max(Comparator.naturalOrder())
+//						.map(t->t.k())
+//						.orElse(null);
+//				if(useLine!=null){
+//					//find the lines that are probably the original source
+//					linesJoined.stream()
+//					           
+//				}
+//			});
 
 
 
 			ctab.getEdges()
 			.forEach(e->{
+				if(e.getRealNode1().isInvented() || e.getRealNode2().isInvented())return;
 				Line2D useLine=GeomUtil.getLinesNotInside(e.getLine(), growLikelyOCR)
 						.stream()
 						.map(l->Tuple.of(l, GeomUtil.length(l)).withVComparator())

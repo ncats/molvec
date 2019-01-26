@@ -5,9 +5,20 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -45,10 +56,26 @@ public class RegressionTest {
 	public static Result testMolecule(File image, File sdf){
 		
 		try{
+			AtomicBoolean lastWasAlias = new AtomicBoolean(false);
 			String rawMol = Files.lines(sdf.toPath())
 					.filter(l->!l.contains("SUP"))
 					.filter(l->!l.contains("SGROUP"))
 					.filter(l->!l.contains("M  S"))
+					.filter(l->{
+						if(lastWasAlias.get()){
+							lastWasAlias.set(false);
+							return false;
+						}
+						return true;
+					})
+					.filter(l->{
+						if(l.startsWith("A")){
+							lastWasAlias.set(true);
+							return false;
+						}
+						lastWasAlias.set(false);
+						return true;
+					})
 					.collect(Collectors.joining("\n"));
 			
 			Chemical c1=ChemicalBuilder.createFromMol(rawMol,Charset.defaultCharset()).build();
@@ -152,6 +179,7 @@ public class RegressionTest {
 	public void test1(){
 		File dir1 = getFile("regressionTest/uspto");
 		
+		
 		Arrays.stream(dir1.listFiles())
 		      .filter(f->f.getName().contains("."))
 		      //.filter(f->f.getName().contains("2008058707_41_chem"))
@@ -162,7 +190,7 @@ public class RegressionTest {
 		      .filter(l->l.size()==2)
 		      
 		      .map(l->{
-		    	  	if(!l.get(1).getName().toLowerCase().endsWith("tif")){
+		    	  	if(!l.get(1).getName().toLowerCase().endsWith("tif") && !l.get(1).getName().toLowerCase().endsWith("png")){
 		    	  		List<File> flist = new ArrayList<File>();
 		    	  		flist.add(l.get(1));
 		    	  		flist.add(l.get(0));
@@ -170,12 +198,13 @@ public class RegressionTest {
 					}
 		    	  	return l;
 		      })
+		      .collect(shuffler(new Random(23346l)))		      
+		      .limit(1000)
 		      .map(fl->Tuple.of(fl,testMolecule(fl.get(1),fl.get(0))))
 		      .peek(t->{
 		    	  System.out.println(t.v());
 		      })
-		      .skip(100)
-		      .limit(100)
+		      
 		      .map(t->t.swap())
 		      .collect(Tuple.toGroupedMap())
 		      .forEach((r,fl)->{
@@ -184,6 +213,47 @@ public class RegressionTest {
 		    	  System.out.println("--------------------------------------");
 		    	  System.out.println(fl.stream().map(f->f.get(1).getAbsolutePath()).collect(Collectors.joining("\n")));
 		      });
+	}
+	
+	public static <T> Collector<T,List<T>,Stream<T>> shuffler(Random r){
+		
+		return new Collector<T,List<T>,Stream<T>>(){
+
+			@Override
+			public BiConsumer<List<T>, T> accumulator() {
+				return (l,t)->{
+					l.add(t);
+				};
+			}
+
+			@Override
+			public Set<java.util.stream.Collector.Characteristics> characteristics() {
+				//java.util.stream.Collector.Characteristics.
+				return new HashSet<java.util.stream.Collector.Characteristics>();
+			}
+
+			@Override
+			public BinaryOperator<List<T>> combiner() {
+				return (l1,l2)->{
+					l1.addAll(l2);
+					return l1;
+				};
+			}
+
+			@Override
+			public Function<List<T>, Stream<T>> finisher() {
+				return (u)->{
+					Collections.shuffle(u,r);
+					return u.stream();
+				};
+			}
+
+			@Override
+			public Supplier<List<T>> supplier() {
+				return ()-> new ArrayList<T>();
+			}
+
+		};
 	}
 	
 	

@@ -269,15 +269,13 @@ class BranchNode{
 			bn.addChild(new BranchNode("O").setOrderToParent(2));
 			bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
 			return bn;
-		}
-		if((       s.equalsIgnoreCase("CN")
+		}else if((       s.equalsIgnoreCase("CN")
 				|| s.equalsIgnoreCase("NC"))){
 				BranchNode bn = new BranchNode("C");
 				bn.addChild(new BranchNode("N").setOrderToParent(3));
 				//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
 				return bn;
-			}
-		if((s.equalsIgnoreCase("SO3")
+		}else if((s.equalsIgnoreCase("SO3")
 				|| s.equalsIgnoreCase("O3S"))){
 				BranchNode bn = new BranchNode("S");
 				bn.addChild(new BranchNode("O").setOrderToParent(2));
@@ -285,24 +283,64 @@ class BranchNode{
 				bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
 				//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
 				return bn;
-			}
-		if((s.equalsIgnoreCase("NO2")
+		}else if((s.equalsIgnoreCase("NO2")
 				|| s.equalsIgnoreCase("O2N"))){
 				BranchNode bn = new BranchNode("N").setCharge(1);
 				bn.addChild(new BranchNode("O").setOrderToParent(2));
 				bn.addChild(new BranchNode("O").setOrderToParent(1).setCharge(-1));
 				//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
 				return bn;
-			}
-		if(s.equals("Me")||s.equals("Mc")||s.equals("MC")){
+		}else if(s.equals("Me")||s.equals("Mc")||s.equals("MC")){
 				BranchNode bn = new BranchNode("C").setShouldCombineLinearly(false);
 				return bn;
-		}
+		}else if(s.equals("Et")){
+			BranchNode bn = new BranchNode("C");
+			bn.addChild(new BranchNode("C"));
+			return bn;
+		}else if(s.equals("t")){
+			BranchNode bn = new BranchNode("I");
+			return bn;
+		}else if(s.equals("NCH3") || s.equals("NcH3")){
+			BranchNode bn = new BranchNode("N");
+			bn.addChild(new BranchNode("C"));
+			return bn;
+		}else if((s.equalsIgnoreCase("SO2")
+				|| s.equalsIgnoreCase("S02"))){
+				BranchNode bn = new BranchNode("S");
+				bn.addChild(new BranchNode("O").setOrderToParent(2));
+				bn.addChild(new BranchNode("O").setOrderToParent(2));
+				//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
+				return bn;
+		}else if(s.equalsIgnoreCase("Ms")){
+				BranchNode bn = new BranchNode("S");
+				bn.addChild(new BranchNode("O").setOrderToParent(2));
+				bn.addChild(new BranchNode("O").setOrderToParent(2));
+				bn.addChild(new BranchNode("C").setOrderToParent(1));
+				//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
+				return bn;
+		}else if(s.equalsIgnoreCase("Boc")){
+			BranchNode bn = new BranchNode("C");
+			bn.addChild(new BranchNode("O").setOrderToParent(2));
+			bn.addChild(new BranchNode("O").setOrderToParent(1)
+										   .addChild(new BranchNode("C")
+												            .addChild(new BranchNode("C"))
+												            .addChild(new BranchNode("C"))
+												            .addChild(new BranchNode("C"))
+												   ));
+			//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
+			return bn;
+	}else if(s.equalsIgnoreCase("N3")){
+		BranchNode bn = new BranchNode("N").setCharge(-1);
+		bn.addChild(new BranchNode("N").setOrderToParent(1).setCharge(1)
+									   .addChild(new BranchNode("N").setOrderToParent(3)));
+		//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
+		return bn;
+}
+		
 		
 		//TODO:
 		
 		// Et
-		// Me
 		// Ph
 		
 		if(accept.contains(s)){

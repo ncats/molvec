@@ -223,7 +223,107 @@ public class MoleculeTest {
 			String form=c.getFormula();
 			assertEquals(cReal.getFormula(),form);
 		} )});
+		list.add(new Object[]{"iodineContainingTest", new TestSpec("moleculeTest/iodineContaining.png", c->{
+			Chemical cReal=ChemicalBuilder.createFromSmiles("Ic1ccccc1C2CCCCC2").build();
+
+			String form=c.getFormula();
+			assertEquals(cReal.getFormula(),form);
+		} )});
+		//closeRings.png
+		list.add(new Object[]{"closeRingsNotJoinedTest", new TestSpec("moleculeTest/closeRings.png", c->{
+			Chemical cReal=ChemicalBuilder.createFromSmiles("O=C(NC(Cc1ccc(OCc2ccccc2)nc1)C(=O)N3CCC(CC3)N4CCCCC4)N5CCC(CC5)N6Cc7ccccc7NC6=O").build();
+
+			String form=c.getFormula();
+			assertEquals(cReal.getFormula(),form);
+		} )});
 		
+		list.add(new Object[]{"problematicIntersectionTest", new TestSpec("moleculeTest/problematicIntersection.png", c->{
+			Chemical cReal=ChemicalBuilder.createFromMol("\n" + 
+					"  CDK     01261912223D\n" + 
+					"\n" + 
+					" 37 40  0  0  0  0  0  0  0  0999 V2000\n" + 
+					"   10.0000 -174.0000    0.0000 Cl  0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  330.0000 -227.0000    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  511.0000 -207.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  451.2500 -238.5805    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  624.5000  -13.0000    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  625.5000  -80.0000    0.0000 S   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  624.5000 -146.0000    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  559.0000  -79.0000    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  330.0000 -120.0000    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  294.4027 -174.0280    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  509.0000 -120.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  393.2947 -206.1649    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  681.0000 -307.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  623.5000 -340.0000    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  393.2500 -139.6275    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  567.0000 -306.7500    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  692.8546  -77.2500    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  190.0000 -230.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  125.0000 -230.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  451.0000 -305.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  725.5818  -21.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  792.0000  -21.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  726.0000 -136.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  792.0000 -136.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  826.0746  -78.1250    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  567.0000 -240.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  509.0000 -339.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  190.0000 -115.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  224.9107 -172.5000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  124.6000 -115.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   91.4322 -171.7500    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  443.0000  -98.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					" 1090.0000 -194.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					" 1026.0000 -194.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  891.0000  -78.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  992.0000 -136.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  926.0000 -136.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					" 34 36  1  0  0  0  0 \n" + 
+					" 36 37  1  0  0  0  0 \n" + 
+					" 13 14  1  0  0  0  0 \n" + 
+					" 30 31  2  0  0  0  0 \n" + 
+					"  9 15  1  0  0  0  0 \n" + 
+					" 17 21  1  0  0  0  0 \n" + 
+					" 17 23  2  0  0  0  0 \n" + 
+					" 10 29  1  0  0  0  0 \n" + 
+					" 24 25  2  0  0  0  0 \n" + 
+					" 28 30  1  0  0  0  0 \n" + 
+					" 22 25  1  0  0  0  0 \n" + 
+					"  1 31  1  0  0  0  0 \n" + 
+					" 28 29  2  0  0  0  0 \n" + 
+					" 33 34  1  0  0  0  0 \n" + 
+					" 35 37  1  0  0  0  0 \n" + 
+					"  3  4  1  0  0  0  0 \n" + 
+					" 25 35  1  0  0  0  0 \n" + 
+					" 12 15  2  0  0  0  0 \n" + 
+					"  3 26  2  0  0  0  0 \n" + 
+					" 14 16  1  0  0  0  0 \n" + 
+					"  5  6  2  0  0  0  0 \n" + 
+					"  2 10  1  0  0  0  0 \n" + 
+					" 18 19  2  0  0  0  0 \n" + 
+					"  6  7  2  0  0  0  0 \n" + 
+					"  4 20  2  0  0  0  0 \n" + 
+					"  6  8  1  0  0  0  0 \n" + 
+					" 15 32  1  0  0  0  0 \n" + 
+					" 16 26  1  0  0  0  0 \n" + 
+					"  9 10  2  0  0  0  0 \n" + 
+					" 18 29  1  0  0  0  0 \n" + 
+					" 16 27  2  0  0  0  0 \n" + 
+					"  4 12  1  0  0  0  0 \n" + 
+					"  6 17  1  0  0  0  0 \n" + 
+					" 20 27  1  0  0  0  0 \n" + 
+					" 11 32  1  0  0  0  0 \n" + 
+					" 21 22  2  0  0  0  0 \n" + 
+					" 19 31  1  0  0  0  0 \n" + 
+					" 23 24  1  0  0  0  0 \n" + 
+					"  2 12  1  0  0  0  0 \n" + 
+					"  8 11  1  0  0  0  0 \n" + 
+					"M  END", Charset.defaultCharset()).build();
+
+			String form=c.getFormula();
+			assertEquals(cReal.getFormula(),form);
+		} )});
 		list.add(new Object[]{"zerosForOxygensAndSmallInnerBondTest", new TestSpec("moleculeTest/withZerosAsOxygens.png", c->{
 			Chemical cReal=ChemicalBuilder.createFromSmiles("CC1C2C=CC1C(C2C(=O)OCC(C)=C)C(=O)OCC(C)=C").build();
 

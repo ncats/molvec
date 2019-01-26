@@ -667,9 +667,10 @@ public class ConnectionTable{
 	}
 	
 	public class Node{
-		Point2D point;
-		String symbol="C";
-		int charge=0;
+		private Point2D point;
+		private String symbol="C";
+		private int charge=0;
+		private boolean invented=false;
 		
 		
 		public List<KEqualityTuple<Node,Edge>> getNeighborNodes(){
@@ -738,6 +739,15 @@ public class ConnectionTable{
 			    .stream()
 			    .filter(e->e.getOtherNode(this) == v)
 			    .findFirst();
+		}
+
+		public Node setInvented(boolean b) {
+			this.invented=true;
+			return this;
+		}
+		
+		public boolean isInvented() {
+			return this.invented;
 		}
 		
 	}
