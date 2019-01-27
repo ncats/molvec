@@ -99,6 +99,18 @@ public class MoleculeTest {
 
 		list.add(new Object[]{"paxilWikiTest", new TestSpec("moleculeTest/paxil.png", c-> assertEquals("C19H20FNO3",c.getFormula()))});
 
+		//phenylShorhand.png
+		list.add(new Object[]{"phenylShorthand", new TestSpec("moleculeTest/phenylShorhand.png", c->{
+			Chemical cReal=ChemicalBuilder.createFromSmiles("CC(C)(C)NS(=O)(=O)C2(Cc1ccccc1)CC2").build();
+			String form=c.getFormula();
+			assertEquals(cReal.getFormula(),form);
+		} )});
+		//cagedStructure.png
+		list.add(new Object[]{"cagedStructure", new TestSpec("moleculeTest/cagedStructure.png", c->{
+			Chemical cReal=ChemicalBuilder.createFromSmiles("CC(=C)C(=O)OC1C2CC3C1OC(=O)C3C2").build();
+			String form=c.getFormula();
+			assertEquals(cReal.getFormula(),form);
+		} )});
 		
 		list.add(new Object[]{"ringSystemWithHInMiddle", new TestSpec("moleculeTest/ringSystemWithHInCenter.png", c->{
 			Chemical cReal=ChemicalBuilder.createFromSmiles("[H][C@@]12CCCC(NC(=O)c3nccc(OC)c3O)[C@]1([H])CC=C(CC\\C=C(/C)C)C2").build();

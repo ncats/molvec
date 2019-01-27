@@ -500,7 +500,12 @@ public class ConnectionTable{
 			    	 if(cosTheta<Math.cos(12.0*Math.PI/180.0)){
 			    		 onlyOne=true;
 			    	 }
-		    		
+			    	 
+			    	 Point2D np=GeomUtil.findCenterOfShape(newLine);
+			    	 Point2D op=GeomUtil.findCenterOfShape(e.getLine());
+			    	 if(np.distance(op)>nl*0.2){
+			    		 onlyOne=true;
+			    	 }
 		    				    		 
 		    	 }
 		    	 

@@ -5,6 +5,7 @@ import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
@@ -42,6 +43,7 @@ class BranchNode{
 	
 	private boolean combineLinearly = false;
 	
+	private Tuple<BranchNode,Integer> ringBond = null; 
 	private BranchNode childForCombine=null;
 	
 	private boolean isCombiner=false;
@@ -53,6 +55,14 @@ class BranchNode{
 	
 	public int getOrderToParent(){
 		return this.orderToParent;
+	}
+	
+	public BranchNode addRing(BranchNode to, int order){
+		this.ringBond=Tuple.of(to,order);
+		return this;
+	}
+	public Optional<Tuple<BranchNode,Integer>> getRingBond(){
+		return Optional.ofNullable(ringBond);
 	}
 	
 	public BranchNode thetaOffset(int o){
@@ -368,6 +378,19 @@ class BranchNode{
 					);
 			
 			bn.setCombiningNode(carbonyl);
+			return bn;
+		}else if(s.equalsIgnoreCase("Ph") || s.equals("Pb") || s.equals("pb")){
+			BranchNode bn = new BranchNode("C").thetaOffset(1);
+			
+			bn.addChild(new BranchNode("C").setOrderToParent(2)
+					    			       .addChild(new BranchNode("C").setOrderToParent(1)
+					    			    		   .addChild(new BranchNode("C").setOrderToParent(2)
+					    			    				   .addChild(new BranchNode("C").setOrderToParent(1).addChild(new BranchNode("C").setOrderToParent(2).addRing(bn, 1)))
+					    			    		   )
+					    			    	)
+					);
+			
+			
 			return bn;
 		}
 		

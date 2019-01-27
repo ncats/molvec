@@ -192,14 +192,23 @@ public class StructureImageExtractor {
 				ch.equals("n")){
 			invScore=invScore*3; // penalize
 		}
-		if(ch.equalsIgnoreCase("X") || ch.equalsIgnoreCase("+") || ch.equals("h")||ch.equalsIgnoreCase("D")){
+		if(ch.equalsIgnoreCase("X") || ch.equalsIgnoreCase("+") || ch.equalsIgnoreCase("D")){
 			invScore=invScore*1.5; // penalize
-		}else if(ch.equalsIgnoreCase("N") 
+		}else if(ch.equals("N") 
 				|| ch.equalsIgnoreCase("C") 
-				|| ch.equalsIgnoreCase("O")
+				|| ch.equalsIgnoreCase("O")				
 				){
 			invScore=invScore*(0.87); // promote
 		}
+		
+		if(ch.equals("H")){
+			invScore=invScore*(0.92); // promote
+		}
+//		
+		if(ch.equals("h")){
+			invScore=invScore*(1.04); // penalize
+		}
+		
 
 		return Tuple.of(tup.k(),Math.max(0,1-invScore));
 
@@ -881,7 +890,13 @@ public class StructureImageExtractor {
 
 			int reps=0;
 			boolean tooLongBond=true;
-
+			
+			double maxRatioInitial=0.5;
+			double maxTotalRatioInitial=1.4;
+			
+			double maxRatio=0.5;
+			double maxTotalRatio=1.4;
+			
 			while(tooLongBond){
 				rescueOCRCandidates.clear();
 				List<Tuple<Line2D,Integer>> linesOrderRestricted =linesOrder.stream()
@@ -1094,11 +1109,7 @@ public class StructureImageExtractor {
 
 				ctabRaw.add(ctab.cloneTab());
 
-				double maxRatioInitial=0.5;
-				double maxTotalRatioInitial=1.4;
 				
-				double maxRatio=0.5;
-				double maxTotalRatio=1.4;
 
 				if(avgDistOCRToLine.isPresent()){
 					double nmaxRatio=(avgDistOCRToLine.getAsDouble())/ctab.getAverageBondLength();
@@ -1212,8 +1223,7 @@ public class StructureImageExtractor {
 
 
 
-
-				//fuzzy adding missing stuff
+				System.out.println("Removed bad edges:" + ctabRaw.size());
 				ctabRaw.add(ctab.cloneTab());
 
 				double avgBondLength=ctab.getAverageBondLength();
@@ -1506,9 +1516,10 @@ public class StructureImageExtractor {
 			});
 
 
+			
+			ctab.mergeNodesExtendingTo(likelyOCR,maxRatio,maxTotalRatio);
 
-			ctab.mergeNodesExtendingTo(likelyOCR,0.5,1.4);
-
+			System.out.println("Extended to OCR:" + ctabRaw.size());
 			ctabRaw.add(ctab.cloneTab());
 
 			double cosThetaOCRShape =Math.cos(MAX_THETA_FOR_OCR_SEPERATION);
@@ -1532,9 +1543,11 @@ public class StructureImageExtractor {
 				Line2D l2 = new Line2D.Double(pts[0],pts[1]);
 				double dist=GeomUtil.length(l2);
 				double cutoff=Math.max(ctab.getAverageBondLength()*MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING,averageWidthOCR);
+				
 				if(dist>cutoff){
 					return false;
 				}
+				System.out.println("Bound:" + v1 + " to " + v2 + "?");
 
 				Point2D cs1=GeomUtil.findCenterOfShape(shapes[0]);
 				Point2D cs2=GeomUtil.findCenterOfShape(shapes[1]);
@@ -1546,7 +1559,7 @@ public class StructureImageExtractor {
 				if(cosTheta>cosThetaOCRShape){
 					return true;
 				}
-				
+				System.out.println("Nope.");
 				return false;
 			});
 
@@ -2063,6 +2076,12 @@ public class StructureImageExtractor {
 								}else if(curN.getWedgeType()==-1){
 									 e.setDashed(true);
 								}
+								
+								curN.getRingBond().ifPresent(t->{
+									Node rn=parentNodes.get(t.k());
+									ctab.addEdge(rn.getIndex(), n.getIndex(), t.v());
+								});
+								
 								parentNodes.put(curN, n);
 							});
 
@@ -2253,6 +2272,42 @@ public class StructureImageExtractor {
 			ctab.standardCleanEdges();
 
 			ctabRaw.add(ctab.cloneTab());
+			
+			List<Node> toRemoveNodesCage = new ArrayList<>();
+			
+			ctab.getNodes()
+		    .stream()
+		    .filter(n->n.getEdgeCount()==2)
+		    .filter(n->n.getSymbol().equals("C"))
+		    .filter(n->n.getEdges().stream().filter(e->e.getOrder()==1).count()==2)
+		    .forEach(n->{
+		    	List<Tuple<Node,Node>> tn=GeomUtil.eachCombination(n.getNeighborNodes())
+		    	        .filter(t->{
+		    	        	Node n1=t.k().k();
+		    	        	Node n2=t.v().k();
+		    	        	
+		    	        	Line2D l = new Line2D.Double(n1.getPoint(), n2.getPoint());
+		    	        	Point2D pp=GeomUtil.projectPointOntoLine(l, n.getPoint());
+		    	        	if(pp.distance(n.getPoint())<ctab.getAverageBondLength()*0.01){
+		    	        		return true;
+		    	        	}
+		    	        	return false;
+		    	        })
+		    	        .map(t->Tuple.of(t.k().k(),t.v().k()))
+		    	        .collect(Collectors.toList());
+		    	if(tn.size()==1){
+		    		toRemoveNodesCage.add(n);
+		    		ctab.addEdge(tn.get(0).k().getIndex(), tn.get(0).v().getIndex(), 1);
+		    	}
+		    	//System.out.println("Cage like:" + tn.size());
+		    	        
+		    });
+			ctabRaw.add(ctab.cloneTab());
+			toRemoveNodesCage.forEach(n->{
+				ctab.removeNodeAndEdges(n);	
+			});
+			ctab.standardCleanEdges();
+			
 
 			ctab.getEdges()
 			.forEach(e->{
@@ -2338,6 +2393,12 @@ public class StructureImageExtractor {
 			//ctab=ctabRaw;
 
 		}
+		
+		
+	
+		
+		 
+		
 		ctab.simpleClean();
 		//Make aromatic bonds
 		circles.stream()
