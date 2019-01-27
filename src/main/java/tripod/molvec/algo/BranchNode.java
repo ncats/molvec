@@ -255,9 +255,12 @@ class BranchNode{
 	
 	private void forEachBranchNode(BiConsumer<BranchNode,BranchNode> cons, BranchNode parent){
 		cons.accept(parent, this);
-		for(BranchNode child:this.getChildren()){
+		this.getChildren()
+		.stream()
+		.collect(Collectors.toList())
+		.forEach(child->{
 			child.forEachBranchNode(cons,this);
-		}
+		});
 	}
 	
 	public void forEachBranchNode(BiConsumer<BranchNode,BranchNode> parentAndChild){
@@ -501,6 +504,19 @@ class BranchNode{
 		
 		return null;		
 	}
+	
+	public BranchNode removeHydrogens(){
+		BranchNode _this=this;
+		this.forEachBranchNode((p,c)->{
+			if(p!=null){
+				if(c.getSymbol().equals("H")){
+					p.children.remove(c);
+				}
+			}
+		});
+		
+		return this;
+	}
 	public BranchNode setWedgeToParent(int i) {
 		this.wedgeToParent=i;
 		return this;
@@ -509,13 +525,26 @@ class BranchNode{
 		return this.wedgeToParent;
 	}
 
-	public static BranchNode interpretOCRStringAsAtom(String s){
+	private static BranchNode interpretOCRStringAsAtom(String s){
 		try{
 			return interpretOCRStringAsAtom(s,false);
 		}catch(Exception e){
 			return null;
 		}
 	}
+	
+	public static BranchNode interpretOCRStringAsAtom2(String s){
+		try{
+			BranchNode bn= interpretOCRStringAsAtom(s);
+			if(bn!=null)bn.removeHydrogens();
+			return bn;
+		}catch(Exception e){
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
+	
 
 	public boolean isTerminal() {
 		return isTerminal;

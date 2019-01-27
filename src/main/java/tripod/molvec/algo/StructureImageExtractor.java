@@ -1140,6 +1140,24 @@ public class StructureImageExtractor {
 			    });
 
 				ctabRaw.add(ctab.cloneTab());
+				
+				
+				ctab.getEdges()
+			    .stream()
+			    .filter(e->e.getOrder()==1)
+			    .collect(Collectors.toList())
+			    .forEach(e->{
+			    	Line2D ll=GeomUtil.getLinesNotInside(e.getLine(),likelyOCR).stream()
+			    						.map(l1->Tuple.of(l1,GeomUtil.length(l1)).withVComparator())
+			    						.max(Comparator.naturalOrder())
+			    						.map(t->t.k())
+			    						.orElse(null);
+			    	if(ll==null)return;
+			    	double totLen=GeomUtil.getLinesNotInside(ll,growLines).stream().mapToDouble(l->GeomUtil.length(l)).sum();
+			    	if(totLen>GeomUtil.length(ll)*0.9){
+			    		ctab.removeEdge(e);
+			    	}
+			    });
 
 
 				ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE);
@@ -1488,7 +1506,7 @@ public class StructureImageExtractor {
 								if(potential.get(0).v().doubleValue()>OCRcutoffCosineRescue){
 
 									String st=potential.get(0).k().toString();
-									if(BranchNode.interpretOCRStringAsAtom(st)!=null){
+									if(BranchNode.interpretOCRStringAsAtom2(st)!=null){
 										toAddAllOCR.add(s);	
 										gotCache.put(s,potential);
 									}
@@ -1707,7 +1725,7 @@ public class StructureImageExtractor {
 			List<Shape> ocrMeaningful=bestGuessOCR.keySet()
 					.stream()
 					//.peek(t->System.out.println(bestGuessOCR.get(t)))
-					.filter(s->BranchNode.interpretOCRStringAsAtom(bestGuessOCR.get(s))!=null)
+					.filter(s->BranchNode.interpretOCRStringAsAtom2(bestGuessOCR.get(s))!=null)
 					.collect(Collectors.toList());
 
 			
@@ -1727,7 +1745,7 @@ public class StructureImageExtractor {
 			.forEach(shapeString->{
 				Shape s= shapeString.k();
 				String sym = shapeString.v();
-				BranchNode actual = BranchNode.interpretOCRStringAsAtom(sym);
+				BranchNode actual = BranchNode.interpretOCRStringAsAtom2(sym);
 				Point2D centert = GeomUtil.findCenterOfShape(s);
 
 				if(actual!=null && actual.isRealNode()){
@@ -2063,7 +2081,7 @@ public class StructureImageExtractor {
 			for(Shape s: bestGuessOCR.keySet()){
 				String sym=bestGuessOCR.get(s);
 				
-				BranchNode actual=BranchNode.interpretOCRStringAsAtom(sym);
+				BranchNode actual=BranchNode.interpretOCRStringAsAtom2(sym);
 				if(actual!=null && actual.isRealNode()){
 					appliedOCR.add(s);
 					
