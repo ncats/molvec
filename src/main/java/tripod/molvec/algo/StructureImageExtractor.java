@@ -842,6 +842,15 @@ public class StructureImageExtractor {
 					.mapToDouble(t->t.v())
 					.sorted()
 					.toArray();
+			
+			List<Shape> extendableOCR = likelyOCR.stream()
+					                             .map(s->Tuple.of(s,ocrAttmept.get(s)))
+					                             .filter(t->t.v()!=null)
+					                             .filter(t->t.v().size()>0)
+					                             .map(Tuple.vmap(l->l.get(0).k().toString()))
+					                             .filter(t->!t.v().equals("H"))
+					                             .map(t->t.k())
+					                             .collect(Collectors.toList());
 
 			OptionalDouble avgDistOCRToLine = Optional.of(0)
 					.filter(d->lDistOCRToLine.length>0)
@@ -906,7 +915,7 @@ public class StructureImageExtractor {
 						})
 						.collect(Collectors.toList());
 
-				ctab = GeomUtil.getConnectionTable(linesOrderRestricted, likelyOCR, 
+				ctab = GeomUtil.getConnectionTable(linesOrderRestricted, extendableOCR, 
 						maxRatioForIntersection, 
 						maxCandidateRatioForIntersection,
 						maxPerLineDistanceRatioForIntersection,
@@ -1547,7 +1556,6 @@ public class StructureImageExtractor {
 				if(dist>cutoff){
 					return false;
 				}
-				System.out.println("Bound:" + v1 + " to " + v2 + "?");
 
 				Point2D cs1=GeomUtil.findCenterOfShape(shapes[0]);
 				Point2D cs2=GeomUtil.findCenterOfShape(shapes[1]);
@@ -1559,7 +1567,6 @@ public class StructureImageExtractor {
 				if(cosTheta>cosThetaOCRShape){
 					return true;
 				}
-				System.out.println("Nope.");
 				return false;
 			});
 
@@ -1736,6 +1743,16 @@ public class StructureImageExtractor {
 							if(GeomUtil.findClosestShapeTo(ocrMeaningful, n.getPoint()).k() !=s){
 								return false;
 							}
+						}
+						if(!s.contains(n.getPoint()) && actual.isTerminal() && n.getEdgeCount()>1){
+							
+							long cc=n.getNeighborNodes()
+							 .stream()
+							 .map(t->t.k())
+							 .filter(nn->GeomUtil.distanceTo(s, nn.getPoint())<2)
+							 .count();
+							
+							if(cc==0)return false;
 						}
 						if(alreadyFixedNodes.contains(n))return false;
 						if(n.getEdgeCount()==0)return false;

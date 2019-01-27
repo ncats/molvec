@@ -40,6 +40,8 @@ class BranchNode{
 	//1 is wedge, -1 is dash
 	private int wedgeToParent=0;
 	
+	private boolean isTerminal =false;
+	
 	
 	private boolean combineLinearly = false;
 	
@@ -304,8 +306,11 @@ class BranchNode{
 			bn.addChild(new BranchNode("O").setOrderToParent(1).setCharge(-1));
 			//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
 			return bn;
+		}else if(s.equalsIgnoreCase("CH3")){
+			BranchNode bn = new BranchNode("C").setShouldCombineLinearly(false).setTerminal(true);
+			return bn;
 		}else if(s.equals("Me")||s.equals("Mc")||s.equals("MC")){
-			BranchNode bn = new BranchNode("C").setShouldCombineLinearly(false);
+			BranchNode bn = new BranchNode("C").setShouldCombineLinearly(false).setTerminal(true);
 			return bn;
 		}else if(s.equals("Et")){
 			BranchNode bn = new BranchNode("C");
@@ -323,7 +328,9 @@ class BranchNode{
 			bn.addChild(new BranchNode("C"));
 			return bn;
 		}else if((s.equalsIgnoreCase("SO2")
-				|| s.equalsIgnoreCase("S02"))){
+				|| s.equalsIgnoreCase("S02")
+				|| s.equalsIgnoreCase("O2S")
+				|| s.equalsIgnoreCase("02S"))){
 			BranchNode bn = new BranchNode("S");
 			bn.addChild(new BranchNode("O").setOrderToParent(2));
 			bn.addChild(new BranchNode("O").setOrderToParent(2));
@@ -364,6 +371,8 @@ class BranchNode{
 			BranchNode bn = new BranchNode("C");
 			bn.addChild(new BranchNode("O").setOrderToParent(2));
 			return bn;
+		}else if(s.equalsIgnoreCase("OH")){
+			return new BranchNode("O").setTerminal(true);
 		}else if(s.equalsIgnoreCase("CH2O")){
 			BranchNode bn = new BranchNode("C");
 			bn.addChild(new BranchNode("O").setOrderToParent(1));
@@ -401,7 +410,11 @@ class BranchNode{
 		// Ph
 		
 		if(accept.contains(s)){
-			return new BranchNode(s);
+			BranchNode bn=new BranchNode(s);
+			if(s.equals("F") || s.equals("Br") || s.equals("Cl")){
+				bn=bn.setTerminal(true);
+			}
+			return bn;
 		}else if(accept.contains(s.toUpperCase())){
 			return new BranchNode(s.toUpperCase());
 		}
@@ -483,6 +496,14 @@ class BranchNode{
 		}catch(Exception e){
 			return null;
 		}
+	}
+
+	public boolean isTerminal() {
+		return isTerminal;
+	}
+	public BranchNode setTerminal(boolean t){
+		this.isTerminal=t;
+		return this;
 	}
 	
 }

@@ -112,6 +112,13 @@ public class MoleculeTest {
 			assertEquals(cReal.getFormula(),form);
 		} )});
 		
+		//terminalGroupCloseToOtherNode.png
+		list.add(new Object[]{"terminalGroupCoseToOtherNode", new TestSpec("moleculeTest/terminalGroupCloseToOtherNode.png", c->{
+			Chemical cReal=ChemicalBuilder.createFromSmiles("COc1ccc(Sc2ccccc2C(C)C)cc1").build();
+			String form=c.getFormula();
+			assertEquals(cReal.getFormula(),form);
+		} )});
+		
 		list.add(new Object[]{"ringSystemWithHInMiddle", new TestSpec("moleculeTest/ringSystemWithHInCenter.png", c->{
 			Chemical cReal=ChemicalBuilder.createFromSmiles("[H][C@@]12CCCC(NC(=O)c3nccc(OC)c3O)[C@]1([H])CC=C(CC\\C=C(/C)C)C2").build();
 
