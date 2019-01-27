@@ -131,8 +131,8 @@ public class ConnectionTable{
 				      .collect(Collectors.joining("\n"));
 				//System.out.println(nmol);
 				return ChemicalBuilder.createFromMol(nmol, Charset.defaultCharset()).build();
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
+			} catch (Exception e1) {
+
 				e1.printStackTrace();
 			}
 		}

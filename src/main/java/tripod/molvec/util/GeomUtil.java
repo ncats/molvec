@@ -955,6 +955,25 @@ public class GeomUtil {
     	      .orElse(null);
     }
     
+    public static Shape growLine(Line2D l, double width){
+    	double[] v= normalize(asVector(l));
+    	double wc=width/2;
+    	Point2D p1 = l.getP1();
+    	Point2D p2 = l.getP2();
+    	
+    	Point2D p11 = new Point2D.Double(p1.getX()-v[1]*wc,p1.getY()+v[0]*wc);
+    	Point2D p12 = new Point2D.Double(p1.getX()+v[1]*wc,p1.getY()-v[0]*wc);
+    	Point2D p21 = new Point2D.Double(p2.getX()-v[1]*wc,p2.getY()+v[0]*wc);
+    	Point2D p22 = new Point2D.Double(p2.getX()+v[1]*wc,p2.getY()-v[0]*wc);
+    	
+    	return convexHull2(p11,p12,p21,p22);
+    }
+    
+    public static double[] normalize(double[] v){
+    	double lr=1/l2Norm(v);
+    	return new double[]{v[0]*lr,v[1]*lr};
+    }
+    
     public static Point2D closestPointOnLine(Line2D l, Point2D p){
     	Point2D pp=GeomUtil.projectPointOntoLine(l,p);
     	double len = GeomUtil.length(l);

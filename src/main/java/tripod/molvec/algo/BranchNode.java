@@ -401,6 +401,25 @@ class BranchNode{
 			
 			
 			return bn;
+		}else if(s.equalsIgnoreCase("PMBN")){
+			BranchNode bno = new BranchNode("N").thetaOffset(1);
+			BranchNode ml = new BranchNode("C");
+			bno.addChild(ml);
+			
+			BranchNode bn = new BranchNode("C").thetaOffset(1);
+			
+			bn.addChild(new BranchNode("C").setOrderToParent(2)
+					    			       .addChild(new BranchNode("C").setOrderToParent(1)
+					    			    		   .addChild(new BranchNode("C").setOrderToParent(2)
+					    			    				   .addChild(new BranchNode("C").setOrderToParent(1).addChild(new BranchNode("C").setOrderToParent(2).addRing(bn, 1)))
+					    			    				   .addChild(new BranchNode("O").addChild(new BranchNode("C")))
+					    			    		   )
+					    			    	)
+					);
+			ml.addChild(bn);
+			
+			
+			return bno;
 		}
 		
 		

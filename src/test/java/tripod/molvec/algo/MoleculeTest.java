@@ -111,7 +111,12 @@ public class MoleculeTest {
 			String form=c.getFormula();
 			assertEquals(cReal.getFormula(),form);
 		} )});
-		
+		//PMBNShorthand.png
+		list.add(new Object[]{"PMBNShorthand", new TestSpec("moleculeTest/PMBNShorthand.png", c->{
+			Chemical cReal=ChemicalBuilder.createFromSmiles("[H][C@]1(CSC(=O)N1Cc2ccc(OC)cc2)[C@]3(C[C@@H](C[C@@H](CC)O3)OC(=O)c4ccccc4)OC").build();
+			String form=c.getFormula();
+			assertEquals(cReal.getFormula(),form);
+		} )});
 		//terminalGroupCloseToOtherNode.png
 		list.add(new Object[]{"terminalGroupCoseToOtherNode", new TestSpec("moleculeTest/terminalGroupCloseToOtherNode.png", c->{
 			Chemical cReal=ChemicalBuilder.createFromSmiles("COc1ccc(Sc2ccccc2C(C)C)cc1").build();

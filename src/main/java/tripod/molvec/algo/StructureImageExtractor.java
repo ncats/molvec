@@ -476,11 +476,16 @@ public class StructureImageExtractor {
 				if(bounds2d.getWidth() >  bounds2d.getHeight()){
 					double sarea=GeomUtil.area(s);
 					double bbarea=GeomUtil.area(bounds2d);
+					
+					double ratio=0.5;
+					
+					if(bounds2d.getWidth()>2.3*bounds2d.getHeight())ratio=0.6;
+					
 					if(sarea/bbarea > 0.8 && bounds2d.getHeight()>4){
 						List<Tuple<Shape,List<Tuple<Character,Number>>>> splitMatches = new ArrayList<>();
 						
-						Shape box1= new Rectangle2D.Double(bounds2d.getMinX(), bounds2d.getMinY(), bounds2d.getWidth()/2, bounds2d.getHeight());
-						Shape box2= new Rectangle2D.Double(bounds2d.getMinX() + bounds2d.getWidth()/2, bounds2d.getMinY(), bounds2d.getWidth()/2, bounds2d.getHeight());
+						Shape box1= new Rectangle2D.Double(bounds2d.getMinX(), bounds2d.getMinY(), bounds2d.getWidth()*ratio, bounds2d.getHeight());
+						Shape box2= new Rectangle2D.Double(bounds2d.getMinX() + bounds2d.getWidth()*ratio, bounds2d.getMinY(), bounds2d.getWidth()*(1-ratio), bounds2d.getHeight());
 						
 						Shape cropShape1=GeomUtil.getIntersectionShape(box1, s).get();
 						Shape cropShape2=GeomUtil.getIntersectionShape(box2, s).get();
@@ -863,6 +868,9 @@ public class StructureImageExtractor {
 			linesJoined=Stream.concat(bigLines.stream(),
 					smallLines.stream())
 					.collect(Collectors.toList());
+			
+			
+			
 			shapeTypes=new HashMap<>();
 
 
@@ -889,6 +897,12 @@ public class StructureImageExtractor {
 
 			linesOrder=GeomUtil.reduceMultiBonds(preprocess, MAX_ANGLE_FOR_PARALLEL, largestBond/3, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS, MIN_BIGGER_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS,MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC);
 
+			
+			List<Shape> growLines = linesOrder.stream()
+											  .map(t->t.k())
+											  .map(l->GeomUtil.growLine(l, 5))
+											  .collect(Collectors.toList());
+			
 
 			List<Shape> rescueOCRCandidates = new ArrayList<>();
 
@@ -1104,11 +1118,26 @@ public class StructureImageExtractor {
 
 
 				ctabRaw.add(ctab.cloneTab());
+				
+				List<Edge> splitEdges = new ArrayList<Edge>();
 
 				ctab.createNodesOnIntersectingLines(2, elist->{
+					splitEdges.addAll(elist);
 					return true;
 				});
 
+				ctab.getEdges()
+			    .stream()
+			    //.filter(e->e.getOrder()==1)
+			    .filter(e->splitEdges.contains(e))
+			    .collect(Collectors.toList())
+			    .forEach(e->{
+			    	Line2D ll=e.getLine();
+			    	double totLen=GeomUtil.getLinesNotInside(ll,growLines).stream().mapToDouble(l->GeomUtil.length(l)).sum();
+			    	if(totLen>GeomUtil.length(ll)*0.8){
+			    		ctab.removeEdge(e);
+			    	}
+			    });
 
 				ctabRaw.add(ctab.cloneTab());
 
@@ -1230,9 +1259,11 @@ public class StructureImageExtractor {
 				toRemove.forEach(n->ctab.removeNodeAndEdges(n));
 				//ctab.removeOrphanNodes();
 
+			
 
 
-				System.out.println("Removed bad edges:" + ctabRaw.size());
+
+//				System.out.println("Removed bad edges:" + ctabRaw.size());
 				ctabRaw.add(ctab.cloneTab());
 
 				double avgBondLength=ctab.getAverageBondLength();
@@ -1275,7 +1306,6 @@ public class StructureImageExtractor {
 				ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE);
 				ctab.standardCleanEdges();
 			}
-
 
 
 
@@ -1528,7 +1558,7 @@ public class StructureImageExtractor {
 			
 			ctab.mergeNodesExtendingTo(likelyOCR,maxRatio,maxTotalRatio);
 
-			System.out.println("Extended to OCR:" + ctabRaw.size());
+//			System.out.println("Extended to OCR:" + ctabRaw.size());
 			ctabRaw.add(ctab.cloneTab());
 
 			double cosThetaOCRShape =Math.cos(MAX_THETA_FOR_OCR_SEPERATION);
@@ -1670,6 +1700,8 @@ public class StructureImageExtractor {
 			
 
 			ctab.standardCleanEdges();
+			
+			
 
 
 			List<Shape> ocrMeaningful=bestGuessOCR.keySet()
@@ -2297,6 +2329,7 @@ public class StructureImageExtractor {
 		    .filter(n->n.getEdgeCount()==2)
 		    .filter(n->n.getSymbol().equals("C"))
 		    .filter(n->n.getEdges().stream().filter(e->e.getOrder()==1).count()==2)
+		    .filter(n->Optional.ofNullable(GeomUtil.findClosestShapeTo(likelyOCR, n.getPoint())).map(t->t.v()).orElse(100.0)>2)
 		    .forEach(n->{
 		    	List<Tuple<Node,Node>> tn=GeomUtil.eachCombination(n.getNeighborNodes())
 		    	        .filter(t->{
