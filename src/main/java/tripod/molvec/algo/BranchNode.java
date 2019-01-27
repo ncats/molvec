@@ -36,6 +36,10 @@ class BranchNode{
 	int orderToParent=1;
 	private int thetaOffset=0;
 	
+	//1 is wedge, -1 is dash
+	private int wedgeToParent=0;
+	
+	
 	private boolean combineLinearly = false;
 	
 	private BranchNode childForCombine=null;
@@ -250,20 +254,20 @@ class BranchNode{
 
 	private static BranchNode interpretOCRStringAsAtom(String s, boolean tokenOnly){
 		if((  s.equalsIgnoreCase("CO2H")
-			|| s.equalsIgnoreCase("CO2")
-			|| s.equalsIgnoreCase("COOH")
-			|| s.equalsIgnoreCase("HOOC")
-			|| s.equalsIgnoreCase("HO2C")
-			|| s.equalsIgnoreCase("OOC")
-			|| s.equalsIgnoreCase("COO")
-			
-			|| s.equalsIgnoreCase("C02H")
-			|| s.equalsIgnoreCase("C02")
-			|| s.equalsIgnoreCase("C00H")
-			|| s.equalsIgnoreCase("H00C")
-			|| s.equalsIgnoreCase("H02C")
-			|| s.equalsIgnoreCase("O00")
-			|| s.equalsIgnoreCase("C00")
+				|| s.equalsIgnoreCase("CO2")
+				|| s.equalsIgnoreCase("COOH")
+				|| s.equalsIgnoreCase("HOOC")
+				|| s.equalsIgnoreCase("HO2C")
+				|| s.equalsIgnoreCase("OOC")
+				|| s.equalsIgnoreCase("COO")
+
+				|| s.equalsIgnoreCase("C02H")
+				|| s.equalsIgnoreCase("C02")
+				|| s.equalsIgnoreCase("C00H")
+				|| s.equalsIgnoreCase("H00C")
+				|| s.equalsIgnoreCase("H02C")
+				|| s.equalsIgnoreCase("O00")
+				|| s.equalsIgnoreCase("C00")
 				)){
 			BranchNode bn = new BranchNode("C");
 			bn.addChild(new BranchNode("O").setOrderToParent(2));
@@ -271,31 +275,35 @@ class BranchNode{
 			return bn;
 		}else if((       s.equalsIgnoreCase("CN")
 				|| s.equalsIgnoreCase("NC"))){
-				BranchNode bn = new BranchNode("C");
-				bn.addChild(new BranchNode("N").setOrderToParent(3));
-				//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
-				return bn;
+			BranchNode bn = new BranchNode("C");
+			bn.addChild(new BranchNode("N").setOrderToParent(3));
+			//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
+			return bn;
 		}else if((s.equalsIgnoreCase("SO3")
 				|| s.equalsIgnoreCase("O3S"))){
-				BranchNode bn = new BranchNode("S");
-				bn.addChild(new BranchNode("O").setOrderToParent(2));
-				bn.addChild(new BranchNode("O").setOrderToParent(2));
-				bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
-				//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
-				return bn;
+			BranchNode bn = new BranchNode("S");
+			bn.addChild(new BranchNode("O").setOrderToParent(2));
+			bn.addChild(new BranchNode("O").setOrderToParent(2));
+			bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
+			//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
+			return bn;
 		}else if((s.equalsIgnoreCase("NO2")
 				|| s.equalsIgnoreCase("O2N"))){
-				BranchNode bn = new BranchNode("N").setCharge(1);
-				bn.addChild(new BranchNode("O").setOrderToParent(2));
-				bn.addChild(new BranchNode("O").setOrderToParent(1).setCharge(-1));
-				//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
-				return bn;
+			BranchNode bn = new BranchNode("N").setCharge(1);
+			bn.addChild(new BranchNode("O").setOrderToParent(2));
+			bn.addChild(new BranchNode("O").setOrderToParent(1).setCharge(-1));
+			//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
+			return bn;
 		}else if(s.equals("Me")||s.equals("Mc")||s.equals("MC")){
-				BranchNode bn = new BranchNode("C").setShouldCombineLinearly(false);
-				return bn;
+			BranchNode bn = new BranchNode("C").setShouldCombineLinearly(false);
+			return bn;
 		}else if(s.equals("Et")){
 			BranchNode bn = new BranchNode("C");
 			bn.addChild(new BranchNode("C"));
+			return bn;
+		}else if(s.equals("Pr")){
+			BranchNode bn = new BranchNode("C");
+			bn.addChild(new BranchNode("C").addChild(new BranchNode("C")));
 			return bn;
 		}else if(s.equals("t")){
 			BranchNode bn = new BranchNode("I");
@@ -306,36 +314,62 @@ class BranchNode{
 			return bn;
 		}else if((s.equalsIgnoreCase("SO2")
 				|| s.equalsIgnoreCase("S02"))){
-				BranchNode bn = new BranchNode("S");
-				bn.addChild(new BranchNode("O").setOrderToParent(2));
-				bn.addChild(new BranchNode("O").setOrderToParent(2));
-				//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
-				return bn;
+			BranchNode bn = new BranchNode("S");
+			bn.addChild(new BranchNode("O").setOrderToParent(2));
+			bn.addChild(new BranchNode("O").setOrderToParent(2));
+			//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
+			return bn;
 		}else if(s.equalsIgnoreCase("Ms")){
-				BranchNode bn = new BranchNode("S");
-				bn.addChild(new BranchNode("O").setOrderToParent(2));
-				bn.addChild(new BranchNode("O").setOrderToParent(2));
-				bn.addChild(new BranchNode("C").setOrderToParent(1));
-				//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
-				return bn;
+			BranchNode bn = new BranchNode("S");
+			bn.addChild(new BranchNode("O").setOrderToParent(2));
+			bn.addChild(new BranchNode("O").setOrderToParent(2));
+			bn.addChild(new BranchNode("C").setOrderToParent(1));
+			//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
+			return bn;
 		}else if(s.equalsIgnoreCase("Boc")){
 			BranchNode bn = new BranchNode("C");
 			bn.addChild(new BranchNode("O").setOrderToParent(2));
 			bn.addChild(new BranchNode("O").setOrderToParent(1)
-										   .addChild(new BranchNode("C")
-												            .addChild(new BranchNode("C"))
-												            .addChild(new BranchNode("C"))
-												            .addChild(new BranchNode("C"))
-												   ));
+					.addChild(new BranchNode("C")
+							.addChild(new BranchNode("C"))
+							.addChild(new BranchNode("C"))
+							.addChild(new BranchNode("C"))
+							));
 			//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
 			return bn;
-	}else if(s.equalsIgnoreCase("N3")){
-		BranchNode bn = new BranchNode("N").setCharge(-1);
-		bn.addChild(new BranchNode("N").setOrderToParent(1).setCharge(1)
-									   .addChild(new BranchNode("N").setOrderToParent(3)));
-		//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
-		return bn;
-}
+		}else if(s.equalsIgnoreCase("Boc2N")){
+			BranchNode b1=interpretOCRStringAsAtom("Boc");
+			BranchNode b2=interpretOCRStringAsAtom("Boc");
+			BranchNode bn = new BranchNode("N");
+			bn.addChild(b1);
+			bn.addChild(b2);
+			return bn;
+		}else if(s.equalsIgnoreCase("N3")){
+			BranchNode bn = new BranchNode("N").setCharge(-1);
+			bn.addChild(new BranchNode("N").setOrderToParent(1).setCharge(1)
+					.addChild(new BranchNode("N").setOrderToParent(3)));
+			//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
+			return bn;
+		}else if(s.equalsIgnoreCase("CO")){
+			BranchNode bn = new BranchNode("C");
+			bn.addChild(new BranchNode("O").setOrderToParent(2));
+			return bn;
+		}else if(s.equalsIgnoreCase("CH2O")){
+			BranchNode bn = new BranchNode("C");
+			bn.addChild(new BranchNode("O").setOrderToParent(1));
+			return bn;
+		}else if(s.equalsIgnoreCase("Cys")){
+			BranchNode bn = new BranchNode("N");
+			BranchNode carbonyl=new BranchNode("C").addChild(new BranchNode("O").setOrderToParent(2));
+			bn.addChild(new BranchNode("C").setOrderToParent(1)
+										   .flagForCombining()
+					                       .addChild(new BranchNode("C").thetaOffset(1).setWedgeToParent(1).addChild(new BranchNode("S")))
+					                       .addChild(carbonyl)
+					);
+			
+			bn.setCombiningNode(carbonyl);
+			return bn;
+		}
 		
 		
 		//TODO:
@@ -348,11 +382,13 @@ class BranchNode{
 		}else if(accept.contains(s.toUpperCase())){
 			return new BranchNode(s.toUpperCase());
 		}
-		if(s.contains("Ct") ||s.contains("Ct")){
+		if(s.contains("Ct")){
 			return interpretOCRStringAsAtom(s.replaceAll("C[tT]", "Cl"),tokenOnly);
 		}
+		if(s.contains("Ht")){
+			return interpretOCRStringAsAtom(s.replace("Ht", "H1"),tokenOnly);
+		}
 		if(s.contains("H")){
-			
 			return interpretOCRStringAsAtom(s.replaceAll("H[1-9][0-9]*", "").replace("H", ""),tokenOnly);
 		}
 		if(s.contains("I")){
@@ -410,6 +446,14 @@ class BranchNode{
 		
 		return null;		
 	}
+	public BranchNode setWedgeToParent(int i) {
+		this.wedgeToParent=i;
+		return this;
+	}
+	public int getWedgeType(){
+		return this.wedgeToParent;
+	}
+
 	public static BranchNode interpretOCRStringAsAtom(String s){
 		try{
 			return interpretOCRStringAsAtom(s,false);

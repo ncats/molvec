@@ -198,8 +198,8 @@ public class RegressionTest {
 					}
 		    	  	return l;
 		      })
-		      .collect(shuffler(new Random(23346l)))		      
-		      .limit(1000)
+//		      .collect(shuffler(new Random(23346l)))		      
+//		      .limit(1000)
 		      .map(fl->Tuple.of(fl,testMolecule(fl.get(1),fl.get(0))))
 		      .peek(t->{
 		    	  System.out.println(t.v());

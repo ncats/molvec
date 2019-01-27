@@ -355,10 +355,10 @@ public class ConnectionTable{
 		return this;
 	}
 	
-	public ConnectionTable addEdge(int n1, int n2, int o){
+	public Edge addEdge(int n1, int n2, int o){
 		this.edges.add(new Edge(n1,n2,o));
 		resetCaches();
-		return this;
+		return this.edges.get(this.edges.size()-1);
 	}
 	
 	public List<Node> getNodesInsideShape(Shape s, double tol){
@@ -396,7 +396,7 @@ public class ConnectionTable{
 		List<Integer> toMerge = new ArrayList<Integer>();
 		for(int i=nodes.size()-1;i>=0;i--){
 			Point2D pn = nodes.get(i).point;
-			if(GeomUtil.distanceTo(s,pn)<tol){
+			if(GeomUtil.distanceTo(s,pn)<=tol){
 				toMerge.add(i);
 			}
 		}

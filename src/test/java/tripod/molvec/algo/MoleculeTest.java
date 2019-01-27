@@ -93,12 +93,20 @@ public class MoleculeTest {
 			//String form=c.getFormula();
 			assertEquals("XUKUURHRXDUEBC-KAYWLYCHSA-N",key);
 		})});
-
+//ringSystemWithHInCenter.png
 		list.add(new Object[]{"gleevecWikiTest", new TestSpec("moleculeTest/gleevec.png", c-> assertEquals("C29H31N7O",c.getFormula()))});
 		list.add(new Object[]{"tylenolWikiTest", new TestSpec("moleculeTest/tylenol.png", c-> assertEquals("C8H9NO2",c.getFormula()))});
 
 		list.add(new Object[]{"paxilWikiTest", new TestSpec("moleculeTest/paxil.png", c-> assertEquals("C19H20FNO3",c.getFormula()))});
 
+		
+		list.add(new Object[]{"ringSystemWithHInMiddle", new TestSpec("moleculeTest/ringSystemWithHInCenter.png", c->{
+			Chemical cReal=ChemicalBuilder.createFromSmiles("[H][C@@]12CCCC(NC(=O)c3nccc(OC)c3O)[C@]1([H])CC=C(CC\\C=C(/C)C)C2").build();
+
+			String form=c.getFormula();
+			assertEquals(cReal.getFormula(),form);
+		} )});
+		
 		list.add(new Object[]{"complexStructure1Test", new TestSpec("moleculeTest/complex.png", c->{
 			Chemical cReal=ChemicalBuilder.createFromSmiles("[H][C@@]12CN(C[C@]1([H])[C@H]2NCc3ccc4cc(F)ccc4n3)c5ncc(cn5)C(=O)NO").build();
 

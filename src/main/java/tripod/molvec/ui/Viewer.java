@@ -550,7 +550,8 @@ public class Viewer extends JPanel
     	g2.setPaint(makeColorAlpha(Color.ORANGE,.5f));
     	for (Shape a : polygons) {
             if(ocrAttmept.containsKey(a)){
-    		if(ocrAttmept.get(a).get(0).v().doubleValue()>ocrCutoff){
+            	
+    		if(ocrAttmept.get(a).stream().findFirst().map(t->t.v().doubleValue()).orElse(0.0)>ocrCutoff){
                     g2.fill(a);
     		}
             }
