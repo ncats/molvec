@@ -1,6 +1,7 @@
 package tripod.molvec.algo;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -136,7 +137,6 @@ public class RegressionTest {
 					Chemical clargestR=ChemicalBuilder.createFromSmiles(largestR).build();
 					Chemical clargestF=ChemicalBuilder.createFromSmiles(largestF).build();
 					if(clargestR.getFormula().equals(clargestF.getFormula())){
-						System.out.println("LARGEST MATCHED!");
 						return Result.LARGEST_FRAGMENT_CORRECT;
 					}
 					String fragwHReal =clargestR.getFormula().replaceAll("H[0-9]*", "");
@@ -179,6 +179,12 @@ public class RegressionTest {
 	public void test1(){
 		File dir1 = getFile("regressionTest/uspto");
 		
+		try {
+			ChemicalBuilder cb = ChemicalBuilder.createFromSmiles("CCCC");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		Arrays.stream(dir1.listFiles())
 		      .filter(f->f.getName().contains("."))
@@ -198,16 +204,20 @@ public class RegressionTest {
 					}
 		    	  	return l;
 		      })
-//		      .collect(shuffler(new Random(377486l)))		      
-//		      .limit(250)
+//		      .collect(shuffler(new Random(317996l)))		      
+//		      .limit(100)
+		      .parallel()
 		      .map(fl->Tuple.of(fl,testMolecule(fl.get(1),fl.get(0))))
-		      .peek(t->{
-		    	  System.out.println(t.v());
-		      })
-		      
 		      .map(t->t.swap())
+		      .peek(t->System.out.println(t.k()))
+		      
 		      .collect(Tuple.toGroupedMap())
-		      .forEach((r,fl)->{
+		      .entrySet()
+		      .stream()
+		      .map(Tuple::of)
+		      .forEach(t->{
+		    	  Result r=t.k();
+		    	  List<List<File>> fl = t.v();
 		    	  System.out.println("======================================");
 		    	  System.out.println(r.toString() + "\t" + fl.size());
 		    	  System.out.println("--------------------------------------");

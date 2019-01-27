@@ -111,9 +111,88 @@ public class MoleculeTest {
 			String form=c.getFormula();
 			assertEquals(cReal.getFormula(),form);
 		} )});
+		//symbolsNMeVeryCloseTogether.png
+		list.add(new Object[]{"NMeVeryCloseTogether", new TestSpec("moleculeTest/symbolsNMeVeryCloseTogether.png", c->{
+			Chemical cReal=ChemicalBuilder.createFromMol("\n" + 
+					"  MJ150420                      \n" + 
+					"\n" + 
+					" 27 29  0  0  0  0  0  0  0  0999 V2000\n" + 
+					"   -3.2678   -2.9322    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -5.0658    0.7611    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.6792   -0.8219    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.8048    3.3439    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.5191    2.9497    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.7082   -1.6403    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -4.3546   -2.1461    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -4.0519   -2.9029    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.9566    0.4875    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.2521    0.8484    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.9758    2.0962    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.2505    1.6847    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -4.4045    0.4367    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -4.4232   -0.3992    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -4.5231   -3.6559    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.0195   -2.1211    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.6760    3.3412    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -4.4045    2.9322    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.5222    2.1087    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.9680   -0.3858    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.6760    0.8457    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -5.1282    1.6844    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.9696    2.9322    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -4.4045    2.1087    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.9758   -1.2352    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.2459    3.3439    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.7054   -3.5358    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  1 27  1  0  0  0  0\n" + 
+					"  9 10  1  1  0  0  0\n" + 
+					" 11 12  2  0  0  0  0\n" + 
+					" 13 14  1  0  0  0  0\n" + 
+					" 17 18  2  0  0  0  0\n" + 
+					"  2 22  1  0  0  0  0\n" + 
+					"  9 20  1  0  0  0  0\n" + 
+					"  3 14  1  0  0  0  0\n" + 
+					" 13 21  1  0  0  0  0\n" + 
+					" 17 23  1  0  0  0  0\n" + 
+					" 22 24  1  0  0  0  0\n" + 
+					"  1 16  1  0  0  0  0\n" + 
+					"  9 21  1  0  0  0  0\n" + 
+					" 10 12  1  0  0  0  0\n" + 
+					"  1  8  1  0  0  0  0\n" + 
+					"  4  5  1  0  0  0  0\n" + 
+					"  3  6  1  0  0  0  0\n" + 
+					"  8 15  2  0  0  0  0\n" + 
+					" 12 19  1  0  0  0  0\n" + 
+					"  6  7  1  0  0  0  0\n" + 
+					"  7  8  1  0  0  0  0\n" + 
+					"  3 20  1  0  0  0  0\n" + 
+					"  6 16  2  0  0  0  0\n" + 
+					"  3 25  1  1  0  0  0\n" + 
+					"  5 26  1  0  0  0  0\n" + 
+					" 13  2  1  6  0  0  0\n" + 
+					" 18 24  1  0  0  0  0\n" + 
+					" 23 26  1  0  0  0  0\n" + 
+					"  5 19  2  0  0  0  0\n" + 
+					"M  END\n" + 
+					"",Charset.defaultCharset()).build();
+			
+			Chemical c1=c.connectedComponentsAsStream()
+					.map(ct->Tuple.of(ct,ct.getAtomCount()).withVComparator())
+					.max(Comparator.naturalOrder())
+					.map(t->t.k())
+					.orElse(c);
+			String form=c1.getFormula();
+			assertEquals(cReal.getFormula(),form);
+		} )});
 		//PMBNShorthand.png
 		list.add(new Object[]{"PMBNShorthand", new TestSpec("moleculeTest/PMBNShorthand.png", c->{
 			Chemical cReal=ChemicalBuilder.createFromSmiles("[H][C@]1(CSC(=O)N1Cc2ccc(OC)cc2)[C@]3(C[C@@H](C[C@@H](CC)O3)OC(=O)c4ccccc4)OC").build();
+			String form=c.getFormula();
+			assertEquals(cReal.getFormula(),form);
+		} )});
+		//
+		list.add(new Object[]{"dashedMethylWithNoLabel", new TestSpec("moleculeTest/dashedMethylNoLabel.png", c->{
+			Chemical cReal=ChemicalBuilder.createFromSmiles("COc1ccc(cc1N2CCCC2)C(=O)N[C@@H](C)C(=O)N(Cc3cccs3)Cc4ccccc4").build();
 			String form=c.getFormula();
 			assertEquals(cReal.getFormula(),form);
 		} )});

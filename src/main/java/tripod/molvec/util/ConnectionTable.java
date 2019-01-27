@@ -9,11 +9,9 @@ import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
-import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,8 +19,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalDouble;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -41,7 +39,6 @@ import tripod.molvec.Bitmap;
 import tripod.molvec.CachedSupplier;
 import tripod.molvec.algo.Tuple;
 import tripod.molvec.algo.Tuple.KEqualityTuple;
-import tripod.molvec.util.ConnectionTable.Node;
 
 public class ConnectionTable{
 	private List<Node> nodes = new ArrayList<Node>();
@@ -82,7 +79,9 @@ public class ConnectionTable{
 		}
 		cb.aromatize(true);
 		
-		List<Tuple<String,String>> changeBonds = new ArrayList<>();
+		//List<Tuple<String,String>> changeBonds = new ArrayList<>();
+		
+		List<Tuple<Bond,Tuple<String,String>>> addedAromaticBonds = new ArrayList<>();
 		
 		for(Edge e : edges){
 			if(e.getOrder()==1){
@@ -98,7 +97,7 @@ public class ConnectionTable{
 				cb.addBond(atoms[e.n1],atoms[e.n2],BondType.DOUBLE);
 			}else if(e.getOrder()==3){
 				cb.addBond(atoms[e.n1],atoms[e.n2],BondType.TRIPLE);				
-			}else if(e.getOrder()==4){
+			}else if(e.getOrder()==0xDE10CA1){
 				//doesn't work for some reason, so fix in the molfile and reload
 				int n1=e.n1+1;
 				int n2=e.n2+1;
@@ -107,22 +106,77 @@ public class ConnectionTable{
 				s1=s1.substring(s1.length()-3);
 				s2=s2.substring(s2.length()-3);
 				
-				changeBonds.add(Tuple.of(s1 + s2 + "  1", s1 + s2 + "  4"));
+				
+				Tuple<String,String> trans=Tuple.of(s1 + s2 + "  1", s1 + s2 + "  4");
 				
 				
-				cb.addBond(atoms[e.n1],atoms[e.n2],BondType.AROMATIC);
 				
+				Bond b=cb.addBond(atoms[e.n1],atoms[e.n2],BondType.AROMATIC);
+				
+				addedAromaticBonds.add(Tuple.of(b,trans));
+			}else{
+				//fall back to single
+				cb.addBond(atoms[e.n1],atoms[e.n2],BondType.SINGLE);
 				
 			}
 		}
 		
+		
 		Chemical tc=cb.build();
-		if(!changeBonds.isEmpty()){
+		if(!addedAromaticBonds.isEmpty()){
 			try {
+				List<Bond> keepBond= GeomUtil.groupThings(addedAromaticBonds, t->{
+					Bond b1=t.k().k();
+					Bond b2=t.v().k();
+					Atom a1i=b1.getAtom1();
+					Atom a2i=b1.getAtom2();
+					Atom b1i=b2.getAtom1();
+					Atom b2i=b2.getAtom2();
+					if(a1i==b1i||a1i==b2i||a2i==b1i||a2i==b2i){
+						return true;
+					}
+					return false;
+				})
+				.stream()
+				.filter(bl->bl.size()>4)
+				.map(bl->{
+					Map<Atom,AtomicInteger> acounts=new HashMap<>();
+					
+					bl.stream().forEach(bt->{
+						acounts.computeIfAbsent(bt.k().getAtom1(), (k)->new AtomicInteger(0)).incrementAndGet();
+						acounts.computeIfAbsent(bt.k().getAtom2(), (k)->new AtomicInteger(0)).incrementAndGet();
+					});
+					
+					for(int i=bl.size()-1;i>=0;i--){
+						Bond b=bl.get(i).k();
+						Atom ai1=b.getAtom1();
+						Atom ai2=b.getAtom2();
+						if(acounts.getOrDefault(ai1, new AtomicInteger(0)).get()<2 || acounts.getOrDefault(ai2, new AtomicInteger(0)).get()<2){
+							//not really a ring
+							bl.remove(i);
+							acounts.getOrDefault(ai1, new AtomicInteger(0)).decrementAndGet();
+							acounts.getOrDefault(ai2, new AtomicInteger(0)).decrementAndGet();
+							i=bl.size();
+						}
+					}
+					
+					return bl;
+				})
+				.peek(bl->System.out.println("Found bonds:" + bl.size()))
+				.flatMap(bl->bl.stream())
+				.map(t->t.k())
+				.collect(Collectors.toList());
+				
+				List<Tuple<String,String>> realTransForm = addedAromaticBonds.stream()
+																			 .filter(t->keepBond.contains(t.k()))
+																			 .map(t->t.v())
+																			 .collect(Collectors.toList());
+				
+				
 				
 				String nmol=Arrays.stream(tc.toMol().split("\n"))
 				      .map(l->{
-				    	  return changeBonds.stream()
+				    	  return realTransForm.stream()
 				    	  			 .filter(lc->l.startsWith(lc.k()))
 				    	  			 .findFirst()
 				    	  			 .map(t->l.replace(t.k(), t.v()))

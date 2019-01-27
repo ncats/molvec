@@ -326,7 +326,7 @@ class BranchNode{
 		}else if(s.equals("t")){
 			BranchNode bn = new BranchNode("I");
 			return bn;
-		}else if(s.equals("NCH3") || s.equals("NcH3")){
+		}else if(s.equals("NCH3") || s.equals("NcH3") || s.equals("NHcH3") || s.equals("NHCH3")){
 			BranchNode bn = new BranchNode("N");
 			bn.addChild(new BranchNode("C"));
 			return bn;
@@ -380,6 +380,51 @@ class BranchNode{
 			BranchNode bn = new BranchNode("C");
 			bn.addChild(new BranchNode("O").setOrderToParent(1));
 			return bn;
+		}else if(s.equalsIgnoreCase("Ac")){
+			BranchNode bn = new BranchNode("C").setOrderToParent(1)
+										   .addChild(new BranchNode("C").setOrderToParent(1))
+					                       .addChild(new BranchNode("O").setOrderToParent(2));
+			
+			return bn;
+		}else if(s.equalsIgnoreCase("AcO")){
+			BranchNode bn = new BranchNode("O");
+			BranchNode ac=interpretOCRStringAsAtom("Ac");
+			bn.addChild(ac);
+
+			return bn;
+		}else if(s.equalsIgnoreCase("EtO2C")){
+			
+			BranchNode co2=interpretOCRStringAsAtom("CO2");
+			BranchNode et=interpretOCRStringAsAtom("Et");
+			
+			co2.addChild(et);
+			return co2;
+		}else if(s.equalsIgnoreCase("BnO") || s.equalsIgnoreCase("Bt1O")){
+			
+			BranchNode carb=interpretOCRStringAsAtom("C");
+			BranchNode ben=interpretOCRStringAsAtom("Ph");
+			
+			
+			carb.addChild(ben);
+			return carb;
+		}else if(s.equals("t-Bu") || s.equals("tBu") || s.equals("t-Bo") || s.equals("tBo")){
+			BranchNode bn = new BranchNode("C");
+			bn.addChild(new BranchNode("C"));
+			bn.addChild(new BranchNode("C"));
+			bn.addChild(new BranchNode("C"));
+			return bn;
+		}else if(s.equals("n-Bu") || s.equals("nBu") || s.equals("n-Bo") || s.equals("nBo")){
+			return interpretOCRStringAsAtom("C4H9");
+		}else if(s.equalsIgnoreCase("CO2Cys") || s.equalsIgnoreCase("CO2Cy8")){
+			
+			BranchNode co2=interpretOCRStringAsAtom("CO2");
+			BranchNode cys=interpretOCRStringAsAtom("Cys");
+			
+			BranchNode combine=cys.getNodeForLinearCombine();
+			
+			co2.addChild(cys);
+			co2.setCombiningNode(combine);
+			return co2;
 		}else if(s.equalsIgnoreCase("Cys")){
 			BranchNode bn = new BranchNode("N");
 			BranchNode carbonyl=new BranchNode("C").addChild(new BranchNode("O").setOrderToParent(2));
@@ -451,6 +496,10 @@ class BranchNode{
 		}
 		if(s.contains("I")){
 			return interpretOCRStringAsAtom(s.replace("I", "l"),tokenOnly);
+		}
+
+		if(s.contains("t1")){
+			return interpretOCRStringAsAtom(s.replace("t1", "n"),tokenOnly);
 		}
 		if(s.contains("1")){
 			return interpretOCRStringAsAtom(s.replace("1", "l"),tokenOnly);
