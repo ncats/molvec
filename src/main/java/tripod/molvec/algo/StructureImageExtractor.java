@@ -88,7 +88,7 @@ public class StructureImageExtractor {
 	private List<Line2D> lines;
 	private List<Line2D> linesJoined;
 	private List<Tuple<Line2D,Integer>> linesOrder;    
-	private Map<Shape,List<Tuple<Character,Number>>> ocrAttmept = new ConcurrentHashMap<>();
+	private Map<Shape,List<Tuple<Character,Number>>> ocrAttempt = new ConcurrentHashMap<>();
 	private Map<Shape,String> bestGuessOCR = new HashMap<>();
 	private Map<Shape,ShapeInfo> shapeTypes = new HashMap<>();
 
@@ -146,7 +146,7 @@ public class StructureImageExtractor {
 
 	private final double MIN_LONGEST_WIDTH_RATIO_FOR_OCR_TO_AVERAGE=0.5;
 	private final double MIN_AREA_RATIO_FOR_OCR_TO_AVERAGE=0.6;
-	private final double MAX_AREA_RATIO_FOR_OCR_TO_AVERAGE=2.0;
+	private final double MAX_AREA_RATIO_FOR_OCR_TO_AVERAGE=2.5;
 	private final double MIN_AREA_RATIO_FOR_HULL_TO_BBOX_OCR=0.5;
 
 
@@ -616,7 +616,7 @@ public class StructureImageExtractor {
 				}
 				
 				//This is the least justified tweak, just a strange thing about N+ that I've noticed
-			}else if(asciiCache['M']==1 && asciiCache['P']==1 && asciiCache['m']==1){
+			}else if(asciiCache['M']==1 && asciiCache['m']==1 && (asciiCache['P']==1 || (asciiCache['K']==1 && asciiCache['-']==1))){
 
 				boolean goodEnough=potential.stream().filter(t->t.v().doubleValue()>0.4).findAny().isPresent();
 				boolean badEnough=potential.stream().filter(t->t.v().doubleValue()>0.3).findAny().isPresent();
@@ -689,7 +689,7 @@ public class StructureImageExtractor {
 
 
 		ctabRaw.clear();
-		ocrAttmept.clear();
+		ocrAttempt.clear();
 
 		SCOCR[] socr=new SCOCR[]{OCR_DEFAULT.orElse(OCR_BACKUP, OCRcutoffCosine)};
 
@@ -723,7 +723,7 @@ public class StructureImageExtractor {
 		List<Shape> initialDebug = Collections.synchronizedList(new ArrayList<>());
 
 		processOCR(socr[0],polygons,bitmap,thin,(s,potential)->{
-			ocrAttmept.put(s, potential);
+			ocrAttempt.put(s, potential);
 			initialDebug.add(s);
 			
 			if(potential.stream().filter(e->e.v().doubleValue()>OCRcutoffCosine).findAny().isPresent()){
@@ -767,6 +767,9 @@ public class StructureImageExtractor {
 		int repeats=0;
 		List<Shape> realRescueOCRCandidates = new ArrayList<>();
 		
+		double[] averageHeightOCRFinal = new double[]{0};
+		double[] averageWidthOCRFinal = new double[]{0};
+		
 		while(foundNewOCR.get() && repeats<maxFullRepeats){
 			repeats++;
 			foundNewOCR.set(false);
@@ -796,7 +799,8 @@ public class StructureImageExtractor {
 					.filter(Objects::nonNull) //sometimes get NPEs here not sure why or how
 					.average()
 					.orElse(0);
-			
+			averageHeightOCRFinal[0] = averageHeightOCR;
+			averageWidthOCRFinal[0] = averageWidthOCR;
 
 
 			likelyOCRAll.retainAll(likelyOCRAll.stream()
@@ -890,7 +894,7 @@ public class StructureImageExtractor {
 					.toArray();
 			
 			List<Shape> extendableOCR = likelyOCR.stream()
-					                             .map(s->Tuple.of(s,ocrAttmept.get(s)))
+					                             .map(s->Tuple.of(s,ocrAttempt.get(s)))
 					                             .filter(t->t.v()!=null)
 					                             .filter(t->t.v().size()>0)
 					                             .map(Tuple.vmap(l->l.get(0).k().toString()))
@@ -1549,6 +1553,10 @@ public class StructureImageExtractor {
 
 						nmap=bitmap.crop(nshape);
 						nthinmap=thin.crop(nshape);
+						
+						if(GeomUtil.area(nshape)<averageAreaOCR*MIN_AREA_RATIO_FOR_OCR_TO_AVERAGE){
+							return;
+						}
 
 						if(nmap!=null && nthinmap!=null){
 							processOCRShape(socr[0],nshape,bitmap,thin,(s,potential)->{
@@ -1602,7 +1610,7 @@ public class StructureImageExtractor {
 						});
 					}
 				}
-				ocrAttmept.put(nshape, matches);
+				ocrAttempt.put(nshape, matches);
 				
 				//polygons.add(nshape);
 				if (matches.get(0).v().doubleValue() > OCRcutoffCosineRescue) {
@@ -1632,14 +1640,14 @@ public class StructureImageExtractor {
 			double cosThetaOCRShape =Math.cos(MAX_THETA_FOR_OCR_SEPERATION);
 			
 		
-
+			double wid=averageWidthOCR;
 
 			List<List<Shape>> ocrGroupList=GeomUtil.groupShapesIfClosestPointsMatchCriteria(likelyOCRAll, t->{
 				Point2D[] pts=t.v();
 				Shape[] shapes =t.k();
 
-				List<Tuple<Character, Number>> attempt0 = ocrAttmept.get(shapes[0]);
-				List<Tuple<Character, Number>> attempt1 = ocrAttmept.get(shapes[1]);
+				List<Tuple<Character, Number>> attempt0 = ocrAttempt.get(shapes[0]);
+				List<Tuple<Character, Number>> attempt1 = ocrAttempt.get(shapes[1]);
 				String v1= (attempt0 ==null || attempt0.isEmpty())? "" : attempt0.get(0).k().toString();
 				String v2= (attempt1 ==null || attempt1.isEmpty())? "" : attempt1.get(0).k().toString();
 				if(v1.equals("\\") || v1.equals("/") || 
@@ -1651,7 +1659,7 @@ public class StructureImageExtractor {
 
 				Line2D l2 = new Line2D.Double(pts[0],pts[1]);
 				double dist=GeomUtil.length(l2);
-				double cutoff=Math.max(ctab.getAverageBondLength()*MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING,averageWidthOCR);
+				double cutoff=Math.max(ctab.getAverageBondLength()*MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING,wid);
 				
 				if(dist>cutoff){
 					return false;
@@ -1697,7 +1705,7 @@ public class StructureImageExtractor {
 				Shape making=null;
 
 				for(Shape s: sorted){
-					List<Tuple<Character, Number>> list = ocrAttmept.get(s);
+					List<Tuple<Character, Number>> list = ocrAttempt.get(s);
 					String v= (list ==null || list.isEmpty())? "":list.get(0).k().toString();
 					
 					if(s.getBounds2D().getHeight()<averageHeightOCR*0.8){
@@ -2457,6 +2465,8 @@ public class StructureImageExtractor {
 			        .map(t->t.k())
 			        .collect(Collectors.toList());
 			
+			List<Shape> dashShapes = new ArrayList<Shape>();
+			
 			GeomUtil.groupThings(maybeDash, t->{
 				Shape s1=t.k();
 				Shape s2=t.v();
@@ -2476,8 +2486,8 @@ public class StructureImageExtractor {
 					double dist=pts[0].distance(pts[1]);
 					if(dist < ctab.getAverageBondLength()*1.3 && dist>ctab.getAverageBondLength()*0.6){
 						//Looks very promising
-						System.out.println("Found a posible dash:" + sl.size());
-						//polygons.add(bshape);
+						System.out.println("Found a possible dash:" + sl.size());
+						dashShapes.add(bshape);
 						List<Node> forN1=ctab.getNodes()
 						    .stream()
 						    .filter(n->n.getPoint().distance(pts[0])< ctab.getAverageBondLength()*0.3)
@@ -2529,24 +2539,43 @@ public class StructureImageExtractor {
 						.map(t->t.k())
 						.orElse(null);
 				if(useLine!=null){
-
-					int mult=1;
-					if(e.getPoint1().distance(useLine.getP1())< e.getPoint2().distance(useLine.getP1())){
-						mult=-1;
-					}
-					double wl=mult*bitmap.getWedgeLikeScore(useLine);
-					double cutoff=WEDGE_LIKE_PEARSON_SCORE_CUTOFF;
-					if(e.getRealNode1().getEdges().stream().filter(ed->ed.getOrder()>1).findAny().isPresent()){
-						cutoff=WEDGE_LIKE_PEARSON_SCORE_CUTOFF_DOUBLE;
-					}
-					if(e.getRealNode2().getEdges().stream().filter(ed->ed.getOrder()>1).findAny().isPresent()){
-						cutoff=WEDGE_LIKE_PEARSON_SCORE_CUTOFF_DOUBLE;
-					}
-					if(wl>cutoff){
-						e.setWedge(true);	
-						e.switchNodes();
-					}else if(wl<-cutoff){
-						e.setWedge(true);
+					
+					Point2D c=GeomUtil.findCenterOfShape(useLine);
+					
+					boolean isDash=dashShapes.stream()
+							  .filter(d->d.contains(c))
+							  .findFirst()
+							  .isPresent();
+					
+					if(isDash){
+						e.setDashed(true);
+						if(e.getOrder()!=1){
+							if(e.getRealNode1().getSymbol().equals("C") && e.getRealNode2().getSymbol().equals("C")){
+									//do nothing
+							}else{
+								e.setOrder(1);
+							}							
+						}
+					}else{
+	
+						int mult=1;
+						if(e.getPoint1().distance(useLine.getP1())< e.getPoint2().distance(useLine.getP1())){
+							mult=-1;
+						}
+						double wl=mult*bitmap.getWedgeLikeScore(useLine);
+						double cutoff=WEDGE_LIKE_PEARSON_SCORE_CUTOFF;
+						if(e.getRealNode1().getEdges().stream().filter(ed->ed.getOrder()>1).findAny().isPresent()){
+							cutoff=WEDGE_LIKE_PEARSON_SCORE_CUTOFF_DOUBLE;
+						}
+						if(e.getRealNode2().getEdges().stream().filter(ed->ed.getOrder()>1).findAny().isPresent()){
+							cutoff=WEDGE_LIKE_PEARSON_SCORE_CUTOFF_DOUBLE;
+						}
+						if(wl>cutoff){
+							e.setWedge(true);	
+							e.switchNodes();
+						}else if(wl<-cutoff){
+							e.setWedge(true);
+						}
 					}
 				}
 			});
@@ -2612,8 +2641,22 @@ public class StructureImageExtractor {
 		
 		rescueOCRShapes=realRescueOCRCandidates;
 	
-		//charge bad nitrogens
+		//fix bad Sulfurs
+		ctab.getNodes().stream()
+	    .filter(n->n.getSymbol().equals("S"))
+	    .filter(n->n.getValanceTotal()==7)
+	    .forEach(n->{
+	    		n.getNeighborNodes().stream()
+	    						    .filter(t->t.v().getOrder()==2)
+	    		                    .filter(nn->nn.k().getSymbol().equals("N"))
+	    		                    .findFirst()
+	    		                    .ifPresent(nn->{
+	    		                    	nn.v().setOrder(1);
+	    		                    });
+	    });
 		
+		
+		//charge bad nitrogens		
 		ctab.getNodes().stream()
 		    .filter(n->n.getSymbol().equals("N"))
 		    .filter(n->n.getCharge()==0)
@@ -2621,8 +2664,135 @@ public class StructureImageExtractor {
 		    		int so=n.getEdges().stream().mapToInt(e->e.getOrder()).sum();
 		    		if(so>3){
 		    			n.setCharge(so-3);
+		    			
+		    			n.getNeighborNodes().stream()
+		    								.filter(t->t.v().getOrder()==1)
+		    								.map(t->t.k())
+		    								.filter(nn->nn.getSymbol().equals("O"))
+		    								.filter(nn->nn.getCharge()==0)
+		    								.filter(nn->nn.getEdgeCount()==1)
+		    								.findFirst()
+		    								.ifPresent(nn->{
+		    									nn.setCharge(-1);
+		    								});
+		    			
 		    		}
 		    });
+		
+		ctab.getNodes().stream()
+	    .filter(n->n.getSymbol().equals("S"))
+	    .filter(n->n.getCharge()==0)
+	    .forEach(n->{
+	    		int so=n.getEdges().stream().mapToInt(e->e.getOrder()).sum();
+	    		if(so==3){
+	    			
+	    			
+	    			
+	    			//n.setCharge(1);
+	    			
+	    			n.getNeighborNodes().stream()
+	    								.map(t->t.k())
+	    								.filter(nn->nn.getSymbol().equals("O"))
+	    								.filter(nn->nn.getCharge()==0)
+	    								.filter(nn->nn.getEdgeCount()==1)
+	    								.findFirst()
+	    								.ifPresent(nn->{
+	    									nn.setCharge(-1);
+	    									n.setCharge(1);
+	    								});
+	    			
+	    		}
+	    });
+		
+		List<Shape> mightBeNegative=polygons.stream()
+										    .filter(s->s.getBounds2D().getHeight()<ctab.getAverageBondLength()/10)
+										    .filter(s->s.getBounds2D().getWidth()>1)
+										    .filter(s->!likelyOCRAll.contains(s) || Optional.ofNullable(ocrAttempt.get(s)).map(l->l.get(0)).filter(t->t.k().toString().equals("-")).isPresent())
+										    .collect(Collectors.toList());
+		
+		if(!mightBeNegative.isEmpty()){
+			ctab.getNodes().stream()
+		    .filter(n->n.getSymbol().equals("O"))
+		    .filter(n->n.getCharge()==0)
+		    .filter(n->n.getEdgeCount()==1)
+		    .filter(n->!n.isInvented())
+		    .forEach(n->{
+		    		int so=n.getEdges().stream().mapToInt(e->e.getOrder()).sum();
+		    		if(so==1){
+			    		Point2D p=n.getPoint();
+			    		Shape neg=mightBeNegative.stream().filter(s->GeomUtil.distanceTo(s, p)<ctab.getAverageBondLength()/2).findAny().orElse(null);
+			    		
+			    		if(neg!=null){
+			    			
+			    			boolean inLine=n.getEdges().stream()
+							    			.map(e->e.getLine())
+							    			.map(l->GeomUtil.growLine(l, averageWidthOCRFinal[0]))
+							    			.filter(s->GeomUtil.contains(s, neg))
+							    			.findAny()
+							    			.isPresent();
+			    			if(!inLine){
+			    				n.setCharge(-1);
+			    			}
+			    		}
+		    		}
+		    });
+			
+			ctab.getNodes().stream()
+		    .filter(n->n.getSymbol().equals("N"))
+		    .filter(n->n.getCharge()==0)
+		    .filter(n->!n.isInvented())
+		    .forEach(n->{
+		    		int so=n.getEdges().stream().mapToInt(e->e.getOrder()).sum();
+		    		if(so==2){
+			    		Point2D p=n.getPoint();
+			    		Shape neg=mightBeNegative.stream().filter(s->GeomUtil.distanceTo(s, p)<ctab.getAverageBondLength()/2).findAny().orElse(null);
+			    		
+			    		if(neg!=null){
+			    			
+			    			boolean inLine=n.getEdges().stream()
+							    			.map(e->e.getLine())
+							    			.map(l->GeomUtil.growLine(l, averageWidthOCRFinal[0]))
+							    			.filter(s->GeomUtil.contains(s, neg))
+							    			.findAny()
+							    			.isPresent();
+			    			if(!inLine){
+			    				n.setCharge(-1);
+			    			}
+			    		}
+		    		}
+		    });
+			
+			int sc=ctab.getSumCharge();
+			
+			if(sc>0){
+				ctab.getNodes().stream()
+			    .filter(n->n.getSymbol().equals("C"))
+			    .filter(n->n.getCharge()==0)
+			    .filter(n->n.getEdgeCount()==2)
+			    .filter(n->!n.isInvented())
+			    .filter(n->!n.getEdges().stream().filter(e->e.getDashed()).findAny().isPresent())
+			    .forEach(n->{
+			    		int so=n.getEdges().stream().mapToInt(e->e.getOrder()).sum();
+			    		if(so==2){
+				    		Point2D p=n.getPoint();
+				    		Shape neg=mightBeNegative.stream().filter(s->GeomUtil.distanceTo(s, p)<ctab.getAverageBondLength()/2).findAny().orElse(null);
+				    		
+				    		if(neg!=null){
+				    			
+				    			boolean inLine=n.getEdges().stream()
+								    			.map(e->e.getLine())
+								    			.map(l->GeomUtil.growLine(l, averageWidthOCRFinal[0]))
+								    			.filter(s->GeomUtil.contains(s, neg))
+								    			.findAny()
+								    			.isPresent();
+				    			if(!inLine){
+				    				n.setCharge(-1);
+				    			}
+				    		}
+			    		}
+			    });
+			}
+		}
 		 
 		
 		ctab.simpleClean();
@@ -2673,7 +2843,7 @@ public class StructureImageExtractor {
 	}
 
 	public Map<Shape, List<Tuple<Character, Number>>> getOcrAttmept() {
-		return ocrAttmept;
+		return ocrAttempt;
 	}
 
 	public ConnectionTable getCtab() {

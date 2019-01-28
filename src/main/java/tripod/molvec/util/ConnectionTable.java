@@ -974,6 +974,10 @@ public class ConnectionTable{
 		public boolean isInvented() {
 			return this.invented;
 		}
+
+		public int getValanceTotal() {
+			return getEdges().stream().mapToInt(e->e.getOrder()).sum();
+		}
 		
 	}
 	public class Edge{
@@ -1399,6 +1403,10 @@ public class ConnectionTable{
 		          .filter(e->GeomUtil.findCenterOfShape(e.getLine()).distance(c)<d)
 		          .collect(Collectors.toList());
 		
+	}
+
+	public int getSumCharge() {
+		return this.nodes.stream().mapToInt(n->n.getCharge()).sum();
 	}
 
 	

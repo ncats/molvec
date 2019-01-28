@@ -483,6 +483,14 @@ class BranchNode{
 			return interpretOCRStringAsAtom("NHEt");
 		}else if(s.equalsIgnoreCase("OHC")){
 			return interpretOCRStringAsAtom("COH");
+		}else if(s.matches("II*O")){ // usually from dash bonds
+			return interpretOCRStringAsAtom("O");
+		}else if(s.matches("N[lI][lI]*")){ // usually from dash bonds
+			return interpretOCRStringAsAtom("N");
+		}else if(s.equalsIgnoreCase("S+")){
+			BranchNode bn = new BranchNode("S");
+			bn.setCharge(1);
+			return bn;
 		}
 		
 		

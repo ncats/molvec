@@ -174,7 +174,7 @@ public class RegressionTest {
 	}
 	
 	
-	@Ignore
+	//@Ignore
 	@Test
 	public void test1(){
 		File dir1 = getFile("regressionTest/uspto");
@@ -204,9 +204,9 @@ public class RegressionTest {
 					}
 		    	  	return l;
 		      })
-//		      .collect(shuffler(new Random(11111114l)))		      
+		      .collect(shuffler(new Random(11111116l)))		      
 //		      .limit(100)
-		      .parallel()
+//		      .parallel()
 		      .map(fl->Tuple.of(fl,testMolecule(fl.get(1),fl.get(0))))
 		      .map(t->t.swap())
 		      .peek(t->System.out.println(t.k()))
