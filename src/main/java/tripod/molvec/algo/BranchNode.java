@@ -399,13 +399,22 @@ class BranchNode{
 			
 			co2.addChild(et);
 			return co2;
-		}else if(s.equalsIgnoreCase("BnO") || s.equalsIgnoreCase("Bt1O")){
+		}else if(s.equalsIgnoreCase("Bn") || s.equalsIgnoreCase("Bt1")){
 			
 			BranchNode carb=interpretOCRStringAsAtom("C");
 			BranchNode ben=interpretOCRStringAsAtom("Ph");
 			
 			
 			carb.addChild(ben);
+			return carb;
+		}else if(s.equalsIgnoreCase("CBZ") || s.equalsIgnoreCase("C6Z")){
+			System.out.println("Found cbz");
+			BranchNode carb=interpretOCRStringAsAtom("C").addChild(new BranchNode("O").setOrderToParent(2));
+			BranchNode ox=new BranchNode("O").setOrderToParent(1);
+			carb.addChild(ox);
+			BranchNode ben=interpretOCRStringAsAtom("Bn");
+			ox.addChild(ben);
+			
 			return carb;
 		}else if(s.equals("t-Bu") || s.equals("tBu") || s.equals("t-Bo") || s.equals("tBo")){
 			BranchNode bn = new BranchNode("C");
@@ -538,16 +547,17 @@ class BranchNode{
 					parent=bn1;
 					//System.out.println(bn1.toString());
 					rem=s.substring(i);
-					break;
+					BranchNode child=interpretOCRStringAsAtom(rem);
+					if(child!=null){
+						BranchNode bnFinal= parent.addChild(child);
+						//System.out.println("F:" + bnFinal.toString());
+						return bnFinal;
+					}
+					//break;
 				}
 			}
 			if(parent!=null){
-				BranchNode child=interpretOCRStringAsAtom(rem);
-				if(child!=null){
-					BranchNode bnFinal= parent.addChild(child);
-					//System.out.println("F:" + bnFinal.toString());
-					return bnFinal;
-				}
+				
 			}
 		}
 		

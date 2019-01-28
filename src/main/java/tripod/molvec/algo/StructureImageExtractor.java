@@ -184,7 +184,7 @@ public class StructureImageExtractor {
 		}
 		if(ch.equals("R")||
 				//ch.equalsIgnoreCase("A")||
-				ch.equalsIgnoreCase("Z")||
+				//ch.equalsIgnoreCase("Z")||
 				ch.equalsIgnoreCase("-")||
 				ch.equals("m")||
 				ch.equalsIgnoreCase("W")||
@@ -192,7 +192,7 @@ public class StructureImageExtractor {
 				ch.equals("n")){
 			invScore=invScore*3; // penalize
 		}
-		if(ch.equalsIgnoreCase("X") || ch.equalsIgnoreCase("+") || ch.equalsIgnoreCase("D")){
+		if(ch.equalsIgnoreCase("X") || ch.equalsIgnoreCase("+") || ch.equalsIgnoreCase("D") || ch.equalsIgnoreCase("Z")){
 			invScore=invScore*1.5; // penalize
 		}else if(ch.equals("N") 
 				|| ch.equalsIgnoreCase("C") 
@@ -800,11 +800,11 @@ public class StructureImageExtractor {
 
 			Predicate<Line2D> isInOCRShape = (l)->{
 				if(likelyOCR.isEmpty())return false;
-				Tuple<Shape,Double> shape1=GeomUtil.findClosestShapeTo(likelyOCR, l.getP1());
+				Tuple<Shape,Double> shape1=GeomUtil.findClosestShapeTo(likelyOCRNonBond, l.getP1());
 				if(shape1.v()>OCR_TO_BOND_MAX_DISTANCE){
 					return false;
 				}
-				Tuple<Shape,Double> shape2=GeomUtil.findClosestShapeTo(likelyOCR, l.getP2());
+				Tuple<Shape,Double> shape2=GeomUtil.findClosestShapeTo(likelyOCRNonBond, l.getP2());
 				if(shape2.v()>OCR_TO_BOND_MAX_DISTANCE){
 					return false;
 				}
@@ -1746,7 +1746,7 @@ public class StructureImageExtractor {
 			bestGuessOCR.entrySet()
 			.stream()
 			.map(Tuple::of)
-			.filter(t->t.v().equals("O2"))
+			.filter(t->t.v().equals("O2") || t.v().equalsIgnoreCase("Boc"))
 			.collect(Collectors.toList())
 			.stream()
 			.forEach(t->{
@@ -1756,7 +1756,7 @@ public class StructureImageExtractor {
 				            .stream()
 				            .map(Tuple::of)
 				            .filter(t1->t1.k()!=t.k())
-				            .filter(t1->t1.v().equals("S"))
+				            .filter(t1->t1.v().equals("S") || t1.v().equals("N"))
 				            .filter(t1->GeomUtil.distance(t.k(), t1.k())<cutoff)
 				            .filter(t1->(Math.abs(t1.k().getBounds2D().getMinX()-t.k().getBounds2D().getMinX())< cutoff/3.0))
 				            .findFirst()
@@ -2145,7 +2145,7 @@ public class StructureImageExtractor {
 				if(actual!=null && actual.isRealNode()){
 					appliedOCR.add(s);
 					
-					List<Node> nlist=ctab.getNodesInsideShape(s, 0.1);
+					List<Node> nlist=ctab.getNodesInsideShape(s, 0.1).stream().filter(n->!n.isInvented()).collect(Collectors.toList());
 					
 					if(actual.getSymbol().equals("I") && !nlist.isEmpty() && nlist.get(0).getEdgeCount()>1){
 						continue;
@@ -2154,12 +2154,15 @@ public class StructureImageExtractor {
 					//Didn't merge, maybe merge now?
 					if(nlist.size()>1){
 						Point2D np=nlist.get(0).getPoint();
-						ctab.mergeAllNodesInside(s, 0.1, (n)->true, (l)->np);
+						ctab.mergeAllNodesInside(s, 0.1, (n)->!n.isInvented(), (l)->np);
 						ctab.standardCleanEdges();
-						nlist=ctab.getNodesInsideShape(s, 0.1);
+						nlist=ctab.getNodesInsideShape(s, 0.1).stream().filter(n->!n.isInvented()).collect(Collectors.toList());
 					}
+					nlist.forEach(n->{
+						n.setSymbol(actual.getSymbol());
+					});
 					
-					ctab.setNodeToSymbol(s, actual.getSymbol());
+					//ctab.setNodeToSymbol(s, actual.getSymbol());
 
 					if(nlist.size()==1){
 						Node pnode=nlist.get(0);
@@ -2171,11 +2174,7 @@ public class StructureImageExtractor {
 							at.translate(ppoint.getX(), ppoint.getY());
 							at.scale(fbondlength, fbondlength);
 							if(pnode.getEdges().size()>0){
-								Edge edge1= pnode.getEdges().get(0);
-								Point2D otherPoint = edge1.getPoint2();
-								if(!edge1.getRealNode1().equals(pnode)){
-									otherPoint = edge1.getPoint1();
-								}
+								Point2D otherPoint =pnode.getEdges().stream().map(e->e.getOtherNode(pnode)).map(n->n.getPoint()).collect(GeomUtil.averagePoint());
 								double ang=GeomUtil.angle(ppoint, otherPoint);
 								at.rotate(ang+Math.PI);
 							}
@@ -2268,11 +2267,10 @@ public class StructureImageExtractor {
 			}while(!toRemove.isEmpty());
 
 
+			ctabRaw.add(ctab.cloneTab());
+
 
 			//Cleanup "duplicate" lines that are probably problems. 
-			//criteria is:
-			//1. 
-			//2. 
 
 			ctab.getNodes()
 			.stream()
@@ -2316,6 +2314,8 @@ public class StructureImageExtractor {
 
 			ctab.standardCleanEdges();
 
+
+			ctabRaw.add(ctab.cloneTab());
 
 
 			ctab.getEdges()

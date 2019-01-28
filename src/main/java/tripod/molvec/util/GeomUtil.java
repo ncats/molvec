@@ -15,18 +15,26 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.BiConsumer;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -1865,6 +1873,44 @@ public class GeomUtil {
 			if(s.contains(tx, ty))hits++;
 		}
 		return wid*hi*(hits)/(double)tot;
+	}
+	
+	public static Collector<Point2D,List<Point2D>,Point2D> averagePoint(){
+		
+		return new Collector<Point2D,List<Point2D>,Point2D>(){
+
+			@Override
+			public BiConsumer<List<Point2D>, Point2D> accumulator() {
+
+				return (l,p)->{
+					l.add(p);
+				};
+			}
+
+			@Override
+			public Set<java.util.stream.Collector.Characteristics> characteristics() {
+				return new HashSet<java.util.stream.Collector.Characteristics>();
+			}
+
+			@Override
+			public BinaryOperator<List<Point2D>> combiner() {
+				return (l1,l2)->{
+					l1.addAll(l2);
+					return l1;
+				};
+			}
+
+			@Override
+			public Function<List<Point2D>, Point2D> finisher() {
+				return (pts)->GeomUtil.findCenterOfVertices(pts);
+			}
+
+			@Override
+			public Supplier<List<Point2D>> supplier() {
+				return ()->new ArrayList<>();
+			}
+			
+		};
 	}
 	
     
