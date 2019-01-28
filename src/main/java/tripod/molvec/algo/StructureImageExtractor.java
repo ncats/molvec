@@ -121,7 +121,8 @@ public class StructureImageExtractor {
 	private final double maxPerLineDistanceRatioForIntersection = 1.6;
 	private final double minPerLineDistanceRatioForIntersection = 0.7;
 	private final double OCR_TO_BOND_MAX_DISTANCE=3.0;
-	private final double maxCandidateRatioForIntersection = 1.5;        
+	private final double maxCandidateRatioForIntersection = 1.5;
+	private final double maxCandidateRatioForIntersectionWithNeighbor = 1.3;       
 	private final double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN = 1;
 	private final double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL = 0.5;
 	private final double MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS = 6;
@@ -140,11 +141,12 @@ public class StructureImageExtractor {
 
 	//This number is likely one of the most important to adjust.
 	//It may have to have some changes done to the algorithm using it too
-	private final double MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.30;
+	private final double MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.31;
 
 
 	private final double MIN_LONGEST_WIDTH_RATIO_FOR_OCR_TO_AVERAGE=0.5;
 	private final double MIN_AREA_RATIO_FOR_OCR_TO_AVERAGE=0.6;
+	private final double MAX_AREA_RATIO_FOR_OCR_TO_AVERAGE=2.0;
 	private final double MIN_AREA_RATIO_FOR_HULL_TO_BBOX_OCR=0.5;
 
 
@@ -612,6 +614,18 @@ public class StructureImageExtractor {
 								.collect(Collectors.toList());
 					}
 				}
+				
+				//This is the least justified tweak, just a strange thing about N+ that I've noticed
+			}else if(asciiCache['M']==1 && asciiCache['P']==1 && asciiCache['m']==1){
+
+				boolean goodEnough=potential.stream().filter(t->t.v().doubleValue()>0.4).findAny().isPresent();
+				boolean badEnough=potential.stream().filter(t->t.v().doubleValue()>0.3).findAny().isPresent();
+				
+				if(!goodEnough && badEnough){
+					if(areaRealDivByAreaBox.get() >0.5){
+						potential.add(0,Tuple.of('N',0.7));
+					}
+				}
 			}
 
 			if(Character.valueOf('L').equals(best[0])){
@@ -751,6 +765,8 @@ public class StructureImageExtractor {
 		AtomicBoolean foundNewOCR=new AtomicBoolean(true);
 		int maxFullRepeats=5;
 		int repeats=0;
+		List<Shape> realRescueOCRCandidates = new ArrayList<>();
+		
 		while(foundNewOCR.get() && repeats<maxFullRepeats){
 			repeats++;
 			foundNewOCR.set(false);
@@ -959,9 +975,11 @@ public class StructureImageExtractor {
 						maxCandidateRatioForIntersection,
 						maxPerLineDistanceRatioForIntersection,
 						minPerLineDistanceRatioForIntersection,
+						maxCandidateRatioForIntersectionWithNeighbor,
 						l-> (GeomUtil.length(l) < maxBondLength[0]))
 						.mergeNodesCloserThan(MAX_DISTANCE_BEFORE_MERGING_NODES);
 				ctabRaw.add(ctab.cloneTab());
+				
 
 
 
@@ -1329,6 +1347,7 @@ public class StructureImageExtractor {
 				}
 				if(reps>MAX_REPS)break;
 			}
+			realRescueOCRCandidates.addAll(rescueOCRCandidates);
 
 
 			AtomicBoolean anyOtherIntersections = new AtomicBoolean(false);
@@ -1388,6 +1407,7 @@ public class StructureImageExtractor {
 					//			  removedTinyVertices.stream(), 
 					verticesJl.stream()
 					.flatMap(l->Stream.of(l.getP1(),l.getP2()))
+					//.filter(pt->!likelyOCRAll.stream().filter(s->s.contains(pt)).findAny().isPresent())
 					//		                 									     )
 					.collect(Collectors.toList());
 
@@ -1487,6 +1507,10 @@ public class StructureImageExtractor {
 						keep=false;
 					}
 					if(GeomUtil.area(nshape.getBounds2D()) < averageAreaOCR*MIN_AREA_RATIO_FOR_OCR_TO_AVERAGE){
+						keep=false;
+					}
+					
+					if(GeomUtil.area(nshape.getBounds2D()) > averageAreaOCR*MAX_AREA_RATIO_FOR_OCR_TO_AVERAGE){
 						keep=false;
 					}
 
@@ -1844,9 +1868,14 @@ public class StructureImageExtractor {
 								centert=GeomUtil.findCenterOfVertices(intersections);
 							}
 						}
+						if(!s.contains(centert)){
+							centert=GeomUtil.findCenterOfShape(s);
+						}
 					}
 					Point2D center = centert;
-
+					
+					
+					
 					//This is likely the source of lots of problems
 					ctab.mergeAllNodesInside(s, MAX_BOND_RATIO_FOR_MERGING_TO_OCR*ctab.getAverageBondLength(),(n)->{
 						if(sym.equals("H")){
@@ -1855,7 +1884,7 @@ public class StructureImageExtractor {
 							}
 						}
 						if(!s.contains(n.getPoint()) && actual.isTerminal() && n.getEdgeCount()>1){
-							
+							//System.out.println("Term?");
 							long cc=n.getNeighborNodes()
 							 .stream()
 							 .map(t->t.k())
@@ -2568,7 +2597,7 @@ public class StructureImageExtractor {
 			
 			
 			
-			rescueOCRShapes=rescueOCRCandidates;
+			
 			/*
 			 * long c=polygons.stream()
 		        		        .filter(s->GeomUtil.getIntersection(s, useLine).isPresent())
@@ -2581,7 +2610,7 @@ public class StructureImageExtractor {
 
 		}
 		
-		
+		rescueOCRShapes=realRescueOCRCandidates;
 	
 		//charge bad nitrogens
 		

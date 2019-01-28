@@ -38,7 +38,7 @@ public class BranchNodeTest {
 		assertEquals("-C(=O,-O(-C))",s);
 	}
 	
-	//@Ignore
+	@Ignore
 	@Test
 	public void methyoxyEsterShouldHave5NodesWithCorrectBonds(){
 		String s=BranchNode.interpretOCRStringAsAtom2("CO2CH2OH").toString();

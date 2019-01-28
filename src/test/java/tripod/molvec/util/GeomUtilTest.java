@@ -49,6 +49,15 @@ public class GeomUtilTest {
     }
     
     @Test
+    public void pointJustOUtsideOfRectangleShouldHaveCorrectDistance(){
+    	Rectangle2D rect= new Rectangle2D.Double(0, 0, 10, 10).getBounds2D();
+    	Shape s=GeomUtil.convexHull2(vertices(rect));
+    	Arrays.stream(GeomUtil.lines(rect)).map(l->l.getP1() + "," + l.getP2()).forEach(System.out::println);
+    	
+    	//System.out.println(Arrays.toString());//
+    }
+    
+    @Test
     public void centerOfMassOfSquareShouldBeCenter(){
     	Rectangle2D rect = new Rectangle2D.Double(0,0,10,10);
     	

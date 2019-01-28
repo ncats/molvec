@@ -477,6 +477,12 @@ class BranchNode{
 			
 			
 			return bno;
+		}else if(s.equalsIgnoreCase("CH3O")){
+			return interpretOCRStringAsAtom("OCH3");
+		}else if(s.equalsIgnoreCase("EtHN")){
+			return interpretOCRStringAsAtom("NHEt");
+		}else if(s.equalsIgnoreCase("OHC")){
+			return interpretOCRStringAsAtom("COH");
 		}
 		
 		

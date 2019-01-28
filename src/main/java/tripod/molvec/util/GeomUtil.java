@@ -1417,7 +1417,7 @@ public class GeomUtil {
 		if(d1>d2){
 			return new Line2D.Double(line.getP1(), pnt);
 		}else{
-			return new Line2D.Double(line.getP2(), pnt);
+			return new Line2D.Double(pnt,line.getP2());
 		}
 	}
 
@@ -1426,75 +1426,18 @@ public class GeomUtil {
 			double maxDistanceRatioLikely, 
 			double maxDistanceRatioPerLine,
 			double minPerLineDistanceRatioForIntersection,
+			double maxCandidateRatioForIntersectionWithNeighbor,
 			Predicate<Line2D> acceptNewLine) {
-			List<Tuple<Line2D,Integer>> lines = new ArrayList<>(linest);
-				
-				for(int i=0;i<lines.size();i++){
-					Tuple<Line2D, Integer> lineOrder1=lines.get(i);
-					double distance1 = GeomUtil.length(lineOrder1.k());
-					for(int j=i+1;j<lines.size();j++){
-						
-						
-						Tuple<Line2D, Integer> lineOrder2=lines.get(j);
-						double distance2 = GeomUtil.length(lineOrder2.k());
-						double totalDistance = distance1+distance2;
-						
-						Point2D intersect = intersection(lineOrder1.k(),lineOrder2.k());
-						if(intersect==null)continue;
-						double ndistance1 = Math.max(intersect.distance(lineOrder1.k().getP1()), intersect.distance(lineOrder1.k().getP2()));
-						double ndistance2 = Math.max(intersect.distance(lineOrder2.k().getP1()), intersect.distance(lineOrder2.k().getP2()));
-						double totalDistanceAfter = ndistance1+ndistance2;
-						
-						double ratioTotal = Math.max(totalDistanceAfter,totalDistance)/Math.min(totalDistanceAfter, totalDistance);
-						
-						double ratioLine1 = Math.max(ndistance1,distance1)/Math.min(ndistance1, distance1);
-						double ratioLine2 = Math.max(ndistance2,distance2)/Math.min(ndistance2, distance2);
-						
-						double ratioOldToNew1 = ndistance1/distance1;
-						double ratioOldToNew2 = ndistance2/distance2;
-						
-						boolean merge = false;
-						
-					
-								
-						if(ratioTotal<maxDistanceRatioLikely){
-							if(ratioTotal<maxDistanceRatioNonLikely){
-								if(ratioLine1<maxDistanceRatioPerLine && ratioLine2<maxDistanceRatioPerLine &&
-								   ratioOldToNew1>minPerLineDistanceRatioForIntersection && ratioOldToNew2>minPerLineDistanceRatioForIntersection){
-									merge=true;
-								}
-							}else{
-								boolean inLikelyNode=likelyNodes.stream().filter(s->s.contains(intersect)).findAny().isPresent();
-								if(inLikelyNode){
-									merge=true;
-								}
-							}
-						}
-						
-						if(merge){
-							Line2D newLine1 = longestLineFromOneVertexToPoint(lineOrder1.k(),intersect);
-							Line2D newLine2 = longestLineFromOneVertexToPoint(lineOrder2.k(),intersect);
-							if(acceptNewLine.test(newLine1) && acceptNewLine.test(newLine2)){
-								Tuple<Line2D,Integer> norder1 = Tuple.of(newLine1,lineOrder1.v());
-								Tuple<Line2D,Integer> norder2 = Tuple.of(newLine2,lineOrder2.v());
-								lines.set(i, norder1);
-								lines.set(j, norder2);
-								lineOrder1 = norder1;
-							}
-						}				
-					}
-				}
-					
-				ConnectionTable ct=new ConnectionTable();
-				
-				for(int i=0;i<lines.size();i++){
-					Tuple<Line2D, Integer> lineOrder1=lines.get(i);
-					ct.addNode(lineOrder1.k().getP1());
-					ct.addNode(lineOrder1.k().getP2());
-					ct.addEdge(i*2, i*2+1, lineOrder1.v());
-				}
-				return ct;
-				
+			
+			return ConnectionTable.fromLinesAndOrders(linest)
+			                      .getNewConnectionTable(likelyNodes, 
+			                    		  maxDistanceRatioNonLikely, 
+			                    		  maxDistanceRatioLikely, 
+			                    		  maxDistanceRatioPerLine, 
+			                    		  minPerLineDistanceRatioForIntersection, 
+			                    		  maxCandidateRatioForIntersectionWithNeighbor,
+			                    		  acceptNewLine);
+			
 				
 	}
 

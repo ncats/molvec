@@ -12,6 +12,7 @@ import java.awt.geom.Rectangle2D;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -433,6 +434,132 @@ public class ConnectionTable{
 		     .min(CompareUtil.naturalOrder())
 		     .orElse(null);
 		
+	}
+	
+	public List<Tuple<Line2D,Integer>> asBondOrderLines(){
+		return this.edges.stream().map(e->Tuple.of(e.getLine(),e.getOrder())).collect(Collectors.toList());
+	}
+	
+	
+	public static ConnectionTable fromLinesAndOrders(List<Tuple<Line2D,Integer>> lines){
+		ConnectionTable ct=new ConnectionTable();
+		
+		//Collections.shuffle(lines);
+		
+		for(int i=0;i<lines.size();i++){
+			Tuple<Line2D, Integer> lineOrder1=lines.get(i);
+			ct.addNode(lineOrder1.k().getP1());
+			ct.addNode(lineOrder1.k().getP2());
+			ct.addEdge(i*2, i*2+1, lineOrder1.v());
+		}
+		return ct;
+	}
+	
+
+	public ConnectionTable getNewConnectionTable(List<Shape> likelyNodes,
+			double maxDistanceRatioNonLikely, 
+			double maxDistanceRatioLikely, 
+			double maxDistanceRatioPerLine,
+			double minPerLineDistanceRatioForIntersection,
+			double maxCandidateRatioForIntersectionWithNeighbor,
+			Predicate<Line2D> acceptNewLine) {
+		
+			ConnectionTable copy= this.cloneTab();
+			
+			//might make things ugly, consider changing
+			copy.mergeNodesCloserThan(3.0);
+		
+			
+			
+			List<Tuple<Line2D,Integer>> lines = copy.asBondOrderLines();
+			List<Tuple<Integer,Integer>> ncount = copy.edges.stream().map(e->Tuple.of(e.getRealNode1().getEdgeCount(),e.getRealNode2().getEdgeCount())).collect(Collectors.toList());
+				
+				for(int i=0;i<lines.size();i++){
+					Tuple<Line2D, Integer> lineOrder1=lines.get(i);
+					double distance1 = GeomUtil.length(lineOrder1.k());
+					for(int j=i+1;j<lines.size();j++){
+						
+						
+						Tuple<Line2D, Integer> lineOrder2=lines.get(j);
+						double distance2 = GeomUtil.length(lineOrder2.k());
+						double totalDistance = distance1+distance2;
+						
+						Point2D intersect = GeomUtil.intersection(lineOrder1.k(),lineOrder2.k());
+						if(intersect==null)continue;
+						double ndistance1 = Math.max(intersect.distance(lineOrder1.k().getP1()), intersect.distance(lineOrder1.k().getP2()));
+						double ndistance2 = Math.max(intersect.distance(lineOrder2.k().getP1()), intersect.distance(lineOrder2.k().getP2()));
+						double totalDistanceAfter = ndistance1+ndistance2;
+						
+						double ratioTotal = Math.max(totalDistanceAfter,totalDistance)/Math.min(totalDistanceAfter, totalDistance);
+						
+						double ratioLine1 = Math.max(ndistance1,distance1)/Math.min(ndistance1, distance1);
+						double ratioLine2 = Math.max(ndistance2,distance2)/Math.min(ndistance2, distance2);
+						
+						double ratioOldToNew1 = ndistance1/distance1;
+						double ratioOldToNew2 = ndistance2/distance2;
+						
+						boolean merge = false;
+						
+					
+								
+						if(ratioTotal<maxDistanceRatioLikely){
+							if(ratioTotal<maxDistanceRatioNonLikely){
+								if(ratioLine1<maxDistanceRatioPerLine && ratioLine2<maxDistanceRatioPerLine &&
+								   ratioOldToNew1>minPerLineDistanceRatioForIntersection && ratioOldToNew2>minPerLineDistanceRatioForIntersection){
+									merge=true;
+								}
+							}else{
+								boolean inLikelyNode=likelyNodes.stream().filter(s->s.contains(intersect)).findAny().isPresent();
+								if(inLikelyNode){
+									
+//									System.out.println("Something");
+//									System.out.println("Something2");
+//									
+									if(ratioTotal>maxCandidateRatioForIntersectionWithNeighbor){
+										
+										Tuple<Integer,Integer> n1count=ncount.get(i);
+										Tuple<Integer,Integer> n2count=ncount.get(j);
+										int line1MergeSide=0;
+										int line2MergeSide=0;
+										if(intersect.distance(lineOrder1.k().getP1())<intersect.distance(lineOrder1.k().getP2())){
+											line1MergeSide=n1count.k();
+										}else{
+											line1MergeSide=n1count.v();
+										}
+										if(intersect.distance(lineOrder2.k().getP1())<intersect.distance(lineOrder2.k().getP2())){
+											line2MergeSide=n2count.k();
+										}else{
+											line2MergeSide=n2count.v();
+										}
+										if(line1MergeSide>1 || line2MergeSide>1){
+											merge=false;
+										}else{
+											merge=true;
+										}
+									}else{
+										merge=true;	
+									}
+									
+									
+								}
+							}
+						}
+						
+						if(merge){
+							Line2D newLine1 = GeomUtil.longestLineFromOneVertexToPoint(lineOrder1.k(),intersect);
+							Line2D newLine2 = GeomUtil.longestLineFromOneVertexToPoint(lineOrder2.k(),intersect);
+							if(acceptNewLine.test(newLine1) && acceptNewLine.test(newLine2)){
+								Tuple<Line2D,Integer> norder1 = Tuple.of(newLine1,lineOrder1.v());
+								Tuple<Line2D,Integer> norder2 = Tuple.of(newLine2,lineOrder2.v());
+								lines.set(i, norder1);
+								lines.set(j, norder2);
+								lineOrder1 = norder1;
+							}
+						}				
+					}
+				}
+					
+				return fromLinesAndOrders(lines);
 	}
 	
 	

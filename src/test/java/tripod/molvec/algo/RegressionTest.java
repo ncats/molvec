@@ -204,7 +204,7 @@ public class RegressionTest {
 					}
 		    	  	return l;
 		      })
-//		      .collect(shuffler(new Random(317996l)))		      
+//		      .collect(shuffler(new Random(11111114l)))		      
 //		      .limit(100)
 		      .parallel()
 		      .map(fl->Tuple.of(fl,testMolecule(fl.get(1),fl.get(0))))
