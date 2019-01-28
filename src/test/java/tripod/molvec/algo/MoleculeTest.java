@@ -194,6 +194,7 @@ public class MoleculeTest {
 		} )});
 		//ringSometimesExtendsToOCR.png
 		list.add(new Object[]{"ringSometimesExtendsToOCR", new TestSpec("moleculeTest/ringSometimesExtendsToOCR.png", c->{
+			
 			Chemical cReal=ChemicalBuilder.createFromMol("\n" + 
 					"  CDK     01271921203D\n" + 
 					"\n" + 

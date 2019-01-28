@@ -204,9 +204,9 @@ public class RegressionTest {
 					}
 		    	  	return l;
 		      })
-		      .collect(shuffler(new Random(11111116l)))		      
-//		      .limit(100)
-//		      .parallel()
+		      .collect(shuffler(new Random(11111117l)))		      
+		      .limit(1000)
+		      .parallel()
 		      .map(fl->Tuple.of(fl,testMolecule(fl.get(1),fl.get(0))))
 		      .map(t->t.swap())
 		      .peek(t->System.out.println(t.k()))

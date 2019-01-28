@@ -2557,6 +2557,10 @@ public class StructureImageExtractor {
 							}							
 						}
 					}else{
+						//IDK
+						if(e.getRealNode1().getSymbol().equals("C") && e.getRealNode2().getSymbol().equals("C")){
+							e.setDashed(false);
+						}
 	
 						int mult=1;
 						if(e.getPoint1().distance(useLine.getP1())< e.getPoint2().distance(useLine.getP1())){
@@ -2580,9 +2584,6 @@ public class StructureImageExtractor {
 				}
 			});
 			
-			
-			//doesn't take care of dashes that were mistaken for wedges above
-			//TODO
 
 			GeomUtil.eachCombination(ctab.getNodes())
 			.filter(t->t.k().distanceTo(t.v())<1.2*ctab.getAverageBondLength())
@@ -2723,11 +2724,11 @@ public class StructureImageExtractor {
 			    		Shape neg=mightBeNegative.stream().filter(s->GeomUtil.distanceTo(s, p)<ctab.getAverageBondLength()/2).findAny().orElse(null);
 			    		
 			    		if(neg!=null){
-			    			
+			    			Point2D ncenter=GeomUtil.findCenterOfShape(neg);	
 			    			boolean inLine=n.getEdges().stream()
 							    			.map(e->e.getLine())
 							    			.map(l->GeomUtil.growLine(l, averageWidthOCRFinal[0]))
-							    			.filter(s->GeomUtil.contains(s, neg))
+							    			.filter(s->s.contains(ncenter))
 							    			.findAny()
 							    			.isPresent();
 			    			if(!inLine){
@@ -2748,11 +2749,12 @@ public class StructureImageExtractor {
 			    		Shape neg=mightBeNegative.stream().filter(s->GeomUtil.distanceTo(s, p)<ctab.getAverageBondLength()/2).findAny().orElse(null);
 			    		
 			    		if(neg!=null){
+			    			Point2D ncenter=GeomUtil.findCenterOfShape(neg);
 			    			
 			    			boolean inLine=n.getEdges().stream()
 							    			.map(e->e.getLine())
 							    			.map(l->GeomUtil.growLine(l, averageWidthOCRFinal[0]))
-							    			.filter(s->GeomUtil.contains(s, neg))
+							    			.filter(s->s.contains(ncenter))
 							    			.findAny()
 							    			.isPresent();
 			    			if(!inLine){
@@ -2778,11 +2780,11 @@ public class StructureImageExtractor {
 				    		Shape neg=mightBeNegative.stream().filter(s->GeomUtil.distanceTo(s, p)<ctab.getAverageBondLength()/2).findAny().orElse(null);
 				    		
 				    		if(neg!=null){
-				    			
+				    			Point2D ncenter=GeomUtil.findCenterOfShape(neg);
 				    			boolean inLine=n.getEdges().stream()
 								    			.map(e->e.getLine())
 								    			.map(l->GeomUtil.growLine(l, averageWidthOCRFinal[0]))
-								    			.filter(s->GeomUtil.contains(s, neg))
+								    			.filter(s->s.contains(ncenter))
 								    			.findAny()
 								    			.isPresent();
 				    			if(!inLine){
