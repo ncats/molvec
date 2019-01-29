@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,12 +23,12 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
 import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -1339,7 +1338,7 @@ public class GeomUtil {
 	 * @param minLargerProjectionRatio
 	 * @return
 	 */
-	public static List<Tuple<Line2D, Integer>> reduceMultiBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio, double minLargerProjectionRatio, double maxStitchLineDistanceDelta){
+	public static List<Tuple<Line2D, Integer>> reduceMultiBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio, double minLargerProjectionRatio, double maxStitchLineDistanceDelta, Consumer<Line2D> rejected){
 		
 		return groupMultipleBonds(lines,maxDeltaTheta,maxDeltaOffset,minProjectionRatio,minLargerProjectionRatio)
 				.stream()
@@ -1368,12 +1367,18 @@ public class GeomUtil {
 				})
 				//.map(l->l.stream().map(t->t.k()).collect(Collectors.toList()))
 				.map(l->Tuple.of(l,l.size()))
-				.map(Tuple.kmap(l->l.stream()
-								   .map(s->Tuple.of(s,length(s)).withVComparator()) //always choose longer line
-								   .max(CompareUtil.naturalOrder())
-						           .get()
-						           .k()
-						           ))
+				.map(Tuple.kmap(l->{
+					
+					List<Line2D> sort= l.stream()
+					   .map(s->Tuple.of(s,length(s)).withVComparator()) //always choose longer line
+					   .sorted(Comparator.reverseOrder())
+			           .map(l1->l1.k())
+			           .collect(Collectors.toList());
+					
+					Line2D longest=sort.remove(0);
+					sort.forEach(l1->rejected.accept(l1));
+					return longest;
+				}))
 				.collect(Collectors.toList());
 	}
 	
@@ -1818,6 +1823,19 @@ public class GeomUtil {
 		return wid*hi*(hits)/(double)tot;
 	}
 	
+	public static List<Point2D> splitIntoNPieces(Line2D l, int n){
+		
+		double[] v=asVector(l);
+		double[] off=new double[]{l.getP1().getX(),l.getP1().getY()};
+		double rlen=1.0/(n);
+		
+		return IntStream.range(0,n+1)
+				 .mapToObj(i->new double[]{i*v[0]*rlen+off[0], i*v[1]*rlen+off[1]})
+				 
+				 .map(d->new Point2D.Double(d[0],d[1]))
+				 .peek(d->System.out.println(d))
+				 .collect(Collectors.toList());
+	}
 	public static Collector<Point2D,List<Point2D>,Point2D> averagePoint(){
 		
 		return new Collector<Point2D,List<Point2D>,Point2D>(){
@@ -1855,6 +1873,6 @@ public class GeomUtil {
 			
 		};
 	}
-	
+
     
 }

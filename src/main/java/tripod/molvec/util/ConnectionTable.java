@@ -867,13 +867,13 @@ public class ConnectionTable{
 	}
 	
 	public double getMeanBondLength(){
-		return edges.stream().mapToDouble(e->e.getBondLength()).average().orElse(0);
+		return edges.stream().mapToDouble(e->e.getEdgeLength()).average().orElse(0);
 	}
 	
 	public double getMedianBondLength(){
 		
 		double[] lens= edges.stream()
-				    	.mapToDouble(e->e.getBondLength())
+				    	.mapToDouble(e->e.getEdgeLength())
 				    	.sorted()
 				    	.toArray();
 		
@@ -1010,7 +1010,7 @@ public class ConnectionTable{
 		
 		
 		
-		public double getBondLength(){
+		public double getEdgeLength(){
 			return ConnectionTable.this.nodes.get(n1).point.distance(ConnectionTable.this.nodes.get(n2).point);
 		}
 		public Edge standardize(){
@@ -1295,7 +1295,7 @@ public class ConnectionTable{
 		    				Point2D pn2=GeomUtil.getIntersection(s2,line).orElse(null);
 		    				if(pn1!=null && pn2!=null){
 		    					double realDistance=pn1.distance(pn2);
-		    					if(realDistance/e.getBondLength()<shortestRealBondRatio){
+		    					if(realDistance/e.getEdgeLength()<shortestRealBondRatio){
 		    						edgeCons.accept(e);
 		    					}
 		    				}

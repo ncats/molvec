@@ -491,6 +491,10 @@ class BranchNode{
 			BranchNode bn = new BranchNode("S");
 			bn.setCharge(1);
 			return bn;
+		}else if(s.equalsIgnoreCase("N+")){
+			BranchNode bn = new BranchNode("N");
+			bn.setCharge(1);
+			return bn;
 		}
 		
 		
