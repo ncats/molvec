@@ -26,10 +26,15 @@ import org.junit.Test;
 
 import gov.nih.ncats.chemkit.api.Chemical;
 import gov.nih.ncats.chemkit.api.ChemicalBuilder;
+import gov.nih.ncats.chemkit.api.inchi.Inchi;
 
 public class RegressionTest {
 
 	public static enum Result{
+		CORRECT_FULL_INCHI,
+		CORRECT_STEREO_INSENSITIVE_INCHI,
+		LARGEST_FRAGMENT_CORRECT_FULL_INCHI,
+		LARGEST_FRAGMENT_CORRECT_STEREO_INSENSITIVE_INCHI,
 		CORRECT,
 		LARGEST_FRAGMENT_CORRECT,
 		WEIRD_SOURCE,
@@ -91,6 +96,12 @@ public class RegressionTest {
 			c1.makeHydrogensImplicit();
 			c.makeHydrogensImplicit();
 			
+			String iinchi=Inchi.asStdInchi(c).getKey();
+			String rinchi=Inchi.asStdInchi(c1).getKey();
+			
+			
+					
+			
 			int ratomCount=c1.getAtomCount();
 			int iatomCount=c.getAtomCount();
 			
@@ -109,6 +120,13 @@ public class RegressionTest {
 			
 			if(smilesFound.equals("")){
 				return Result.FOUND_NOTHING;
+			}
+			
+			if(rinchi.equals(iinchi)){
+				return Result.CORRECT_FULL_INCHI;
+			}
+			if(rinchi.split("-")[0].equals(iinchi.split("-")[0])){
+				return Result.CORRECT_STEREO_INSENSITIVE_INCHI;
 			}
 			
 			if(formReal.equals(formFound)){
@@ -136,6 +154,18 @@ public class RegressionTest {
 					      .orElse(null);
 					Chemical clargestR=ChemicalBuilder.createFromSmiles(largestR).build();
 					Chemical clargestF=ChemicalBuilder.createFromSmiles(largestF).build();
+
+					
+					iinchi=Inchi.asStdInchi(clargestF).getKey();
+					rinchi=Inchi.asStdInchi(clargestR).getKey();
+					
+					if(rinchi.equals(iinchi)){
+						return Result.LARGEST_FRAGMENT_CORRECT_FULL_INCHI;
+					}
+					if(rinchi.split("-")[0].equals(iinchi.split("-")[0])){
+						return Result.LARGEST_FRAGMENT_CORRECT_STEREO_INSENSITIVE_INCHI;
+					}
+					
 					if(clargestR.getFormula().equals(clargestF.getFormula())){
 						return Result.LARGEST_FRAGMENT_CORRECT;
 					}
@@ -204,9 +234,9 @@ public class RegressionTest {
 					}
 		    	  	return l;
 		      })
-		      .collect(shuffler(new Random(11111118l)))		      
-		      .limit(100)
-		      .parallel()
+		      .collect(shuffler(new Random(11111120l)))		      
+//		      .limit(100)
+//		      .parallel()
 		      .map(fl->Tuple.of(fl,testMolecule(fl.get(1),fl.get(0))))
 		      .map(t->t.swap())
 		      .peek(t->System.out.println(t.k()))

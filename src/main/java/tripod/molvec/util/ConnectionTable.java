@@ -67,6 +67,8 @@ public class ConnectionTable{
 	}
 	
 	
+	
+	
 	public Chemical toChemical(){
 		ChemicalBuilder cb = new ChemicalBuilder();
 		Atom[] atoms = new Atom[nodes.size()];

@@ -199,7 +199,6 @@ public class Viewer extends JPanel
         for (Shape s : polygons) {
             if (Path2D.contains(s.getPathIterator(afx), pt)) {
                 highlights.add(s);
-                System.out.println(sie.getShapeTypes().get(s));
             }
         }
         // }

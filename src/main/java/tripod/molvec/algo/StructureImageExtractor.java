@@ -2549,66 +2549,66 @@ public class StructureImageExtractor {
 			
 			
 //			//clean bad triple bonds
-//			ctab.getEdges().stream()
-//			.filter(e->e.getOrder()==3)
-//			.collect(Collectors.toList())
-//			.forEach(e->{
-//				Line2D lb = e.getLine();
-//				
-//				double len = e.getEdgeLength();
-//				int n = (int)Math.round(len/ctab.getAverageBondLength());
-//				
-//				if(n>1){
-//					Node n1=e.getRealNode1();
-//					Node n2=e.getRealNode2();
-//					
-//					Shape bigLineShape = GeomUtil.growLine(lb,len/3);
-//					
-//					Point2D apt=rejBondOrderLines.stream()
-//					                 .map(l->GeomUtil.findCenterOfShape(l))
-//					                 .filter(p->bigLineShape.contains(p))
-//					                 .map(p->GeomUtil.projectPointOntoLine(lb,p))
-//					                 .collect(GeomUtil.averagePoint());
-//					
-//					
-//					List<Point2D> pts=GeomUtil.splitIntoNPieces(lb,n);
-//					Node pnode=n1;
-//					Edge closestEdge = null;
-//					double closestD = 999999;
-//					
-//					for(int i=1;i<pts.size();i++){
-//						
-//						Node nn=null;
-//						if(i<pts.size()-1){
-//							Point2D np=pts.get(i);
-//							nn=ctab.addNode(np);	
-//						}else{
-//							nn=n2;
-//						}
-//						
-//						Edge ne=ctab.addEdge(pnode.getIndex(),nn.getIndex(),1);
-//						Point2D cpt = Stream.of(ne.getPoint1(),ne.getPoint2()).collect(GeomUtil.averagePoint());
-//						double dpt=cpt.distance(apt);
-//						if(dpt<closestD){
-//							closestD=dpt;
-//							closestEdge=ne;
-//						}
-//						pnode=nn;
-//					}
-//					closestEdge.setOrder(3);
-//					//System.out.println("Setting order to 3");
-//					ctab.removeEdge(e);
-//					
-//				}
-//				
-//				
-//				//rejBondOrderLines
-//				
-//				
-//			});
-//			//System.out.println("MAde new nodes on triples:" + ctabRaw.size());
-//			ctabRaw.add(ctab.cloneTab());
-//			ctab.removeOrphanNodes();
+			ctab.getEdges().stream()
+			.filter(e->e.getOrder()==3)
+			.collect(Collectors.toList())
+			.forEach(e->{
+				Line2D lb = e.getLine();
+				
+				double len = e.getEdgeLength();
+				int n = (int)Math.round(len/ctab.getAverageBondLength());
+				
+				if(n>1){
+					Node n1=e.getRealNode1();
+					Node n2=e.getRealNode2();
+					
+					Shape bigLineShape = GeomUtil.growLine(lb,len/3);
+					
+					Point2D apt=rejBondOrderLines.stream()
+					                 .map(l->GeomUtil.findCenterOfShape(l))
+					                 .filter(p->bigLineShape.contains(p))
+					                 .map(p->GeomUtil.projectPointOntoLine(lb,p))
+					                 .collect(GeomUtil.averagePoint());
+					
+					
+					List<Point2D> pts=GeomUtil.splitIntoNPieces(lb,n);
+					Node pnode=n1;
+					Edge closestEdge = null;
+					double closestD = 999999;
+					
+					for(int i=1;i<pts.size();i++){
+						
+						Node nn=null;
+						if(i<pts.size()-1){
+							Point2D np=pts.get(i);
+							nn=ctab.addNode(np);	
+						}else{
+							nn=n2;
+						}
+						
+						Edge ne=ctab.addEdge(pnode.getIndex(),nn.getIndex(),1);
+						Point2D cpt = Stream.of(ne.getPoint1(),ne.getPoint2()).collect(GeomUtil.averagePoint());
+						double dpt=cpt.distance(apt);
+						if(dpt<closestD){
+							closestD=dpt;
+							closestEdge=ne;
+						}
+						pnode=nn;
+					}
+					closestEdge.setOrder(3);
+					//System.out.println("Setting order to 3");
+					ctab.removeEdge(e);
+					
+				}
+				
+				
+				//rejBondOrderLines
+				
+				
+			});
+			//System.out.println("MAde new nodes on triples:" + ctabRaw.size());
+			ctabRaw.add(ctab.cloneTab());
+			ctab.removeOrphanNodes();
 			
 			
 			

@@ -7,7 +7,7 @@
   <groupId>gov.nih.ncats</groupId>
   <artifactId>molvec</artifactId>
   <packaging>jar</packaging>
-  <version>0.5.8</version>
+  <version>0.5.9</version>
   <name>MolVec</name>
 
   <repositories>
