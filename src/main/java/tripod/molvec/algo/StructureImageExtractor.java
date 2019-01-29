@@ -2364,33 +2364,7 @@ public class StructureImageExtractor {
 				
 				
 				
-				//fix bad triple bonds
 				
-				ctab.getEdges()
-				    .stream()
-				    .filter(e->e.getOrder()==3)
-				    .forEach(e->{
-				    	double len = e.getEdgeLength();
-				    	int n = (int)Math.round(len/ctab.getAverageBondLength());
-				    	Line2D lb=e.getLine();
-				    	if(n>1){
-					    	Shape ls = GeomUtil.growLine(lb, len/3);
-					    	
-					    	
-					    	Point2D centerOfTriple=rejBondOrderLines.stream()
-					    		.map(l->Tuple.of(l, GeomUtil.findCenterOfShape(l)))
-					    		.filter(t->ls.contains(t.v()))
-					    		.map(t->GeomUtil.projectPointOntoLine(lb,t.v()))
-					    		.collect(GeomUtil.averagePoint());
-					    	List<Point2D> pts = GeomUtil.splitIntoNPieces(lb,n);
-					    	
-					    	for(int i=1;i<pts.size()-1;i++){
-					    		ctab.addNode(pts.get(0));
-					    		
-					    	}
-				    	}
-				    	
-				    });
 				
 				
 			}while(!toRemove.isEmpty());
@@ -2565,6 +2539,7 @@ public class StructureImageExtractor {
 					Shape bigLineShape = GeomUtil.growLine(lb,len/3);
 					
 					Point2D apt=rejBondOrderLines.stream()
+									 .filter(l->GeomUtil.length(l)>ctab.getAverageBondLength()*0.5)
 					                 .map(l->GeomUtil.findCenterOfShape(l))
 					                 .filter(p->bigLineShape.contains(p))
 					                 .map(p->GeomUtil.projectPointOntoLine(lb,p))

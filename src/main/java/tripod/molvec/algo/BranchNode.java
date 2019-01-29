@@ -495,7 +495,22 @@ class BranchNode{
 			BranchNode bn = new BranchNode("N");
 			bn.setCharge(1);
 			return bn;
+		}else if(s.equalsIgnoreCase("BnO")){
+			return interpretOCRStringAsAtom("OBn");
+		}else if(s.equalsIgnoreCase("MeO") || s.equalsIgnoreCase("McO")){
+			return interpretOCRStringAsAtom("OMe");
+		}else if(s.equals("BnN") || s.equals("Bt1N")){
+			return interpretOCRStringAsAtom("NBn");
+		}else if(s.equals("MeN") || s.equals("McN")){
+			return interpretOCRStringAsAtom("NMe");
+		}else if(s.equalsIgnoreCase("EtO") ){
+			return interpretOCRStringAsAtom("OEt");
+		}else if(s.equalsIgnoreCase("F3CO") ){
+			return interpretOCRStringAsAtom("OCF3");
+		}else if(s.equalsIgnoreCase("EtOOC") ){
+			return interpretOCRStringAsAtom("COOEt");
 		}
+		
 		
 		
 		//TODO:
