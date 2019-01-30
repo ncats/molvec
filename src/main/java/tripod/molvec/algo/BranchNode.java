@@ -318,9 +318,9 @@ class BranchNode{
 			return full;
 		}
 		
-		
-		
-		if((  s.equalsIgnoreCase("CO2H")
+		if(s.equalsIgnoreCase("CH3CONH")){
+			return interpretOCRStringAsAtom("N").addChild(interpretOCRStringAsAtom("CO").addChild(new BranchNode("C")));
+		}else if((  s.equalsIgnoreCase("CO2H")
 				|| s.equalsIgnoreCase("CO2")
 				|| s.equalsIgnoreCase("COOH")
 				|| s.equalsIgnoreCase("HOOC")

@@ -743,6 +743,9 @@ public class StructureImageExtractor {
 		List<Shape> likelyOCRNonBond= Collections.synchronizedList(new ArrayList<Shape>());
 		List<Shape> likelyOCRAll=Collections.synchronizedList(new ArrayList<Shape>());
 		List<Shape> likelyOCRIgnore = Collections.synchronizedList(new ArrayList<Shape>());
+		
+		List<Shape> ocrRescues = new ArrayList<Shape>();
+		
 		/*
 		 * Looks at each polygon, and gets the likely OCR chars.
 		 */   
@@ -1694,6 +1697,7 @@ public class StructureImageExtractor {
 						likelyOCRNumbers.add(nshape);
 					}
 					likelyOCRAll.add(nshape);
+					ocrRescues.add(nshape);
 					
 					foundNewOCR.set(true);
 				}
@@ -1862,6 +1866,13 @@ public class StructureImageExtractor {
 					      });
 						foundNewOCR.set(true);
 						likelyOCRIgnore.add(GeomUtil.growShape(parent,2));
+						
+						//we need to clear up things that might have been found by accident due to bad
+						//OCR
+						likelyOCR.removeAll(ocrRescues);
+						likelyOCRNumbers.removeAll(ocrRescues);
+						likelyOCRNonBond.removeAll(ocrRescues);
+						likelyOCRAll.removeAll(ocrRescues);
 					}
 				
 					bestGuessOCR.put(parent, val);
@@ -2957,7 +2968,7 @@ public class StructureImageExtractor {
 						}else if(wl<-cutoff){
 							e.setWedge(true);
 							e.switchNodes();
-						}else if(s.getAverageThickness()>averageThickness*3){
+						}else if(s.getAverageThickness()>averageThickness*2.5){
 							//very thick line
 							e.setWedge(true);
 						}

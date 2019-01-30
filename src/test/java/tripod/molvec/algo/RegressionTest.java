@@ -63,7 +63,10 @@ public class RegressionTest {
 		
 		try{
 			AtomicBoolean lastWasAlias = new AtomicBoolean(false);
-			String rawMol = Files.lines(sdf.toPath())
+			String rawMol=null;
+			try(Stream<String> stream = Files.lines(sdf.toPath())){
+				rawMol = stream
+			
 					.filter(l->!l.contains("SUP"))
 					.filter(l->!l.contains("SGROUP"))
 					.filter(l->!l.contains("M  S"))
@@ -83,6 +86,7 @@ public class RegressionTest {
 						return true;
 					})
 					.collect(Collectors.joining("\n"));
+			}
 			
 			Chemical c1=ChemicalBuilder.createFromMol(rawMol,Charset.defaultCharset()).build();
 			System.out.println("--------------------------------");
@@ -204,10 +208,10 @@ public class RegressionTest {
 	}
 	
 	
-	@Ignore
+//	@Ignore
 	@Test
 	public void test1(){
-		File dir1 = getFile("regressionTest/stereoWrongSet1");
+		File dir1 = getFile("regressionTest/uspto");
 		
 		try {
 			ChemicalBuilder cb = ChemicalBuilder.createFromSmiles("CCCC");
