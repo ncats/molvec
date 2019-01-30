@@ -204,7 +204,7 @@ public class RegressionTest {
 	}
 	
 	
-	//@Ignore
+	@Ignore
 	@Test
 	public void test1(){
 		File dir1 = getFile("regressionTest/stereoWrongSet1");

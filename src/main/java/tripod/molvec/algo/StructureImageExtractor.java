@@ -2885,12 +2885,12 @@ public class StructureImageExtractor {
 					
 					Point2D c=GeomUtil.findCenterOfShape(useLine);
 					
-					boolean isDash=dashShapes.stream()
+					Optional<Shape> isDash=dashShapes.stream()
 							  .filter(d->d.contains(c))
-							  .findFirst()
-							  .isPresent();
+							  .findFirst();
 					
-					if(isDash){
+					if(isDash.isPresent()){
+						
 						e.setDashed(true);
 						if(e.getOrder()!=1){
 							if(e.getRealNode1().getSymbol().equals("C") && e.getRealNode2().getSymbol().equals("C")){
@@ -2899,6 +2899,13 @@ public class StructureImageExtractor {
 								e.setOrder(1);
 							}							
 						}
+						
+						Point2D cmass=GeomUtil.centerOfMass(isDash.get());
+						if(e.getRealNode1().getPoint().distance(cmass)< e.getRealNode2().getPoint().distance(cmass)){
+							e.switchNodes();
+						}
+						
+						
 					}else{
 						//IDK
 						if(e.getRealNode1().getSymbol().equals("C") && e.getRealNode2().getSymbol().equals("C")){
