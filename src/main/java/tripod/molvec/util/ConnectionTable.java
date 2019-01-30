@@ -45,6 +45,9 @@ public class ConnectionTable{
 	private List<Node> nodes = new ArrayList<Node>();
 	private List<Edge> edges = new ArrayList<Edge>();
 
+	
+	private static final int AROMATIC_ORDER=0xDE10CA1;
+	
 	private CachedSupplier<Map<Integer,List<Edge>>> _bondMap = CachedSupplier.of(()->_getEdgeMap());
 	private CachedSupplier<Map<Node,Integer>> _nodeMap = CachedSupplier.of(()->_getNodeMap());
 	
@@ -100,7 +103,7 @@ public class ConnectionTable{
 				cb.addBond(atoms[e.n1],atoms[e.n2],BondType.DOUBLE);
 			}else if(e.getOrder()==3){
 				cb.addBond(atoms[e.n1],atoms[e.n2],BondType.TRIPLE);				
-			}else if(e.getOrder()==0xDE10CA1){
+			}else if(e.isAromatic()){
 				//doesn't work for some reason, so fix in the molfile and reload
 				int n1=e.n1+1;
 				int n2=e.n2+1;
@@ -994,6 +997,10 @@ public class ConnectionTable{
 			this.setOrder(o);
 		}
 		
+		public boolean isAromatic() {
+			return this.order==AROMATIC_ORDER;
+		}
+
 		public Edge setDashed(boolean d){
 			this.isDash=d;
 			return this;
@@ -1069,8 +1076,13 @@ public class ConnectionTable{
 			
 		}
 
-		public void setOrder(int order) {
+		public Edge setOrder(int order) {
 			this.order = order;
+			return this;
+		}
+		
+		public Edge setToAromatic(){
+			return setOrder(AROMATIC_ORDER);
 		}
 		
 		public String toString(){

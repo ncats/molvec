@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -1568,6 +1569,170 @@ public class Bitmap implements Serializable, TiffTags {
 		int[] rc = Arrays.stream(c).filter(cr->cr>0).toArray();
 		
 		return GeomUtil.ordinalCorrel(rc);
+    }
+    
+    
+    public static class WedgeInfo{
+    	private Shape hull;
+    	int onPixels;
+		double area;
+    	double correl;
+    	Line2D line;
+    	double padding;
+    	
+    	public Line2D getLine(){
+    		return line;
+    	}
+    	public int getOnPixels() {
+			return onPixels;
+		}
+
+		public void setOnPixels(int onPixels) {
+			this.onPixels = onPixels;
+		}
+
+		public double getArea() {
+			return area;
+		}
+
+		public void setArea(double area) {
+			this.area = area;
+		}
+
+		public double getCorrel() {
+			return correl;
+		}
+
+		public void setCorrel(double correl) {
+			this.correl = correl;
+		}
+
+    	
+    	public WedgeInfo(Shape s, int pix, double area, double c){
+    		this.setHull(s);
+    		this.onPixels=pix;
+    		this.area=area;
+    		this.correl=c;
+    	}
+
+		public Shape getHull() {
+			return hull;
+		}
+
+		public void setHull(Shape hull) {
+			this.hull = hull;
+		}
+    	
+		
+		public double getAverageThickness(){
+			return this.onPixels/(GeomUtil.length(this.line)-padding*2);
+		}
+    	
+    }
+    
+    public Optional<WedgeInfo> getconfexHullAlongLine(Line2D line){
+    	
+    	double sx=line.getX1();
+		double sy=line.getY1();
+		double dx=line.getX2()-line.getX1();
+		double dy=line.getY2()-line.getY1();
+		
+    	double len=GeomUtil.length(line);
+    	if(len<1)return Optional.empty();
+    	double mult=1/len;
+    	
+    	int widthDistance=(int)(Math.round(len/4));
+    	
+    	List<Point2D> pts= new ArrayList<>();
+    	
+    	double stepX=dx*mult;
+    	double stepY=dy*mult;
+    	
+    	int pad=(int)(len/6);
+    	
+    	int c=0;
+    	int[] cl = new int[(int)Math.ceil(len-2*pad)];
+    	
+    	int k=0;
+    	
+    	for(int d=pad;d<len-pad;d++){
+			double ddx = stepX*d+sx;
+			double ddy = stepY*d+sy;
+			int f=0;
+			
+			int fx=(int)Math.round(ddx);
+	    	int fy=(int)Math.round(ddy);
+	    	int lx=fx;
+	    	int ly=fy;
+	    	
+	    	boolean found1=false;
+	    	
+	    	if(this.get(fx, fy)){
+	    		pts.add(new Point2D.Double(fx, fy));
+	    		c++;
+	    		f++;
+	    	}
+	    	
+			for(int i=1;i<widthDistance;i++){
+				double iddx = i*stepY+ddx;
+				double iddy = -i*stepX+ddy;
+				//TODO
+				if(this.get((int)Math.round(iddx), (int)Math.round(iddy))){
+					c++;
+					f++;
+					fx=(int)Math.round(iddx);
+					fy=(int)Math.round(iddy);
+					if(!found1){
+						lx=fx;
+						ly=fy;
+					}
+					found1=true;
+				}else{
+					break;
+				}
+			}
+			for(int i=-1;i>-widthDistance;i--){
+				double iddx = i*stepY+ddx;
+				double iddy = -i*stepX+ddy;
+				//TODO
+				if(this.get((int)Math.round(iddx), (int)Math.round(iddy))){
+					c++;
+					f++;
+					lx=(int)Math.round(iddx);
+					ly=(int)Math.round(iddy);
+					if(!found1){
+						fx=lx;
+						fy=ly;
+					}
+					found1=true;
+				}else{
+					break;
+				}
+			}
+			if(found1){
+				pts.add(new Point2D.Double(fx, fy));
+				pts.add(new Point2D.Double(fx+1, fy));
+				pts.add(new Point2D.Double(fx, fy+1));
+				pts.add(new Point2D.Double(fx+1, fy+1));
+				pts.add(new Point2D.Double(lx, ly));
+				pts.add(new Point2D.Double(lx+1, ly));
+				pts.add(new Point2D.Double(lx, ly+1));
+				pts.add(new Point2D.Double(lx+1, ly+1));
+				cl[k]+=f;
+			}
+			k++;
+		}
+		Shape shull=GeomUtil.convexHull2(pts.stream().toArray(i->new Point2D[i]));
+		if(shull==null)return Optional.empty();
+		double area=GeomUtil.area(shull);
+		if(area<1)return Optional.empty();
+		double correl = GeomUtil.ordinalCorrel(cl);
+		
+		WedgeInfo wi = new WedgeInfo(shull,c,area,correl);
+		wi.line=line;
+		wi.padding=pad;
+		
+		return Optional.of(wi);
     }
     
     //0 means not wedge like

@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 
 import gov.nih.ncats.chemkit.api.Chemical;
 import tripod.molvec.Bitmap;
+import tripod.molvec.Bitmap.WedgeInfo;
 import tripod.molvec.CachedSupplier;
 import tripod.molvec.algo.Tuple.KEqualityTuple;
 import tripod.molvec.ui.FontBasedRasterCosineSCOCR;
@@ -112,7 +113,7 @@ public class StructureImageExtractor {
 	private final double OCRcutoffCosine=0.65;
 	private final double OCRcutoffCosineRescue=0.50;
 
-	private final double WEDGE_LIKE_PEARSON_SCORE_CUTOFF=.70;
+	private final double WEDGE_LIKE_PEARSON_SCORE_CUTOFF=.60;
 	private final double WEDGE_LIKE_PEARSON_SCORE_CUTOFF_DOUBLE=.80;
 
 	private final double MAX_BOND_TO_AVG_BOND_RATIO_TO_KEEP = 1.8;
@@ -2870,9 +2871,10 @@ public class StructureImageExtractor {
 			
 			
 
-			ctab.getEdges()
-			.forEach(e->{
-				if(e.getRealNode1().isInvented() || e.getRealNode2().isInvented())return;
+			List<Tuple<Edge,WedgeInfo>> winfo=(List<Tuple<Edge, WedgeInfo>>) ctab.getEdges()
+					.stream()
+			.map(e->{
+				if(e.getRealNode1().isInvented() || e.getRealNode2().isInvented())return Optional.empty();
 				Line2D useLine=GeomUtil.getLinesNotInside(e.getLine(), growLikelyOCR)
 						.stream()
 						.map(l->Tuple.of(l, GeomUtil.length(l)).withVComparator())
@@ -2907,7 +2909,32 @@ public class StructureImageExtractor {
 						if(e.getPoint1().distance(useLine.getP1())< e.getPoint2().distance(useLine.getP1())){
 							mult=-1;
 						}
-						double wl=mult*bitmap.getWedgeLikeScore(useLine);
+						return bitmap.getconfexHullAlongLine(useLine)
+								.map(w->Tuple.of(e,w));
+					}
+				}
+				return Optional.empty();
+			})
+			.filter(t->t.isPresent())
+			.map(o->o.get())
+			.collect(Collectors.toList());
+			
+			
+			double averageThickness = winfo.stream().mapToDouble(t->t.v().getAverageThickness()).average().orElse(2);
+			
+			winfo.forEach(t->{
+				Edge e=t.k();
+				
+				WedgeInfo s = t.v();
+				
+				//realRescueOCRCandidates.add(s.getHull());
+				
+				
+				double wl=s.getCorrel();
+				//TODO: we need something for thick bonds which are _not_ strictly wedges, but are meant to be
+				//wedges.
+				if(s.getAverageThickness()>averageThickness*1.9){
+					if(s.getOnPixels()>s.getArea()*0.5){
 						double cutoff=WEDGE_LIKE_PEARSON_SCORE_CUTOFF;
 						if(e.getRealNode1().getEdges().stream().filter(ed->ed.getOrder()>1).findAny().isPresent()){
 							cutoff=WEDGE_LIKE_PEARSON_SCORE_CUTOFF_DOUBLE;
@@ -2915,15 +2942,22 @@ public class StructureImageExtractor {
 						if(e.getRealNode2().getEdges().stream().filter(ed->ed.getOrder()>1).findAny().isPresent()){
 							cutoff=WEDGE_LIKE_PEARSON_SCORE_CUTOFF_DOUBLE;
 						}
+						
+						
 						if(wl>cutoff){
-							e.setWedge(true);	
-							e.switchNodes();
+							e.setWedge(true);
 						}else if(wl<-cutoff){
+							e.setWedge(true);
+							e.switchNodes();
+						}else if(s.getAverageThickness()>averageThickness*3){
+							//very thick line
 							e.setWedge(true);
 						}
 					}
 				}
+				//System.out.println("Pixels on:" + s.getOnPixels() + " and area=" + s.getArea() + " and correl=" + s.getCorrel() + " and thickness:" + s.getAverageThickness());
 			});
+			
 			
 
 			GeomUtil.eachCombination(ctab.getNodes())
@@ -3171,9 +3205,7 @@ public class StructureImageExtractor {
 		       .forEach(cp->{
 		    	   ctab.getEdgesWithCenterWithin(cp,ctab.getAverageBondLength())
 				       .stream()
-				       .forEach(e->{
-				    	   e.setOrder(0xDE10CA1);
-				       });
+				       .forEach(Edge::setToAromatic);
 		       });
 		
 
