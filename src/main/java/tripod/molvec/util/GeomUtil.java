@@ -1926,6 +1926,44 @@ public class GeomUtil {
 			
 		};
 	}
+	
+	public static Collector<Point2D,List<Point2D>,Shape> convexHull(){
+		
+		return new Collector<Point2D,List<Point2D>,Shape>(){
+
+			@Override
+			public BiConsumer<List<Point2D>, Point2D> accumulator() {
+
+				return (l,p)->{
+					l.add(p);
+				};
+			}
+
+			@Override
+			public Set<java.util.stream.Collector.Characteristics> characteristics() {
+				return new HashSet<java.util.stream.Collector.Characteristics>();
+			}
+
+			@Override
+			public BinaryOperator<List<Point2D>> combiner() {
+				return (l1,l2)->{
+					l1.addAll(l2);
+					return l1;
+				};
+			}
+
+			@Override
+			public Function<List<Point2D>, Shape> finisher() {
+				return (pts)->GeomUtil.convexHull2(pts.stream().toArray(i->new Point2D[i]));
+			}
+
+			@Override
+			public Supplier<List<Point2D>> supplier() {
+				return ()->new ArrayList<>();
+			}
+			
+		};
+	}
 
     
 }

@@ -5,6 +5,7 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Shape;
 import java.awt.Stroke;
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
@@ -12,7 +13,6 @@ import java.awt.geom.Rectangle2D;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -71,14 +71,36 @@ public class ConnectionTable{
 	
 	
 	
-	
 	public Chemical toChemical(){
+		//return toChemical(this.getAverageBondLength(), false);
+		return toChemical(1,true);
+	}
+	
+	public Chemical toChemical(double averageBondLength, boolean center){
+		
+		AffineTransform at = new AffineTransform();
+		double blcur = Math.max(this.getAverageBondLength(),1);
+		
+		double scale = averageBondLength/blcur;
+		
+		
+
+		at.scale(scale, scale);
+		if(center){
+			if(this.getNodes().size()>0){
+				Rectangle2D rect=this.getNodes().stream().map(n->n.getPoint()).collect(GeomUtil.convexHull()).getBounds2D();
+				at.translate(-rect.getCenterX(), -rect.getCenterY());
+			}
+		}
+		
 		ChemicalBuilder cb = new ChemicalBuilder();
 		Atom[] atoms = new Atom[nodes.size()];
 		
 		for(int i=0;i<nodes.size();i++){
 			Node n = nodes.get(i);
-			atoms[i]=cb.addAtom(n.symbol,n.point.getX(),-n.point.getY());
+			Point2D np = at.transform(n.getPoint(), null);
+			
+			atoms[i]=cb.addAtom(n.symbol,np.getX(),-np.getY());
 			if(n.getCharge()!=0){
 				atoms[i].setCharge(n.getCharge());
 			}

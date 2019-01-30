@@ -207,7 +207,7 @@ public class RegressionTest {
 	@Ignore
 	@Test
 	public void test1(){
-		File dir1 = getFile("regressionTest/testSet1");
+		File dir1 = getFile("regressionTest/stereoWrongSet1");
 		
 		try {
 			ChemicalBuilder cb = ChemicalBuilder.createFromSmiles("CCCC");
@@ -237,8 +237,8 @@ public class RegressionTest {
 					}
 		    	  	return l;
 		      })
-		      .collect(shuffler(new Random(11111123l)))		      
-		      .limit(100)
+//		      .collect(shuffler(new Random(11111123l)))		      
+//		      .limit(100)
 		      .parallel()
 		      .map(fl->Tuple.of(fl,testMolecule(fl.get(1),fl.get(0))))
 		      .map(t->t.swap())
