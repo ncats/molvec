@@ -7,6 +7,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import tripod.molvec.CachedSupplier;
@@ -225,6 +227,29 @@ class BranchNode{
 		return this;
 	}
 	
+	private BranchNode rightBranch=this;
+	private BranchNode leftBranch=this;
+	
+	public BranchNode getLeftBranchNode(){
+		return rightBranch;
+	}
+	
+	public BranchNode getRightBranchNode(){
+		return leftBranch;
+	}
+	
+	public BranchNode setRightBranchNode(BranchNode bn){
+		this.rightBranch=bn;
+		return this;
+	}
+	public BranchNode setLeftBranchNode(BranchNode bn){
+		this.leftBranch=bn;
+		return this;
+	}
+	
+	public boolean canBeChain(){
+		return this.leftBranch!=this.rightBranch;
+	}
 	
 	public BranchNode(String s){
 		this.symbol=s;
@@ -268,6 +293,33 @@ class BranchNode{
 	}
 
 	private static BranchNode interpretOCRStringAsAtom(String s, boolean tokenOnly){
+		
+		//first step is to see if this is an aliphatic chain
+		if(s.matches("([cC]H[2]*)+")){
+			int c=s.split("H[2]*").length;
+			
+			BranchNode full = new BranchNode("C");
+			BranchNode parent=full;
+			for(int i=1;i<c;i++){
+				BranchNode nn=new BranchNode("C").thetaOffset(i%2);
+				parent.addChild(nn);
+				parent=nn;
+			}
+			full.setRightBranchNode(parent);
+			return full;
+		}else if(s.equalsIgnoreCase("NHCO")){
+			
+			BranchNode full = new BranchNode("N");
+			
+			BranchNode carb = new BranchNode("C").thetaOffset(1).addChild(new BranchNode("O").setOrderToParent(2));
+			full.addChild(carb);
+			full.setRightBranchNode(carb);
+			
+			return full;
+		}
+		
+		
+		
 		if((  s.equalsIgnoreCase("CO2H")
 				|| s.equalsIgnoreCase("CO2")
 				|| s.equalsIgnoreCase("COOH")
@@ -339,7 +391,7 @@ class BranchNode{
 			bn.addChild(new BranchNode("O").setOrderToParent(2));
 			//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
 			return bn;
-		}else if(s.equalsIgnoreCase("Ms")){
+		}else if(s.equalsIgnoreCase("Ms") || s.equalsIgnoreCase("M8")){
 			BranchNode bn = new BranchNode("S");
 			bn.addChild(new BranchNode("O").setOrderToParent(2));
 			bn.addChild(new BranchNode("O").setOrderToParent(2));
@@ -458,6 +510,23 @@ class BranchNode{
 			
 			
 			return bn;
+		}else if(s.equals("[p-tol]")){
+			BranchNode bn = new BranchNode("C").thetaOffset(1);
+			
+			bn.addChild(new BranchNode("C").setOrderToParent(2) //ortho
+					    			       .addChild(new BranchNode("C").setOrderToParent(1) //meta
+					    			    		   .addChild(new BranchNode("C").setOrderToParent(2) //para
+					    			    				   .addChild(new BranchNode("C").setOrderToParent(1) //meta
+					    			    						   .addChild(new BranchNode("C").setOrderToParent(2).addRing(bn, 1))) //ortho
+					    			    				   .addChild(new BranchNode("C"))
+					    			    		   )
+					    			    	)
+					);
+			
+			
+			return bn;
+		}else if(s.equals("Ts")){
+			return interpretOCRStringAsAtom("SO2[p-tol]");
 		}else if(s.equalsIgnoreCase("PMBN")){
 			BranchNode bno = new BranchNode("N").thetaOffset(1);
 			BranchNode ml = new BranchNode("C");
@@ -477,8 +546,10 @@ class BranchNode{
 			
 			
 			return bno;
-		}else if(s.equalsIgnoreCase("CH3O")){
+		}else if(s.equalsIgnoreCase("CH3O") || s.equalsIgnoreCase("H3CO")){
 			return interpretOCRStringAsAtom("OCH3");
+		}else if(s.equalsIgnoreCase("OCH3")){
+			return interpretOCRStringAsAtom("O").addChild(interpretOCRStringAsAtom("C"));
 		}else if(s.equalsIgnoreCase("EtHN")){
 			return interpretOCRStringAsAtom("NHEt");
 		}else if(s.equalsIgnoreCase("OHC")){
@@ -491,7 +562,7 @@ class BranchNode{
 			BranchNode bn = new BranchNode("S");
 			bn.setCharge(1);
 			return bn;
-		}else if(s.equalsIgnoreCase("N+")){
+		}else if(s.equalsIgnoreCase("N+") || s.equalsIgnoreCase("+N")){
 			BranchNode bn = new BranchNode("N");
 			bn.setCharge(1);
 			return bn;
@@ -503,12 +574,65 @@ class BranchNode{
 			return interpretOCRStringAsAtom("NBn");
 		}else if(s.equals("MeN") || s.equals("McN")){
 			return interpretOCRStringAsAtom("NMe");
+		}else if(s.equals("MeS") || s.equals("McS")){
+			return interpretOCRStringAsAtom("SMe");
 		}else if(s.equalsIgnoreCase("EtO") ){
 			return interpretOCRStringAsAtom("OEt");
 		}else if(s.equalsIgnoreCase("F3CO") ){
 			return interpretOCRStringAsAtom("OCF3");
 		}else if(s.equalsIgnoreCase("EtOOC") ){
 			return interpretOCRStringAsAtom("COOEt");
+		}else if(s.equalsIgnoreCase("H3CS") ){
+			return interpretOCRStringAsAtom("SCH3");
+		}else if(s.equalsIgnoreCase("PH3C") ){
+			return interpretOCRStringAsAtom("CPH3");
+		}else if(s.equalsIgnoreCase("HOH2C") ){
+			return interpretOCRStringAsAtom("CH2OH");
+		}
+//		else if(s.equalsIgnoreCase("CH3CONH") ){
+//			return interpretOCRStringAsAtom("NHOCCH3");
+//		}
+		else if(s.equalsIgnoreCase("SOCH3") ){
+			BranchNode bn = new BranchNode("S");
+			bn.setCharge(1);
+			bn.addChild(new BranchNode("O").setCharge(-1));
+			bn.addChild(interpretOCRStringAsAtom("CH3"));			
+			return bn;
+		}else if(s.matches("[(].*[)][0-9][0-9]*")){
+			Pattern p = Pattern.compile("[(](.*)[)]([0-9][0-9]*)");
+			Matcher m=p.matcher(s);
+			if(m.find()){
+				String s1=m.group(1);
+				String s2=m.group(2);
+				
+				int n=Integer.parseInt(s2);
+				
+				BranchNode ps = new BranchNode("?").setPseudoNode(true);
+				
+				
+				if(n<10){
+					for(int i=0;i<n;i++){
+						BranchNode bnnew=interpretOCRStringAsAtom(s1);
+						if(bnnew!=null && bnnew.isRealNode()){
+							ps.addChild(bnnew);
+						}else{
+							ps=null;
+							break;
+						}
+					}
+				}
+				if(ps!=null)return ps;
+				
+				
+				//System.out.println("Got:" + s1 + "," + s2 + " from " + s);
+			}
+			 
+		}else if(s.matches("[(].*[)][0-9][0-9]*N")){
+			Pattern p = Pattern.compile("[(](.*)[)]([0-9][0-9]*)N");
+			Matcher m=p.matcher(s);
+			if(m.find()){
+				return interpretOCRStringAsAtom("N(" + m.group(1) + ")" + m.group(2));
+			}
 		}
 		
 		
@@ -529,6 +653,9 @@ class BranchNode{
 		}
 		if(s.contains("Ct")){
 			return interpretOCRStringAsAtom(s.replaceAll("C[tT]", "Cl"),tokenOnly);
+		}
+		if(s.contains("Htt")){
+			return interpretOCRStringAsAtom(s.replace("Htt", "H11"),tokenOnly);
 		}
 		if(s.contains("Ht")){
 			return interpretOCRStringAsAtom(s.replace("Ht", "H1"),tokenOnly);

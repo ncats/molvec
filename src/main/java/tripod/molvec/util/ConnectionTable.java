@@ -1076,6 +1076,20 @@ public class ConnectionTable{
 		public String toString(){
 			return "Edge: " + this.n1 + " to " + this.n2 + ", order=" + this.order + ", dash=" + this.isDash + ", wedge=" + this.isWedge;
 		}
+
+		public boolean isInventedBond() {
+			return this.getRealNode1().isInvented() || this.getRealNode2().isInvented();
+		}
+
+		public List<Edge> getNeighborEdges() {
+			
+			return Stream.concat(this.getRealNode1().getEdges().stream(),
+					      this.getRealNode2().getEdges().stream())
+			      .filter(e->e!=this)
+			      .collect(Collectors.toList());
+			      
+			
+		}
 		
 	}
 	public Optional<Edge> getEdgeBetweenNodes(Node n1, Node n2){

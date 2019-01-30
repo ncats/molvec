@@ -49,13 +49,30 @@ public class GeomUtilTest {
     }
     
     @Test
-    public void pointJustOUtsideOfRectangleShouldHaveCorrectDistance(){
-    	Rectangle2D rect= new Rectangle2D.Double(0, 0, 10, 10).getBounds2D();
-    	Shape s=GeomUtil.convexHull2(vertices(rect));
-    	Arrays.stream(GeomUtil.lines(rect)).map(l->l.getP1() + "," + l.getP2()).forEach(System.out::println);
+    public void transformLineShouldTurnSourceIntoDestination(){
+    	Line2D o = new Line2D.Double(-2, -10, 500, 5);
+    	Line2D d = new Line2D.Double(100, 1, 0, 0);
     	
-    	//System.out.println(Arrays.toString());//
+    	AffineTransform at=GeomUtil.getTransformFromLineToLine(o, d,true);
+    	
+    	Line2D nline=GeomUtil.lines(at.createTransformedShape(o))[0];
+    	
+    	assertEquals(d.getX1(),nline.getX1(),0.001);
+    	assertEquals(d.getY1(),nline.getY1(),0.001);
+    	assertEquals(d.getX2(),nline.getX2(),0.001);
+    	assertEquals(d.getY2(),nline.getY2(),0.001);
+    	
+    	
     }
+    
+//    @Test
+//    public void pointJustOUtsideOfRectangleShouldHaveCorrectDistance(){
+//    	Rectangle2D rect= new Rectangle2D.Double(0, 0, 10, 10).getBounds2D();
+//    	Shape s=GeomUtil.convexHull2(vertices(rect));
+//    	Arrays.stream(GeomUtil.lines(rect)).map(l->l.getP1() + "," + l.getP2()).forEach(System.out::println);
+//    	
+//    	//System.out.println(Arrays.toString());//
+//    }
     
     @Test
     public void centerOfMassOfSquareShouldBeCenter(){

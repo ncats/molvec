@@ -993,7 +993,20 @@ public class MoleculeTest {
 			String form=c.getFormula();
 			assertEquals(cReal.getFormula(),form);
 		} )});
+//
+		list.add(new Object[]{"crossColinearBonds", new TestSpec("moleculeTest/crossBonds.png", c->{
+			Chemical cReal=ChemicalBuilder.createFromSmiles("[#6]C([#6])(c1ccc(OCC2CO2)cc1)c3ccc(OCC4CO4)cc3").build();
 
+			String form=c.getFormula();
+			assertEquals(cReal.getFormula(),form);
+		} )});
+		//NHConnectedTogetherInChain.png
+		list.add(new Object[]{"NHConnectedTogetherInChain", new TestSpec("moleculeTest/NHConnectedTogetherInChain.png", c->{
+			Chemical cReal=ChemicalBuilder.createFromSmiles("[#6]OC(=O)[C@H](CNC(=O)c1ccc2n(CCCNC3=CCCCN3)ncc2c1)NS(=O)(=O)c4c(-[#6])cc(OCCCC(=O)NCC[#7])cc4-[#6]").build();
+			String keyReal=Inchi.asStdInchi(cReal).getKey();
+			String keyGot=Inchi.asStdInchi(c).getKey();
+			assertEquals(keyReal,keyGot);
+		} )});
 		list.add(new Object[]{"structureWithVeryShortSingleBondBetweenCarbons", new TestSpec("moleculeTest/verySmallSingleBondBetweenExplicitCarbons.png", c->{
 			Chemical cReal=ChemicalBuilder.createFromSmiles("C(C=Cc1ccc(cc1)N(c2ccccc2)c3ccc(cc3)-c4ccc(cc4)N(c5ccccc5)c6ccc(C=CC=Cc7ccccc7)cc6)=Cc8ccccc8").build();
 

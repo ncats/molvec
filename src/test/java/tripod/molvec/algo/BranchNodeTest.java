@@ -4,7 +4,9 @@ import static org.junit.Assert.assertTrue;
 
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -85,6 +87,13 @@ public class BranchNodeTest {
 		assertEquals("F :3.3306690738754696E-16,-1.7320508075688774",coordStrings.get(2));
 		assertEquals("F :1.5,-0.8660254037844386",coordStrings.get(3));
 		assertEquals("F :1.0000000000000002,-1.7320508075688772",coordStrings.get(4));
+	}
+	
+	@Test
+	public void shouldAllowCarbonChainsToConnectOnBothSides(){
+		String s="CH2CH2CH";
+		BranchNode bn=BranchNode.interpretOCRStringAsAtom2(s);
+		assertTrue(bn.canBeChain());		
 	}
 	
 	public void testReadingSingle(String input, String expected){

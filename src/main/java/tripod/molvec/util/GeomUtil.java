@@ -69,7 +69,7 @@ public class GeomUtil {
     }
 
     /**
-     * calculate angle between (x0,y0) and (x1,y1) in radian
+     * calculate angle between (x0,y0) and (x1,y1) in radians
      */
     public static double angle (double x0, double y0, double x1, double y1) {
         double dx = x1 - x0, dy = y1 - y0;
@@ -1454,6 +1454,14 @@ public class GeomUtil {
 		double[] projVec= new double[]{proj*vec[0],proj*vec[1]};
 		return new Point2D.Double(projVec[0]+l.getX1(), projVec[1]+l.getY1());
 	}
+	public static Line2D resizeLine(Line2D l1, double size){
+		double[] v=normalize(asVector(l1));
+		v[0]=v[0]*size;
+		v[1]=v[1]*size;
+		double[] off=new double[]{l1.getX1(),l1.getY1()};
+		
+		return new Line2D.Double(l1.getP1(), new Point2D.Double(v[0]+off[0], v[1]+off[1]));
+	}
 	
 	public static Tuple<Point2D, Double> projectPointOntoLineWithRejection(Line2D l, Point2D p){
 		double[] vec=asVector(l);
@@ -1822,6 +1830,51 @@ public class GeomUtil {
 		}
 		return wid*hi*(hits)/(double)tot;
 	}
+	public static AffineTransform getTransformFromLineToLine(Line2D source,Line2D destination, boolean flip){
+		AffineTransform at = new AffineTransform();
+		
+		double[] v1 = asVector(source);
+		double[] v2 = asVector(destination);
+		double l1=l2Norm(v1);
+		double l2=l2Norm(v2);
+		
+		double scale  =l2/l1;
+		
+		double thetap1 = angleFromVec1ToVec2(v1,new double[]{1,0});
+		double thetap2 = angleFromVec1ToVec2(new double[]{1,0},v2);
+		
+		double scaleY = (flip)?-scale:scale;
+		
+		double sy=-source.getP1().getY();
+		double dy=destination.getP1().getY();
+		
+		at.translate(destination.getP1().getX(), dy);
+
+		at.rotate(thetap2);
+		at.scale(scale, scaleY);
+		at.rotate(thetap1);
+		
+		at.translate(-source.getP1().getX(), sy);
+		
+		//at.translate(-destination.getP1().getX(), -destination.getP1().getY());
+		
+		return at;
+	}
+	
+	public static double angleFromVec1ToVec2(double[] v1, double[] v2){
+		double l1=l2Norm(v1);
+		double l2=l2Norm(v2);
+		
+		double dot=dot(v1,v2);
+		double cosTheta=dot/(l1*l2);
+		double thetap = Math.acos(cosTheta);
+		double rej = rejection(v1,v2);
+		if(rej<0){
+			thetap=thetap*-1;
+		}
+		return thetap;
+	}
+	
 	
 	public static List<Point2D> splitIntoNPieces(Line2D l, int n){
 		

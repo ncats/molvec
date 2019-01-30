@@ -431,10 +431,12 @@ public class Viewer extends JPanel
                     */
                     x = x1; 
                     y = y1;
+                    
                     if (a < 90.) {
                         x = x1+5;
                         y = y1+5;
                     }
+                    
                     else if (a < 180.) {
                         x = x1-10;
                         y = y1+10;
