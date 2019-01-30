@@ -2919,6 +2919,7 @@ public class StructureImageExtractor {
 			.map(o->o.get())
 			.collect(Collectors.toList());
 			
+			Predicate<Node> couldBeStereoCenter = (n1)->n1.getEdgeCount()>=3 && n1.getSymbol().equals("C") && !n1.getEdges().stream().filter(e1->e1.getOrder()>1).findAny().isPresent();
 			
 			double averageThickness = winfo.stream().mapToDouble(t->t.v().getAverageThickness()).average().orElse(2);
 			
@@ -2952,6 +2953,18 @@ public class StructureImageExtractor {
 						}else if(s.getAverageThickness()>averageThickness*3){
 							//very thick line
 							e.setWedge(true);
+						}
+						if(e.getWedge()){
+							if(e.getRealNode1().getEdgeCount()<3 && e.getRealNode2().getEdgeCount()>=3){
+								e.switchNodes();
+							}
+							
+							//not the best yet
+							
+							
+							if(couldBeStereoCenter.test(e.getRealNode2()) && ! couldBeStereoCenter.test(e.getRealNode1())){
+								e.switchNodes();
+							}
 						}
 					}
 				}
@@ -2988,7 +3001,7 @@ public class StructureImageExtractor {
 			.stream()
 			.filter(e->e.getDashed())
 			.forEach(e->{
-				if(e.getRealNode1().getEdgeCount()<3){
+				if(couldBeStereoCenter.test(e.getRealNode2()) && ! couldBeStereoCenter.test(e.getRealNode1())){
 					e.switchNodes();
 				}
 			});

@@ -93,8 +93,8 @@ public class RegressionTest {
 
 			Chemical c=sie.getChemical();
 			
-			c1.makeHydrogensImplicit();
-			c.makeHydrogensImplicit();
+			//c1.makeHydrogensImplicit();
+			//c.makeHydrogensImplicit();
 			
 			String iinchi=Inchi.asStdInchi(c).getKey();
 			String rinchi=Inchi.asStdInchi(c1).getKey();
@@ -204,7 +204,7 @@ public class RegressionTest {
 	}
 	
 	
-	@Ignore
+	//@Ignore
 	@Test
 	public void test1(){
 		File dir1 = getFile("regressionTest/stereoWrongSet1");
