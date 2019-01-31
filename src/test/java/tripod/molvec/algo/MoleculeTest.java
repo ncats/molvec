@@ -188,7 +188,7 @@ public class MoleculeTest {
 		} )});
 		//withAtomNumbers.png
 		list.add(new Object[]{"withAtomNumbers", new TestSpec("moleculeTest/withAtomNumbers.png", c->{
-			Chemical cReal=ChemicalBuilder.createFromSmiles("[#6]Oc1ccc(cc1)C2(Oc3cc(cc(C(=O)NC\\C=C\\[C@H]4O[C@H]([C@@H]5OC([#6])([#6])O[C@H]45)n6cnc7c(-[#7])ncnc67)c3O2)C(F)(F)F)c8ccc(O[#6])cc8").build();
+			Chemical cReal=ChemicalBuilder.createFromSmiles("COc1ccc(cc1)C2(Oc3cc(cc(C(=O)NC\\C=C\\[C@H]4O[C@H]([C@@H]5OC(C)(C)O[C@H]45)n6cnc7c(-N)ncnc67)c3O2)C(F)(F)F)c8ccc(OC)cc8").build();
 			String form=c.getFormula();
 			assertEquals(cReal.getFormula(),form);
 		} )});
@@ -995,14 +995,14 @@ public class MoleculeTest {
 		} )});
 //
 		list.add(new Object[]{"crossColinearBonds", new TestSpec("moleculeTest/crossBonds.png", c->{
-			Chemical cReal=ChemicalBuilder.createFromSmiles("[#6]C([#6])(c1ccc(OCC2CO2)cc1)c3ccc(OCC4CO4)cc3").build();
+			Chemical cReal=ChemicalBuilder.createFromSmiles("CC(C)(c1ccc(OCC2CO2)cc1)c3ccc(OCC4CO4)cc3").build();
 
 			String form=c.getFormula();
 			assertEquals(cReal.getFormula(),form);
 		} )});
 		//NHConnectedTogetherInChain.png
 		list.add(new Object[]{"NHConnectedTogetherInChain", new TestSpec("moleculeTest/NHConnectedTogetherInChain.png", c->{
-			Chemical cReal=ChemicalBuilder.createFromSmiles("[#6]OC(=O)[C@H](CNC(=O)c1ccc2n(CCCNC3=CCCCN3)ncc2c1)NS(=O)(=O)c4c(-[#6])cc(OCCCC(=O)NCC[#7])cc4-[#6]").build();
+			Chemical cReal=ChemicalBuilder.createFromSmiles("COC(=O)[C@H](CNC(=O)c1ccc2n(CCCNC3=CCCCN3)ncc2c1)NS(=O)(=O)c4c(-C)cc(OCCCC(=O)NCCN)cc4-C").build();
 			String keyReal=Inchi.asStdInchi(cReal).getKey();
 			String keyGot=Inchi.asStdInchi(c).getKey();
 			assertEquals(keyReal,keyGot);
