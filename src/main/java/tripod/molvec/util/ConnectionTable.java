@@ -70,6 +70,37 @@ public class ConnectionTable{
 	}
 	
 	
+	public List<ConnectionTable> getDisconnectedComponents(){
+		
+		//note: very inefficient
+		return GeomUtil.groupThings(this.nodes, t->t.k().connectsTo(t.v()))
+		.stream()
+		.map(ln->{
+			int[] map = new int[this.getNodes().size()];
+			ConnectionTable ct  = new ConnectionTable();
+			for(int i=0;i<ln.size();i++){
+				Node oldNode=ln.get(i);
+				
+				Node newNode=ct.addNode(oldNode.getPoint()).setSymbol(oldNode.getSymbol()).setInvented(oldNode.isInvented());
+				map[oldNode.getIndex()] = newNode.getIndex();
+			}
+			
+			ln.stream()
+			  .flatMap(n->n.getEdges().stream())
+			  .distinct()
+			  .forEach(e->{
+				  int of=map[e.getRealNode1().getIndex()];
+				  int os=map[e.getRealNode2().getIndex()];
+				  Edge nedge=ct.addEdge(of,os,e.getOrder());
+				  nedge.setDashed(e.getDashed());
+				  nedge.setWedge(e.getWedge());
+			  });
+			return ct;
+		})
+		.collect(Collectors.toList());
+		
+	}
+	
 	
 	public Chemical toChemical(){
 		//return toChemical(this.getAverageBondLength(), false);
@@ -932,6 +963,10 @@ public class ConnectionTable{
 				.collect(Collectors.toList());
 		}
 		
+		public boolean connectsTo(Node v) {
+			return this.getNeighborNodes().stream().filter(t->t.k()==v).findAny().isPresent();
+		}
+
 		public int getCharge(){
 			return this.charge;
 		}

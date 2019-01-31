@@ -1822,6 +1822,15 @@ public class StructureImageExtractor {
 				if(making!=null){
 					toAdd.add(Tuple.of(making,Tuple.of(lsofar,soFar)));
 				}
+				
+				Map<String,List<String>> dontMerge = new HashMap<>();
+				
+				dontMerge.put("OO", Arrays.asList("O","O"));
+				dontMerge.put("FF", Arrays.asList("F","F"));
+				dontMerge.put("HOOH", Arrays.asList("HO","OH"));
+				dontMerge.put("OHOH", Arrays.asList("OH","OH"));
+				dontMerge.put("OHHO", Arrays.asList("OH","HO"));
+				dontMerge.put("BrBr", Arrays.asList("Br","Br"));
 
 				for(Tuple<Shape,Tuple<List<Shape>,String>> tt: toAdd){
 					boolean removeBad=false;
@@ -1840,9 +1849,24 @@ public class StructureImageExtractor {
 					}
 					
 					
-					if(val.equals("OO") || val.equals("FF") && contains.size()==2){
-						bestGuessOCR.put(contains.get(0), val.substring(0,1));
-						bestGuessOCR.put(contains.get(1), val.substring(0,1));
+					if(dontMerge.containsKey(val)){
+						List<String> keepAs=dontMerge.get(val);
+						
+						int findex=0;
+						
+						for(int i=0;i<keepAs.size();i++){
+							String keep=keepAs.get(i);
+							String g1=val.substring(findex,keep.length());
+							Shape parts= contains.stream().skip(findex).limit(keep.length()).collect(GeomUtil.joined());
+							findex=findex+keep.length();
+							if(keep.equals(g1)){
+								bestGuessOCR.put(parts, keep);
+							}
+						}
+						
+						
+//						bestGuessOCR.put(contains.get(0), val.substring(0,1));
+//						bestGuessOCR.put(contains.get(1), val.substring(0,1));
 						continue;
 					}
 					if(val.length()>5){
