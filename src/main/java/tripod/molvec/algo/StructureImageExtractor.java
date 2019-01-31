@@ -106,6 +106,8 @@ public class StructureImageExtractor {
 	private final double MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 1.3;
 	private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 0.5;
 
+	
+	private final boolean REMOVE_NONSENSE_OCR_LINES = false;
 
 	private final double MAX_TOLERANCE_FOR_DASH_BONDS = 3.0;
 	private final double MAX_TOLERANCE_FOR_SINGLE_BONDS = 0.4;
@@ -1869,8 +1871,9 @@ public class StructureImageExtractor {
 //						bestGuessOCR.put(contains.get(1), val.substring(0,1));
 						continue;
 					}
+					
+					BranchNode bn = BranchNode.interpretOCRStringAsAtom2(val);
 					if(val.length()>5){
-						BranchNode bn=BranchNode.interpretOCRStringAsAtom2(val);
 						if(bn==null){
 							removeBad=true;
 						}
@@ -1883,6 +1886,13 @@ public class StructureImageExtractor {
 							removeBad=true;
 						}
 					}
+					
+					if(bn==null || !bn.isRealNode()){
+						if(REMOVE_NONSENSE_OCR_LINES){
+							removeBad=true;
+						}
+					}
+					
 					if(removeBad){
 						contains.stream()
 					      //.filter(s2->likelyOCR.contains(s2))
