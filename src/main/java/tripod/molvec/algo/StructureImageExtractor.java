@@ -1754,7 +1754,7 @@ public class StructureImageExtractor {
 			bestGuessOCR.clear();
 			
 						
-			boolean areLikelyNumbers=(likelyOCRNumbers.size()>4);
+			boolean areLikelyNumbers=(likelyOCRNumbers.size()>=4);
 
 			ocrGroupList.stream()
 			//.filter(l->l.size()>1)
@@ -1834,6 +1834,11 @@ public class StructureImageExtractor {
 						removeBad=true;
 					}
 					
+					if(val.equals("IN") || val.equals("tN") || val.equals("lN")){
+						bestGuessOCR.put(contains.get(1), "N");
+						continue;
+					}
+					
 					
 					if(val.equals("OO") || val.equals("FF") && contains.size()==2){
 						bestGuessOCR.put(contains.get(0), val.substring(0,1));
@@ -1892,7 +1897,10 @@ public class StructureImageExtractor {
 							            .stream()
 							            .map(Tuple::of)
 							            .filter(t1->t1.k()!=t.k())
-							            .filter(t1->t1.v().equals("N") || t1.v().equals("Nt")  || t1.v().equals("N+") || t1.v().equals("NI") || t1.v().equals("Nl") || t1.v().equals("O") || t1.v().equals("S"))
+							            .filter(t1->t1.v().equals("N") || t1.v().equals("Nt")  || 
+							            		t1.v().equals("N+") || t1.v().equals("NI") || 
+							            		t1.v().equals("Nl") || t1.v().equals("O") || 
+							            		t1.v().equals("S"))
 							            .filter(t1->GeomUtil.distance(t.k(), t1.k())<cutoff)
 							            .filter(t1->(Math.abs(t1.k().getBounds2D().getMinX()-t.k().getBounds2D().getMinX())< cutoff/3.0))
 							            .filter(t1->(Math.abs(t1.k().getBounds2D().getMaxX()-t.k().getBounds2D().getMaxX())< cutoff/1.5))
@@ -2310,6 +2318,72 @@ public class StructureImageExtractor {
 			ctabRaw.add(ctab.cloneTab());
 			double fbondlength=ctab.getAverageBondLength();
 
+			
+
+			
+			//clean bad triple bonds
+			ctab.getEdges().stream()
+			.filter(e->e.getOrder()==3)
+			.collect(Collectors.toList())
+			.forEach(e->{
+				Line2D lb = e.getLine();
+				
+				double len = e.getEdgeLength();
+				
+				double otherBondAverage = ctab.getEdges().stream().filter(e1->e1!=e).mapToDouble(e1->e1.getEdgeLength()).average().orElse(1);
+				
+				int n = (int)Math.round(len/otherBondAverage);
+				
+				if(n>1){
+					Node n1=e.getRealNode1();
+					Node n2=e.getRealNode2();
+					
+					Shape bigLineShape = GeomUtil.growLine(lb,len/3);
+					
+					Point2D apt=rejBondOrderLines.stream()
+									 .filter(l->GeomUtil.length(l)>ctab.getAverageBondLength()*0.5)
+					                 .map(l->GeomUtil.findCenterOfShape(l))
+					                 .filter(p->bigLineShape.contains(p))
+					                 .map(p->GeomUtil.projectPointOntoLine(lb,p))
+					                 .collect(GeomUtil.averagePoint());
+					
+					
+					List<Point2D> pts=GeomUtil.splitIntoNPieces(lb,n);
+					Node pnode=n1;
+					Edge closestEdge = null;
+					double closestD = 999999;
+					
+					for(int i=1;i<pts.size();i++){
+						
+						Node nn=null;
+						if(i<pts.size()-1){
+							Point2D np=pts.get(i);
+							nn=ctab.addNode(np);	
+						}else{
+							nn=n2;
+						}
+						
+						Edge ne=ctab.addEdge(pnode.getIndex(),nn.getIndex(),1);
+						Point2D cpt = Stream.of(ne.getPoint1(),ne.getPoint2()).collect(GeomUtil.averagePoint());
+						double dpt=cpt.distance(apt);
+						if(dpt<closestD){
+							closestD=dpt;
+							closestEdge=ne;
+						}
+						pnode=nn;
+					}
+					closestEdge.setOrder(3);
+					//System.out.println("Setting order to 3");
+					ctab.removeEdge(e);
+					
+				}
+				
+				
+				//rejBondOrderLines
+				
+				
+			});
+			
 			List<Shape> appliedOCR = new ArrayList<Shape>();
 
 			for(Shape s: bestGuessOCR.keySet()){
@@ -2317,6 +2391,19 @@ public class StructureImageExtractor {
 				
 				BranchNode actual=BranchNode.interpretOCRStringAsAtom2(sym);
 				if(actual!=null && actual.isRealNode()){
+					
+					//This means it's a free floating group, don't connect it. Probably
+					//don't even keep it for now
+					if(!actual.isLinkable()){
+						for(Node n:ctab.getAllNodesInsideShape(s, 0.1)){
+							ctab.removeNodeAndEdges(n);	
+						}
+						
+						//eventually add it back
+						//ctab.addNode(p)
+						continue;
+					}
+					
 					appliedOCR.add(s);
 					
 					List<Node> nlist=ctab.getNodesInsideShape(s, 0.1).stream().filter(n->!n.isInvented()).collect(Collectors.toList());
@@ -2660,66 +2747,6 @@ public class StructureImageExtractor {
 			ctab.standardCleanEdges();
 			
 			
-			
-			//clean bad triple bonds
-			ctab.getEdges().stream()
-			.filter(e->e.getOrder()==3)
-			.collect(Collectors.toList())
-			.forEach(e->{
-				Line2D lb = e.getLine();
-				
-				double len = e.getEdgeLength();
-				int n = (int)Math.round(len/ctab.getAverageBondLength());
-				
-				if(n>1){
-					Node n1=e.getRealNode1();
-					Node n2=e.getRealNode2();
-					
-					Shape bigLineShape = GeomUtil.growLine(lb,len/3);
-					
-					Point2D apt=rejBondOrderLines.stream()
-									 .filter(l->GeomUtil.length(l)>ctab.getAverageBondLength()*0.5)
-					                 .map(l->GeomUtil.findCenterOfShape(l))
-					                 .filter(p->bigLineShape.contains(p))
-					                 .map(p->GeomUtil.projectPointOntoLine(lb,p))
-					                 .collect(GeomUtil.averagePoint());
-					
-					
-					List<Point2D> pts=GeomUtil.splitIntoNPieces(lb,n);
-					Node pnode=n1;
-					Edge closestEdge = null;
-					double closestD = 999999;
-					
-					for(int i=1;i<pts.size();i++){
-						
-						Node nn=null;
-						if(i<pts.size()-1){
-							Point2D np=pts.get(i);
-							nn=ctab.addNode(np);	
-						}else{
-							nn=n2;
-						}
-						
-						Edge ne=ctab.addEdge(pnode.getIndex(),nn.getIndex(),1);
-						Point2D cpt = Stream.of(ne.getPoint1(),ne.getPoint2()).collect(GeomUtil.averagePoint());
-						double dpt=cpt.distance(apt);
-						if(dpt<closestD){
-							closestD=dpt;
-							closestEdge=ne;
-						}
-						pnode=nn;
-					}
-					closestEdge.setOrder(3);
-					//System.out.println("Setting order to 3");
-					ctab.removeEdge(e);
-					
-				}
-				
-				
-				//rejBondOrderLines
-				
-				
-			});
 			//System.out.println("MAde new nodes on triples:" + ctabRaw.size());
 			ctabRaw.add(ctab.cloneTab());
 			ctab.removeOrphanNodes();

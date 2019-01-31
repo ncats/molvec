@@ -38,6 +38,7 @@ class BranchNode{
 	int rep=0;
 	int orderToParent=1;
 	private int thetaOffset=0;
+	boolean linkable =true;
 	
 	//1 is wedge, -1 is dash
 	private int wedgeToParent=0;
@@ -61,6 +62,11 @@ class BranchNode{
 		return this.orderToParent;
 	}
 	
+	
+	public BranchNode setLinkable(boolean b){
+		this.linkable=b;
+		return this;
+	}
 	public BranchNode addRing(BranchNode to, int order){
 		this.ringBond=Tuple.of(to,order);
 		return this;
@@ -263,6 +269,10 @@ class BranchNode{
 		return this;
 	}
 	
+	public boolean isLinkable(){
+		return linkable;
+	}
+	
 	public String toString(){
 		String bondToParent="-";
 		if(this.getOrderToParent()==2){
@@ -293,6 +303,10 @@ class BranchNode{
 	}
 
 	private static BranchNode interpretOCRStringAsAtom(String s, boolean tokenOnly){
+		
+		if(s.equals("HCl") || s.equals("HC1") || s.equals("Hcl") || s.equals("Hc1")){
+			return new BranchNode("Cl").setLinkable(false);
+		}
 		
 		//first step is to see if this is an aliphatic chain
 		if(s.matches("([cC]H[2]*)+")){
@@ -327,6 +341,8 @@ class BranchNode{
 				|| s.equalsIgnoreCase("HO2C")
 				|| s.equalsIgnoreCase("OOC")
 				|| s.equalsIgnoreCase("COO")
+				
+				
 
 				|| s.equalsIgnoreCase("C02H")
 				|| s.equalsIgnoreCase("C02")
@@ -633,6 +649,10 @@ class BranchNode{
 			if(m.find()){
 				return interpretOCRStringAsAtom("N(" + m.group(1) + ")" + m.group(2));
 			}
+		}else if(s.equals("Tf") || s.equals("Tr")){
+			return interpretOCRStringAsAtom("SO2CF3");
+		}else if(s.matches("M[ecC][O0o][O0o][Cc]")){
+			return interpretOCRStringAsAtom("COOC");
 		}
 		
 		
@@ -755,7 +775,13 @@ class BranchNode{
 	public static BranchNode interpretOCRStringAsAtom2(String s){
 		try{
 			BranchNode bn= interpretOCRStringAsAtom(s);
-			if(bn!=null)bn.removeHydrogens();
+			if(bn!=null){
+				bn.removeHydrogens();
+//				if(bn.isPseudoNode() && bn.symbol.equals("C")){
+//					bn.setPseudoNode(false);
+//					return bn;
+//				}
+			}
 			return bn;
 		}catch(Exception e){
 			e.printStackTrace();
