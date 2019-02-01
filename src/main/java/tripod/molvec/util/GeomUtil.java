@@ -1964,6 +1964,45 @@ public class GeomUtil {
 			
 		};
 	}
+	
+
+	public static Collector<Shape,List<Shape>,Shape> joined(){
+		
+		return new Collector<Shape,List<Shape>,Shape>(){
+
+			@Override
+			public BiConsumer<List<Shape>, Shape> accumulator() {
+
+				return (l,p)->{
+					l.add(p);
+				};
+			}
+
+			@Override
+			public Set<java.util.stream.Collector.Characteristics> characteristics() {
+				return new HashSet<java.util.stream.Collector.Characteristics>();
+			}
+
+			@Override
+			public BinaryOperator<List<Shape>> combiner() {
+				return (l1,l2)->{
+					l1.addAll(l2);
+					return l1;
+				};
+			}
+
+			@Override
+			public Function<List<Shape>, Shape> finisher() {
+				return (pts)->pts.stream().reduce((s1,s2)->add(s1,s2)).orElse(null);
+			}
+
+			@Override
+			public Supplier<List<Shape>> supplier() {
+				return ()->new ArrayList<>();
+			}
+			
+		};
+	}
 
     
 }
