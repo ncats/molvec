@@ -73,23 +73,6 @@ public class GeomUtil {
      */
     public static double angle (double x0, double y0, double x1, double y1) {
         double dx = x1 - x0, dy = y1 - y0;
-//        if (dx > 0 && dy > 0) {
-//            return Math.atan (dy / dx);
-//        } else if (dx > 0 && dy == 0) {
-//            return 0.;
-//        } else if (dx < 0 && dy > 0) {
-//            return Math.PI - Math.atan (-1. * dy / dx);
-//        } else if (dx < 0 && dy == 0) {
-//            return Math.PI;
-//        } else if (dx == 0 && dy > 0) {
-//            return Math.PI / 2;
-//        } else if (dx == 0 && dy < 0) {
-//            return 3 * Math.PI / 2;
-//        } else if (dx < 0 && dy < 0) {
-//            return 3 * Math.PI / 2 - Math.atan (dy / dx);
-//        } else if (dx > 0 && dy < 0) {
-//            return 2 * Math.PI - Math.atan (-1. * dy / dx);
-//        }
         return Math.atan2(dy, dx);
     }
 
@@ -240,7 +223,6 @@ public class GeomUtil {
     	
         if(error){
         	//TODO: There must be a bug in this code, because this should never get called, but it is called sometimes.
-        	
 //        	System.err.println("Not hull:" + Arrays.toString(pts));
 //        	System.err.println("Not hull:" + Arrays.toString(vertices(hull)));
 
@@ -274,6 +256,12 @@ public class GeomUtil {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		//TODO: right now this actually just uses the integer-precision
+		//algorithm, and sclaes it up/down for slightly better precision.
+		//The code below this statement does work, in general,
+		//but certain aspects of the image prediction expect the slightly
+		//worse precision
     	if(true)return atInv.createTransformedShape(oShape);
     	
     	if(pts.length==0){
@@ -452,15 +440,19 @@ public class GeomUtil {
         return hull;
     }
     
+    /**
+     * Find the center of mass of a shape. This is not a 100% validated method, but works by doing a weighted average of each vertex
+     * in a shape, where the vertex is weighted proportionally to the length of lines that connect to it. This seems to work well
+     * for convex hulls, but has not been evaluated for non-convex shapes.
+     * @param s1
+     * @return
+     */
     public static Point2D centerOfMass(Shape s1){
-    	//works pretty roughly
+    	
     	Line2D[] lines=GeomUtil.lines(s1);
     	double sumLength = Arrays.stream(lines).mapToDouble(l->length(l)).sum()*2;
     	
-    	
     	Point2D centerPoint = Arrays.stream(lines)
-//    							  .flatMap(l->GeomUtil.splitLineIn2(l).stream())
-//    							  .flatMap(l->GeomUtil.splitLineIn2(l).stream())
     							  .flatMap(l->Stream.of(Tuple.of(l.getP1(), length(l)),Tuple.of(l.getP2(), length(l))))
     							  .map(t->Tuple.of(t.k().getX()*t.v(), t.k().getY()*t.v()))
     							  .reduce((t1,t2)->Tuple.of(t1.k() + t2.k(), t1.v()+t2.v()))
@@ -470,6 +462,50 @@ public class GeomUtil {
     							  .orElse(new Point2D.Double(0, 0));
     	return centerPoint;
     }
+    
+    
+    /**
+     * <p>Given a line and a set of points, this will return a new set of points that are transformed
+     * by the same transformation that would take the line to be from (0,0)->(1,0). That is,
+     * it will scale the line to be of length 1, center it at the origin, and rotate it so that the line
+     * points to (1,0). All points transformed by the same scale,rotation and translation to bring them
+     * either below or above the line (y-axis), and between 0 and 1 on the x-axis if their projection would
+     * be ON the line segment.
+     * </p>
+     * 
+     * <p>
+     * This transformation is useful when trying to detect some kind of signal along a line. For example,
+     * seeing if the points projected near a line are oscillating, or have some other periodic nature.
+     * </p>
+     * @param pts
+     * @param line
+     * @return
+     */
+    public static List<Point2D> getOffsetsOfPointsOntoLine(List<Point2D> pts, Line2D line){
+    	
+    	AffineTransform at = GeomUtil.getTransformFromLineToLine(line, new Line2D.Double(0,0,1,0),false);
+    	
+    	return pts.stream()
+    	   .map(p->at.transform(p, null))
+    	   .map(p->Tuple.of(p.getX(),p).withKComparator())
+    	   .sorted()
+    	   .map(t->t.v())
+    	   .collect(Collectors.toList());
+    }
+    
+    //TODO: implement
+//    public static Line2D getLongestPartitioningLine(Shape s){
+//    	//To do this, you actually want to find the line which, when passing through the shape, would
+//    	//produce the smallest sum of square residual lengths for each point (vertex or otherwise) onto that line
+//    	//This is effectively the same as a PCA.
+    
+    	//The tricky part here is that you need to have this work for all points along a side of a shape,
+        //not just the vertices
+//    	
+//    	
+//    	
+//    }
+    
     
     public static Tuple<Point2D,double[]> getCircumscribedAndInscribedCircles(Shape s1){
     	Point2D centerOfMass=centerOfMass(s1);
@@ -1231,6 +1267,12 @@ public class GeomUtil {
 			double[] pvec = asVector(p);
 			double[] nvec = addVectors(pvec,this.offset());
 			return dot(vector(),nvec)*this.recipLength();
+		}
+		
+		public double rejectionOffset(Point2D p){
+			double[] pvec = asVector(p);
+			double[] nvec = addVectors(pvec,this.offset());
+			return orthoDot(vector(),nvec)*this.recipLength();
 		}
 		
 		public double[] vector(){
