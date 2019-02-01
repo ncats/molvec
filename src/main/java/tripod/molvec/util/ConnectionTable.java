@@ -13,6 +13,7 @@ import java.awt.geom.Rectangle2D;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -684,7 +685,7 @@ public class ConnectionTable{
 		return mergeAllNodesInside(s,tol,n->true,(l)->p);
 	}
 	
-	public ConnectionTable mergeNodesExtendingTo(List<Shape> shapes,double maxAvgBondRatio, double maxTotalAvgBondRatio){
+	public ConnectionTable mergeNodesExtendingTo(Collection<Shape> shapes,double maxAvgBondRatio, double maxTotalAvgBondRatio){
 		double avg = this.getAverageBondLength();
 		edges.stream()
 		     //.filter(e->e.getBondLength()<avg)
@@ -1220,7 +1221,7 @@ public class ConnectionTable{
 	}
 	
 	
-	public double getToleranceForEdge(Edge e, Bitmap bm, List<Shape> shapes){
+	public double getToleranceForEdge(Edge e, Bitmap bm, Collection<Shape> shapes){
 		return GeomUtil.getLongestLineNotInside(e.getLine(), shapes)
 		        	   .map(ll->bm.getLineLikeScore(e.getLine()))
 		               .orElse(0.0);
@@ -1234,7 +1235,7 @@ public class ConnectionTable{
 		          .orElse(0);
 	}
 	
-	public Tuple<Edge,Double> getWorstToleranceForNode(Node n, Bitmap bm,List<Shape> shapes){
+	public Tuple<Edge,Double> getWorstToleranceForNode(Node n, Bitmap bm,Collection<Shape> shapes){
 		return n.getEdges().stream()
 		          .map(e->Tuple.of(e,getToleranceForEdge(e,bm,shapes)))
 		          .map(t->t.withVComparator())
@@ -1242,13 +1243,13 @@ public class ConnectionTable{
 		          .orElse(null);
 	}
 	
-	public List<Tuple<Edge,Double>> getDashLikeScoreForAllEdges(Bitmap bm,List<Shape> shapes){
+	public List<Tuple<Edge,Double>> getDashLikeScoreForAllEdges(Bitmap bm,Collection<Shape> shapes){
 		return this.edges.stream()
 		          .map(e->Tuple.of(e,getToleranceForEdge(e,bm,shapes)))
 		          .collect(Collectors.toList());
 	}
 
-	public ConnectionTable makeMissingBondsToNeighbors(Bitmap bm, double d, double tol, List<Shape> OCRSet, double ocrTol,Consumer<Tuple<Double,Edge>> econs) {
+	public ConnectionTable makeMissingBondsToNeighbors(Bitmap bm, double d, double tol, Collection<Shape> OCRSet, double ocrTol,Consumer<Tuple<Double,Edge>> econs) {
 		double avg=this.getAverageBondLength();
 		Map<Integer,Set<Integer>> nmap = new HashMap<>();
 		
@@ -1364,7 +1365,7 @@ public class ConnectionTable{
 	
 	
 
-	public ConnectionTable fixBondOrders(List<Shape> likelyOCR, double shortestRealBondRatio, Consumer<Edge> edgeCons) {
+	public ConnectionTable fixBondOrders(Collection<Shape> likelyOCR, double shortestRealBondRatio, Consumer<Edge> edgeCons) {
 		// TODO Auto-generated method stub
 		this.edges
 		    .stream()
@@ -1395,7 +1396,7 @@ public class ConnectionTable{
 		return this.nodes;
 	}
 	
-	public List<Node> getNodesNotInShapes(List<Shape> shapes, double tol){
+	public List<Node> getNodesNotInShapes(Collection<Shape> shapes, double tol){
 		if(shapes.isEmpty())return nodes;
 		return nodes.stream()
 		     .map(n->Tuple.of(n,GeomUtil.getClosestShapeTo(shapes, n.point)))
@@ -1404,7 +1405,7 @@ public class ConnectionTable{
 		     .collect(Collectors.toList());
 	}
 
-	public ConnectionTable makeMissingNodesForShapes(List<Shape> likelyOCR, double mAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,
+	public ConnectionTable makeMissingNodesForShapes(Collection<Shape> likelyOCR, double mAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,
 			double mIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL) {
 		double avg=this.getAverageBondLength();
 		List<Shape> addShapes=likelyOCR.stream() 

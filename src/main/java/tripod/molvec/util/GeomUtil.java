@@ -853,7 +853,7 @@ public class GeomUtil {
     
     
     
-    public static List<List<Shape>> groupShapesIfClosestPointsMatchCriteria(List<Shape> shapes, Predicate<Tuple<Shape[],Point2D[]>> merge){
+    public static List<List<Shape>> groupShapesIfClosestPointsMatchCriteria(Collection<Shape> shapes, Predicate<Tuple<Shape[],Point2D[]>> merge){
     	return groupShapes(shapes,(t)->{
     		Point2D[] far=closestPoints(t.k(),t.v());
     		Shape[] s= new Shape[]{t.k(),t.v()};
@@ -861,19 +861,21 @@ public class GeomUtil {
     	});
     }
     
-    public static List<List<Shape>> groupShapes(List<Shape> points, Predicate<Tuple<Shape,Shape>> merge){
+    public static List<List<Shape>> groupShapes(Collection<Shape> points, Predicate<Tuple<Shape,Shape>> merge){
     	return groupThings(points,merge);
     }
     
-    public static <T> List<List<T>> groupThings(List<T> points, Predicate<Tuple<T,T>> merge){
+    public static <T> List<List<T>> groupThings(Collection<T> points, Predicate<Tuple<T,T>> merge){
     	int[] groups = IntStream.range(0, points.size())
     							.toArray();
     	BitSet bs = new BitSet(points.size());
     	
+    	List<T> asList = (points instanceof List)?(List<T>)points:points.stream().collect(Collectors.toList());
+    	
     	for(int i=0;i<points.size();i++){
-    		T p1=points.get(i);
+    		T p1=asList.get(i);
     		for(int j=i+1;j<points.size();j++){
-    			T p2=points.get(j);
+    			T p2=asList.get(j);
     			if(merge.test(Tuple.of(p1,p2))){
     				int g1= groups[i];
     				int g2= groups[j];
@@ -896,7 +898,7 @@ public class GeomUtil {
     	
     	return IntStream.range(0, points.size())
     	         .mapToObj(i->Tuple.of(groups[i],i))
-    	         .map(Tuple.vmap(i->points.get(i)))
+    	         .map(Tuple.vmap(i->asList.get(i)))
     	         .collect(Tuple.toLinkedGroupedMap())
     	         .values()
     	         .stream()
@@ -1171,7 +1173,7 @@ public class GeomUtil {
     
     
     
-    public static Tuple<Shape,Double> findClosestShapeTo(List<Shape> shapes, Point2D pt){
+    public static Tuple<Shape,Double> findClosestShapeTo(Collection<Shape> shapes, Point2D pt){
     	return shapes.stream()
     	      .map(s->Tuple.of(s,distanceTo(s,pt)).withVComparator())
     	      .min(CompareUtil.naturalOrder())
@@ -1621,7 +1623,7 @@ public class GeomUtil {
 		
 	}
 
-	public static Shape getClosestShapeTo(List<Shape> shapes, Point2D pnt){
+	public static Shape getClosestShapeTo(Collection<Shape> shapes, Point2D pnt){
 		return shapes.stream()
 				      .map(s->Tuple.of(s,distanceTo(s, pnt)).withVComparator())
 				      .min(CompareUtil.naturalOrder())
@@ -1914,7 +1916,7 @@ public class GeomUtil {
 		}
 	}
 	
-	public static List<Line2D> getLinesNotInside(Line2D l, List<Shape> shapes){
+	public static List<Line2D> getLinesNotInside(Line2D l, Collection<Shape> shapes){
 		List<Line2D> start = Arrays.asList(l);
 		
 		for(Shape s: shapes){
@@ -1925,7 +1927,7 @@ public class GeomUtil {
 		return start;
 	}
 	
-	public static Optional<Line2D> getLongestLineNotInside(Line2D l, List<Shape> shapes){
+	public static Optional<Line2D> getLongestLineNotInside(Line2D l, Collection<Shape> shapes){
 		//if(true)return Optional.of(l);
 		
 		return getLinesNotInside(l,shapes)

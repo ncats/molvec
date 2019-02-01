@@ -330,7 +330,7 @@ public class Viewer extends JPanel
 
         available = ALL;
         
-        sie = new StructureImageExtractor(file);
+        sie = new StructureImageExtractor(file,true);
 
         
         bitmap=sie.getBitmap();

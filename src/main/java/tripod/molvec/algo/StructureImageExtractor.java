@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -95,7 +96,7 @@ public class StructureImageExtractor {
 	private List<ConnectionTable> ctabRaw = new ArrayList<ConnectionTable>();
 
 
-	private final double MAX_REPS = 10;
+	private final double MAX_REPS = 2;
 	private final double INITIAL_MAX_BOND_LENGTH=Double.MAX_VALUE;
 	private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE = 1/3.5;
 	private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE_INITIAL = 1/2.9;
@@ -170,13 +171,27 @@ public class StructureImageExtractor {
 
 
 
-	public StructureImageExtractor(byte[] file) throws IOException{
+	public StructureImageExtractor(byte[] file, boolean debug) throws IOException{
+		this.DEBUG=debug;
 		load(file);
+	}
+	public StructureImageExtractor(File file, boolean debug) throws IOException{
+		this.DEBUG=debug;
+		load(file);
+	}
+	
+	public StructureImageExtractor(byte[] file) throws IOException{
+		this(file,false);
 	}
 	public StructureImageExtractor(File file) throws IOException{
-		load(file);
+		this(file,false);
 	}
-
+	
+	
+	
+	
+	
+	
 
 	private static Tuple<Character,Number> adjustConfidence(Tuple<Character,Number> tup){
 		String ch=tup.k()+"";
@@ -512,6 +527,11 @@ public class StructureImageExtractor {
 		load(bitmap = Bitmap.read(file).clean());
 
 	}
+	
+	private boolean DEBUG=false;
+	
+	
+	
 
 	private void load(Bitmap aBitMap) throws IOException{
 
@@ -544,11 +564,11 @@ public class StructureImageExtractor {
 			throw new IllegalStateException("Cannot support images with over 4000 line segments at this time");
 		}
 
-		List<Shape> likelyOCR= Collections.synchronizedList(new ArrayList<Shape>());
-		List<Shape> likelyOCRNumbers= Collections.synchronizedList(new ArrayList<Shape>());
-		List<Shape> likelyOCRNonBond= Collections.synchronizedList(new ArrayList<Shape>());
-		List<Shape> likelyOCRAll=Collections.synchronizedList(new ArrayList<Shape>());
-		List<Shape> likelyOCRIgnore = Collections.synchronizedList(new ArrayList<Shape>());
+		Set<Shape> likelyOCR= Collections.synchronizedSet(new LinkedHashSet<Shape>());
+		Set<Shape> likelyOCRNumbers= Collections.synchronizedSet(new LinkedHashSet<Shape>());
+		Set<Shape> likelyOCRNonBond= Collections.synchronizedSet(new LinkedHashSet<Shape>());
+		Set<Shape> likelyOCRAll=Collections.synchronizedSet(new LinkedHashSet<Shape>());
+		Set<Shape> likelyOCRIgnore = Collections.synchronizedSet(new LinkedHashSet<Shape>());
 		
 		List<Shape> ocrRescues = new ArrayList<Shape>();
 		
@@ -556,15 +576,10 @@ public class StructureImageExtractor {
 		 * Looks at each polygon, and gets the likely OCR chars.
 		 */   
 
-		List<Shape> initialDebug = Collections.synchronizedList(new ArrayList<>());
-		
-		
-		
-		
+	
 
 		processOCR(socr[0],polygons,bitmap,thin,(s,potential)->{
 			ocrAttempt.put(s, potential);
-			initialDebug.add(s);
 			
 			if(potential.stream().filter(e->e.v().doubleValue()>OCRcutoffCosine).findAny().isPresent()){
 				CharType ct=OCRIsLikely(potential.get(0));
@@ -605,7 +620,7 @@ public class StructureImageExtractor {
 		ctabRaw.clear();
 
 		AtomicBoolean foundNewOCR=new AtomicBoolean(true);
-		int maxFullRepeats=5;
+		int maxFullRepeats=2;
 		int repeats=0;
 		List<Shape> realRescueOCRCandidates = new ArrayList<>();
 		
@@ -649,6 +664,8 @@ public class StructureImageExtractor {
 					.filter(Objects::nonNull) //sometimes get NPEs here not sure why or how
 					.average()
 					.orElse(0);
+			
+			
 			double averageHeightNumberOCR=likelyOCRNumbers.stream()
 					.map(Shape::getBounds2D)
 					.filter(Objects::nonNull)
@@ -859,7 +876,7 @@ public class StructureImageExtractor {
 						maxCandidateRatioForIntersectionWithNeighbor,
 						l-> (GeomUtil.length(l) < maxBondLength[0]))
 						.mergeNodesCloserThan(MAX_DISTANCE_BEFORE_MERGING_NODES);
-				ctabRaw.add(ctab.cloneTab());
+				if(DEBUG)ctabRaw.add(ctab.cloneTab());
 				
 
 
@@ -868,7 +885,7 @@ public class StructureImageExtractor {
 					ctab.mergeAllNodesInsideCenter(s, OCR_TO_BOND_MAX_DISTANCE);
 				}
 
-				ctabRaw.add(ctab.cloneTab());
+				if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 
 				List<List<Node>> newNodesForMerge = new ArrayList<>();
@@ -951,18 +968,13 @@ public class StructureImageExtractor {
 
 							candidate=GeomUtil.growShape(candidate,4);
 							rescueOCRCandidates.add(candidate);
-							//polygons.add(candidate);
 							
 							return center;
 						}
-						//polygons.add(candidate);
-						//return center;
 					}
 
 					mergedPoints.addAll(missingPoints);
-
-
-
+					
 					return bestIntersectionPoint.apply(nl);
 
 				});
@@ -975,7 +987,7 @@ public class StructureImageExtractor {
 				});
 
 
-				ctabRaw.add(ctab.cloneTab());
+				if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 
 				//ctab.mergeAllNodesOnParLines();
@@ -1041,9 +1053,9 @@ public class StructureImageExtractor {
 				ctab.standardCleanEdges();
 
 
-				ctabRaw.add(ctab.cloneTab());
+				if(DEBUG)ctabRaw.add(ctab.cloneTab());
 				
-				List<Edge> splitEdges = new ArrayList<Edge>();
+				Set<Edge> splitEdges = new HashSet<Edge>();
 
 				ctab.createNodesOnIntersectingLines(2, elist->{
 					splitEdges.addAll(elist);
@@ -1063,32 +1075,14 @@ public class StructureImageExtractor {
 			    	}
 			    });
 
-				ctabRaw.add(ctab.cloneTab());
+				if(DEBUG)ctabRaw.add(ctab.cloneTab());
 				
-				
-				//This part needs work
-//				ctab.getEdges()
-//			    .stream()
-//			    .filter(e->e.getOrder()==1)
-//			    .collect(Collectors.toList())
-//			    .forEach(e->{
-//			    	Line2D ll=GeomUtil.getLinesNotInside(e.getLine(),likelyOCR).stream()
-//			    						.map(l1->Tuple.of(l1,GeomUtil.length(l1)).withVComparator())
-//			    						.max(Comparator.naturalOrder())
-//			    						.map(t->t.k())
-//			    						.orElse(null);
-//			    	if(ll==null)return;
-//			    	double totLen=GeomUtil.getLinesNotInside(ll,growLines).stream().mapToDouble(l->GeomUtil.length(l)).sum();
-//			    	if(totLen>GeomUtil.length(ll)*0.9){
-//			    		ctab.removeEdge(e);
-//			    	}
-//			    });
 
 
 				ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE);
 				ctab.standardCleanEdges();
 
-				ctabRaw.add(ctab.cloneTab());
+				if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 				
 
@@ -1114,18 +1108,18 @@ public class StructureImageExtractor {
 
 				ctab.mergeNodesExtendingTo(likelyOCR,maxRatio,maxTotalRatio);
 				
-				ctabRaw.add(ctab.cloneTab());
+				if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 				ctab.removeOrphanNodes();
 				ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE);
-				ctabRaw.add(ctab.cloneTab());
+				if(DEBUG)ctabRaw.add(ctab.cloneTab());
 				
 				for(Shape s: likelyOCR){
 					ctab.mergeAllNodesInsideCenter(s, OCR_TO_BOND_MAX_DISTANCE);
 				}
 
 				
-				ctabRaw.add(ctab.cloneTab());
+				if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 				ctab.makeMissingNodesForShapes(likelyOCR,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL);
 
@@ -1141,15 +1135,15 @@ public class StructureImageExtractor {
 					Node n2=e.getRealNode2();
 					List<Edge> existingEdges1=n1.getEdges();
 					List<Edge> existingEdges2=n2.getEdges();
-					List<Node> n1Neigh=existingEdges1.stream()
+					Set<Node> n1Neigh=existingEdges1.stream()
 							.flatMap(ne->Stream.of(ne.getRealNode1(),ne.getRealNode2()))
 							.filter(n->!n.equals(n1))
-							.collect(Collectors.toList());
+							.collect(Collectors.toSet());
 
-					List<Node> n2Neigh=existingEdges2.stream()
+					Set<Node> n2Neigh=existingEdges2.stream()
 							.flatMap(ne->Stream.of(ne.getRealNode1(),ne.getRealNode2()))
 							.filter(n->!n.equals(n2))
-							.collect(Collectors.toList());
+							.collect(Collectors.toSet());
 					List<Node> commonNeigh = n1Neigh.stream().filter(nn->n2Neigh.contains(nn)).collect(Collectors.toList());
 
 					boolean alreadyExists = false;
@@ -1198,7 +1192,7 @@ public class StructureImageExtractor {
 
 				
 				//fuzzy adding missing stuff
-				ctabRaw.add(ctab.cloneTab());
+				if(DEBUG)ctabRaw.add(ctab.cloneTab());
 				toRemove.forEach(n->ctab.removeNodeAndEdges(n));
 				//ctab.removeOrphanNodes();
 
@@ -1207,7 +1201,7 @@ public class StructureImageExtractor {
 
 
 //				System.out.println("Removed bad edges:" + ctabRaw.size());
-				ctabRaw.add(ctab.cloneTab());
+				if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 				double avgBondLength=ctab.getAverageBondLength();
 				maxBondLength[0]=avgBondLength*MAX_BOND_TO_AVG_BOND_RATIO_TO_KEEP;
@@ -1223,7 +1217,6 @@ public class StructureImageExtractor {
 						.findAny()
 						.isPresent();
 				if(tooLongBond){
-					
 					reps++;
 				}
 				if(reps>MAX_REPS)break;
@@ -1246,7 +1239,7 @@ public class StructureImageExtractor {
 
 			if(anyOtherIntersections.get()){
 				
-				ctabRaw.add(ctab.cloneTab());
+				if(DEBUG)ctabRaw.add(ctab.cloneTab());
 				ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE);
 				ctab.standardCleanEdges();
 			}
@@ -1455,7 +1448,7 @@ public class StructureImageExtractor {
 
 			});
 
-			ctabRaw.add(ctab.cloneTab());
+			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 
 			GeomUtil.mergeOverlappingShapes(toAddAllOCR,0.75)
@@ -1514,7 +1507,7 @@ public class StructureImageExtractor {
 			ctab.mergeNodesExtendingTo(likelyOCR,maxRatio,maxTotalRatio);
 
 //			System.out.println("Extended to OCR:" + ctabRaw.size());
-			ctabRaw.add(ctab.cloneTab());
+			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 			double cosThetaOCRShape =Math.cos(MAX_THETA_FOR_OCR_SEPERATION);
 			
@@ -1721,6 +1714,7 @@ public class StructureImageExtractor {
 					bestGuessOCR.put(parent, val);
 				}
 			});
+			if(foundNewOCR.get() && repeats<maxFullRepeats)continue;
 			
 			bestGuessOCR.entrySet()
 						.stream()
@@ -1803,10 +1797,10 @@ public class StructureImageExtractor {
 					.collect(Collectors.toList());
 
 			
-			ctabRaw.add(ctab.cloneTab());
+			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 			//ctab.removeOrphanNodes();
 
-			List<Node> alreadyFixedNodes = new ArrayList<Node>();
+			Set<Node> alreadyFixedNodes = new HashSet<Node>();
 
 
 			bestGuessOCR.entrySet()
@@ -1913,7 +1907,7 @@ public class StructureImageExtractor {
 
 
 			
-			ctabRaw.add(ctab.cloneTab());
+			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 			List<Shape> growLikelyOCRNonBond=likelyOCRNonBond.stream().map(s->GeomUtil.growShape(s, 2)).collect(Collectors.toList());
 			List<Shape> growLikelyOCR=likelyOCR.stream().map(s->GeomUtil.growShape(s, 2)).collect(Collectors.toList());
@@ -1934,7 +1928,6 @@ public class StructureImageExtractor {
 			List<Tuple<List<Line2D>,Tuple<Node,Node>>> edgesToMake = new ArrayList<>();
 
 			GeomUtil.groupShapesIfClosestPointsMatchCriteria(likelyOCR, (t)->{
-
 				Point2D[] pts=t.v();
 				if(pts[0].distance(pts[1])<ctab.getAverageBondLength()*.9){
 					return true;
@@ -2047,7 +2040,7 @@ public class StructureImageExtractor {
 
 			
 
-			ctabRaw.add(ctab.cloneTab());
+			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 			ctab.makeMissingBondsToNeighbors(bitmap,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MAX_TOLERANCE_FOR_SINGLE_BONDS,likelyOCR,OCR_TO_BOND_MAX_DISTANCE, (t)->{
 
@@ -2057,7 +2050,7 @@ public class StructureImageExtractor {
 			});
 
 			
-			ctabRaw.add(ctab.cloneTab());
+			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 			//remove triangles that are obviously wrong
 			{
 				double avgL = ctab.getAverageBondLength();
@@ -2135,7 +2128,7 @@ public class StructureImageExtractor {
 			}
 			ctab.removeOrphanNodes();
 
-			ctabRaw.add(ctab.cloneTab());
+			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 			//final cleanup
 			{
@@ -2153,7 +2146,7 @@ public class StructureImageExtractor {
 				});
 
 			}
-			ctabRaw.add(ctab.cloneTab());
+			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 			double fbondlength=ctab.getAverageBondLength();
 
 			
@@ -2378,14 +2371,14 @@ public class StructureImageExtractor {
 
 			}
 			
-			ctabRaw.add(ctab.cloneTab());
+			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 
 
 			//Now get all the nodes with 2 edges which have shorter than average bond length,
 			//and which are not in OCR, and where the sum of the distances of the bonds is within 97%
 			//of the distance of the two neighbors. Those are nodes to remove
-			List<Node> toRemove = new ArrayList<Node>();
+			Set<Node> toRemove = new HashSet<Node>();
 			do{
 				toRemove.clear();
 
@@ -2433,7 +2426,7 @@ public class StructureImageExtractor {
 			}while(!toRemove.isEmpty());
 
 
-			ctabRaw.add(ctab.cloneTab());
+			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 
 			//Cleanup "duplicate" lines that are probably problems. 
@@ -2481,7 +2474,7 @@ public class StructureImageExtractor {
 			ctab.standardCleanEdges();
 
 
-			ctabRaw.add(ctab.cloneTab());
+			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 
 			ctab.getEdges()
@@ -2545,7 +2538,7 @@ public class StructureImageExtractor {
 			
 			ctab.standardCleanEdges();
 
-			ctabRaw.add(ctab.cloneTab());
+			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 			
 			List<Node> toRemoveNodesCage = new ArrayList<>();
 			
@@ -2578,7 +2571,7 @@ public class StructureImageExtractor {
 		    	//System.out.println("Cage like:" + tn.size());
 		    	        
 		    });
-			ctabRaw.add(ctab.cloneTab());
+			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 			toRemoveNodesCage.forEach(n->{
 				ctab.removeNodeAndEdges(n);	
 			});
@@ -2586,7 +2579,7 @@ public class StructureImageExtractor {
 			
 			
 			//System.out.println("MAde new nodes on triples:" + ctabRaw.size());
-			ctabRaw.add(ctab.cloneTab());
+			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 			ctab.removeOrphanNodes();
 			
 			
@@ -2893,26 +2886,15 @@ public class StructureImageExtractor {
 
 
 
-			ctabRaw.add(ctab.cloneTab());
+			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 			
-			
-			
-			
-			
-			/*
-			 * long c=polygons.stream()
-		        		        .filter(s->GeomUtil.getIntersection(s, useLine).isPresent())
-		        		        .count();
-			 */
-
-
-
-			//ctab=ctabRaw;
 
 		}
 		
 		rescueOCRShapes=realRescueOCRCandidates;
 	
+		if(DEBUG)ctabRaw.add(ctab.cloneTab());
+		
 		//fix bad Sulfurs
 		ctab.getNodes().stream()
 	    .filter(n->n.getSymbol().equals("S"))
@@ -2975,6 +2957,8 @@ public class StructureImageExtractor {
 	    			
 	    		}
 	    });
+		
+		if(DEBUG)ctabRaw.add(ctab.cloneTab());
 		
 		List<Shape> mightBeNegative=polygons.stream()
 										    .filter(s->s.getBounds2D().getHeight()<ctab.getAverageBondLength()/10)
@@ -3093,6 +3077,7 @@ public class StructureImageExtractor {
 			}
 		}
 		 
+		if(DEBUG)ctabRaw.add(ctab.cloneTab());
 		
 		ctab.simpleClean();
 		//Make aromatic bonds
@@ -3104,6 +3089,7 @@ public class StructureImageExtractor {
 				       .forEach(Edge::setToAromatic);
 		       });
 		
+		if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 	}
 
