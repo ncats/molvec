@@ -498,13 +498,193 @@ public class GeomUtil {
 //    	//To do this, you actually want to find the line which, when passing through the shape, would
 //    	//produce the smallest sum of square residual lengths for each point (vertex or otherwise) onto that line
 //    	//This is effectively the same as a PCA.
-    
-    	//The tricky part here is that you need to have this work for all points along a side of a shape,
-        //not just the vertices
+//    
+//    	//The tricky part here is that you need to have this work for all points along a side of a shape,
+//        //not just the vertices
+//    	
+//    	
 //    	
 //    	
 //    	
 //    }
+    
+    
+    public static Line2D findMaxSeparationLine(List<Point2D> pts){
+    	double a = pts.stream().mapToDouble(p->p.getX()*p.getX()-p.getY()*p.getY()).sum();
+    	double b = pts.stream().mapToDouble(p->p.getX()*p.getY()).sum();
+    	Function<Double,Double> deriv=(theta)->{
+    		double cos=Math.cos(theta);
+    		double sin=Math.sin(theta);
+    		return cos*sin*a+(sin*sin-cos*cos)*b;
+    	};
+    	
+    	Tuple<Double,Double> dub = findZeroGrid(deriv,Math.PI/2,0,5);
+    	
+    	double btheta= findZeroInterp(deriv,dub.v(),dub.k(),0.001,0.001);
+    	
+    	Line2D lp1 = new Line2D.Double(0, 0, Math.cos(btheta), Math.sin(btheta));
+    	Line2D lp2 = new Line2D.Double(0, 0, -Math.sin(btheta),Math.cos(btheta));
+    	
+    	double[] v1= asVector(lp1);
+    	double[] v2= asVector(lp2);
+    	
+    	Tuple<Double,Double> resids=pts.stream()
+    	   .map(p->asVector(p))
+    	   .map(v->Tuple.of(orthoDot(v1,v), orthoDot(v2,v)))
+    	   .map(t->Tuple.of(t.k()*t.k(), t.v()*t.v()))
+    	   .reduce((t1,t2)->Tuple.of(t1.k()+t2.k(),t1.v()+t2.v())).orElse(null);
+    	
+    	if(resids==null)return new Line2D.Double(0,0,1,0);
+    	
+    	if(resids.k()>resids.v()){
+    		Line2D lt=lp2;
+    		lp2=lp1;
+    		lp1=lt;
+    	}
+    	
+    	return lp1;
+    }
+    
+    public static Line2D findLongestSplittingLine(Shape s){
+    	Point2D center = GeomUtil.centerOfMass(s);
+    	int ptNum = 1000;
+    	List<Point2D> pts = 
+    			//Arrays.stream(vertices(s))
+    			getNEquallySpacedPointsAroundShape(s,ptNum).stream()
+    			                .map(p->new Point2D.Double(p.getX()-center.getX(),p.getY()-center.getY()))
+    			                .collect(Collectors.toList());
+    	
+    	Line2D mline=findMaxSeparationLine(pts);
+    	
+    	Line2D mlineReal = new Line2D.Double(mline.getX1() + center.getX(), mline.getY1()+center.getY(), mline.getX2() + center.getX(), mline.getY2()+center.getY());
+    	
+    	
+    	List<Point2D> ptsIntersect=Stream.of(lines(s))
+    	      .map(l->Tuple.of(l,GeomUtil.intersection(mlineReal, l)))
+    	      .filter(t->t.v()!=null)
+    	      .filter(t->t.k().ptSegDist(t.v())<0.001)
+    	      .map(t->t.v())
+    	      .collect(Collectors.toList());
+    	
+    	Point2D[] ptsDist=GeomUtil.getPairOfFarthestPoints(ptsIntersect);
+    	
+    	return new Line2D.Double(ptsDist[0], ptsDist[1]);
+    	
+    	
+    }
+    
+    public static List<Point2D> getNEquallySpacedPointsAroundShape(Shape s, int n){
+    	double p=getPerimeter(s);
+    	
+    	//assuming this always gives back in CW or CCW order
+    	List<LineWrapper> lines = Arrays.stream(lines(s)).map(l->LineWrapper.of(l)).collect(Collectors.toList());
+    	
+    	
+    	List<Point2D> pts = new ArrayList<Point2D>();
+    	
+    	double mult = p / ((double)n);
+    	
+    	for(int i=0;i<n;i++){
+    		double pc = i*mult;
+    		
+    		double lenSoFar=0;
+    		
+    		LineWrapper gline=null;
+    		for(int j=0;j<lines.size();j++){
+    			double nl = lines.get(j).length();
+    			if(nl+lenSoFar>pc){
+    				//found the right one!
+    				gline=lines.get(j);
+    				break;
+    			}
+    			lenSoFar+=nl;
+    		}
+    		
+    		
+    		
+    		double res=pc-lenSoFar;
+    		
+    		double pres = res*gline.recipLength();
+    		
+    		double[] v1=gline.vector();
+    		double[] start=gline.offset();
+    		double[] end =addVectors(negate(start),new double[]{pres*v1[0],pres*v1[1]});
+    		pts.add(new Point2D.Double(end[0],end[1]));
+    	}
+    	
+    	return pts;
+    	
+    }
+    
+    public static double getPerimeter(Shape s){
+    	return Arrays.stream(lines(s))
+    	      .mapToDouble(l->length(l))
+    	      .sum();
+    }
+    
+    private static Tuple<Double,Double> findZeroGrid(Function<Double,Double> f, double high, double low, int steps){
+    	double delta = (high-low)/steps;
+    	
+    	boolean hasLast=false;
+    	
+    	int psign=1;
+    	double px=0;
+    	for(int i=0;i<steps;i++){
+    		double x=low+delta*i;
+    		double y=f.apply(x);
+    		int snum=(int)Math.signum(y);
+    		if(hasLast){
+    			if(snum!=psign){
+    				return Tuple.of(px,x);
+    			}
+    		}
+    		
+    		psign = snum;
+    		px=x;
+    		hasLast=true;
+    	}
+    	return Tuple.of(low,high);
+    }
+    
+    private static double findZeroInterp(Function<Double,Double> f, double high, double low, double tolError, double minStep){
+    	
+    	double hv=f.apply(high);
+    	double lv=f.apply(low);
+    	
+    	if(Math.abs(hv)< tolError){
+    		return high;
+    	}else if(Math.abs(lv)< tolError){
+    		return low;
+    	}
+    	
+    	double mid = (high+low)/2;
+    	
+    	double mv=f.apply(mid);
+    	
+    	boolean hpos=(hv>0);
+    	boolean lpos=(lv>0);
+    	
+    	if(hpos && !lpos){
+    		if(mv>0){
+    			high=mid;
+    		}else{
+    			low=mid;
+    		}
+    	}else if(!hpos && lpos){
+    		if(mv>0){
+    			low=mid;
+    		}else{
+    			high=mid;
+    		}
+    	}
+    	
+    	
+    	if(Math.abs(high-low)<minStep){
+    		return (high+low)/2;
+    	}
+    	return findZeroInterp(f,high,low,tolError,minStep);
+    	
+    }
     
     
     public static Tuple<Point2D,double[]> getCircumscribedAndInscribedCircles(Shape s1){

@@ -876,7 +876,7 @@ public class MoleculeTest {
 		} )});
 		//CCOC(=O)C[C@H](NS(=O)(=O)c1ccccc1)c2ccc3N(CC)C(C)Cc3c2
 
-		list.add(new Object[]{"nCarbonChainTest", new TestSpec("moleculeTest/NHOnTopOfEachOther.png", c->{
+		list.add(new Object[]{"nhOnTopOfEachOther", new TestSpec("moleculeTest/NHOnTopOfEachOther.png", c->{
 			Chemical cReal=ChemicalBuilder.createFromSmiles("CCOC(=O)C[C@H](NS(=O)(=O)c1ccccc1)c2ccc3N(CC)C(C)Cc3c2").build();
 
 			String form=c.getFormula();

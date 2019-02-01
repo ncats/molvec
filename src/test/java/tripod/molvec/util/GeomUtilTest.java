@@ -28,6 +28,64 @@ import tripod.molvec.algo.Tuple;
 
 public class GeomUtilTest {
 
+	
+	@Test
+	public void testMaxTehtaForLineWorks(){
+		double theta1 = 3*Math.PI/9;
+		AffineTransform at= new AffineTransform();
+		at.rotate(theta1);
+		
+		List<Point2D> pts=IntStream.range(0, 100)
+		         .mapToObj(i->new Point2D.Double(i,0))
+		         .map(p->at.transform(p, null))
+		         .collect(Collectors.toList());
+		
+		Line2D max=GeomUtil.findMaxSeparationLine(pts);
+		
+		double theta=GeomUtil.angle(max.getP1(),max.getP2());
+		
+		assertEquals(theta1, theta,0.01);
+	}
+	
+	@Test 
+	public void testSplitShapeIntoNSides(){
+		Rectangle2D rect = new Rectangle2D.Double(0,0,10,10);
+		
+		List<int[]> plist=GeomUtil.getNEquallySpacedPointsAroundShape(rect, 8)
+		.stream()
+		.map(p->new int[]{(int)p.getX(),(int)p.getY()})
+		.collect(Collectors.toList());
+		
+		
+		assertEquals(0,plist.get(0)[0]);
+		assertEquals(0,plist.get(0)[1]);
+		
+		assertEquals(5,plist.get(1)[0]);
+		assertEquals(0,plist.get(1)[1]);
+		
+		assertEquals(10,plist.get(2)[0]);
+		assertEquals(0,plist.get(2)[1]);
+		
+		assertEquals(10,plist.get(3)[0]);
+		assertEquals(5,plist.get(3)[1]);
+		
+		assertEquals(10,plist.get(4)[0]);
+		assertEquals(10,plist.get(4)[1]);
+		
+		assertEquals(5,plist.get(5)[0]);
+		assertEquals(10,plist.get(5)[1]);
+		
+		assertEquals(0,plist.get(6)[0]);
+		assertEquals(10,plist.get(6)[1]);
+		
+		assertEquals(0,plist.get(7)[0]);
+		assertEquals(5,plist.get(7)[1]);
+		
+		
+	}
+	
+	
+	
     @Test
     public void projectingPointOntoHorizontalLineShouldReturnSameXCoordinate() throws Exception {
     	

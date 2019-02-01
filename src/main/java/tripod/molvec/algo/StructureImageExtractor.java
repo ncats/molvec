@@ -13,7 +13,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -25,7 +24,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -91,8 +89,7 @@ public class StructureImageExtractor {
 	private List<Tuple<Line2D,Integer>> linesOrder;    
 	private Map<Shape,List<Tuple<Character,Number>>> ocrAttempt = new ConcurrentHashMap<>();
 	private Map<Shape,String> bestGuessOCR = new HashMap<>();
-	private Map<Shape,ShapeInfo> shapeTypes = new HashMap<>();
-
+	
 
 	private ConnectionTable ctab;
 	private List<ConnectionTable> ctabRaw = new ArrayList<ConnectionTable>();
@@ -254,56 +251,6 @@ public class StructureImageExtractor {
 		return CharType.ChemLikely;
 	}
 
-	public static enum ShapeType{
-		TEXT,
-		TEXT_NUMERIC,
-		TEXT_CHEMICAL,
-		LINE,
-		LINES,
-		SIMILAR_ANGLE_LINES,
-		NOISE
-	}
-
-
-	public static class ShapeInfo{
-		private Shape s;
-		private ShapeType t;
-		private double densityOriginal;
-		private double densityThin;
-		private double area;
-		private int lineCount=0;
-		private double lineLengthAverage=0;
-
-		public ShapeInfo(Shape s, ShapeType t, double densityO, double densityT, int lcount, double lineLengthAverage){
-			this.s=s;
-			this.t=t;
-			this.densityOriginal=densityO;
-			this.densityThin=densityT;
-			this.lineCount=lcount;
-			this.area=GeomUtil.area(s);
-			this.lineLengthAverage=lineLengthAverage;
-
-		}
-
-
-		public double avgPixelsPerLineUnit(){
-			Rectangle2D rect=s.getBounds2D();
-			double bboxarea= rect.getWidth()*rect.getHeight();
-			double pixelsOn=bboxarea*this.densityOriginal;
-
-			double totalLineLength=(this.lineCount*this.lineLengthAverage);
-			return pixelsOn/totalLineLength;
-		}
-
-		public double getLineDensity(){
-			return this.lineCount/area;
-		}
-
-		public String toString(){
-			return "ShapeInfo:" + s + ", type=" + t + ", densityRaw=" + this.densityOriginal + ", densityThin=" + this.densityThin + ", lines=" + lineCount + ", area=" + this.area + ", lineDensity=" + this.lineCount/area + ", thickness=" + this.avgPixelsPerLineUnit();
-		}
-
-	}
 
 
 	private void processOCR(SCOCR socr, List<Shape> polygons,Bitmap bitmap, Bitmap thin, BiConsumer<Shape,List<Tuple<Character,Number>>> onFind){
@@ -585,6 +532,9 @@ public class StructureImageExtractor {
 		if (!polygons.isEmpty()) {
 			isLarge = polygons.size() > 4000;
 		}
+		
+
+		
 
 		thin = bitmap.thin();
 
@@ -607,6 +557,10 @@ public class StructureImageExtractor {
 		 */   
 
 		List<Shape> initialDebug = Collections.synchronizedList(new ArrayList<>());
+		
+		
+		
+		
 
 		processOCR(socr[0],polygons,bitmap,thin,(s,potential)->{
 			ocrAttempt.put(s, potential);
@@ -626,6 +580,8 @@ public class StructureImageExtractor {
 
 			}
 		});
+
+		//if(true)return;
 		List<Shape> circles =  polygons.stream()
 		        .filter(p->!likelyOCRAll.contains(p))
 		        .map(s->Tuple.of(s,GeomUtil.getCircleLikeScore(s)))
@@ -642,7 +598,6 @@ public class StructureImageExtractor {
 						           .findFirst()
 						           .isPresent())
 				.collect(Collectors.toList());
-		
 		
 		
 		
@@ -833,11 +788,6 @@ public class StructureImageExtractor {
 			linesJoined=Stream.concat(bigLines.stream(),
 					smallLines.stream())
 					.collect(Collectors.toList());
-			
-			
-			
-			shapeTypes=new HashMap<>();
-
 
 
 			double largestBond=smallLines.stream()
@@ -3203,9 +3153,6 @@ public class StructureImageExtractor {
 		return this.ctabRaw;
 	}
 
-	public Map<Shape,ShapeInfo> getShapeTypes() {
-		return shapeTypes;
-	}
 
 
 

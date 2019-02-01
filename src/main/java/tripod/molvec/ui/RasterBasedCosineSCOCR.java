@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import javax.imageio.ImageIO;
 
 import tripod.molvec.Bitmap;
+import tripod.molvec.CachedSupplier;
 import tripod.molvec.algo.Tuple;
 
 public abstract class RasterBasedCosineSCOCR implements SCOCR{
@@ -192,6 +193,52 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 			this.rect=new Rectangle2D.Double(0,0,dimB[0],dimB[1]);
 			return this;
 		}		
+		
+		private CachedSupplier<Integer> _totalC = CachedSupplier.of(()->{
+			int totalc = 0;
+			for(int i=0;i<data.length;i++){
+				for(int j=0;j<data[i].length;j++){
+					totalc+=data[i][j]*data[i][j];
+				}
+			}
+			return totalc;
+		});
+		
+		private CachedSupplier<int[]> _totalCH = CachedSupplier.of(()->{
+			int[] vec = new int[data.length];
+			for(int i=0;i<data.length;i++){
+				int c=0;
+				for(int j=0;j<data[i].length;j++){
+					c+=data[i][j]*data[i][j];
+				}
+				vec[i]=c;
+			}
+			return vec;
+		});
+		
+		private CachedSupplier<int[]> _totalCV = CachedSupplier.of(()->{
+			int[] vec = new int[data[0].length];
+			for(int i=0;i<data.length;i++){
+				for(int j=0;j<data[i].length;j++){
+					vec[j]+=data[i][j]*data[i][j];
+				}
+			}
+			return vec;
+		});
+		
+		public int getSqLength(){
+			return Arrays.stream(_totalCH.get()).sum();
+		}
+		public int[] getSqLengthHorizontal(){
+			return _totalCH.get();
+		}
+		
+		public int[] getSqLengthVertical(){
+			return _totalCV.get();
+		}
+		
+		
+		
 	}
 	
 	
@@ -237,8 +284,40 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 
 	@Override
 	public Map<Character, Number> getRanking(Bitmap r) {
-		return _alphabet.parallelStream()
-				.collect(Collectors.toMap(Function.identity(), c2->correlation(r, c2)));
+		int twidth = r.width();
+		int theight = r.height();
+		
+		int[][] ccount = new int[DEF_WIDTH][DEF_HEIGHT];
+		
+		List<int[]> xys=r.getXYOnPoints()
+						    .map(xy->{
+						    	int cx = (xy[0] * DEF_WIDTH) / twidth;
+						    	int cy = (xy[1] * DEF_HEIGHT) / theight;
+						    	return new int[]{cx,cy,1};
+						    })
+						    .collect(Collectors.groupingBy(i->i[0]+","+i[1]))
+						    .values()
+						    .stream()
+						    .map(il->{
+						    	int[] r1=il.get(0);
+						    	r1[2]=il.size();
+						    	return r1;
+						    })
+						    .collect(Collectors.toList());
+		
+		int tcount= xys.stream().mapToInt(r1->r1[2]).sum();
+		
+		for(int i=0;i<twidth;i++){
+			for(int j=0;j<theight;j++){
+			   	int cx = (i * DEF_WIDTH) / twidth;
+		    	int cy = (j * DEF_HEIGHT) / theight;
+		    	ccount[cx][cy]++;
+			}
+		}
+		
+		return _alphabet
+				.parallelStream()
+				.collect(Collectors.toMap(Function.identity(), c2->correlation(xys,ccount,tcount,twidth,theight, c2)));
 	}
 
 	public static void debugPrintBmap(int[][] test) {
@@ -253,30 +332,31 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 		}
 
 	}
-
-	public double correlation(Bitmap test, Character c) {
+	
+	
+	
+	private double correlation(List<int[]> xys, int[][] ccount, int total, int twidth, int theight, Character c){
 		double maxCor = Double.MIN_VALUE;
+		
 		for (RasterChar rc: charVal.get(c)) {
 			int[][] cM = rc.data;
-			int twidth = test.width();
-			int theight = test.height();
-			int total = 0;
 			int totalC = 0;
 			double cor = 0;
-			for (int i = 0; i < twidth; i++) {
-				int cx = (i * DEF_WIDTH) / twidth;
-				for (int j = 0; j < theight; j++) {
-					
-					int cy = (j * DEF_HEIGHT) / theight;
-					int val = cM[cx][cy];
-					int asInt = test.getAsInt(i,j);
-					cor += val * asInt;
-					//TODO isn't test[i][j] either a 1 or a 0 ?  how is squaring going to do anything?
-//					total += test[i][j] * test[i][j];
-					total += asInt;
-					totalC += val * val;
+			
+			cor=xys.stream()
+			    .mapToInt(xy->cM[xy[0]][xy[1]]*xy[2])
+			    .sum();
+			
+			int sum=0;
+			
+			for(int i=0;i<DEF_WIDTH;i++){
+				for(int j=0;j<DEF_HEIGHT;j++){
+					int val=cM[i][j];
+					sum+=val*val*ccount[i][j];
 				}
 			}
+			totalC=sum;
+			
 			double whrat = (double) twidth / (double) theight;
 			whrat = (rc.rect.getWidth()/rc.rect.getHeight()) / whrat;
 			if (whrat > 1)
@@ -288,5 +368,31 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 		}
 		return maxCor;
 	}
+
+	public double correlation(Bitmap test, Character c) {
+		int twidth = test.width();
+		int theight = test.height();
+		
+		int[][] ccount = new int[DEF_WIDTH][DEF_HEIGHT];
+		
+		List<int[]> xys=test.getXYOnPoints()
+						    .map(xy->{
+						    	int cx = (xy[0] * DEF_WIDTH) / twidth;
+						    	int cy = (xy[1] * DEF_HEIGHT) / theight;
+						    	return new int[]{cx,cy};
+						    })
+						    .collect(Collectors.toList());
+		
+		for(int i=0;i<twidth;i++){
+			for(int j=0;j<theight;j++){
+			   	int cx = (i * DEF_WIDTH) / twidth;
+		    	int cy = (j * DEF_HEIGHT) / theight;
+		    	ccount[cx][cy]++;
+			}
+		}
+		return correlation(xys,ccount,xys.size(),twidth,theight,c);
+	}
+	
+	
 
 }

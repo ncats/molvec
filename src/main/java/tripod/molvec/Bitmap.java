@@ -890,6 +890,23 @@ public class Bitmap implements Serializable, TiffTags {
     public boolean write (OutputStream os) throws IOException {
         return write ("png", os);
     }
+    
+    
+    private CachedSupplier<List<int[]>> onInts = CachedSupplier.of(()->{
+    	List<int[]> on = new ArrayList<>();
+    	for(int i=0;i<this.width();i++){
+    		for(int j=0;j<this.height();j++){
+    			if(this.get(i, j)){
+    				on.add(new int[]{i,j});
+    			}
+    		}
+    	}
+    	return on;
+    });
+    
+    public Stream<int[]> getXYOnPoints(){
+    	return onInts.get().stream();
+    }
 
     public Bitmap crop (Shape s) {
         Rectangle r = s.getBounds ();
@@ -914,6 +931,8 @@ public class Bitmap implements Serializable, TiffTags {
         }
         return dst;
     }
+    
+    
 
     public Bitmap crop (int x, int y, int w, int h) {
         Bitmap dst = new Bitmap (w, h);
