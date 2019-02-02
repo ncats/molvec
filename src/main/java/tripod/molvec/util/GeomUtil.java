@@ -1404,6 +1404,14 @@ public class GeomUtil {
 	public static double length(Line2D l){
 		return l.getP1().distance(l.getP2());
 	}
+	public static double lengthSquared(Line2D l){
+		return l.getP1().distanceSq(l.getP2());
+	}
+	
+	public static Predicate<Line2D> longerThan(double d){
+		double sq=d*d;
+		return (l)->lengthSquared(l)>sq;
+	}
 
 
 	private static class LineWrapper{
@@ -2036,9 +2044,14 @@ public class GeomUtil {
 	
 	
 	public static double area(Shape s){
+		if(s instanceof Rectangle2D){
+			return ((Rectangle2D)s).getWidth()*((Rectangle2D)s).getHeight();
+		}
 		return Math.abs(areaVerticesCW(vertices(s)));
 	}
 	
+	
+	@Deprecated
 	public static double poorMansArea(Shape s){
 		Rectangle2D r = s.getBounds2D();
 		int hits=0;

@@ -434,11 +434,32 @@ public class Bitmap implements Serializable, TiffTags {
     private int scanline;
     private SampleModel sampleModel;
     
+    private static byte[] sqrtCache = CachedSupplier.of(()->{
+    	int maxReal = 2*Byte.MAX_VALUE*Byte.MAX_VALUE; // this is like 127*127*2 = 15-bits ~ 32kB of 4x sqrts for each input
+    	byte[] cache= new byte[maxReal];
+    	
+    	for(int i=0;i<maxReal;i++){
+    		cache[i] = (byte)Math.min(Byte.MAX_VALUE, Math.round(Math.sqrt(i)*4));
+    	}
+    	return cache;
+    }).get();
+    
     private CachedSupplier<byte[]> distanceData = CachedSupplier.of(()->{
     	byte[] distanceX=new byte[data.length*8];
     	byte[] distanceY=new byte[data.length*8];
     	
+    	
+    	//TODO may want to fiddle with this number/algorithm
+    	int growUntil = 2;
+    	
+    	
     	int nscan=scanline*8;
+//    	
+//    	this.getXYOnPoints()
+//    	    .forEach(xy->{
+//    	    	distanceX[xy[0]]=0;
+//    	    	distanceY[xy[1]]=0;
+//    	    });
     	
     	for (int y = 0; y < this.height; ++y) {
              for (int x = 0; x < this.width; ++x) {
@@ -462,9 +483,8 @@ public class Bitmap implements Serializable, TiffTags {
     	int[] dx = new int[]{-1, 0, 1,-1,1,-1,0,1};
     	int[] dy = new int[]{-1,-1,-1, 0,0, 1,1,1};
     	
-    	
     	boolean changedSomething=true;
-    	for (int r = 0; changedSomething && r<5;r++){
+    	for (int r = 0; changedSomething && r<growUntil;r++){
     		changedSomething=false;
 	    	for (int y = 0; y < this.height; ++y) {
 	    		int yoff=y*nscan;
@@ -496,9 +516,6 @@ public class Bitmap implements Serializable, TiffTags {
 	          				 }	 
 	          			 }
 	          			 if(mini>=0){
-//	          				 if(r > 0){
-//	          					 System.out.println("HERE !!!! R = " +r);
-//	          				 }
 	          				changedSomething=true;
 	          				distanceX[loc] =ndx;
 	      					distanceY[loc] =ndy;
@@ -507,16 +524,22 @@ public class Bitmap implements Serializable, TiffTags {
 	            }
 	       }
     	}
+    	
+    	
+    	
     	for (int y = 0; y < this.height; ++y) {
     		int yoff=y*nscan;
     		
             for (int x = 0; x < this.width; ++x) {
           		 int loc = yoff + x;
           		 byte ddx=distanceX[loc];
-          		 byte ddy=distanceY[loc];
-          		 double dist = Math.sqrt(ddx*ddx+ddy*ddy);
-          		 distanceX[loc] = (byte)Math.min(Byte.MAX_VALUE, Math.round(dist*4));
-//          		 System.out.println(distanceX[loc]);
+         		 byte ddy=distanceY[loc];
+          		 if(ddx>=Byte.MAX_VALUE || ddy>=Byte.MAX_VALUE){
+          			distanceX[loc] = (byte)Byte.MAX_VALUE;
+          			continue;
+          		 }          		 
+          		 int dd=ddx*ddx+ddy*ddy;
+          		 distanceX[loc]=sqrtCache[dd];
             }
        }
     	

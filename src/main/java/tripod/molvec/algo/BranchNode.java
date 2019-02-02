@@ -3,9 +3,12 @@ package tripod.molvec.algo;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,32 +34,105 @@ class BranchNode{
 	    return keepers;
 	}).get();
 	
-	String symbol = "C";
-	int charge=0;
-	boolean pseudo=false;
-	boolean isRepeat=false;
-	int rep=0;
-	int orderToParent=1;
+	
+	
+	private static Map<String,Optional<BranchNode>> _cache = new ConcurrentHashMap<>();
+	
+	//TODO
+	//Need clone mechanism, but there is a lot of embedded state / links to other things
+	
+	
+	private String symbol = "C";
+	
+	
+	private boolean pseudo=false;
+	private boolean isRepeat=false;
+	private int rep=0;
+	
+	private int charge=0;
+	private int orderToParent=1;
+	
+	
 	private int thetaOffset=0;
-	boolean linkable =true;
+	private boolean linkable =true;
+	private boolean isCombiner=false;
 	
 	//1 is wedge, -1 is dash
 	private int wedgeToParent=0;
-	
 	private boolean isTerminal =false;
-	
-	
 	private boolean combineLinearly = false;
 	
+	private Point2D suggestedPoint = new Point2D.Double(0, 0);
+	
+	
+	//These are the difficult parts for cloning
+	private List<BranchNode> children = new ArrayList<BranchNode>();
 	private Tuple<BranchNode,Integer> ringBond = null; 
 	private BranchNode childForCombine=null;
-	
-	private boolean isCombiner=false;
-	
-	List<BranchNode> children = new ArrayList<BranchNode>();
+	private BranchNode rightBranch=this;
+	private BranchNode leftBranch=this;
 	
 	
-	Point2D suggestedPoint = new Point2D.Double(0, 0);
+	public Tuple<BranchNode,Boolean> cloneNode(Map<BranchNode,BranchNode> oldToNew){
+		BranchNode bn = new BranchNode(this.symbol);
+		bn.pseudo=this.pseudo;
+		bn.isRepeat=this.isRepeat;
+		bn.rep=this.rep;
+		bn.charge=this.charge;
+		bn.orderToParent=this.orderToParent;
+		bn.thetaOffset=this.thetaOffset;
+		bn.linkable=this.linkable;
+		bn.isCombiner=this.isCombiner;
+		bn.wedgeToParent=this.wedgeToParent;
+		bn.isTerminal=this.isTerminal;
+		bn.combineLinearly=this.combineLinearly;
+		bn.setSuggestedPoint(this.getSuggestedPoint());
+		
+		
+		
+		oldToNew.put(this, bn);
+		
+		boolean complete=true;
+		
+		for(BranchNode c: children){
+			Tuple<BranchNode,Boolean> nc = c.cloneNode(oldToNew);
+			if(!nc.v())complete=false;
+			oldToNew.put(c, nc.k());
+			bn.children.add(nc.k());
+		}
+		bn.rightBranch = oldToNew.get(this.rightBranch);
+		bn.leftBranch = oldToNew.get(this.leftBranch);
+		bn.childForCombine =  oldToNew.get(this.childForCombine);
+		
+		if(ringBond!=null){
+			BranchNode newRing = oldToNew.get(this.ringBond.k());
+			if(newRing==null){
+				complete=false;
+				//This part might not work
+				newRing=this.ringBond.k();
+			}
+			bn.ringBond=Tuple.of(newRing,this.ringBond.v());
+		}		
+		return Tuple.of(bn,complete);
+	}
+	
+	public BranchNode cloneNode(){
+		Map<BranchNode,BranchNode> oldToNewMap = new HashMap<>();
+		Tuple<BranchNode,Boolean> clone = cloneNode(oldToNewMap);
+		
+		if(clone.v()){
+			return clone.k();
+		}else{
+			clone.k().forEachBranchNode((p,c)->{
+				if(c.ringBond!=null){
+					c.ringBond = Tuple.of(oldToNewMap.get(c.ringBond.k()),c.ringBond.v());
+				}
+			});
+		}
+		return clone.k();
+	}
+	
+	
 	
 	public int getOrderToParent(){
 		return this.orderToParent;
@@ -94,7 +170,7 @@ class BranchNode{
 	}
 	
 	public BranchNode generateCoordinates(){
-		suggestedPoint = new Point2D.Double(0, 0);
+		setSuggestedPoint(new Point2D.Double(0, 0));
 		int totalChildren = children.size();
 		
 		double[] thetas=new double[]{-Math.PI/3,Math.PI/3,0,-2*Math.PI/3,2*Math.PI/3};
@@ -119,7 +195,7 @@ class BranchNode{
 	
 	public BranchNode applyTransform(AffineTransform at){
 		
-		suggestedPoint=at.transform(suggestedPoint, null);
+		setSuggestedPoint(at.transform(getSuggestedPoint(), null));
 		for(BranchNode c:this.getChildren()){
 			c.applyTransform(at);
 		}
@@ -232,9 +308,6 @@ class BranchNode{
 		this.pseudo=p;
 		return this;
 	}
-	
-	private BranchNode rightBranch=this;
-	private BranchNode leftBranch=this;
 	
 	public BranchNode getLeftBranchNode(){
 		return rightBranch;
@@ -766,7 +839,7 @@ class BranchNode{
 
 	private static BranchNode interpretOCRStringAsAtom(String s){
 		try{
-			return interpretOCRStringAsAtom(s,false);
+			return _cache.computeIfAbsent(s, (k)->Optional.ofNullable(interpretOCRStringAsAtom(s,false))).map(b->b.cloneNode()).orElse(null);
 		}catch(Exception e){
 			return null;
 		}
@@ -797,6 +870,14 @@ class BranchNode{
 	public BranchNode setTerminal(boolean t){
 		this.isTerminal=t;
 		return this;
+	}
+
+	public Point2D getSuggestedPoint() {
+		return suggestedPoint;
+	}
+
+	public void setSuggestedPoint(Point2D suggestedPoint) {
+		this.suggestedPoint = suggestedPoint;
 	}
 	
 }

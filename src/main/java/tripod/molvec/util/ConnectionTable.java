@@ -918,12 +918,17 @@ public class ConnectionTable{
 	private void resetCaches(){
 		_bondMap.resetCache();
 		_nodeMap.resetCache();
+		_averageBondLength.resetCache();
 		
 	}
 	
 	public double getAverageBondLength(){
-		return getMeanBondLength();
+		return _averageBondLength.get();
 	}
+	
+	private CachedSupplier<Double> _averageBondLength=CachedSupplier.of(()->{
+			return getMeanBondLength();
+	});
 	
 	public double getMeanBondLength(){
 		return edges.stream().mapToDouble(e->e.getEdgeLength()).average().orElse(0);

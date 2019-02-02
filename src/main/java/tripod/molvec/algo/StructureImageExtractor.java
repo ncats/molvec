@@ -95,8 +95,11 @@ public class StructureImageExtractor {
 	private ConnectionTable ctab;
 	private List<ConnectionTable> ctabRaw = new ArrayList<ConnectionTable>();
 
-
-	private final double MAX_REPS = 2;
+	
+	private final int MAX_OCR_FULL_REPEATS=2;
+	private final int MAX_REPS = 2;
+	
+	
 	private final double INITIAL_MAX_BOND_LENGTH=Double.MAX_VALUE;
 	private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE = 1/3.5;
 	private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE_INITIAL = 1/2.9;
@@ -607,29 +610,29 @@ public class StructureImageExtractor {
 		
 		
 		lines= GeomUtil.asLines(thin.segments())
-				.stream()
-				.filter(l->!circles.stream()
-						           .filter(s->s.contains(l.getP1()) || s.contains(l.getP1()))
-						           .findFirst()
-						           .isPresent())
-				.collect(Collectors.toList());
+					   .stream()
+					   .filter(l->!circles.stream()
+								           .filter(s->s.contains(l.getP1()) || s.contains(l.getP1()))
+								           .findFirst()
+								           .isPresent())
+					   .collect(Collectors.toList());
 		
 		
 		
 		
 		ctabRaw.clear();
 
-		AtomicBoolean foundNewOCR=new AtomicBoolean(true);
-		int maxFullRepeats=2;
+		boolean[] foundNewOCR=new boolean[]{true};
+	
 		int repeats=0;
 		List<Shape> realRescueOCRCandidates = new ArrayList<>();
 		
 		double[] averageHeightOCRFinal = new double[]{0};
 		double[] averageWidthOCRFinal = new double[]{0};
 		
-		while(foundNewOCR.get() && repeats<maxFullRepeats){
+		while(foundNewOCR[0] && repeats<MAX_OCR_FULL_REPEATS){
 			repeats++;
-			foundNewOCR.set(false);
+			foundNewOCR[0]=false;
 
 			double averageLargestOCR=likelyOCR.stream()
 					.map(s->GeomUtil.getPairOfFarthestPoints(s))
@@ -758,7 +761,7 @@ public class StructureImageExtractor {
 			smallLines= thin.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
 
 			List<Line2D> removedTinyLines =smallLines.stream()
-					.filter(l->GeomUtil.length(l)<=MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS)
+					.filter(GeomUtil.longerThan(MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS).negate())
 					.collect(Collectors.toList());
 
 			List<Point2D> removedTinyVertices = removedTinyLines.stream()
@@ -768,7 +771,7 @@ public class StructureImageExtractor {
 
 
 			smallLines=smallLines.stream()
-					.filter(l->GeomUtil.length(l)>MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS)
+					.filter(GeomUtil.longerThan(MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS))
 					.collect(Collectors.toList());
 
 
@@ -1209,11 +1212,10 @@ public class StructureImageExtractor {
 
 
 				
-
+				Predicate<Line2D> longerThanMax = GeomUtil.longerThan(maxBondLength[0]);
 				tooLongBond = ctab.getEdges()
 						.stream()
-						
-						.filter(e->e.getEdgeLength()>maxBondLength[0])
+						.filter(e->longerThanMax.test(e.getLine()))
 						.findAny()
 						.isPresent();
 				if(tooLongBond){
@@ -1318,12 +1320,8 @@ public class StructureImageExtractor {
 
 				List<Point2D> allVertices = verticesJ;
 
-				boolean isresc=false;
-
-
 				if(centerRescue!=null){
 					cpt=centerRescue;
-					isresc=true;
 				}
 
 				boolean keep=true;
@@ -1498,7 +1496,7 @@ public class StructureImageExtractor {
 					likelyOCRAll.add(nshape);
 					ocrRescues.add(nshape);
 					
-					foundNewOCR.set(true);
+					foundNewOCR[0]=true;
 				}
 			});
 
@@ -1700,7 +1698,7 @@ public class StructureImageExtractor {
 					    	  likelyOCRAll.remove(s2);
 					    	  
 					      });
-						foundNewOCR.set(true);
+						foundNewOCR[0]=true;
 						likelyOCRIgnore.add(GeomUtil.growShape(parent,2));
 						
 						//we need to clear up things that might have been found by accident due to bad
@@ -1714,7 +1712,7 @@ public class StructureImageExtractor {
 					bestGuessOCR.put(parent, val);
 				}
 			});
-			if(foundNewOCR.get() && repeats<maxFullRepeats)continue;
+			if(foundNewOCR[0] && repeats<MAX_OCR_FULL_REPEATS)continue;
 			
 			bestGuessOCR.entrySet()
 						.stream()
@@ -1804,104 +1802,104 @@ public class StructureImageExtractor {
 
 
 			bestGuessOCR.entrySet()
-			.stream()
-			.map(Tuple::of)
-			.map(Tuple.vmap(s->Tuple.of(s,(s.equals("H"))?1:0).withVComparator()))
-			.map(t->t.withVComparator())
-			.sorted()
-			.filter(t->!t.v().k().startsWith("#")) //???
-			.map(Tuple.vmap(t->t.k()))
-			.forEach(shapeString->{
-				Shape s= shapeString.k();
-				String sym = shapeString.v();
-				BranchNode actual = BranchNode.interpretOCRStringAsAtom2(sym);
-				Point2D centert = GeomUtil.findCenterOfShape(s);
-
-				if(actual!=null && actual.isRealNode()){
-					if(sym.length()>1){
-						List<Line2D> externalLines=ctab.getAllEdgesEntering(s, MAX_BOND_RATIO_FOR_MERGING_TO_OCR*ctab.getAverageBondLength())
-								.stream()
-								.map(t->t.k().getLine())
-								.collect(Collectors.toList());
-						if(externalLines.size()==1){
-							Line2D exl=externalLines.get(0);
-							Point2D tc=centert;
-							Point2D cnew=likelyOCR.stream()
-									.map(s1->GeomUtil.findCenterOfShape(s1))
-									.filter(spt->s.contains(spt))
-									.map(cpt->GeomUtil.projectPointOntoLineWithRejection(exl, cpt))
-									.map(Tuple.vmap(d->Math.abs(d)))
-									.map(t->t.withVComparator())
-									.min(Comparator.naturalOrder())
-									.map(t->t.k())
-									.orElseGet(()->{
-										return GeomUtil.projectPointOntoLine(externalLines.get(0), tc);
-									});
-							if(s.contains(cnew)){
-								centert=cnew;
-
+						.stream()
+						.map(Tuple::of)
+						.map(Tuple.vmap(s->Tuple.of(s,(s.equals("H"))?1:0).withVComparator()))
+						.map(t->t.withVComparator())
+						.sorted()
+						.filter(t->!t.v().k().startsWith("#")) //??? if it isn't a number, this should never be the case now, but might be in the future
+						.map(Tuple.vmap(t->t.k()))
+						.forEach(shapeString->{
+							Shape s= shapeString.k();
+							String sym = shapeString.v();
+							BranchNode actual = BranchNode.interpretOCRStringAsAtom2(sym);
+							Point2D centert = GeomUtil.findCenterOfShape(s);
+			
+							if(actual!=null && actual.isRealNode()){
+								if(sym.length()>1){
+									List<Line2D> externalLines=ctab.getAllEdgesEntering(s, MAX_BOND_RATIO_FOR_MERGING_TO_OCR*ctab.getAverageBondLength())
+											.stream()
+											.map(t->t.k().getLine())
+											.collect(Collectors.toList());
+									if(externalLines.size()==1){
+										Line2D exl=externalLines.get(0);
+										Point2D tc=centert;
+										Point2D cnew=likelyOCR.stream()
+												.map(s1->GeomUtil.findCenterOfShape(s1))
+												.filter(spt->s.contains(spt))
+												.map(cpt->GeomUtil.projectPointOntoLineWithRejection(exl, cpt))
+												.map(Tuple.vmap(d->Math.abs(d)))
+												.map(t->t.withVComparator())
+												.min(Comparator.naturalOrder())
+												.map(t->t.k())
+												.orElseGet(()->{
+													return GeomUtil.projectPointOntoLine(externalLines.get(0), tc);
+												});
+										if(s.contains(cnew)){
+											centert=cnew;
+			
+										}
+									}else{
+										List<Point2D> intersections =GeomUtil.eachCombination(externalLines)
+												.map(t->GeomUtil.intersection(t.k(),t.v()))
+												.filter(p->p!=null)
+												.filter(p->s.contains(p))
+												.collect(Collectors.toList());
+										if(intersections.size()==1){
+											centert=intersections.get(0);
+										}else if(intersections.size()>1){
+											centert=GeomUtil.findCenterOfVertices(intersections);
+										}
+									}
+									if(!s.contains(centert)){
+										centert=GeomUtil.findCenterOfShape(s);
+									}
+								}
+								Point2D center = centert;
+								
+								
+								
+								//This is likely the source of lots of problems
+								ctab.mergeAllNodesInside(s, MAX_BOND_RATIO_FOR_MERGING_TO_OCR*ctab.getAverageBondLength(),(n)->{
+									if(sym.equals("H")){
+										if(GeomUtil.findClosestShapeTo(ocrMeaningful, n.getPoint()).k() !=s){
+											return false;
+										}
+									}
+									if(!s.contains(n.getPoint()) && actual.isTerminal() && n.getEdgeCount()>1){
+										//System.out.println("Term?");
+										long cc=n.getNeighborNodes()
+										 .stream()
+										 .map(t->t.k())
+										 .filter(nn->GeomUtil.distanceTo(s, nn.getPoint())<2)
+										 .count();
+										
+										if(cc==0)return false;
+									}
+									if(alreadyFixedNodes.contains(n))return false;
+									if(n.getEdgeCount()==0)return false;
+									return true;
+								},(l)->{
+			
+									boolean matchesOthers=l.stream()
+											.map(pt->GeomUtil.findClosestShapeTo(ocrMeaningful, pt).k())
+											.filter(sb->(sb!=s))
+											.findAny()
+											.isPresent();
+									if(!matchesOthers){
+										return center;
+									}else{
+										//return center;
+										return GeomUtil.findCenterMostPoint(l);
+									}
+			
+			
+			
+								});
+								List<Node> mergedNodes=ctab.getAllNodesInsideShape(s,MAX_BOND_RATIO_FOR_MERGING_TO_OCR*ctab.getAverageBondLength());
+								alreadyFixedNodes.addAll(mergedNodes);
 							}
-						}else{
-							List<Point2D> intersections =GeomUtil.eachCombination(externalLines)
-									.map(t->GeomUtil.intersection(t.k(),t.v()))
-									.filter(p->p!=null)
-									.filter(p->s.contains(p))
-									.collect(Collectors.toList());
-							if(intersections.size()==1){
-								centert=intersections.get(0);
-							}else if(intersections.size()>1){
-								centert=GeomUtil.findCenterOfVertices(intersections);
-							}
-						}
-						if(!s.contains(centert)){
-							centert=GeomUtil.findCenterOfShape(s);
-						}
-					}
-					Point2D center = centert;
-					
-					
-					
-					//This is likely the source of lots of problems
-					ctab.mergeAllNodesInside(s, MAX_BOND_RATIO_FOR_MERGING_TO_OCR*ctab.getAverageBondLength(),(n)->{
-						if(sym.equals("H")){
-							if(GeomUtil.findClosestShapeTo(ocrMeaningful, n.getPoint()).k() !=s){
-								return false;
-							}
-						}
-						if(!s.contains(n.getPoint()) && actual.isTerminal() && n.getEdgeCount()>1){
-							//System.out.println("Term?");
-							long cc=n.getNeighborNodes()
-							 .stream()
-							 .map(t->t.k())
-							 .filter(nn->GeomUtil.distanceTo(s, nn.getPoint())<2)
-							 .count();
-							
-							if(cc==0)return false;
-						}
-						if(alreadyFixedNodes.contains(n))return false;
-						if(n.getEdgeCount()==0)return false;
-						return true;
-					},(l)->{
-
-						boolean matchesOthers=l.stream()
-								.map(pt->GeomUtil.findClosestShapeTo(ocrMeaningful, pt).k())
-								.filter(sb->(sb!=s))
-								.findAny()
-								.isPresent();
-						if(!matchesOthers){
-							return center;
-						}else{
-							//return center;
-							return GeomUtil.findCenterMostPoint(l);
-						}
-
-
-
-					});
-					List<Node> mergedNodes=ctab.getAllNodesInsideShape(s,MAX_BOND_RATIO_FOR_MERGING_TO_OCR*ctab.getAverageBondLength());
-					alreadyFixedNodes.addAll(mergedNodes);
-				}
-			});
+						});
 
 			ctab.standardCleanEdges();
 
@@ -1914,10 +1912,11 @@ public class StructureImageExtractor {
 
 
 
-			List<Line2D> lj =Stream.concat(removedTinyLines.stream(), linesJoined.stream())
-					.flatMap(l->GeomUtil.getLinesNotInside(l, growLikelyOCRNonBond).stream())
-					.filter(l->GeomUtil.length(l)>2) // needed?
-							.collect(Collectors.toList());
+			List<Tuple<Line2D,Point2D>> lj =Stream.concat(removedTinyLines.stream(), linesJoined.stream())
+								   .flatMap(l->GeomUtil.getLinesNotInside(l, growLikelyOCRNonBond).stream())
+								   .filter(l->GeomUtil.length(l)>2) // needed?
+								   .map(l->Tuple.of(l,GeomUtil.findCenterOfShape(l)))
+								   .collect(Collectors.toList());
 
 			//lines=lj;
 
@@ -1952,7 +1951,8 @@ public class StructureImageExtractor {
 							Shape cshape = t.v();
 
 							List<Line2D> opl=lj.stream()
-									.filter(l1->cshape.contains(GeomUtil.findCenterOfShape(l1)))
+									.filter(l1->cshape.contains(l1.v()))
+									.map(t1->t1.k())
 									//.map(l1->Tuple.of(l1,taken.add(l1)))
 									//.map(l1->Tuple.of(l1,true))
 									.collect(Collectors.toList());
@@ -2011,30 +2011,29 @@ public class StructureImageExtractor {
 
 
 			edgesToMake.stream()
-			.filter(t->{
-				return taken.addAll(t.k());   
-			})
-			.forEach(t->{
-
-				List<Edge> crossingEdges=ctab.getBondsThatCross(t.v().k(),t.v().v());
-				if(!crossingEdges.isEmpty())return;
-
-				//don't add cross bonds
-
-
-				int order=GeomUtil.groupThings(t.k(), tlines->{
-					Line2D l1=tlines.k(); 
-					Line2D l2=tlines.v();
-					if(GeomUtil.cosTheta(l1, l2) > Math.cos(10*Math.PI/180)){
-						return true;
-					}
-					return false;
-				})
-						.stream()
-						.mapToInt(ll->ll.size())
-						.max().getAsInt();
-				ctab.addEdge(t.v().k().getIndex(), t.v().v().getIndex(), order);
-			});
+						.filter(t->{
+							return taken.addAll(t.k());   
+						})
+						.forEach(t->{
+			
+							List<Edge> crossingEdges=ctab.getBondsThatCross(t.v().k(),t.v().v());
+							if(!crossingEdges.isEmpty())return;
+			
+							//don't add cross bonds
+			
+							int order=GeomUtil.groupThings(t.k(), tlines->{
+								Line2D l1=tlines.k(); 
+								Line2D l2=tlines.v();
+								if(GeomUtil.cosTheta(l1, l2) > Math.cos(10*Math.PI/180)){
+									return true;
+								}
+								return false;
+							})
+									.stream()
+									.mapToInt(ll->ll.size())
+									.max().getAsInt();
+							ctab.addEdge(t.v().k().getIndex(), t.v().v().getIndex(), order);
+						});
 
 			ctab.standardCleanEdges();
 
@@ -2056,73 +2055,73 @@ public class StructureImageExtractor {
 				double avgL = ctab.getAverageBondLength();
 				Set<Edge> skip= new HashSet<Edge>();
 				ctab.getEdges()
-				.stream()
-				.filter(e->e.getEdgeLength()>avgL)
-				.map(l->Tuple.of(l,GeomUtil.length(l.getLine())).withVComparator())
-				.sorted(Comparator.reverseOrder())
-				.map(t->t.k())
-				.filter(t->!skip.contains(t))
-				.forEach(e->{
-					Node n1= e.getRealNode1();
-					Node n2= e.getRealNode2();
-					List<KEqualityTuple<Node,Edge>> neigh1=n1.getNeighborNodes();
-					List<KEqualityTuple<Node,Edge>> neigh2=n2.getNeighborNodes();
-					List<KEqualityTuple<Node,Edge>> things1=neigh1.stream()
-							.filter(ne->neigh2.contains(ne))
-							.collect(Collectors.toList());
-					List<KEqualityTuple<Node,Edge>> things2=neigh2.stream()
-							.filter(ne->neigh1.contains(ne))
-							.collect(Collectors.toList());
-					List<KEqualityTuple<Node,Edge>> things = Stream.concat(things1.stream(), things2.stream())
-							.collect(Collectors.toList());
-
-					if(things.size()>0){
-						
-						Point2D p1=n1.getPoint();
-						Point2D p2=n2.getPoint();
-						Point2D p3=things.get(0).k().getPoint();
-
-						Edge oedge1=things.get(0).v();
-						Edge oedge2=things.get(1).v();
-
-						double tarea=Math.abs(GeomUtil.areaTriangle(p1,p2,p3));
-
-						double expected = Math.sqrt(3)/4*Math.pow(e.getEdgeLength(),2);
-						if(tarea<expected*0.5){
+					.stream()
+					.filter(e->e.getEdgeLength()>avgL)
+					.map(l->Tuple.of(l,GeomUtil.length(l.getLine())).withVComparator())
+					.sorted(Comparator.reverseOrder())
+					.map(t->t.k())
+					.filter(t->!skip.contains(t))
+					.forEach(e->{
+						Node n1= e.getRealNode1();
+						Node n2= e.getRealNode2();
+						List<KEqualityTuple<Node,Edge>> neigh1=n1.getNeighborNodes();
+						List<KEqualityTuple<Node,Edge>> neigh2=n2.getNeighborNodes();
+						List<KEqualityTuple<Node,Edge>> things1=neigh1.stream()
+								.filter(ne->neigh2.contains(ne))
+								.collect(Collectors.toList());
+						List<KEqualityTuple<Node,Edge>> things2=neigh2.stream()
+								.filter(ne->neigh1.contains(ne))
+								.collect(Collectors.toList());
+						List<KEqualityTuple<Node,Edge>> things = Stream.concat(things1.stream(), things2.stream())
+								.collect(Collectors.toList());
+	
+						if(things.size()>0){
 							
-							
-							boolean removeLong=true;
-
-							if((e.getEdgeLength()<avgL*1.8) &&
-									(!e.getDashed() && (oedge1.getDashed() && oedge2.getDashed()) ||
-									(oedge1.getDashed() || oedge2.getDashed() && e.getOrder()>1))
-									){
-								removeLong=false;
-							}else{
-								if(oedge1.getEdgeLength()<avgL*0.7 && oedge2.getEdgeLength()<avgL*0.7){
+							Point2D p1=n1.getPoint();
+							Point2D p2=n2.getPoint();
+							Point2D p3=things.get(0).k().getPoint();
+	
+							Edge oedge1=things.get(0).v();
+							Edge oedge2=things.get(1).v();
+	
+							double tarea=Math.abs(GeomUtil.areaTriangle(p1,p2,p3));
+	
+							double expected = Math.sqrt(3)/4*Math.pow(e.getEdgeLength(),2);
+							if(tarea<expected*0.5){
+								
+								
+								boolean removeLong=true;
+	
+								if((e.getEdgeLength()<avgL*1.8) &&
+										(!e.getDashed() && (oedge1.getDashed() && oedge2.getDashed()) ||
+										(oedge1.getDashed() || oedge2.getDashed() && e.getOrder()>1))
+										){
 									removeLong=false;
 								}else{
-									removeLong=true;
+									if(oedge1.getEdgeLength()<avgL*0.7 && oedge2.getEdgeLength()<avgL*0.7){
+										removeLong=false;
+									}else{
+										removeLong=true;
+									}
 								}
-							}
-							
-							if(removeLong){
-								ctab.removeEdge(e);
+								
+								if(removeLong){
+									ctab.removeEdge(e);
+								}else{
+									ctab.removeEdge(oedge1);
+									ctab.removeEdge(oedge2);
+								}
 							}else{
-								ctab.removeEdge(oedge1);
-								ctab.removeEdge(oedge2);
+								things.stream()
+								.map(t->t.v())
+								.forEach(e2->{
+									skip.add(e2);
+								});
 							}
-						}else{
-							things.stream()
-							.map(t->t.v())
-							.forEach(e2->{
-								skip.add(e2);
-							});
 						}
-					}
-
-
-				});
+	
+	
+					});
 				//for each edge, 
 
 			}
@@ -2154,66 +2153,64 @@ public class StructureImageExtractor {
 			
 			//clean bad triple bonds
 			ctab.getEdges().stream()
-			.filter(e->e.getOrder()==3)
-			.collect(Collectors.toList())
-			.forEach(e->{
-				Line2D lb = e.getLine();
-				
-				double len = e.getEdgeLength();
-				
-				double otherBondAverage = ctab.getEdges().stream().filter(e1->e1!=e).mapToDouble(e1->e1.getEdgeLength()).average().orElse(1);
-				
-				int n = (int)Math.round(len/otherBondAverage);
-				
-				if(n>1){
-					Node n1=e.getRealNode1();
-					Node n2=e.getRealNode2();
-					
-					Shape bigLineShape = GeomUtil.growLine(lb,len/3);
-					
-					Point2D apt=rejBondOrderLines.stream()
-									 .filter(l->GeomUtil.length(l)>ctab.getAverageBondLength()*0.5)
-					                 .map(l->GeomUtil.findCenterOfShape(l))
-					                 .filter(p->bigLineShape.contains(p))
-					                 .map(p->GeomUtil.projectPointOntoLine(lb,p))
-					                 .collect(GeomUtil.averagePoint());
-					
-					
-					List<Point2D> pts=GeomUtil.splitIntoNPieces(lb,n);
-					Node pnode=n1;
-					Edge closestEdge = null;
-					double closestD = 999999;
-					
-					for(int i=1;i<pts.size();i++){
+					.filter(e->e.getOrder()==3)
+					.collect(Collectors.toList())
+					.forEach(e->{
+						Line2D lb = e.getLine();
 						
-						Node nn=null;
-						if(i<pts.size()-1){
-							Point2D np=pts.get(i);
-							nn=ctab.addNode(np);	
-						}else{
-							nn=n2;
-						}
+						double len = e.getEdgeLength();
 						
-						Edge ne=ctab.addEdge(pnode.getIndex(),nn.getIndex(),1);
-						Point2D cpt = Stream.of(ne.getPoint1(),ne.getPoint2()).collect(GeomUtil.averagePoint());
-						double dpt=cpt.distance(apt);
-						if(dpt<closestD){
-							closestD=dpt;
-							closestEdge=ne;
+						int c=ctab.getEdges().size();
+						
+						double otherBondAverage = (c*ctab.getAverageBondLength()-len) 
+																/
+															  (c-1);
+						
+						int n = (int)Math.round(len/otherBondAverage);
+						
+						if(n>1){
+							Node n1=e.getRealNode1();
+							Node n2=e.getRealNode2();
+							
+							Shape bigLineShape = GeomUtil.growLine(lb,len/3);
+							
+							Point2D apt=rejBondOrderLines.stream()
+											 .filter(l->GeomUtil.length(l)>ctab.getAverageBondLength()*0.5)
+							                 .map(l->GeomUtil.findCenterOfShape(l))
+							                 .filter(p->bigLineShape.contains(p))
+							                 .map(p->GeomUtil.projectPointOntoLine(lb,p))
+							                 .collect(GeomUtil.averagePoint());
+							
+							
+							List<Point2D> pts=GeomUtil.splitIntoNPieces(lb,n);
+							Node pnode=n1;
+							Edge closestEdge = null;
+							double closestD = 999999;
+							
+							for(int i=1;i<pts.size();i++){
+								
+								Node nn=null;
+								if(i<pts.size()-1){
+									Point2D np=pts.get(i);
+									nn=ctab.addNode(np);	
+								}else{
+									nn=n2;
+								}
+								
+								Edge ne=ctab.addEdge(pnode.getIndex(),nn.getIndex(),1);
+								Point2D cpt = Stream.of(ne.getPoint1(),ne.getPoint2()).collect(GeomUtil.averagePoint());
+								double dpt=cpt.distance(apt);
+								if(dpt<closestD){
+									closestD=dpt;
+									closestEdge=ne;
+								}
+								pnode=nn;
+							}
+							closestEdge.setOrder(3);
+							ctab.removeEdge(e);
+							
 						}
-						pnode=nn;
-					}
-					closestEdge.setOrder(3);
-					//System.out.println("Setting order to 3");
-					ctab.removeEdge(e);
-					
-				}
-				
-				
-				//rejBondOrderLines
-				
-				
-			});
+					});
 			
 			List<Shape> appliedOCR = new ArrayList<Shape>();
 
@@ -2304,7 +2301,7 @@ public class StructureImageExtractor {
 									mpnode=parentNodes.get(parN);
 								}
 
-								Node n= ctab.addNode(curN.suggestedPoint)
+								Node n= ctab.addNode(curN.getSuggestedPoint())
 										    .setSymbol(curN.getSymbol())
 										    .setCharge(curN.getCharge())
 										    .setInvented(true);
@@ -2376,7 +2373,7 @@ public class StructureImageExtractor {
 
 
 			//Now get all the nodes with 2 edges which have shorter than average bond length,
-			//and which are not in OCR, and where the sum of the distances of the bonds is within 97%
+			//and which are not in OCR, and where the sum of the distances of the bonds is within 95%
 			//of the distance of the two neighbors. Those are nodes to remove
 			Set<Node> toRemove = new HashSet<Node>();
 			do{
@@ -2432,44 +2429,43 @@ public class StructureImageExtractor {
 			//Cleanup "duplicate" lines that are probably problems. 
 
 			ctab.getNodes()
-			.stream()
-			.filter(n->n.getEdgeCount()>=2)
-			.map(n->{
-				return Tuple.of(n,GeomUtil.eachCombination(n.getEdges())
-						.map(t->{
-							if(t.k().getEdgeLength()>t.v().getEdgeLength()){
-								t=t.swap();
+				.stream()
+				.filter(n->n.getEdgeCount()>=2)
+				.map(n->{
+					return Tuple.of(n,GeomUtil.eachCombination(n.getEdges())
+							.map(t->{
+								if(t.k().getEdgeLength()>t.v().getEdgeLength()){
+									t=t.swap();
+								}
+								return t;
+							})
+							.filter(t->t.v().getEdgeLength()>=ctab.getAverageBondLength())
+							.collect(Collectors.toList()));
+				})
+				.filter(ed->!ed.v().isEmpty())
+				.collect(Collectors.toList())
+				.forEach(te->{
+					Node n=te.k();
+	
+					te.v().forEach(t->{
+						Node tnode=t.k().getOtherNode(n);
+						Node otherNode=t.v().getOtherNode(n);
+						Point2D ppnt=GeomUtil.projectPointOntoLine(t.v().getLine(), tnode.getPoint());
+						if(ppnt.distance(tnode.getPoint())<0.1*ctab.getAverageBondLength()){
+							double sd1=ppnt.distance(otherNode.getPoint());
+							if(sd1<t.v().getEdgeLength()){
+								//remove long bond
+								//change point
+								//add edge to long bond other node
+	
+								
+								tnode.setPoint(ppnt);
+								ctab.addEdge(tnode.getIndex(), t.v().getOtherNode(n).getIndex(), t.v().getOrder());
+								ctab.removeEdge(t.v());
 							}
-							return t;
-						})
-						.filter(t->t.v().getEdgeLength()>=ctab.getAverageBondLength())
-						.collect(Collectors.toList()));
-			})
-			.filter(ed->!ed.v().isEmpty())
-			.collect(Collectors.toList())
-			.forEach(te->{
-				Node n=te.k();
-
-				te.v().forEach(t->{
-					Node tnode=t.k().getOtherNode(n);
-					Node otherNode=t.v().getOtherNode(n);
-					Point2D ppnt=GeomUtil.projectPointOntoLine(t.v().getLine(), tnode.getPoint());
-					if(ppnt.distance(tnode.getPoint())<0.1*ctab.getAverageBondLength()){
-						double sd1=ppnt.distance(otherNode.getPoint());
-						if(sd1<t.v().getEdgeLength()){
-							//remove long bond
-							//change point
-							//add edge to long bond other node
-
-							
-							tnode.setPoint(ppnt);
-							ctab.addEdge(tnode.getIndex(), t.v().getOtherNode(n).getIndex(), t.v().getOrder());
-							ctab.removeEdge(t.v());
 						}
-					}
+					});
 				});
-
-			});;
 
 			ctab.standardCleanEdges();
 
@@ -2478,63 +2474,63 @@ public class StructureImageExtractor {
 
 
 			ctab.getEdges()
-			.stream()
-			.filter(e->e.getEdgeLength()<ctab.getAverageBondLength()*0.55)
-			.collect(Collectors.toList())
-			.forEach(e->{
-				//look at small bonds
-				//Maybe merge the atoms?
-				Node n1=e.getRealNode1();
-				Node n2=e.getRealNode2();
-				List<Node> neigh1=n1.getEdges().stream()
+				.stream()
+				.filter(e->e.getEdgeLength()<ctab.getAverageBondLength()*0.55)
+				.collect(Collectors.toList())
+				.forEach(e->{
+					//look at small bonds
+					//Maybe merge the atoms?
+					Node n1=e.getRealNode1();
+					Node n2=e.getRealNode2();
+					List<Node> neigh1=n1.getEdges().stream()
+							     .filter(e1->e1!=e)
+					             .map(e1->e1.getOtherNode(n1))
+					             .collect(Collectors.toList());
+					List<Node> neigh2=n2.getEdges().stream()
 						     .filter(e1->e1!=e)
-				             .map(e1->e1.getOtherNode(n1))
+				             .map(e1->e1.getOtherNode(n2))
 				             .collect(Collectors.toList());
-				List<Node> neigh2=n2.getEdges().stream()
-					     .filter(e1->e1!=e)
-			             .map(e1->e1.getOtherNode(n2))
-			             .collect(Collectors.toList());
-				
-				//Don't bother trying to merge terminal groups
-				if(neigh1.isEmpty()||neigh2.isEmpty())return;
-				
-				//what would be the bond lengths if they were merged to the first node?
-				
-				double avgBondLengthIfN1Merge = neigh2.stream().mapToDouble(nn->nn.distanceTo(n1)).average().orElse(0);
-				double avgBondLengthIfN2Merge = neigh1.stream().mapToDouble(nn->nn.distanceTo(n2)).average().orElse(0);
-				
-				double maxBondLengthIfN1Merge = neigh2.stream().mapToDouble(nn->nn.distanceTo(n1)).max().orElse(0);
-				double maxBondLengthIfN2Merge = neigh1.stream().mapToDouble(nn->nn.distanceTo(n2)).max().orElse(0);
-				
-				double minBondLengthIfN1Merge = neigh2.stream().mapToDouble(nn->nn.distanceTo(n1)).min().orElse(0);
-				double minBondLengthIfN2Merge = neigh1.stream().mapToDouble(nn->nn.distanceTo(n2)).min().orElse(0);
-				
-				Predicate<Double> isReasonable = d->{
-					return d< ctab.getAverageBondLength()*1.3 && d >ctab.getAverageBondLength()*0.7; 
-				};
-				
-				boolean n1Merge=false;
-				boolean n2Merge=false;
-				
-				if(isReasonable.test(avgBondLengthIfN1Merge) && isReasonable.test(maxBondLengthIfN1Merge) && isReasonable.test(minBondLengthIfN1Merge)){
-					n1Merge=true;
-				}
-				if(isReasonable.test(avgBondLengthIfN2Merge) && isReasonable.test(maxBondLengthIfN2Merge) && isReasonable.test(minBondLengthIfN2Merge)){
-					n2Merge=true;
-				}
-				
-				if(!n1Merge && !n2Merge)return;
-				
-				if(n1Merge && !n2Merge){
-					Point2D mp=n1.getPoint();
-					ctab.mergeNodes(Stream.of(n1.getIndex(),n2.getIndex()).collect(Collectors.toList()), (l)->mp);
-				}else if(n1Merge && !n2Merge){
-					Point2D mp=n2.getPoint();
-					ctab.mergeNodes(Stream.of(n1.getIndex(),n2.getIndex()).collect(Collectors.toList()), (l)->mp);
-				}else{
-					ctab.mergeNodesAverage(n1.getIndex(), n2.getIndex());
-				}
-			});
+					
+					//Don't bother trying to merge terminal groups
+					if(neigh1.isEmpty()||neigh2.isEmpty())return;
+					
+					//what would be the bond lengths if they were merged to the first node?
+					
+					double avgBondLengthIfN1Merge = neigh2.stream().mapToDouble(nn->nn.distanceTo(n1)).average().orElse(0);
+					double avgBondLengthIfN2Merge = neigh1.stream().mapToDouble(nn->nn.distanceTo(n2)).average().orElse(0);
+					
+					double maxBondLengthIfN1Merge = neigh2.stream().mapToDouble(nn->nn.distanceTo(n1)).max().orElse(0);
+					double maxBondLengthIfN2Merge = neigh1.stream().mapToDouble(nn->nn.distanceTo(n2)).max().orElse(0);
+					
+					double minBondLengthIfN1Merge = neigh2.stream().mapToDouble(nn->nn.distanceTo(n1)).min().orElse(0);
+					double minBondLengthIfN2Merge = neigh1.stream().mapToDouble(nn->nn.distanceTo(n2)).min().orElse(0);
+					
+					Predicate<Double> isReasonable = d->{
+						return d< ctab.getAverageBondLength()*1.3 && d >ctab.getAverageBondLength()*0.7; 
+					};
+					
+					boolean n1Merge=false;
+					boolean n2Merge=false;
+					
+					if(isReasonable.test(avgBondLengthIfN1Merge) && isReasonable.test(maxBondLengthIfN1Merge) && isReasonable.test(minBondLengthIfN1Merge)){
+						n1Merge=true;
+					}
+					if(isReasonable.test(avgBondLengthIfN2Merge) && isReasonable.test(maxBondLengthIfN2Merge) && isReasonable.test(minBondLengthIfN2Merge)){
+						n2Merge=true;
+					}
+					
+					if(!n1Merge && !n2Merge)return;
+					
+					if(n1Merge && !n2Merge){
+						Point2D mp=n1.getPoint();
+						ctab.mergeNodes(Stream.of(n1.getIndex(),n2.getIndex()).collect(Collectors.toList()), (l)->mp);
+					}else if(n1Merge && !n2Merge){
+						Point2D mp=n2.getPoint();
+						ctab.mergeNodes(Stream.of(n1.getIndex(),n2.getIndex()).collect(Collectors.toList()), (l)->mp);
+					}else{
+						ctab.mergeNodesAverage(n1.getIndex(), n2.getIndex());
+					}
+				});
 			
 			ctab.standardCleanEdges();
 
@@ -2543,34 +2539,34 @@ public class StructureImageExtractor {
 			List<Node> toRemoveNodesCage = new ArrayList<>();
 			
 			ctab.getNodes()
-		    .stream()
-		    .filter(n->n.getEdgeCount()==2)
-		    .filter(n->n.getSymbol().equals("C"))
-		    .filter(n->!n.isInvented())
-		    .filter(n->n.getEdges().stream().filter(e->e.getOrder()==1).count()==2)
-		    .filter(n->Optional.ofNullable(GeomUtil.findClosestShapeTo(likelyOCR, n.getPoint())).map(t->t.v()).orElse(100.0)>2)
-		    .forEach(n->{
-		    	List<Tuple<Node,Node>> tn=GeomUtil.eachCombination(n.getNeighborNodes())
-		    	        .filter(t->{
-		    	        	Node n1=t.k().k();
-		    	        	Node n2=t.v().k();
-		    	        	
-		    	        	Line2D l = new Line2D.Double(n1.getPoint(), n2.getPoint());
-		    	        	Point2D pp=GeomUtil.projectPointOntoLine(l, n.getPoint());
-		    	        	if(pp.distance(n.getPoint())<ctab.getAverageBondLength()*0.01){
-		    	        		return true;
-		    	        	}
-		    	        	return false;
-		    	        })
-		    	        .map(t->Tuple.of(t.k().k(),t.v().k()))
-		    	        .collect(Collectors.toList());
-		    	if(tn.size()==1){
-		    		toRemoveNodesCage.add(n);
-		    		ctab.addEdge(tn.get(0).k().getIndex(), tn.get(0).v().getIndex(), 1);
-		    	}
-		    	//System.out.println("Cage like:" + tn.size());
-		    	        
-		    });
+			    .stream()
+			    .filter(n->n.getEdgeCount()==2)
+			    .filter(n->n.getSymbol().equals("C"))
+			    .filter(n->!n.isInvented())
+			    .filter(n->n.getEdges().stream().filter(e->e.getOrder()==1).count()==2)
+			    .filter(n->Optional.ofNullable(GeomUtil.findClosestShapeTo(likelyOCR, n.getPoint())).map(t->t.v()).orElse(100.0)>2)
+			    .forEach(n->{
+			    	List<Tuple<Node,Node>> tn=GeomUtil.eachCombination(n.getNeighborNodes())
+			    	        .filter(t->{
+			    	        	Node n1=t.k().k();
+			    	        	Node n2=t.v().k();
+			    	        	
+			    	        	Line2D l = new Line2D.Double(n1.getPoint(), n2.getPoint());
+			    	        	Point2D pp=GeomUtil.projectPointOntoLine(l, n.getPoint());
+			    	        	if(pp.distance(n.getPoint())<ctab.getAverageBondLength()*0.01){
+			    	        		return true;
+			    	        	}
+			    	        	return false;
+			    	        })
+			    	        .map(t->Tuple.of(t.k().k(),t.v().k()))
+			    	        .collect(Collectors.toList());
+			    	if(tn.size()==1){
+			    		toRemoveNodesCage.add(n);
+			    		ctab.addEdge(tn.get(0).k().getIndex(), tn.get(0).v().getIndex(), 1);
+			    	}
+			    	//System.out.println("Cage like:" + tn.size());
+			    	        
+			    });
 			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 			toRemoveNodesCage.forEach(n->{
 				ctab.removeNodeAndEdges(n);	
@@ -2594,46 +2590,46 @@ public class StructureImageExtractor {
 			
 			//clean bad double bonds
 			ctab.getEdges().stream()
-			.filter(e->e.getOrder()==2)
-			.filter(e->!e.isInventedBond())
-			.filter(e->e.getRealNode1().getSymbol().equals("C") && e.getRealNode2().getSymbol().equals("C"))
-			.peek(e->wasDouble.add(e))
-			.collect(Collectors.toList())
-			.forEach(e->{
-					Line2D lb = e.getLine();
-					Point2D apnt=Stream.of(lb.getP1(),lb.getP2()).collect(GeomUtil.averagePoint());
-					
-					List<Point2D> possibleOtherDoubleBonds = rejBondOrderLines.stream()
-							 .filter(l->GeomUtil.length(l)>ctab.getAverageBondLength()*0.4)
-			                 .map(l->GeomUtil.findCenterOfShape(l))
-			                 .filter(p->p.distance(apnt)<ctab.getAverageBondLength()*0.8)
-			                 .collect(Collectors.toList());
-					
-					if(possibleOtherDoubleBonds.isEmpty()){
-						//This makes me suspicious ... could be that it shouldn't have been flagged in the first place
-						//If it's colinear, probably a mistake
-						e.getNeighborEdges()
-						 .stream()
-						 .filter(e2->GeomUtil.cosTheta(e.getLine(),e2.getLine())>Math.cos(2*Math.PI/180))
-						 .filter(e2->wasDouble.contains(e2))
-						 .findAny()
-						 .ifPresent(eo->{
-							
-							e.setOrder(1); 
-						 });
-						return;
-					}
-					
-					boolean couldBeAnother=possibleOtherDoubleBonds.stream()
-					                 .flatMap(p->singleBondInfluenceAreas.stream().filter(s->s.contains(p)))
-					                 .findAny()
-					                 .isPresent();
-					                 //.collect(GeomUtil.averagePoint());
-					if(couldBeAnother){
-						e.setOrder(1);
-					}
-					//ctab.removeEdge(e);
-			});
+				.filter(e->e.getOrder()==2)
+				.filter(e->!e.isInventedBond())
+				.filter(e->e.getRealNode1().getSymbol().equals("C") && e.getRealNode2().getSymbol().equals("C"))
+				.peek(e->wasDouble.add(e))
+				.collect(Collectors.toList())
+				.forEach(e->{
+						Line2D lb = e.getLine();
+						Point2D apnt=Stream.of(lb.getP1(),lb.getP2()).collect(GeomUtil.averagePoint());
+						
+						List<Point2D> possibleOtherDoubleBonds = rejBondOrderLines.stream()
+								 .filter(l->GeomUtil.length(l)>ctab.getAverageBondLength()*0.4)
+				                 .map(l->GeomUtil.findCenterOfShape(l))
+				                 .filter(p->p.distance(apnt)<ctab.getAverageBondLength()*0.8)
+				                 .collect(Collectors.toList());
+						
+						if(possibleOtherDoubleBonds.isEmpty()){
+							//This makes me suspicious ... could be that it shouldn't have been flagged in the first place
+							//If it's colinear, probably a mistake
+							e.getNeighborEdges()
+							 .stream()
+							 .filter(e2->GeomUtil.cosTheta(e.getLine(),e2.getLine())>Math.cos(2*Math.PI/180))
+							 .filter(e2->wasDouble.contains(e2))
+							 .findAny()
+							 .ifPresent(eo->{
+								
+								e.setOrder(1); 
+							 });
+							return;
+						}
+						
+						boolean couldBeAnother=possibleOtherDoubleBonds.stream()
+						                 .flatMap(p->singleBondInfluenceAreas.stream().filter(s->s.contains(p)))
+						                 .findAny()
+						                 .isPresent();
+						                 //.collect(GeomUtil.averagePoint());
+						if(couldBeAnother){
+							e.setOrder(1);
+						}
+						//ctab.removeEdge(e);
+				});
 			
 			
 			
@@ -2652,148 +2648,147 @@ public class StructureImageExtractor {
 			List<Shape> dashShapes = new ArrayList<Shape>();
 			
 			GeomUtil.groupThings(maybeDash, t->{
-				Shape s1=t.k();
-				Shape s2=t.v();
-				Point2D p1=GeomUtil.findCenterOfShape(s1);
-				Point2D p2=GeomUtil.findCenterOfShape(s2);
-				
-				return p1.distance(p2)<ctab.getAverageBondLength()/3;
-			})
-			.stream()
-			.filter(sl->sl.size()>=3)
-			.forEach(sl->{
-				
-				Shape bshape=sl.stream()
-							   .reduce((s1,s2)->GeomUtil.add(s1, s2)).orElse(null);
-				if(bshape!=null){
-					Point2D[] pts=GeomUtil.getPairOfFarthestPoints(bshape);
-					double dist=pts[0].distance(pts[1]);
-					if(dist < ctab.getAverageBondLength()*1.3 && dist>ctab.getAverageBondLength()*0.6){
-						//Looks very promising
-						System.out.println("Found a possible dash:" + sl.size());
-						dashShapes.add(bshape);
-						List<Node> forN1=ctab.getNodes()
-						    .stream()
-						    .filter(n->n.getPoint().distance(pts[0])< ctab.getAverageBondLength()*0.3)
-						    .collect(Collectors.toList());
-						List<Node> forN2=ctab.getNodes()
-							    .stream()
-							    .filter(n->n.getPoint().distance(pts[1])< ctab.getAverageBondLength()*0.3)
-							    .collect(Collectors.toList());
+						Shape s1=t.k();
+						Shape s2=t.v();
+						Point2D p1=GeomUtil.findCenterOfShape(s1);
+						Point2D p2=GeomUtil.findCenterOfShape(s2);
 						
+						return p1.distance(p2)<ctab.getAverageBondLength()/3;
+					})
+					.stream()
+					.filter(sl->sl.size()>=3)
+					.forEach(sl->{
 						
-						if(forN1.size()+forN2.size()>1)return;
-						if(forN1.size()+forN2.size()==0)return;
-						Node pnode=null;
-						Point2D newPoint=pts[0];
-						if(!forN1.isEmpty()){
-							newPoint=pts[1];
-							pnode=forN1.get(0);
-						}else{
-							pnode=forN2.get(0);
-						}
-						
-						double ndist=newPoint.distance(pnode.getPoint());
-						
-						if(ndist<ctab.getAverageBondLength()*1.3 && ndist>ctab.getAverageBondLength()*0.6){
-							//looks good
-							Point2D cShape=GeomUtil.centerOfMass(bshape);
-							Line2D nline = new Line2D.Double(pnode.getPoint(),cShape);
-							double len = ctab.getAverageBondLength();
-							Point2D op = GeomUtil.resizeLine(nline,len).getP2();
-							
-							Node otherNode=ctab.getNodes()
-							    .stream()
-							    .map(n->Tuple.of(n,n.getPoint().distance(op)).withVComparator())
-							    .filter(t->t.v()<len*0.3)
-							    .max(Comparator.reverseOrder())
-							    .map(t->t.k())
-							    .orElse(null);
-							
-							if(otherNode==null){
-								Node realNode=ctab.addNode(op);
-								BranchNode bn=bestGuessOCR.entrySet().stream()
-								 .map(Tuple::of)
-								 .filter(t->t.k().contains(op))
-								 .map(Tuple.vmap(s1->BranchNode.interpretOCRStringAsAtom2(s1)))
-								 .findFirst()
-								 .map(t->t.v())
-								 .orElse(null);
-								if(bn!=null && bn.isRealNode()){
-									realNode.setSymbol(bn.getSymbol());
+						Shape bshape=sl.stream()
+									   .reduce((s1,s2)->GeomUtil.add(s1, s2)).orElse(null);
+						if(bshape!=null){
+							Point2D[] pts=GeomUtil.getPairOfFarthestPoints(bshape);
+							double dist=pts[0].distance(pts[1]);
+							if(dist < ctab.getAverageBondLength()*1.3 && dist>ctab.getAverageBondLength()*0.6){
+								//Looks very promising
+								System.out.println("Found a possible dash:" + sl.size());
+								dashShapes.add(bshape);
+								List<Node> forN1=ctab.getNodes()
+								    .stream()
+								    .filter(n->n.getPoint().distance(pts[0])< ctab.getAverageBondLength()*0.3)
+								    .collect(Collectors.toList());
+								List<Node> forN2=ctab.getNodes()
+									    .stream()
+									    .filter(n->n.getPoint().distance(pts[1])< ctab.getAverageBondLength()*0.3)
+									    .collect(Collectors.toList());
+								
+								
+								if(forN1.size()+forN2.size()>1)return;
+								if(forN1.size()+forN2.size()==0)return;
+								Node pnode=null;
+								Point2D newPoint=pts[0];
+								if(!forN1.isEmpty()){
+									newPoint=pts[1];
+									pnode=forN1.get(0);
+								}else{
+									pnode=forN2.get(0);
 								}
 								
-							}else{
+								double ndist=newPoint.distance(pnode.getPoint());
 								
+								if(ndist<ctab.getAverageBondLength()*1.3 && ndist>ctab.getAverageBondLength()*0.6){
+									//looks good
+									Point2D cShape=GeomUtil.centerOfMass(bshape);
+									Line2D nline = new Line2D.Double(pnode.getPoint(),cShape);
+									double len = ctab.getAverageBondLength();
+									Point2D op = GeomUtil.resizeLine(nline,len).getP2();
+									
+									Node otherNode=ctab.getNodes()
+									    .stream()
+									    .map(n->Tuple.of(n,n.getPoint().distance(op)).withVComparator())
+									    .filter(t->t.v()<len*0.3)
+									    .max(Comparator.reverseOrder())
+									    .map(t->t.k())
+									    .orElse(null);
+									
+									if(otherNode==null){
+										Node realNode=ctab.addNode(op);
+										BranchNode bn=bestGuessOCR.entrySet().stream()
+										 .map(Tuple::of)
+										 .filter(t->t.k().contains(op))
+										 .map(Tuple.vmap(s1->BranchNode.interpretOCRStringAsAtom2(s1)))
+										 .findFirst()
+										 .map(t->t.v())
+										 .orElse(null);
+										if(bn!=null && bn.isRealNode()){
+											realNode.setSymbol(bn.getSymbol());
+										}
+										
+									}else{
+										
+										
+										otherNode.setPoint(op);
+									}
+								}
 								
-								otherNode.setPoint(op);
 							}
 						}
 						
-					}
-				}
-				
-				
-			});
+						
+					});
 			
 			        
 			
 			
 
+			@SuppressWarnings("unchecked")
 			List<Tuple<Edge,WedgeInfo>> winfo=(List<Tuple<Edge, WedgeInfo>>) ctab.getEdges()
 					.stream()
-			.map(e->{
-				if(e.getRealNode1().isInvented() || e.getRealNode2().isInvented())return Optional.empty();
-				Line2D useLine=GeomUtil.getLinesNotInside(e.getLine(), growLikelyOCR)
-						.stream()
-						.map(l->Tuple.of(l, GeomUtil.length(l)).withVComparator())
-						.max(Comparator.naturalOrder())
-						.map(t->t.k())
-						.orElse(null);
-				if(useLine!=null){
-					
-					Point2D c=GeomUtil.findCenterOfShape(useLine);
-					
-					Optional<Shape> isDash=dashShapes.stream()
-							  .filter(d->d.contains(c))
-							  .findFirst();
-					
-					if(isDash.isPresent()){
-						
-						e.setDashed(true);
-						if(e.getOrder()!=1){
-							if(e.getRealNode1().getSymbol().equals("C") && e.getRealNode2().getSymbol().equals("C")){
-									//do nothing
+					.filter(e->!e.isInventedBond())
+					.map(e->{
+						Line2D useLine=GeomUtil.getLinesNotInside(e.getLine(), growLikelyOCR)
+								.stream()
+								.map(l->Tuple.of(l, GeomUtil.length(l)).withVComparator())
+								.max(Comparator.naturalOrder())
+								.map(t->t.k())
+								.orElse(null);
+						if(useLine!=null){
+							
+							Point2D c=GeomUtil.findCenterOfShape(useLine);
+							
+							Optional<Shape> isDash=dashShapes.stream()
+									  .filter(d->d.contains(c))
+									  .findFirst();
+							
+							if(isDash.isPresent()){
+								
+								e.setDashed(true);
+								if(e.getOrder()!=1){
+									if(e.getRealNode1().getSymbol().equals("C") && e.getRealNode2().getSymbol().equals("C")){
+											//do nothing
+									}else{
+										e.setOrder(1);
+									}							
+								}
+								
+								Point2D cmass=GeomUtil.centerOfMass(isDash.get());
+								if(e.getRealNode1().getPoint().distance(cmass)< e.getRealNode2().getPoint().distance(cmass)){
+									e.switchNodes();
+								}
 							}else{
-								e.setOrder(1);
-							}							
+								//IDK
+								if(e.getRealNode1().getSymbol().equals("C") && e.getRealNode2().getSymbol().equals("C")){
+									e.setDashed(false);
+								}
+			
+								int mult=1;
+								if(e.getPoint1().distance(useLine.getP1())< e.getPoint2().distance(useLine.getP1())){
+									mult=-1;
+								}
+								return bitmap.getconfexHullAlongLine(useLine)
+										.map(w->Tuple.of(e,w));
+							}
 						}
-						
-						Point2D cmass=GeomUtil.centerOfMass(isDash.get());
-						if(e.getRealNode1().getPoint().distance(cmass)< e.getRealNode2().getPoint().distance(cmass)){
-							e.switchNodes();
-						}
-						
-						
-					}else{
-						//IDK
-						if(e.getRealNode1().getSymbol().equals("C") && e.getRealNode2().getSymbol().equals("C")){
-							e.setDashed(false);
-						}
-	
-						int mult=1;
-						if(e.getPoint1().distance(useLine.getP1())< e.getPoint2().distance(useLine.getP1())){
-							mult=-1;
-						}
-						return bitmap.getconfexHullAlongLine(useLine)
-								.map(w->Tuple.of(e,w));
-					}
-				}
-				return Optional.empty();
-			})
-			.filter(t->t.isPresent())
-			.map(o->o.get())
-			.collect(Collectors.toList());
+						return Optional.empty();
+					})
+					.filter(t->t.isPresent())
+					.map(o->o.get())
+					.collect(Collectors.toList());
 			
 			Predicate<Node> couldBeStereoCenter = (n1)->n1.getEdgeCount()>=3 && n1.getSymbol().equals("C") && !n1.getEdges().stream().filter(e1->e1.getOrder()>1).findAny().isPresent();
 			
@@ -2834,53 +2829,49 @@ public class StructureImageExtractor {
 							if(e.getRealNode1().getEdgeCount()<3 && e.getRealNode2().getEdgeCount()>=3){
 								e.switchNodes();
 							}
-							
 							//not the best yet
-							
-							
 							if(couldBeStereoCenter.test(e.getRealNode2()) && ! couldBeStereoCenter.test(e.getRealNode1())){
 								e.switchNodes();
 							}
 						}
 					}
 				}
-				//System.out.println("Pixels on:" + s.getOnPixels() + " and area=" + s.getArea() + " and correl=" + s.getCorrel() + " and thickness:" + s.getAverageThickness());
 			});
 			
 			
 
 			GeomUtil.eachCombination(ctab.getNodes())
-			.filter(t->t.k().distanceTo(t.v())<1.2*ctab.getAverageBondLength())
-			.filter(t->!t.k().getBondTo(t.v()).isPresent())
-			.forEach(t1->{
-				Line2D l2 = new Line2D.Double(t1.k().getPoint(),t1.v().getPoint());
-				Line2D useLine=GeomUtil.getLinesNotInside(l2, growLikelyOCR)
-						.stream()
-						.map(l->Tuple.of(l, GeomUtil.length(l)).withVComparator())
-						.max(Comparator.naturalOrder())
-						.map(t->t.k())
-						.orElse(null);
-				if(useLine==null)return;
-				long c=polygons.stream()
-						.filter(s->GeomUtil.getIntersection(s, useLine).isPresent())
-						.count();
-				if(c>2){
-					ctab.addEdge(t1.k().getIndex(), t1.v().getIndex(), 1);
-					Edge e=ctab.getEdges().get(ctab.getEdges().size()-1);
-					e.setDashed(true);
-				}
-			});
+					.filter(t->t.k().distanceTo(t.v())<1.2*ctab.getAverageBondLength())
+					.filter(t->!t.k().getBondTo(t.v()).isPresent())
+					.forEach(t1->{
+						Line2D l2 = new Line2D.Double(t1.k().getPoint(),t1.v().getPoint());
+						Line2D useLine=GeomUtil.getLinesNotInside(l2, growLikelyOCR)
+								.stream()
+								.map(l->Tuple.of(l, GeomUtil.length(l)).withVComparator())
+								.max(Comparator.naturalOrder())
+								.map(t->t.k())
+								.orElse(null);
+						if(useLine==null)return;
+						long c=polygons.stream()
+								.filter(s->GeomUtil.getIntersection(s, useLine).isPresent())
+								.count();
+						if(c>2){
+							ctab.addEdge(t1.k().getIndex(), t1.v().getIndex(), 1);
+							Edge e=ctab.getEdges().get(ctab.getEdges().size()-1);
+							e.setDashed(true);
+						}
+					});
 			
 			
 
 			ctab.getEdges()
-			.stream()
-			.filter(e->e.getDashed())
-			.forEach(e->{
-				if(couldBeStereoCenter.test(e.getRealNode2()) && ! couldBeStereoCenter.test(e.getRealNode1())){
-					e.switchNodes();
-				}
-			});
+				.stream()
+				.filter(e->e.getDashed())
+				.forEach(e->{
+					if(couldBeStereoCenter.test(e.getRealNode2()) && ! couldBeStereoCenter.test(e.getRealNode1())){
+						e.switchNodes();
+					}
+				});
 
 
 
@@ -2897,17 +2888,17 @@ public class StructureImageExtractor {
 		
 		//fix bad Sulfurs
 		ctab.getNodes().stream()
-	    .filter(n->n.getSymbol().equals("S"))
-	    .filter(n->n.getValanceTotal()==7)
-	    .forEach(n->{
-	    		n.getNeighborNodes().stream()
-	    						    .filter(t->t.v().getOrder()==2)
-	    		                    .filter(nn->nn.k().getSymbol().equals("N"))
-	    		                    .findFirst()
-	    		                    .ifPresent(nn->{
-	    		                    	nn.v().setOrder(1);
-	    		                    });
-	    });
+		    .filter(n->n.getSymbol().equals("S"))
+		    .filter(n->n.getValanceTotal()==7)
+		    .forEach(n->{
+		    		n.getNeighborNodes().stream()
+		    						    .filter(t->t.v().getOrder()==2)
+		    		                    .filter(nn->nn.k().getSymbol().equals("N"))
+		    		                    .findFirst()
+		    		                    .ifPresent(nn->{
+		    		                    	nn.v().setOrder(1);
+		    		                    });
+		    });
 		
 		
 		//charge bad nitrogens		
@@ -2933,30 +2924,26 @@ public class StructureImageExtractor {
 		    		}
 		    });
 		
+		//charge bad sulfurs
 		ctab.getNodes().stream()
-	    .filter(n->n.getSymbol().equals("S"))
-	    .filter(n->n.getCharge()==0)
-	    .forEach(n->{
-	    		int so=n.getEdges().stream().mapToInt(e->e.getOrder()).sum();
-	    		if(so==3){
-	    			
-	    			
-	    			
-	    			//n.setCharge(1);
-	    			
-	    			n.getNeighborNodes().stream()
-	    								.map(t->t.k())
-	    								.filter(nn->nn.getSymbol().equals("O"))
-	    								.filter(nn->nn.getCharge()==0)
-	    								.filter(nn->nn.getEdgeCount()==1)
-	    								.findFirst()
-	    								.ifPresent(nn->{
-	    									nn.setCharge(-1);
-	    									n.setCharge(1);
-	    								});
-	    			
-	    		}
-	    });
+		    .filter(n->n.getSymbol().equals("S"))
+		    .filter(n->n.getCharge()==0)
+		    .forEach(n->{
+		    		int so=n.getEdges().stream().mapToInt(e->e.getOrder()).sum();
+		    		if(so==3){
+		    			n.getNeighborNodes().stream()
+		    								.map(t->t.k())
+		    								.filter(nn->nn.getSymbol().equals("O"))
+		    								.filter(nn->nn.getCharge()==0)
+		    								.filter(nn->nn.getEdgeCount()==1)
+		    								.findFirst()
+		    								.ifPresent(nn->{
+		    									nn.setCharge(-1);
+		    									n.setCharge(1);
+		    								});
+		    			
+		    		}
+		    });
 		
 		if(DEBUG)ctabRaw.add(ctab.cloneTab());
 		
@@ -2967,83 +2954,37 @@ public class StructureImageExtractor {
 										    .collect(Collectors.toList());
 		
 		if(!mightBeNegative.isEmpty()){
-			ctab.getNodes().stream()
-		    .filter(n->n.getSymbol().equals("O"))
-		    .filter(n->n.getCharge()==0)
-		    .filter(n->n.getEdgeCount()==1)
-		    .filter(n->!n.isInvented())
-		    .forEach(n->{
-		    		int so=n.getEdges().stream().mapToInt(e->e.getOrder()).sum();
-		    		if(so==1){
-			    		Point2D p=n.getPoint();
-			    		Shape neg=mightBeNegative.stream().filter(s->GeomUtil.distanceTo(s, p)<ctab.getAverageBondLength()/2).findAny().orElse(null);
-			    		
-			    		if(neg!=null){
-			    			Point2D ncenter=GeomUtil.findCenterOfShape(neg);	
-			    			boolean inLine=n.getEdges().stream()
-							    			.map(e->e.getLine())
-							    			.map(l->GeomUtil.growLine(l, averageWidthOCRFinal[0]))
-							    			.filter(s->s.contains(ncenter))
-							    			.findAny()
-							    			.isPresent();
-			    			if(!inLine){
-			    				n.setCharge(-1);
-			    			}
-			    		}
+			BiConsumer<Node, Integer> maybeCharge=(n,o)->{
+		  		int so=n.getEdges().stream().mapToInt(e->e.getOrder()).sum();
+	    		if(so==o){
+		    		Point2D p=n.getPoint();
+		    		Shape neg=mightBeNegative.stream().filter(s->GeomUtil.distanceTo(s, p)<ctab.getAverageBondLength()/2).findAny().orElse(null);
+		    		
+		    		if(neg!=null){
+		    			Point2D ncenter=GeomUtil.findCenterOfShape(neg);	
+		    			boolean inLine=n.getEdges().stream()
+						    			.map(e->e.getLine())
+						    			.map(l->GeomUtil.growLine(l, averageWidthOCRFinal[0]))
+						    			.filter(s->s.contains(ncenter))
+						    			.findAny()
+						    			.isPresent();
+		    			if(!inLine){
+		    				n.setCharge(-1);
+		    			}
 		    		}
-		    });
+	    		}
+			};
+			
+			Map<String,Integer> neededValances = new HashMap<String,Integer>();
+			neededValances.put("O",1);
+			neededValances.put("N",2);
+			neededValances.put("Cl",1);
 			
 			ctab.getNodes().stream()
-		    .filter(n->n.getSymbol().equals("N"))
-		    .filter(n->n.getCharge()==0)
-		    .filter(n->!n.isInvented())
-		    .forEach(n->{
-		    		int so=n.getEdges().stream().mapToInt(e->e.getOrder()).sum();
-		    		if(so==2){
-			    		Point2D p=n.getPoint();
-			    		Shape neg=mightBeNegative.stream().filter(s->GeomUtil.distanceTo(s, p)<ctab.getAverageBondLength()/2).findAny().orElse(null);
-			    		
-			    		if(neg!=null){
-			    			Point2D ncenter=GeomUtil.findCenterOfShape(neg);
-			    			
-			    			boolean inLine=n.getEdges().stream()
-							    			.map(e->e.getLine())
-							    			.map(l->GeomUtil.growLine(l, averageWidthOCRFinal[0]))
-							    			.filter(s->s.contains(ncenter))
-							    			.findAny()
-							    			.isPresent();
-			    			if(!inLine){
-			    				n.setCharge(-1);
-			    			}
-			    		}
-		    		}
-		    });
-			
-			ctab.getNodes().stream()
-		    .filter(n->n.getSymbol().equals("Cl"))
-		    .filter(n->n.getCharge()==0)
-		    .filter(n->!n.isInvented())
-		    .forEach(n->{
-		    		int so=n.getValanceTotal();
-		    		if(so<=1){
-			    		Point2D p=n.getPoint();
-			    		Shape neg=mightBeNegative.stream().filter(s->GeomUtil.distanceTo(s, p)<ctab.getAverageBondLength()/2).findAny().orElse(null);
-			    		
-			    		if(neg!=null){
-			    			Point2D ncenter=GeomUtil.findCenterOfShape(neg);
-			    			
-			    			boolean inLine=n.getEdges().stream()
-							    			.map(e->e.getLine())
-							    			.map(l->GeomUtil.growLine(l, averageWidthOCRFinal[0]))
-							    			.filter(s->s.contains(ncenter))
-							    			.findAny()
-							    			.isPresent();
-			    			if(!inLine){
-			    				n.setCharge(-1);
-			    			}
-			    		}
-		    		}
-		    });
+				.filter(n->neededValances.get(n.getSymbol())!=null)
+				.filter(n->n.getCharge()==0)
+			    .filter(n->!n.isInvented())
+			    .forEach(n->maybeCharge.accept(n, neededValances.get(n.getSymbol())));
 			
 			int sc=ctab.getSumCharge();
 			
@@ -3054,26 +2995,7 @@ public class StructureImageExtractor {
 			    .filter(n->n.getEdgeCount()==2)
 			    .filter(n->!n.isInvented())
 			    .filter(n->!n.getEdges().stream().filter(e->e.getDashed()).findAny().isPresent())
-			    .forEach(n->{
-			    		int so=n.getEdges().stream().mapToInt(e->e.getOrder()).sum();
-			    		if(so==2){
-				    		Point2D p=n.getPoint();
-				    		Shape neg=mightBeNegative.stream().filter(s->GeomUtil.distanceTo(s, p)<ctab.getAverageBondLength()/2).findAny().orElse(null);
-				    		
-				    		if(neg!=null){
-				    			Point2D ncenter=GeomUtil.findCenterOfShape(neg);
-				    			boolean inLine=n.getEdges().stream()
-								    			.map(e->e.getLine())
-								    			.map(l->GeomUtil.growLine(l, averageWidthOCRFinal[0]))
-								    			.filter(s->s.contains(ncenter))
-								    			.findAny()
-								    			.isPresent();
-				    			if(!inLine){
-				    				n.setCharge(-1);
-				    			}
-				    		}
-			    		}
-			    });
+			    .forEach(n->maybeCharge.accept(n, 2));
 			}
 		}
 		 

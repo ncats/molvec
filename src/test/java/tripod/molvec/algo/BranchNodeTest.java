@@ -79,7 +79,7 @@ public class BranchNodeTest {
 		List<String> coordStrings = new ArrayList<>();
 		
 		s.forEachBranchNode((a,b)->{
-			Point2D p=b.suggestedPoint;
+			Point2D p=b.getSuggestedPoint();
 			coordStrings.add(b.getSymbol() + " :"+ p.getX() + "," + p.getY());
 		});
 		assertEquals("C :0.0,0.0",coordStrings.get(0));
