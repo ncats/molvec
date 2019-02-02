@@ -1964,32 +1964,16 @@ public class GeomUtil {
 		if(allPoints.isEmpty() || allPoints.size()<3)return Optional.empty();
 		return Optional.ofNullable(convexHull2(allPoints.toArray(new Point2D[0])));
 	}
-//	
-//	public static Shape[] splitInHalf(Shape s){
-//		Point2D[] points = vertices(s); // assumes it always gives in CCW or CW order
-//		if(points.length==3)throw new IllegalStateException("Can't split a triangle in two");
-//		
-//		int smallerShapeSize=points.length/2;
-//		int biggerShapeSize= points.length-smallerShapeSize;
-//		Point2D[] smallerv=Arrays.copyOfRange(points, 0, smallerShapeSize+1);
-//		Point2D[] biggervt=Arrays.copyOfRange(points, smallerShapeSize,points.length);
-//		Point2D[] biggerv= Stream.concat(Arrays.stream(biggervt),
-//				      					 Stream.of(points[0]))
-//				                 .toArray(i->new Point2D[i]);
-//		
-//		
-//	
-//		Shape[] nshapes = new Shape[2];
-//		
-//		nshapes[0] = convexHull(smallerv);
-//		nshapes[1] = convexHull(biggerv);
-//		
-//		
-//		return nshapes;
-//		
-//		
-//	}
 	
+	/**
+	 * Returns the signed area of a triangle, assuming that a CW orientation is positive,
+	 * and a CCW orientation is negative. This is accomplished by centering the triangle
+	 * so that the first point (P1) is on the origin, and then taking the signed "rejection" of the the
+	 * vector from P1->P3 onto the vector P1->P2. That value, multiplied by the length of P1->P2 gives
+	 * the area of the parallelogram. Divide the answer by 2, and it's the area of the triangle.
+	 * @param verts
+	 * @return
+	 */
 	public static double areaTriangle(Point2D p1, Point2D p2, Point2D p3){
 		//base x height
 		//base x rejection of non-base onto base
@@ -1998,16 +1982,37 @@ public class GeomUtil {
 		double[] vp3=asVector(p3);
 		vp2=addVectors(vp2,negate(vp1));
 		vp3=addVectors(vp3,negate(vp1));
+		
+		//orthoDot is just the non-normalized scalar rejection of vector 2 onto vector 1
+		//which is the same as the area of the parallelogram formed by V1 and V2 
 		return orthoDot(vp2,vp3)/2;
 		
 	}
-	
+	/**
+	 * Returns the signed area of a triangle, assuming that a CW orientation is positive,
+	 * and a CCW orientation is negative. This just delegates to the {@link #areaTriangle(Point2D, Point2D, Point2D)}
+	 * method.
+	 * @param s
+	 * @return
+	 */
 	public static double areaTriangle(Shape s){
 		Point2D[] pts=vertices(s);
 		if(pts.length!=3)throw new IllegalStateException("Triangles must have 3 points");
 		return areaTriangle(pts[0],pts[1],pts[2]);
 	}
 	
+	/**
+	 * Returns the signed area of a set of vertices, assuming that a CW orientation is positive,
+	 * and a CCW orientation is negative. This is accomplished by breaking the vertices into triangles
+	 * by fetching every-other triangle formed by the vertices. Once all areas that way are calculated,
+	 * it then recursively calculates the area for the vertices "left over" and adds that area. All of this
+	 * eventually delegates to {@link #areaTriangle(Point2D, Point2D, Point2D)}. Note that this method
+	 * works well for convex hulls and for shapes that do not have "crossing" edge. More specifically, the 
+	 * results of this method will not be well-defined if the provided vertices form an edge that 'crosses"
+	 * another edge, and therefore has an inconsistent definition of what it means to be "inside" of the shape. 
+	 * @param verts
+	 * @return
+	 */
 	public static double areaVerticesCW(Point2D[] verts){
 		if(verts.length<3)return 0;
 		if(verts.length==3)return areaTriangle(verts[0],verts[1],verts[2]);
@@ -2042,7 +2047,11 @@ public class GeomUtil {
 		return path;
 	}
 	
-	
+	/**
+	 * Returns the absolute (positive) area of a shape.
+	 * @param s
+	 * @return
+	 */
 	public static double area(Shape s){
 		if(s instanceof Rectangle2D){
 			return ((Rectangle2D)s).getWidth()*((Rectangle2D)s).getHeight();
