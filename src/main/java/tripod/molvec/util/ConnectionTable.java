@@ -416,20 +416,25 @@ public class ConnectionTable{
 		resetCaches();
 		return this;
 	}
-	
 	public ConnectionTable mergeNodesCloserThan(double maxDistance){
-
-
+			return mergeFilteredNodesCloserThan(maxDistance,(n->true));
+	}
+	public ConnectionTable mergeFilteredNodesCloserThan(double maxDistance, Predicate<Node> includeNode){
+		
+//		return mergeNodesCloserThan(maxDistance, n->true,nl->nl.stream().map(n->n.getPoint()).collect(GeomUtil.averagePoint()));
 		
 		boolean mergedOne = true;
 		
 		while(mergedOne){
 			mergedOne=false;
 			for(int i=0;i<nodes.size();i++){
+				
 				Node node1=nodes.get(i);
+				if(!includeNode.test(node1))continue;
 				Point2D pnti=node1.point;
 				for(int j=i+1;j<nodes.size();j++){
 					Point2D pntj = nodes.get(j).point;
+					if(!includeNode.test(nodes.get(j)))continue;
 					if(pnti.distance(pntj)<maxDistance){
 						mergeNodesAverage(i,j);
 						mergedOne=true;
@@ -447,7 +452,11 @@ public class ConnectionTable{
 	
 	
 	public ConnectionTable mergeNodesCloserThan(double maxDistance, Function<List<Node>, Point2D> combiner){
-		List<List<Node>> mergeList=GeomUtil.groupThings(nodes, (t)->{
+		return mergeNodesCloserThan(maxDistance,n->true,combiner);
+	}
+	
+	public ConnectionTable mergeNodesCloserThan(double maxDistance, Predicate<Node> incudeNode,Function<List<Node>, Point2D> combiner){
+		List<List<Node>> mergeList=GeomUtil.groupThings(nodes.stream().filter(incudeNode).collect(Collectors.toList()), (t)->{
 								Node n1=t.k();
 								Node n2=t.v();
 								return n1.point.distance(n2.point)<maxDistance;
@@ -855,7 +864,7 @@ public class ConnectionTable{
 		return this;
 	}
 	
-	public ConnectionTable createNodesOnIntersectingLines(double tol, Predicate<List<Edge>> shouldSplitEdges){
+	public ConnectionTable createNodesOnIntersectingLines(double tol, Predicate<List<Edge>> shouldSplitEdges, Consumer<Node> newNodeConsumer){
 		
 		boolean splitOne =true;
 		while(splitOne){
@@ -885,7 +894,7 @@ public class ConnectionTable{
 						
 							//Point2D np=GeomUtil.intersection(e1.getLine(),e2.getLine());
 							int nodeNew = this.nodes.size();
-							this.addNode(np);
+							Node rnode=this.addNode(np);
 							Edge nedge1 = new Edge(e1.n1, nodeNew, e1.getOrder());
 							Edge nedge2 = new Edge(e1.n2, nodeNew, e1.getOrder());
 							Edge nedge3 = new Edge(e2.n1, nodeNew, e2.getOrder());
@@ -903,6 +912,7 @@ public class ConnectionTable{
 								//this.nodes.remove(nodeNew);
 							}else{
 								splitOne=true;
+								newNodeConsumer.accept(rnode);
 							}
 							break;
 						
@@ -975,6 +985,37 @@ public class ConnectionTable{
 
 		public int getCharge(){
 			return this.charge;
+		}
+		
+		public boolean isInRing(int maxRing){
+			Set<Node> neighborsStart =getNeighborNodes().stream().map(t->t.k()).collect(Collectors.toSet());
+			Set<Node> neighborsNext =new HashSet<>();
+			List<Node> dontInclude =new ArrayList<>();
+			dontInclude.add(this);
+			
+			for(int i=0;i<maxRing;i++){
+				for(Node nn: neighborsStart){
+					nn.getNeighborNodes().stream()
+										 .map(t->t.k())
+					                     .filter(n2->!dontInclude.contains(n2))
+					                     .forEach(n2->{
+					                    	 neighborsNext.add(n2);
+					                     });
+				}
+				
+				if(neighborsNext.contains(this)){
+					return true;
+				}
+				dontInclude.clear();
+				dontInclude.addAll(neighborsStart);
+				neighborsStart= new HashSet<>(neighborsNext);
+				neighborsNext.clear();
+			}
+			return false;
+			
+			
+			
+			
 		}
 		
 		public Node setCharge(int c){

@@ -112,6 +112,7 @@ public class MoleculeTest {
 			String form=c.getFormula();
 			assertEquals(cReal.getFormula(),form);
 		} )});
+
 		//NConnectedToDoubleBond.png
 		list.add(new Object[]{"NConnectedToDoubleBond", new TestSpec("moleculeTest/NConnectedToDoubleBond.png", c->{
 			Chemical cReal=ChemicalBuilder.createFromMol("\n" +
@@ -876,6 +877,32 @@ public class MoleculeTest {
 		} )});
 		//CCOC(=O)C[C@H](NS(=O)(=O)c1ccccc1)c2ccc3N(CC)C(C)Cc3c2
 
+		//chainOnEdge.png
+		list.add(new Object[]{"chainOnEdge", new TestSpec("moleculeTest/chainOnEdge.png", c->{
+			Chemical cReal=ChemicalBuilder.createFromSmiles("COc1ccc(CCN2CCCc3cc(O)c(OC)cc23)cc1O").build();
+
+			String keyReal=Inchi.asStdInchi(cReal).getKey();
+			String keyGot=Inchi.asStdInchi(c).getKey();
+			assertEquals(keyReal,keyGot);
+		} )});
+		//cagedStructure2.png
+		list.add(new Object[]{"cagedStructure2", new TestSpec("moleculeTest/cagedStructure2.png", c->{
+			Chemical cReal=ChemicalBuilder.createFromSmiles("COc1ccnc(C(=O)NC2CC3CCC2C3)c1O").build();
+
+			String keyReal=Inchi.asStdInchi(cReal).getKey();
+			String keyGot=Inchi.asStdInchi(c).getKey();
+			assertEquals(keyReal,keyGot);
+		} )});
+		
+		//cagedStructure3.png
+		list.add(new Object[]{"cagedStructure3", new TestSpec("moleculeTest/cagedStructure3.png", c->{
+			Chemical cReal=ChemicalBuilder.createFromSmiles("COc1ccnc(C(=O)N[C@H]2CC3CC2C[C@@H]3c4ccccc4)c1O").build();
+
+			String keyReal=Inchi.asStdInchi(cReal).getKey();
+			String keyGot=Inchi.asStdInchi(c).getKey();
+			assertEquals(keyReal,keyGot);
+		} )});
+		
 		list.add(new Object[]{"nhOnTopOfEachOther", new TestSpec("moleculeTest/NHOnTopOfEachOther.png", c->{
 			Chemical cReal=ChemicalBuilder.createFromSmiles("CCOC(=O)C[C@H](NS(=O)(=O)c1ccccc1)c2ccc3N(CC)C(C)Cc3c2").build();
 
