@@ -2206,8 +2206,10 @@ public class StructureImageExtractor {
 								}
 								pnode=nn;
 							}
-							closestEdge.setOrder(3);
-							ctab.removeEdge(e);
+							if(closestEdge!=null){
+								closestEdge.setOrder(3);
+								ctab.removeEdge(e);
+							}
 							
 						}
 					});

@@ -1839,7 +1839,9 @@ public class Bitmap implements Serializable, TiffTags {
 		}
 		return sumDist/len;
     }
-    public static int MAX_REPS=Integer.MAX_VALUE;
+    
+    //TODO: worry about this
+    public static int MAX_REPS=1000;
     
     
     public List<Line2D> combineLines(List<Line2D> ilines, double maxMinDistance, double maxAvgDeviation, double maxDistanceToConsiderSamePoint, double maxAngle, double minLengthForAngleCompare){
@@ -1863,7 +1865,7 @@ public class Bitmap implements Serializable, TiffTags {
     	byte[] distMet=distanceData.get();
     	
     	List<Line2D> lines=ilines.stream()
-    	     .map(l->Tuple.of(l,GeomUtil.length(l)).withVComparator())
+    	     .map(l->Tuple.of(l,GeomUtil.lengthSquared(l)).withVComparator())
     	     .sorted()
     	     .map(t->t.k())
     	     .collect(Collectors.toList());

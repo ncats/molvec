@@ -839,7 +839,12 @@ class BranchNode{
 
 	private static BranchNode interpretOCRStringAsAtom(String s){
 		try{
-			return _cache.computeIfAbsent(s, (k)->Optional.ofNullable(interpretOCRStringAsAtom(s,false))).map(b->b.cloneNode()).orElse(null);
+			Optional<BranchNode> bn= _cache.get(s);
+			if(bn==null){
+				bn=Optional.ofNullable(interpretOCRStringAsAtom(s,false));
+				_cache.put(s, bn);
+			}
+			return bn.map(b->b.cloneNode()).orElse(null);
 		}catch(Exception e){
 			return null;
 		}
@@ -847,15 +852,7 @@ class BranchNode{
 	
 	public static BranchNode interpretOCRStringAsAtom2(String s){
 		try{
-			BranchNode bn= interpretOCRStringAsAtom(s);
-			if(bn!=null){
-				bn.removeHydrogens();
-//				if(bn.isPseudoNode() && bn.symbol.equals("C")){
-//					bn.setPseudoNode(false);
-//					return bn;
-//				}
-			}
-			return bn;
+			return Optional.ofNullable(interpretOCRStringAsAtom(s)).map(b->b.removeHydrogens()).orElse(null);
 		}catch(Exception e){
 			e.printStackTrace();
 			return null;

@@ -27,6 +27,7 @@ import org.junit.Test;
 import gov.nih.ncats.chemkit.api.Chemical;
 import gov.nih.ncats.chemkit.api.ChemicalBuilder;
 import gov.nih.ncats.chemkit.api.inchi.Inchi;
+import tripod.molvec.CachedSupplier;
 
 public class RegressionTest {
 
@@ -47,7 +48,8 @@ public class RegressionTest {
 		LARGEST_FRAGMENT_RIGHT_BONDS,
 		INCORRECT,
 		FOUND_NOTHING,
-		ERROR
+		ERROR,
+		TIMEOUT
 	}
 	
 
@@ -93,8 +95,38 @@ public class RegressionTest {
 			System.out.println(sdf.getAbsolutePath());
 			System.out.println("--------------------------------");
 			
-			StructureImageExtractor sie = new StructureImageExtractor(image);
-
+			CachedSupplier<StructureImageExtractor> cget = CachedSupplier.of(()->{
+				try {
+					return new StructureImageExtractor(image);
+				} catch (IOException e1) {
+					throw new RuntimeException(e1);
+				}
+			});
+			
+			
+			Thread th = new Thread(()->{
+				cget.get();
+			});
+			
+			try{
+				long start = System.currentTimeMillis();
+				th.start();
+				while(true){
+					if(cget.hasRun())break;
+					Thread.sleep(1);
+					if(System.currentTimeMillis()-start > 60000){
+						System.out.println("OH NO TIMEOUT!\t" + image.getAbsolutePath());
+						return Result.TIMEOUT;
+					}
+				}
+			
+			
+			}catch(Exception e){
+				throw e;
+			}
+			
+			StructureImageExtractor sie = cget.get();
+			
 			Chemical c=sie.getChemical();
 			
 			//c1.makeHydrogensImplicit();
@@ -242,8 +274,12 @@ public class RegressionTest {
 		    	  	return l;
 		      })
 //		      .collect(shuffler(new Random(11111123l)))		      
-//		      .limit(100)
-		      .parallel()
+//		      .limit(1000)
+
+//NOTE, I THINK THIS WORKS, BUT SINCE THERE IS PARALLEL THINGS GOING ON IN EACH, IT SOMETIMES WILL STARVE A CASE FOR A LONG TIME
+//		      .parallel()
+		      
+		      
 		      .map(fl->Tuple.of(fl,testMolecule(fl.get(1),fl.get(0))))
 		      .map(t->t.swap())
 		      .peek(t->System.out.println(t.k()))
