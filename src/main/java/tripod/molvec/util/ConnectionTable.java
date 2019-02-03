@@ -41,6 +41,7 @@ import tripod.molvec.Bitmap;
 import tripod.molvec.CachedSupplier;
 import tripod.molvec.algo.Tuple;
 import tripod.molvec.algo.Tuple.KEqualityTuple;
+import tripod.molvec.util.ConnectionTable.Node;
 
 public class ConnectionTable{
 	private List<Node> nodes = new ArrayList<Node>();
@@ -1205,6 +1206,11 @@ public class ConnectionTable{
 			      .collect(Collectors.toList());
 			      
 			
+		}
+
+		public boolean hasNode(Node n) {
+			if(this.getRealNode1()==n||this.getRealNode2()==n)return true;
+			return false;
 		}
 		
 	}

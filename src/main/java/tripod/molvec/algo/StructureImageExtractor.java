@@ -101,7 +101,7 @@ public class StructureImageExtractor {
 	
 	
 	private final double INITIAL_MAX_BOND_LENGTH=Double.MAX_VALUE;
-	private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE = 1/4.3;
+	private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE = 1/3.6;
 	private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE_AFTER_SPLIT = 1/6.0;
 	private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE_INITIAL = 1/2.9;
 
@@ -2606,9 +2606,25 @@ public class StructureImageExtractor {
 			    			List<Node> npair1=pairs.get(0);
 			    			List<Node> npair2=pairs.get(1);
 			    			if(npair1.size()==2 && npair2.size()==2){
-			    				ctab.addEdge(npair1.get(0).getIndex(), npair1.get(1).getIndex(),1);
-			    				ctab.addEdge(npair2.get(0).getIndex(), npair2.get(1).getIndex(),1);
-			    				toRemoveNodesCage.add(n);
+			    				
+			    				//Really do it, but first make sure that the average bond length makes sense
+			    				
+			    				double averageOtherBondLength=ctab.getEdges().stream()
+			    				               .filter(e2->!e2.hasNode(n))
+			    				               .mapToDouble(e2->e2.getEdgeLength())
+			    				               .average()
+			    				               .orElse(ctab.getAverageBondLength());
+			    				
+			    				double averageCurrentBondLength=n.getEdges().stream().mapToDouble(e->e.getEdgeLength()).average().orElse(0);
+			    				
+			    				double averageNewBondLength=0.5*(npair1.get(0).distanceTo(npair1.get(1)) +
+			    											npair2.get(0).distanceTo(npair2.get(1)));
+			    				
+			    				if(Math.abs(averageNewBondLength-averageOtherBondLength)<Math.abs(averageCurrentBondLength-averageOtherBondLength)){
+			    					ctab.addEdge(npair1.get(0).getIndex(), npair1.get(1).getIndex(),1);
+				    				ctab.addEdge(npair2.get(0).getIndex(), npair2.get(1).getIndex(),1);
+				    				toRemoveNodesCage.add(n);	
+			    				}
 			    			}
 			    		}
 			    	}
@@ -2730,6 +2746,8 @@ public class StructureImageExtractor {
 			
 			List<Shape> dashShapes = new ArrayList<Shape>();
 			
+			List<List<Node>> toMergeNodes = new ArrayList<>();
+			
 			GeomUtil.groupThings(maybeDash, t->{
 						Shape s1=t.k();
 						Shape s2=t.v();
@@ -2743,14 +2761,15 @@ public class StructureImageExtractor {
 					.forEach(sl->{
 						
 						Shape bshape=sl.stream()
-									   .reduce((s1,s2)->GeomUtil.add(s1, s2)).orElse(null);
+									   .reduce((s1,s2)->GeomUtil.add(s1, s2))
+									   .orElse(null);
 						if(bshape!=null){
 							Point2D[] pts=GeomUtil.getPairOfFarthestPoints(bshape);
 							double dist=pts[0].distance(pts[1]);
 							if(dist < ctab.getAverageBondLength()*1.3 && dist>ctab.getAverageBondLength()*0.6){
 								//Looks very promising
 								System.out.println("Found a possible dash:" + sl.size());
-								dashShapes.add(bshape);
+								dashShapes.add(GeomUtil.growShape(bshape,2));
 								List<Node> forN1=ctab.getNodes()
 								    .stream()
 								    .filter(n->n.getPoint().distance(pts[0])< ctab.getAverageBondLength()*0.3)
@@ -2761,8 +2780,25 @@ public class StructureImageExtractor {
 									    .collect(Collectors.toList());
 								
 								
-								if(forN1.size()+forN2.size()>1)return;
+								
 								if(forN1.size()+forN2.size()==0)return;
+								
+								if(forN1.size()+forN2.size()>1){
+									if(forN1.size()>1){
+										//probably merge
+										List<Node> nadd = forN1.stream().filter(nn->!forN2.contains(nn))
+												.collect(Collectors.toList());
+										toMergeNodes.add(nadd);
+									}
+									if(forN2.size()>1){
+										//probably merge
+										List<Node> nadd = forN2.stream().filter(nn->!forN1.contains(nn))
+												.collect(Collectors.toList());
+										toMergeNodes.add(nadd);
+									}
+									return;
+								}
+								
 								Node pnode=null;
 								Point2D newPoint=pts[0];
 								if(!forN1.isEmpty()){
@@ -2814,6 +2850,15 @@ public class StructureImageExtractor {
 						
 						
 					});
+			
+			
+			if(!toMergeNodes.isEmpty()){
+				toMergeNodes.forEach(nm->{
+					//nervous about this
+					ctab.mergeNodes(nm.stream().map(n->n.getIndex()).collect(Collectors.toList()), pl->pl.stream().collect(GeomUtil.averagePoint()));		
+				});
+				ctab.standardCleanEdges();
+			}
 			
 			        
 			
@@ -2877,6 +2922,10 @@ public class StructureImageExtractor {
 			
 			double averageThickness = winfo.stream().mapToDouble(t->t.v().getAverageThickness()).average().orElse(2);
 			
+			Set<Edge> thickEdges = new HashSet<Edge>();
+			Set<Edge> wedgeEdges = new HashSet<Edge>();
+			
+			
 			winfo.forEach(t->{
 				Edge e=t.k();
 				
@@ -2901,11 +2950,14 @@ public class StructureImageExtractor {
 						
 						if(wl>cutoff){
 							e.setWedge(true);
+							wedgeEdges.add(e);
 						}else if(wl<-cutoff){
 							e.setWedge(true);
+							wedgeEdges.add(e);
 							e.switchNodes();
 						}else if(s.getAverageThickness()>averageThickness*2.5){
 							//very thick line
+							thickEdges.add(e);
 							e.setWedge(true);
 						}
 						if(e.getWedge()){
@@ -2920,6 +2972,21 @@ public class StructureImageExtractor {
 					}
 				}
 			});
+			
+			
+			if(thickEdges.size()>0 && wedgeEdges.size()>0){
+				//There are 2 kinds of wedges here, disable all thick ones,
+				//at least that share a node with a wedge/
+				thickEdges.stream()
+						  .filter(e->{
+							  if(e.getRealNode1().getEdges().stream().filter(e2->e2!=e).filter(e2->e2.getWedge()||e2.getDashed()).findAny().isPresent() ||
+								 e.getRealNode2().getEdges().stream().filter(e2->e2!=e).filter(e2->e2.getWedge()||e2.getDashed()).findAny().isPresent()){
+								  return true;
+							  }  
+							  return false;
+						  })
+				          .forEach(w->w.setWedge(false));
+			}
 			
 			
 
