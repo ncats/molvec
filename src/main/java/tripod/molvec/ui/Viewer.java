@@ -610,7 +610,7 @@ public class Viewer extends JPanel
 
     void drawNearestNeighbor (Graphics2D g2, Collection<Shape> polygons) {
         ArrayList<Line2D> lines = new ArrayList<Line2D>();
-	for (Shape a : polygons) {
+        for (Shape a : polygons) {
             double min = Double.MAX_VALUE;
             Point2D[] line = null;
             for (Shape b : polygons) {
@@ -624,7 +624,7 @@ public class Viewer extends JPanel
                 }
             }
             lines.add(new Line2D.Double(line[0], line[1]));
-	}
+        }
 
         // nearest neighbor
         double dist = 0.;

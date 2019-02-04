@@ -26,7 +26,11 @@ class BranchNode{
 		keepers.add("H");
 		keepers.add("S");
 		keepers.add("P");
-		keepers.add("B");
+		
+		
+		keepers.add("B"); //(not sure I want to confirm that yet, it's so rare)
+		
+		
 		keepers.add("Br");
 		keepers.add("Cl");
 		keepers.add("F");
@@ -726,6 +730,8 @@ class BranchNode{
 			return interpretOCRStringAsAtom("SO2CF3");
 		}else if(s.matches("M[ecC][O0o][O0o][Cc]")){
 			return interpretOCRStringAsAtom("COOC");
+		}else if(s.equalsIgnoreCase("H3CHN")){
+			return interpretOCRStringAsAtom("N").addChild(interpretOCRStringAsAtom("CH3"));
 		}
 		
 		
@@ -741,7 +747,9 @@ class BranchNode{
 				bn=bn.setTerminal(true);
 			}
 			return bn;
-		}else if(accept.contains(s.toUpperCase())){
+		}else if(accept.contains(s.toUpperCase()) && !s.equals("b")){
+			
+			
 			return new BranchNode(s.toUpperCase());
 		}
 		if(s.contains("Ct")){

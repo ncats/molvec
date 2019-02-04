@@ -8,6 +8,7 @@ import java.awt.geom.GeneralPath;
 import java.awt.geom.Line2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.awt.image.MultiPixelPackedSampleModel;
@@ -15,7 +16,14 @@ import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -36,7 +44,14 @@ import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
 
-import com.sun.media.jai.codec.*;
+import com.sun.media.jai.codec.ByteArraySeekableStream;
+import com.sun.media.jai.codec.ImageCodec;
+import com.sun.media.jai.codec.ImageDecoder;
+import com.sun.media.jai.codec.ImageEncoder;
+import com.sun.media.jai.codec.TIFFDecodeParam;
+import com.sun.media.jai.codec.TIFFDirectory;
+import com.sun.media.jai.codec.TIFFEncodeParam;
+import com.sun.media.jai.codec.TIFFField;
 
 import tripod.molvec.algo.Tuple;
 import tripod.molvec.image.ImageUtil;
@@ -64,6 +79,73 @@ public class Bitmap implements Serializable, TiffTags {
         } catch (Exception ex) { }
         DEBUG = debug;
     }
+    
+    
+    public static class CropBackedBitmap extends Bitmap{
+
+    	private Rectangle r = null;
+    	private Shape cropShape = null;
+    	private Bitmap real = null;
+    	private int x0;
+    	private int y0;
+    	private int x1;
+    	private int y1;
+    	private int w;
+    	private int h;
+
+    	private CachedSupplier<List<int[]>> onXYs = CachedSupplier.of(()->{
+    		   		
+    		if(w*h<400){
+    			return real.crop(cropShape).getXYOnPoints().collect(Collectors.toList());
+    		}
+    		
+    		return real.getXYOnPoints()
+    				   .filter(xy->(xy[0]>=x0 && xy[0]<=x1) && (xy[1]>=y0 && xy[1]<=y1))
+    				   .filter(xy->xy[0]==x1||xy[1]==y1||cropShape.contains(xy[0], xy[1]))
+    				   .map(xy->new int[]{(int)(xy[0]-x0),(int)(xy[1]-y0)})
+    				   .collect(Collectors.toList());
+    	});
+     	
+    	
+    	
+		public CropBackedBitmap(Bitmap copy, Shape cropShape) {
+			real = copy;
+			this.cropShape=cropShape;
+			
+			r = cropShape.getBounds ();
+		     
+			w=r.width+1;
+			h=r.height+1;
+		    x1 = Math.min (real.width, r.x + r.width);
+		    y1 = Math.min (real.height, r.y + r.height);
+		    x0 = r.x;
+		    y0 = r.y;
+		}
+
+		public int height() {
+			return h;
+		}
+		
+		public int width() {
+			return w;
+		}
+		
+		public Stream<int[]> getXYOnPoints() {
+			return onXYs.get().stream();
+		}
+    	public double fractionPixelsOn(){
+    		return onXYs.get().size()/((double)(width()*height()));
+    	}
+    }
+    
+    
+    public CropBackedBitmap getLazyCrop(Shape c){
+    	
+    	Rectangle r = c.getBounds();
+    	if(r.width==0||r.height==0)return null;
+    	return new CropBackedBitmap(this,c);
+    }
+    
 
     /**
      * bounding box shape
@@ -670,7 +752,6 @@ public class Bitmap implements Serializable, TiffTags {
     	double pon=fractionPixelsOn();
     	
     	if(pon>.5){
-    		System.out.println("It's bad:" + pon);
     		return this.invert();
     	}else{
     		return this;
@@ -751,6 +832,10 @@ public class Bitmap implements Serializable, TiffTags {
         data = new byte[scanline * height];
         sampleModel = new MultiPixelPackedSampleModel
             (DataBuffer.TYPE_BYTE, width, height, 1, scanline, 0);
+    }
+    
+    public Bitmap(){
+    	
     }
 
     public Object clone () {
@@ -942,15 +1027,28 @@ public class Bitmap implements Serializable, TiffTags {
         int y1 = Math.min (height, r.y + r.height);
         int x0 = r.x, y0 = r.y;
         
+        int area=r.width*r.height;
         
-
-        int i, j = 0;
-        for (int y = y0; y <= y1; ++y, ++j) {
-            i = 0;
-            for (int x = x0; x <= x1; ++x, ++i) {
-                if (x == x1 || y == y1 || s.contains (x, y))
-                    dst.set (i, j, get (x, y));
-            }
+        //if the area is large, it's usually easier to deal with the sparse array
+        //instead of a bit-for-but copy
+        if(area > 500){
+	        getXYOnPoints().filter(xy->(xy[0]>=x0 && xy[0]<=x1) && (xy[1]>=y0 && xy[1]<=y1))
+	        			   .filter(xy->xy[0]==x1 || xy[1] == y1 || s.contains(xy[0],xy[1]))
+	        			   
+	        			   .map(xy->new int[]{xy[0]-x0,xy[1]-y0})
+	        			   .forEach(xy->{
+	        				   
+	        				   dst.set(xy[0], xy[1], true);
+	        			   });
+        }else{
+	        int i, j = 0;
+	        for (int y = y0; y <= y1; ++y, ++j) {
+	            i = 0;
+	            for (int x = x0; x <= x1; ++x, ++i) {
+	                if (x == x1 || y == y1 || s.contains (x, y))
+	                    dst.set (i, j, get (x, y));
+	            }
+	        }
         }
         return dst;
     }

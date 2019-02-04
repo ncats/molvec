@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import tripod.molvec.CachedSupplier;
 import tripod.molvec.algo.Tuple;
 
 
@@ -448,11 +449,13 @@ public class GeomUtil {
      * @return
      */
     public static Point2D centerOfMass(Shape s1){
+    	return centerOfMass(Arrays.asList(GeomUtil.lines(s1)));
+    }
+    
+    public static Point2D centerOfMass(List<Line2D> lines){
+    	double sumLength = lines.stream().mapToDouble(l->length(l)).sum()*2;
     	
-    	Line2D[] lines=GeomUtil.lines(s1);
-    	double sumLength = Arrays.stream(lines).mapToDouble(l->length(l)).sum()*2;
-    	
-    	Point2D centerPoint = Arrays.stream(lines)
+    	Point2D centerPoint = lines.stream()
     							  .flatMap(l->Stream.of(Tuple.of(l.getP1(), length(l)),Tuple.of(l.getP2(), length(l))))
     							  .map(t->Tuple.of(t.k().getX()*t.v(), t.k().getY()*t.v()))
     							  .reduce((t1,t2)->Tuple.of(t1.k() + t2.k(), t1.v()+t2.v()))
@@ -1494,6 +1497,172 @@ public class GeomUtil {
 	}
 	
 	
+	public static class BoundingBox{
+		private Rectangle2D rect;
+		private List<Tuple<Line2D,Line2D>> lines;
+
+		private CachedSupplier<Double> totLen = CachedSupplier.of(()->{
+			return lines.stream().mapToDouble(l->length(l.k())).sum();
+		});
+
+		private CachedSupplier<Shape> convexHull = CachedSupplier.of(()->{
+			return lines.stream().map(t->t.k()).flatMap(l->Stream.of(l.getP1(),l.getP2())).collect(GeomUtil.convexHull());
+		});
+		
+		
+		public double getLineDensity(){
+			return totLen.get()/(rect.getWidth()*2+rect.getHeight()*2);
+		}
+		
+		
+		public Rectangle2D getRect(){ //son!
+			return rect;
+		}
+		
+		public Rectangle2D getCenterOfMassRect(){
+			Point2D center=getCenterOfMass();
+			return new Rectangle2D.Double(center.getX()-rect.getWidth()/2, center.getY()-rect.getHeight()/2, rect.getWidth(), rect.getHeight());
+		}
+		public Point2D getCenterOfMass(){
+			return centerOfMass(lines.stream().map(l->l.k()).collect(Collectors.toList()));
+		}
+		
+		public double getTotalLineLength(){
+			return totLen.get();
+		}
+		public static BoundingBox of(Rectangle2D rect, List<Line2D> lines){
+			return ofCombo(rect, lines.stream().map(l->Tuple.of(l,l)).collect(Collectors.toList()));
+		}
+		public static BoundingBox ofCombo(Rectangle2D rect, List<Tuple<Line2D,Line2D>> lines){
+			BoundingBox bb= new BoundingBox();
+			bb.rect=rect;
+			bb.lines=lines;
+			return bb;
+		}
+		
+		public BoundingBox resize(double width, double height){
+			double cx= rect.getCenterX();
+			double cy= rect.getCenterY();
+			double x1= cx-width/2;
+			double y1= cy-height/2;
+			
+			return BoundingBox.ofCombo(new Rectangle2D.Double(x1,y1,width,height), lines);
+		}
+		
+		
+		public int numberOfSplitLines(){
+			
+			return (int)lines.stream()
+							 .flatMap(l->Stream.of(l.v().getP1(), l.v().getP2()))
+							 .filter(p->!rect.contains(p))
+							 .count();
+		}
+		
+		public double getPercentageOfSplitLines(){
+			return numberOfSplitLines()/((double)lines.size());
+		}
+		
+		public Shape getConvuxHull(){
+			return convexHull.get();
+		}
+		
+		public Rectangle2D getCenteredConvexRect(){
+			Shape s=getConvuxHull();
+			
+			Rectangle2D bb2=s.getBounds2D();
+			return new Rectangle2D.Double(bb2.getCenterX()-rect.getWidth()/2,bb2.getCenterY()-rect.getHeight()/2, rect.getWidth(),rect.getHeight());
+		}
+		
+		public Shape getConvuxHullOnlyInside(){
+			return lines.stream()
+						.filter(l->rect.contains(l.v().getP1()) && rect.contains(l.v().getP2()))
+					    .map(t->t.k())
+					    .flatMap(l->Stream.of(l.getP1(),l.getP2()))
+					    .collect(GeomUtil.convexHull());
+		}
+	
+		
+	}
+	
+	public static List<BoundingBox> getBoundingBoxesContaining(double width, double height, List<Line2D> lines, double minDistance){
+		double dx=1;
+		double dy=1;
+
+		List<Point2D> pts = lines.stream().flatMap(l->Stream.of(l.getP1(),l.getP2())).collect(Collectors.toList());
+		double[] xs = pts.stream()
+				           .flatMap(p->Stream.of(p.getX()-dx, p.getX()-width+dx))
+				           .mapToDouble(d->d)
+				           .sorted()
+				           .distinct()
+				           .toArray();
+		double[] ys = pts.stream()
+				           .flatMap(p->Stream.of(p.getY()-dy, p.getY()-height+dy))
+				           .mapToDouble(d->d)
+				           .sorted()
+				           .distinct()
+				           .toArray();
+		
+		
+		
+		//for n lines, that's 2n points. That's 4n x's and 4n y's. That's 16n^2 combinations. 
+		//For n=100, that's 160,000 shapes (probably too many), still, keeping it naive for now
+		
+		
+		//there are 3 criteria we care about for triage:
+		//1. Should have lots of points in it
+		//2. Should have long length of line inside
+		//3. Internal bounding box area of lines should be pretty close to the bounding box area of the actual box.
+
+		//We're going to focus on 1 and 2 for now.
+		//For 1, we're going to make sure it has at least 4 points inside
+		
+		
+		List<Point2D> alreadyGot = new ArrayList<Point2D>();
+		
+		
+		
+		return Arrays.stream(xs)
+		      .mapToObj(x->x)
+		      .flatMap(x->Arrays.stream(ys).mapToObj(y->new double[]{x,y}))
+		      .map(xy->new Rectangle2D.Double(xy[0], xy[1], width, height))
+		      .map(r->Tuple.of(r,pts.stream().filter(p->r.contains(p)).collect(Collectors.toList())))
+		      .filter(t->t.v().size()>=4)
+		      .map(Tuple.vmap(pl->Tuple.of(pl,-pl.size()).withVComparator()))
+		      .map(t->t.withVComparator())
+		      .sorted()
+		      .map(Tuple.vmap(v->v.k()))
+		      .map(t->Tuple.of(t.k(), lines.stream().map(l->Tuple.of(l,getLineInside(l,t.k()))).filter(o->o.v().isPresent()).map(Tuple.vmap(o->o.get())).map(Tuple::swap).collect(Collectors.toList())))
+		      .map(t->BoundingBox.ofCombo(t.k(), t.v()))
+		      .limit(1000) //shouldn't do this, but trying to stop an explosion
+		      .filter(b->area(b.getConvuxHull()) > area(b.getConvuxHull().getBounds2D())*0.6)
+		      .filter(b->area(b.getConvuxHull()) > area(b.getRect())*0.5)
+		      .filter(b->area(b.getConvuxHullOnlyInside()) > area(b.getConvuxHull())*0.4)
+		      .map(b->Tuple.of(b,b.numberOfSplitLines()))
+		      .map(t->t.swap())
+		      .collect(Tuple.toGroupedMap())
+		      .entrySet()
+		      .stream()
+		      .map(Tuple::of)
+		      .map(t->t.withKComparator())
+		      .sorted()
+		      .flatMap(t->t.v().stream().map(v->Tuple.of(v,-v.getTotalLineLength()).withVComparator()).sorted().map(t1->t1.k()))
+		      .filter(r->{
+		    	 Point2D c=r.getCenterOfMass();
+		    	 if(alreadyGot.stream().filter(p->p.distance(c)<minDistance).findFirst().isPresent()){
+		    		 return false;
+		    	 }
+		    	 alreadyGot.add(c);
+		    	 return true;
+		      })
+		      .map(b->Tuple.of(b,-b.getLineDensity()).withVComparator())
+		      .sorted()
+		      .map(t->t.k())
+		      .limit(5)
+		      .collect(Collectors.toList());
+		
+	}
+	
+	
 	/**
 		 * <p>Currently, this method takes in a set of lines and attempts to group the lines based on being</p>
 		 * <ol>
@@ -1873,6 +2042,45 @@ public class GeomUtil {
 		
 	}
 	
+	public static Optional<Line2D> getLineInside(Line2D l, Shape s){
+
+		boolean p1Inside = s.contains(l.getP1());
+		boolean p2Inside = s.contains(l.getP2());
+		
+		if(p1Inside && p2Inside)return Optional.of(l);
+		
+		
+		List<Point2D> ips=GeomUtil.getAllIntersections(s, l);
+		
+		if(ips.isEmpty())return Optional.empty();
+		
+		if(ips.size()>2){
+			System.out.println("Line:" + l);
+			System.out.println("Shape:" + Arrays.toString(vertices(s)));
+			System.out.println("Shape:" + Arrays.toString(vertices(convexHull2(vertices(s)))));
+			throw new IllegalStateException("Line should not intersect with convex hull more than twice, maybe the shape isn't a convux hull?");
+		}
+
+		Point2D ip1 = ips.get(0);
+		Point2D ip2 = (ips.size()==2)?ips.get(1):null;
+		
+		if(p1Inside && ip2==null){			
+			Line2D ln = new Line2D.Double(l.getP1(),ip1);
+			return Optional.of(ln);
+		}else if(p2Inside && ip2==null){
+			Line2D ln = new Line2D.Double(ip1,l.getP2());
+			return Optional.of(ln);
+		}else{
+			if(ip2==null){
+				//Could be tangent to one point actually, in this case just return nothing
+				return Optional.empty();
+			}else{
+				return Optional.of(new Line2D.Double(ip1,ip2));
+			}
+		}
+		
+	}
+	
 	public static List<Line2D> getLinesNotInside(Line2D l, Shape s){
 		
 		boolean p1Inside = s.contains(l.getP1());
@@ -2249,6 +2457,54 @@ public class GeomUtil {
 			
 		};
 	}
+	
+	public static Collector<Double,List<Double>,Double> median(){
+		
+		return new Collector<Double,List<Double>,Double>(){
+
+			@Override
+			public BiConsumer<List<Double>, Double> accumulator() {
+
+				return (l,p)->{
+					l.add(p);
+				};
+			}
+
+			@Override
+			public Set<java.util.stream.Collector.Characteristics> characteristics() {
+				return new HashSet<java.util.stream.Collector.Characteristics>();
+			}
+
+			@Override
+			public BinaryOperator<List<Double>> combiner() {
+				return (l1,l2)->{
+					l1.addAll(l2);
+					return l1;
+				};
+			}
+
+			@Override
+			public Function<List<Double>, Double> finisher() {
+				return (pts)->{
+					double[] arr=pts.stream().mapToDouble(d->d).sorted().toArray();
+					if(arr.length==1)return arr[0];
+					if(arr.length==0)return 0.0;
+					if(arr.length%2==1){
+						return arr[arr.length/2];
+					}else{
+						return (arr[arr.length/2-1] +arr[arr.length/2])/2;
+					}
+				};
+			}
+
+			@Override
+			public Supplier<List<Double>> supplier() {
+				return ()->new ArrayList<>();
+			}
+			
+		};
+	}
+
 
     
 }

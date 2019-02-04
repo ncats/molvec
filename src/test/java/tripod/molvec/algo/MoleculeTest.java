@@ -1602,6 +1602,74 @@ public class MoleculeTest {
 			String keyGot=Inchi.asStdInchi(c).getKey();
 			assertEquals(keyReal,keyGot);
 		} )});
+		
+		//nitrogenAttachedToBondAndPlus.png
+		list.add(new Object[]{"nitrogenAttachedToBondAndPlus", new TestSpec("moleculeTest/nitrogenAttachedToBondAndPlus.png", c->{
+
+//			System.out.println("HERE!!!!!\n"+c.toMol());
+            String mol =
+					"\n" + 
+					"  CDK     02041901303D\n" + 
+					"\n" + 
+					" 24 24  0  0  0  0  0  0  0  0999 V2000\n" + 
+					"    3.2688    0.0989    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    3.2853    1.0966    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -4.2046   -1.0215    0.0000 N   0  3  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.7916   -0.0976    0.0000 N   0  3  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.4526    0.5708    0.0000 H   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -5.0368   -1.5172    0.0000 O   0  5  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.7080   -0.3906    0.0000 H   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.3694   -1.6073    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.5357   -1.0215    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.7973   -0.0753    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    2.3840   -0.4056    0.0000 O   0  5  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.8661   -0.1650    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.0481   -0.8262    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.4702    1.0891    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.1687    0.3755    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.1517    0.6027    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.5137    0.8262    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.8983   -0.5858    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -4.3533    0.7962    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.4230    1.6073    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    4.1346   -0.3928    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    4.1640   -1.4120    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    3.2928   -0.9163    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    5.0353    0.0901    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  1  2  2  0  0  0  0 \n" + 
+					"  3  6  1  0  0  0  0 \n" + 
+					"  4  5  1  0  0  0  0 \n" + 
+					" 12 16  1  0  0  0  0 \n" + 
+					" 14 17  1  0  0  0  0 \n" + 
+					" 15 18  1  0  0  0  0 \n" + 
+					"  4 17  1  0  0  0  0 \n" + 
+					"  3  8  1  0  0  0  0 \n" + 
+					"  4  7  1  0  0  0  0 \n" + 
+					" 15 16  1  0  0  0  0 \n" + 
+					" 14 15  1  0  0  0  0 \n" + 
+					"  3 10  2  0  0  0  0 \n" + 
+					" 13 18  1  0  0  0  0 \n" + 
+					" 16 20  2  0  0  0  0 \n" + 
+					"  8  9  1  0  0  0  0 \n" + 
+					"  4 13  1  0  0  0  0 \n" + 
+					" 21 24  1  0  0  0  0 \n" + 
+					" 10 19  1  0  0  0  0 \n" + 
+					" 21 23  1  0  0  0  0 \n" + 
+					" 21 22  1  0  0  0  0 \n" + 
+					"  1 11  1  0  0  0  0 \n" + 
+					"  1 21  1  0  0  0  0 \n" + 
+					"  9 12  2  0  0  0  0 \n" + 
+					" 10 12  1  0  0  0  0 \n" + 
+					"M  CHG  1   3   1\n" + 
+					"M  CHG  1   4   1\n" + 
+					"M  CHG  1   6  -1\n" + 
+					"M  CHG  1  11  -1\n" + 
+					"M  END";
+			Chemical cReal=Chemical.parseMol(mol);
+			String keyReal=Inchi.asStdInchi(cReal).getKey();
+			String keyGot=Inchi.asStdInchi(c).getKey();
+			assertEquals(keyReal,keyGot);
+		} )});
 		list.add(new Object[]{"structureWithVeryShortSingleBondBetweenCarbons", new TestSpec("moleculeTest/verySmallSingleBondBetweenExplicitCarbons.png", c->{
 			Chemical cReal=ChemicalBuilder.createFromSmiles("C(C=Cc1ccc(cc1)N(c2ccccc2)c3ccc(cc3)-c4ccc(cc4)N(c5ccccc5)c6ccc(C=CC=Cc7ccccc7)cc6)=Cc8ccccc8").build();
 
@@ -1631,14 +1699,14 @@ public class MoleculeTest {
 		} )});
 
 		//This one needs work, it's an outlier
-		/*
+		
 		list.add(new Object[]{"subscriptImplicitAtomsF3Test", new TestSpec("moleculeTest/withSubscriptForF.png", c->{
 			Chemical cReal=ChemicalBuilder.createFromSmiles("FC(F)(F)C1(N=N1)c2ccc(CN3C(=O)C=CC3=O)cc2").build();
 
 			String form=c.getFormula();
 			assertEquals(cReal.getFormula(),form);
 		} )});
-		*/
+		
 		return list;
 	}
 
