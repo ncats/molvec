@@ -1045,10 +1045,12 @@ public class Viewer extends JPanel
             
             JPanel pane = new JPanel (new BorderLayout (0, 2));
             pane.add(toolbar, BorderLayout.NORTH);
-            pane.add(new JScrollPane (viewer = new Viewer ()));
+            viewer = new Viewer ();
+            viewer.setPreferredSize(new Dimension(600, 400));
+            pane.add(new JScrollPane (viewer));
             getContentPane().add(pane);
             pack ();
-            setSize (600, 400);
+//            setSize (600, 400);
             setDefaultCloseOperation (JFrame.EXIT_ON_CLOSE);
             
             
@@ -1195,7 +1197,8 @@ public class Viewer extends JPanel
                                 logger.warning("Bogus scale value: "+argv[1]);
                             }
                         }
-			vf.setVisible(true);
+//                        vf.pack();
+			            vf.setVisible(true);
 		    }
 		    catch (Exception ex) {
 			ex.printStackTrace();
