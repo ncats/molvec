@@ -5,6 +5,9 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
+import java.awt.image.ColorConvertOp;
+import java.awt.image.Raster;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -180,8 +183,34 @@ public class StructureImageExtractor {
 	private final boolean PRE_RESCUE_OCR = true;
 
 
+	public static StructureImageExtractor createFromImage(BufferedImage bufferedImage)throws IOException{
+		BufferedImage img = bufferedImage;
+		if(BufferedImage.TYPE_BYTE_GRAY != bufferedImage.getType()){
+			img = toGreyScale(bufferedImage);
+		}
+		return new StructureImageExtractor(img.getRaster());
 
+	}
 
+	private static BufferedImage toGreyScale(BufferedImage image){
+		BufferedImage gray = new BufferedImage(image.getWidth(),image.getHeight(),
+				BufferedImage.TYPE_BYTE_GRAY);
+
+		// convert the original colored image to grayscale
+		ColorConvertOp op = new ColorConvertOp(
+				image.getColorModel().getColorSpace(),
+				gray.getColorModel().getColorSpace(),null);
+		op.filter(image,gray);
+		return gray;
+
+	}
+	public StructureImageExtractor(Raster raster)throws IOException{
+		this(raster, false);
+	}
+	public StructureImageExtractor(Raster raster, boolean debug )throws IOException{
+		this.DEBUG = debug;
+		load(Bitmap.createBitmap(raster));
+	}
 	public StructureImageExtractor(byte[] file, boolean debug) throws IOException{
 		this.DEBUG=debug;
 		load(file);
@@ -706,6 +735,7 @@ public class StructureImageExtractor {
 
 		ctabRaw.clear();
 		ocrAttempt.clear();
+		bitmap = aBitMap;
 
 		SCOCR[] socr=new SCOCR[]{OCR_DEFAULT.orElse(OCR_BACKUP, OCRcutoffCosine)};
 

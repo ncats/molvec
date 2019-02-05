@@ -2,6 +2,7 @@ package tripod.molvec.algo;
 
 import static org.junit.Assert.assertEquals;
 
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -9,7 +10,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
 
+import gov.nih.ncats.chemkit.api.io.ChemFormat;
 import gov.nih.ncats.chemkit.api.util.stream.ThrowingStream;
+import gov.nih.ncats.chemkit.renderer.ChemicalRenderer;
+import gov.nih.ncats.chemkit.renderer.RendererOptions;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -19,6 +23,8 @@ import gov.nih.ncats.chemkit.api.ChemicalBuilder;
 import gov.nih.ncats.chemkit.api.inchi.Inchi;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+
+import javax.imageio.ImageIO;
 
 @RunWith(Parameterized.class)
 public class MoleculeTest {
@@ -40,8 +46,13 @@ public class MoleculeTest {
 		}
 	}
 
+	private static final 	ChemFormat.SmilesFormatWriterSpecification smilesSpec = new ChemFormat.SmilesFormatWriterSpecification()
+			.setCanonization(ChemFormat.SmilesFormatWriterSpecification.CanonicalizationEncoding.CANONICAL)
+			.setKekulization(ChemFormat.KekulizationEncoding.KEKULE);
 
-
+	ChemicalRenderer renderer = new ChemicalRenderer(RendererOptions.createDefault()
+//																	.setDrawOption(RendererOptions.DrawOptions.DRAW_GREYSCALE, true)
+					);
 
 
 	private TestSpec spec;
@@ -58,6 +69,8 @@ public class MoleculeTest {
 		StructureImageExtractor sie = new StructureImageExtractor(f);
 		spec.assertionConsumer.accept(sie.getChemical());
 	}
+
+
 	@Test
 	public void testAsByteArray() throws Exception {
 		File f=getFile(spec.filePath);
@@ -74,6 +87,23 @@ public class MoleculeTest {
 		}
 
 		StructureImageExtractor sie = new StructureImageExtractor(out.toByteArray());
+		spec.assertionConsumer.accept(sie.getChemical());
+	}
+
+	@Test
+	public void rendererRoundTrip() throws Exception {
+
+		File f = getFile(spec.filePath);
+		StructureImageExtractor sie = new StructureImageExtractor(f);
+		Chemical expected = sie.getChemical();
+
+		expected.kekulize();
+
+		BufferedImage img = renderer.createImage(expected, 500);
+
+
+		StructureImageExtractor sie2 = StructureImageExtractor.createFromImage(img);
+
 		spec.assertionConsumer.accept(sie.getChemical());
 	}
 

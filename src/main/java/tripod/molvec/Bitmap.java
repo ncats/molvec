@@ -635,7 +635,7 @@ public class Bitmap implements Serializable, TiffTags {
         int band = model.getNumBands ();
         if (band > 1) {
             throw new IllegalArgumentException
-                ("Can handle sample with multiple channels");
+                ("Can't handle sample with multiple channels");
         }
 
         //return new AdaptiveThreshold ().binarize(raster);
