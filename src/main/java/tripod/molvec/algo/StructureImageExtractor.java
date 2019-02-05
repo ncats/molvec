@@ -182,26 +182,36 @@ public class StructureImageExtractor {
 	//This is a newish feature, and it slows things down. Turn off if speed is needed.
 	private final boolean PRE_RESCUE_OCR = true;
 
-
+	/**
+	 * Create a new extractor from the given bufferedImage.
+	 * @param bufferedImage
+	 * @return
+	 * @throws IOException
+	 */
 	public static StructureImageExtractor createFromImage(BufferedImage bufferedImage)throws IOException{
 		BufferedImage img = bufferedImage;
 		if(BufferedImage.TYPE_BYTE_GRAY != bufferedImage.getType()){
-			img = toGreyScale(bufferedImage);
+			img = toGrayScale(bufferedImage);
 		}
 		return new StructureImageExtractor(img.getRaster());
 
 	}
 
-	private static BufferedImage toGreyScale(BufferedImage image){
-		BufferedImage gray = new BufferedImage(image.getWidth(),image.getHeight(),
-				BufferedImage.TYPE_BYTE_GRAY);
+	/**
+	 * Convert the given BufferdImage into a new GrayScaled image.
+	 * the input image is not modified.
+	 * @param image the image to convert;
+	 * @return a new BufferedImage of the same size as the input
+	 * but in grayscale.
+	 */
+	private static BufferedImage toGrayScale(BufferedImage image){
+		BufferedImage grayScaled = new BufferedImage(image.getWidth(),image.getHeight(),	BufferedImage.TYPE_BYTE_GRAY);
 
-		// convert the original colored image to grayscale
 		ColorConvertOp op = new ColorConvertOp(
 				image.getColorModel().getColorSpace(),
-				gray.getColorModel().getColorSpace(),null);
-		op.filter(image,gray);
-		return gray;
+				grayScaled.getColorModel().getColorSpace(),null);
+		op.filter(image,grayScaled);
+		return grayScaled;
 
 	}
 	public StructureImageExtractor(Raster raster)throws IOException{
