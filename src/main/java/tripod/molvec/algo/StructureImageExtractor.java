@@ -1800,6 +1800,50 @@ public class StructureImageExtractor {
 			double cosThetaOCRShape =Math.cos(MAX_THETA_FOR_OCR_SEPERATION);
 			
 		
+
+			List<Shape> growLikelyOCRNonBond=likelyOCRNonBond.stream().map(s->GeomUtil.growShape(s, 2)).collect(Collectors.toList());
+			List<Shape> growLikelyOCR=likelyOCR.stream().map(s->GeomUtil.growShape(s, 2)).collect(Collectors.toList());
+
+			List<Shape> maybeDash = polygons.stream()
+					.filter(s->GeomUtil.area(s)<averageAreaOCR)
+			        .filter(s->!likelyOCR.contains(s))
+			        .map(s->Tuple.of(s,GeomUtil.findCenterOfShape(s)))
+			        .filter(st->!growLikelyOCR.stream().filter(g->g.contains(st.v())).findFirst().isPresent())
+			        .map(t->t.k())
+			        .collect(Collectors.toList());
+			
+			List<Shape> maybeDashCollection = GeomUtil.groupThings(maybeDash, t->{
+									Shape s1=t.k();
+									Shape s2=t.v();
+									Point2D p1=GeomUtil.findCenterOfShape(s1);
+									Point2D p2=GeomUtil.findCenterOfShape(s2);
+									return p1.distance(p2)<ctab.getAverageBondLength()/3;
+								})
+								.stream()
+								.filter(sl->sl.size()>=3)
+								.map(l->l.stream().collect(GeomUtil.joined()))
+								.filter(b->b!=null)
+								.filter(bshape->{
+									Point2D[] pts=GeomUtil.getPairOfFarthestPoints(bshape);
+									double dist=pts[0].distance(pts[1]);
+									if(dist < ctab.getAverageBondLength()*1.3 && dist>ctab.getAverageBondLength()*0.6){
+										return true;
+									}else{
+										return false;
+									}
+								})
+								.collect(Collectors.toList());
+			
+			likelyOCRAll.stream()
+			            .filter(p->maybeDashCollection.stream().filter(ds->ds.contains(GeomUtil.findCenterOfShape(p))).findAny().isPresent())
+			            .collect(Collectors.toList())
+			            .forEach(ocs->{
+			            	likelyOCRAll.remove(ocs);
+			            	likelyOCR.remove(ocs);
+			            	likelyOCRNumbers.remove(ocs);
+			            	likelyOCRNonBond.remove(ocs);
+			            });
+			
 			double wid=averageWidthOCR;
 
 			List<List<Shape>> ocrGroupList=GeomUtil.groupShapesIfClosestPointsMatchCriteria(likelyOCRAll, t->{
@@ -1835,6 +1879,7 @@ public class StructureImageExtractor {
 				if(cosTheta>cosThetaOCRShape){
 					return true;
 				}
+				System.out.println("Not right angle");
 				return false;
 			});
 
@@ -2094,7 +2139,8 @@ public class StructureImageExtractor {
 
 			Set<Node> alreadyFixedNodes = new HashSet<Node>();
 
-
+			
+			
 			bestGuessOCR.entrySet()
 						.stream()
 						.map(Tuple::of)
@@ -2201,9 +2247,7 @@ public class StructureImageExtractor {
 			
 			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
-			List<Shape> growLikelyOCRNonBond=likelyOCRNonBond.stream().map(s->GeomUtil.growShape(s, 2)).collect(Collectors.toList());
-			List<Shape> growLikelyOCR=likelyOCR.stream().map(s->GeomUtil.growShape(s, 2)).collect(Collectors.toList());
-
+			
 
 
 			List<Tuple<Line2D,Point2D>> lj =Stream.concat(removedTinyLines.stream(), linesJoined.stream())
@@ -2316,9 +2360,14 @@ public class StructureImageExtractor {
 							List<Edge> crossingEdges=ctab.getBondsThatCross(t.v().k(),t.v().v());
 							if(!crossingEdges.isEmpty())return;
 			
+							Line2D nline = new Line2D.Double(t.v().k().getPoint(),t.v().v().getPoint());
+							
+							List<Line2D> k = t.k().stream().filter(l->GeomUtil.cosTheta(nline, l)> Math.cos(45*Math.PI/180)).collect(Collectors.toList());
+							
+							if(k.isEmpty())return;
 							//don't add cross bonds
 			
-							int order=GeomUtil.groupThings(t.k(), tlines->{
+							int order=GeomUtil.groupThings(k, tlines->{
 								Line2D l1=tlines.k(); 
 								Line2D l2=tlines.v();
 								if(GeomUtil.cosTheta(l1, l2) > Math.cos(10*Math.PI/180)){
@@ -3059,37 +3108,17 @@ public class StructureImageExtractor {
 			
 			//Find floating methyls
 			
-			List<Shape> maybeDash = polygons.stream()
-					.filter(s->GeomUtil.area(s)<averageAreaOCR)
-			        .filter(s->!likelyOCR.contains(s))
-			        .map(s->Tuple.of(s,GeomUtil.findCenterOfShape(s)))
-			        .filter(st->!growLikelyOCR.stream().filter(g->g.contains(st.v())).findFirst().isPresent())
-			        .map(t->t.k())
-			        .collect(Collectors.toList());
 			
 			List<Shape> dashShapes = new ArrayList<Shape>();
 			
 			List<List<Node>> toMergeNodes = new ArrayList<>();
 			
-			GeomUtil.groupThings(maybeDash, t->{
-						Shape s1=t.k();
-						Shape s2=t.v();
-						Point2D p1=GeomUtil.findCenterOfShape(s1);
-						Point2D p2=GeomUtil.findCenterOfShape(s2);
-						
-						return p1.distance(p2)<ctab.getAverageBondLength()/3;
-					})
-					.stream()
-					.filter(sl->sl.size()>=3)
-					.forEach(sl->{
-						
-						Shape bshape=sl.stream()
-									   .reduce((s1,s2)->GeomUtil.add(s1, s2))
-									   .orElse(null);
-						if(bshape!=null){
+			
+			
+			maybeDashCollection
+					.forEach(bshape->{
 							Point2D[] pts=GeomUtil.getPairOfFarthestPoints(bshape);
-							double dist=pts[0].distance(pts[1]);
-							if(dist < ctab.getAverageBondLength()*1.3 && dist>ctab.getAverageBondLength()*0.6){
+							
 								//Looks very promising
 								dashShapes.add(GeomUtil.growShape(bshape,2));
 								List<Node> forN1=ctab.getNodes()
@@ -3150,26 +3179,21 @@ public class StructureImageExtractor {
 									if(otherNode==null){
 										Node realNode=ctab.addNode(op);
 										BranchNode bn=bestGuessOCR.entrySet().stream()
-										 .map(Tuple::of)
-										 .filter(t->t.k().contains(op))
-										 .map(Tuple.vmap(s1->BranchNode.interpretOCRStringAsAtom2(s1)))
-										 .findFirst()
-										 .map(t->t.v())
-										 .orElse(null);
+																 .map(Tuple::of)
+																 .filter(t->t.k().contains(op))
+																 .map(Tuple.vmap(s1->BranchNode.interpretOCRStringAsAtom2(s1)))
+																 .findFirst()
+																 .map(t->t.v())
+																 .orElse(null);
 										if(bn!=null && bn.isRealNode()){
 											realNode.setSymbol(bn.getSymbol());
 										}
 										
 									}else{
 										
-										
 										otherNode.setPoint(op);
 									}
 								}
-								
-							}
-						}
-						
 						
 					});
 			
@@ -3422,6 +3446,7 @@ public class StructureImageExtractor {
 		List<Shape> mightBeNegative=polygons.stream()
 										    .filter(s->s.getBounds2D().getHeight()<ctab.getAverageBondLength()/10)
 										    .filter(s->s.getBounds2D().getWidth()>1)
+										    .filter(s->s.getBounds2D().getWidth()<ctab.getAverageBondLength()/2)
 										    .filter(s->!likelyOCRAll.contains(s) || Optional.ofNullable(ocrAttempt.get(s)).map(l->l.get(0)).filter(t->t.k().toString().equals("-")).isPresent())
 										    .collect(Collectors.toList());
 		

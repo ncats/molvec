@@ -398,6 +398,18 @@ class BranchNode{
 			}
 			full.setRightBranchNode(parent);
 			return full;
+		}else if(s.matches("([cC]H[2]*)+[Cc]")){
+			int c=s.split("H[2]*").length;
+			
+			BranchNode full = new BranchNode("C");
+			BranchNode parent=full;
+			for(int i=1;i<c;i++){
+				BranchNode nn=new BranchNode("C").thetaOffset(i%2);
+				parent.addChild(nn);
+				parent=nn;
+			}
+			full.setRightBranchNode(parent);
+			return full;
 		}else if(s.equalsIgnoreCase("NHCO")){
 			
 			BranchNode full = new BranchNode("N");
@@ -510,9 +522,9 @@ class BranchNode{
 			bn.addChild(b2);
 			return bn;
 		}else if(s.equalsIgnoreCase("N3")){
-			BranchNode bn = new BranchNode("N").setCharge(-1);
-			bn.addChild(new BranchNode("N").setOrderToParent(1).setCharge(1)
-					.addChild(new BranchNode("N").setOrderToParent(3)));
+			BranchNode bn = new BranchNode("N");
+			bn.addChild(new BranchNode("N").setOrderToParent(2).setCharge(1).thetaOffset(2)
+					.addChild(new BranchNode("N").setOrderToParent(2).setCharge(-1)));
 			//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
 			return bn;
 		}else if(s.equalsIgnoreCase("CO")){
@@ -681,6 +693,8 @@ class BranchNode{
 			return interpretOCRStringAsAtom("CPH3");
 		}else if(s.equalsIgnoreCase("HOH2C") ){
 			return interpretOCRStringAsAtom("CH2OH");
+		}else if(s.equalsIgnoreCase("CH2OH") ){
+			return interpretOCRStringAsAtom("C").addChild(interpretOCRStringAsAtom("O"));
 		}
 //		else if(s.equalsIgnoreCase("CH3CONH") ){
 //			return interpretOCRStringAsAtom("NHOCCH3");
@@ -732,6 +746,12 @@ class BranchNode{
 			return interpretOCRStringAsAtom("COOC");
 		}else if(s.equalsIgnoreCase("H3CHN")){
 			return interpretOCRStringAsAtom("N").addChild(interpretOCRStringAsAtom("CH3"));
+		}else if(s.matches("[Cc][0-9][0-9]*H[0-9][0-9]*O")){
+			Pattern p = Pattern.compile("([Cc][0-9][0-9]*H[0-9][0-9]*)O");
+			Matcher m=p.matcher(s);
+			if(m.find()){
+				return interpretOCRStringAsAtom("O" + m.group(1));
+			}
 		}
 		
 		
