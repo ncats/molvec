@@ -1879,7 +1879,6 @@ public class StructureImageExtractor {
 				if(cosTheta>cosThetaOCRShape){
 					return true;
 				}
-				System.out.println("Not right angle");
 				return false;
 			});
 
