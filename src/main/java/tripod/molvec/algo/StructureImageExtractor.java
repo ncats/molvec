@@ -313,7 +313,7 @@ public class StructureImageExtractor {
 				"2".equalsIgnoreCase(t) ||
 				"3".equalsIgnoreCase(t) ||
 				"4".equalsIgnoreCase(t) ||
-//				!"5".equalsIgnoreCase(t) &&
+				"5".equalsIgnoreCase(t) ||
 				"6".equalsIgnoreCase(t) ||
 				"7".equalsIgnoreCase(t) ||
 				"9".equalsIgnoreCase(t)){
@@ -1943,7 +1943,7 @@ public class StructureImageExtractor {
 						
 						for(int i=0;i<keepAs.size();i++){
 							String keep=keepAs.get(i);
-							String g1=val.substring(findex,keep.length());
+							String g1=val.substring(findex,findex+keep.length());
 							Shape parts= contains.stream().skip(findex).limit(keep.length()).collect(GeomUtil.joined());
 							findex=findex+keep.length();
 							if(keep.equals(g1)){
