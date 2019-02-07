@@ -243,7 +243,7 @@ public class RegressionTest {
 	//@Ignore
 	@Test
 	public void test1(){
-		File dir1 = getFile("regressionTest/uspto");
+		File dir1 = getFile("regressionTest/testSet1");
 		
 		try {
 			ChemicalBuilder cb = ChemicalBuilder.createFromSmiles("CCCC");

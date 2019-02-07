@@ -62,7 +62,7 @@ public class MoleculeTest {
 	}
 
 
-	@Test
+	//@Test
 	public void testAsFile() throws Exception {
 		File f=getFile(spec.filePath);
 
@@ -90,7 +90,7 @@ public class MoleculeTest {
 		spec.assertionConsumer.accept(sie.getChemical());
 	}
 
-	@Test
+	//@Test
 	public void rendererRoundTrip() throws Exception {
 
 		File f = getFile(spec.filePath);

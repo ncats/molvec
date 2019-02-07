@@ -70,7 +70,17 @@ public class ConnectionTable{
 		.collect(Collectors.toList());
 		
 	}
+	public Shape getConvexHull(){
+		return this.nodes.stream().map(n->n.getPoint()).collect(GeomUtil.convexHull());
+	}
 	
+	public Shape getAreaAround(double rad){
+		return this.edges.stream()
+		          .map(e->e.getLine())
+		          .map(l->GeomUtil.growShapeNPoly(l, rad, 10))
+		          .collect(GeomUtil.union())
+		          .orElse(null);
+	}
 	
 	public List<ConnectionTable> getDisconnectedComponents(){
 		

@@ -100,7 +100,7 @@ public class StructureImageExtractor {
 	private List<ConnectionTable> ctabRaw = new ArrayList<ConnectionTable>();
 
 	
-	private final int MAX_OCR_FULL_REPEATS=2;
+	private final int MAX_OCR_FULL_REPEATS=10;
 	private final int MAX_REPS = 2;
 	
 	
@@ -769,7 +769,7 @@ public class StructureImageExtractor {
 		// segments are generated for thinned bitmap only, since
 		//  it can quite noisy on normal bitmap!
 		if (isLarge) {
-			throw new IllegalStateException("Cannot support images with over 4000 line segments at this time");
+			throw new IllegalStateException("Cannot support images with over 4000 polygons at this time");
 		}
 
 		Set<Shape> likelyOCR= Collections.synchronizedSet(new LinkedHashSet<Shape>());
@@ -1957,7 +1957,13 @@ public class StructureImageExtractor {
 				Map<String,List<String>> dontMerge = new HashMap<>();
 				
 				dontMerge.put("OO", Arrays.asList("O","O"));
+				dontMerge.put("OF", Arrays.asList("O","F"));
+				dontMerge.put("oF", Arrays.asList("O","F"));
+				dontMerge.put("Fo", Arrays.asList("F","O"));
+				dontMerge.put("FO", Arrays.asList("F","O"));
 				dontMerge.put("FF", Arrays.asList("F","F"));
+				dontMerge.put("CH3CH3", Arrays.asList("CH3","CH3"));
+				dontMerge.put("cH3cH3", Arrays.asList("cH3","cH3"));
 				dontMerge.put("HOOH", Arrays.asList("HO","OH"));
 				dontMerge.put("OHOH", Arrays.asList("OH","OH"));
 				dontMerge.put("OHHO", Arrays.asList("OH","HO"));
@@ -2048,9 +2054,9 @@ public class StructureImageExtractor {
 			});
 			
 
-//			
 			
-			if(foundNewOCR[0] && repeats<MAX_OCR_FULL_REPEATS)continue;
+			
+			//if(foundNewOCR[0] && repeats<MAX_OCR_FULL_REPEATS)continue;
 			
 			bestGuessOCR.entrySet()
 						.stream()
@@ -2732,6 +2738,65 @@ public class StructureImageExtractor {
 			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 
+
+			if(ctab.getDisconnectedComponents().size()>1){
+				
+				Tuple<ConnectionTable,Shape> ctshape = ctab.getDisconnectedComponents()
+				    .stream()
+				    .map(ct->Tuple.of(ct,ct.getConvexHull()))
+				    .map(Tuple.vmap(h->Tuple.of(h,-GeomUtil.area(h)).withVComparator()))
+				    .map(t->t.withVComparator())
+				    .sorted()
+				    .limit(1)
+				    .map(Tuple.vmap(t->t.k()))
+				    .findFirst()
+				    .orElse(null);
+				if(ctshape!=null){
+					
+					double bestbond=ctshape.k().getAverageBondLength();
+					List<ConnectionTable> ctabs=ctab.getDisconnectedComponents();
+					Shape crop=ctabs
+					    .stream()
+					    .filter(ct->ct.getAverageBondLength()<0.7*bestbond || ct.getAverageBondLength()>1.33*bestbond)
+					    .map(ct->ct.getAreaAround(bestbond))
+					    .collect(GeomUtil.union())
+					    .orElse(null);
+					
+					Shape keep=ctabs
+						    .stream()
+						    .filter(ct->ct.getAverageBondLength()>=0.7*bestbond && ct.getAverageBondLength()<=1.33*bestbond)
+						    .map(ct->ct.getAreaAround(bestbond))
+						    .collect(GeomUtil.union())
+						    .orElse(null);
+					
+					//rescueOCRShapes.add(crop);
+					if(crop!=null && keep!=null){
+						polygons.stream()
+								.filter(s->!likelyOCR.contains(s))
+								.map(s->Tuple.of(s,GeomUtil.findCenterOfShape(s)))
+								.filter(t->!keep.contains(t.v()))
+						        .filter(t->crop.contains(t.v()))
+						        .map(t->t.k())
+						        .forEach(p->{
+						        	likelyOCR.remove(p);
+									likelyOCRNumbers.remove(p);
+									likelyOCRNonBond.remove(p);
+									likelyOCRAll.remove(p);
+									likelyOCRIgnore.add(GeomUtil.growShapeNPoly(p, 2, 16));
+									realRescueOCRCandidates.add(GeomUtil.growShapeNPoly(p, 2, 16));
+									foundNewOCR[0]=true;
+									System.out.println("Don't like this shape");
+						        });
+					}
+				}
+				//realRescueOCRCandidates.add(crop);
+			}
+
+			if(foundNewOCR[0] && repeats<MAX_OCR_FULL_REPEATS){
+				System.out.println("Starting over...");
+				continue;
+			}
+//			
 
 			//Now get all the nodes with 2 edges which have shorter than average bond length,
 			//and which are not in OCR, and where the sum of the distances of the bonds is within 95%
@@ -3512,6 +3577,11 @@ public class StructureImageExtractor {
 		       });
 		
 		if(DEBUG)ctabRaw.add(ctab.cloneTab());
+		
+		
+		
+		    
+		
 
 	}
 

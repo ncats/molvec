@@ -4,6 +4,7 @@ import java.awt.Point;
 import java.awt.Polygon;
 import java.awt.Shape;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Area;
 import java.awt.geom.GeneralPath;
 import java.awt.geom.Line2D;
 import java.awt.geom.NoninvertibleTransformException;
@@ -77,6 +78,32 @@ public class GeomUtil {
         return Math.atan2(dy, dx);
     }
 
+    public static Shape booleanAddShape(Shape s1, Shape s2){
+    	Area a1 = new Area(s1);
+    	Area a2 = new Area(s2);
+    	a1.add(a2);
+    	return a1;
+    }
+    
+    public static Shape growShapeHex(Shape s, double rad){
+    	return growShapeNPoly(s,rad,6);
+    }
+    
+    public static Shape growShapeNPoly(Shape s, double rad, int n){
+    	return Arrays.stream(vertices(s))
+    				 .flatMap(v->Arrays.stream(makeNPolyCenteredAt(v,n,rad)))
+    				 .collect(convexHull());
+    }
+    
+    public static Point2D[] makeNPolyCenteredAt(Point2D p, int n, double rad){
+    	double delta = Math.PI*2.0/n;
+    	
+    	return IntStream.range(0, n)
+    	         .mapToDouble(i->i*delta)
+    	         .mapToObj(t->new Point2D.Double(Math.cos(t)*rad, Math.sin(t)*rad))
+    	         .map(p1->new Point2D.Double(p.getX()+p1.getX(),p1.getY()+p.getY()))
+    	         .toArray(i->new Point2D[i]);
+    }
 
     /**
      * Graham scan algorithm for convex hull
@@ -2458,6 +2485,44 @@ public class GeomUtil {
 		};
 	}
 	
+	public static Collector<Shape,List<Shape>,Optional<Shape>> union(){
+		
+		return new Collector<Shape,List<Shape>,Optional<Shape>>(){
+
+			@Override
+			public BiConsumer<List<Shape>, Shape> accumulator() {
+
+				return (l,p)->{
+					l.add(p);
+				};
+			}
+
+			@Override
+			public Set<java.util.stream.Collector.Characteristics> characteristics() {
+				return new HashSet<java.util.stream.Collector.Characteristics>();
+			}
+
+			@Override
+			public BinaryOperator<List<Shape>> combiner() {
+				return (l1,l2)->{
+					l1.addAll(l2);
+					return l1;
+				};
+			}
+
+			@Override
+			public Function<List<Shape>, Optional<Shape>> finisher() {
+				return (pts)->pts.stream().map(s->new Area(s)).reduce((s1,s2)->{s1.add(s2);return s1;}).map(s->(Shape)s);
+			}
+
+			@Override
+			public Supplier<List<Shape>> supplier() {
+				return ()->new ArrayList<>();
+			}
+			
+		};
+	}
+	
 	public static Collector<Double,List<Double>,Double> median(){
 		
 		return new Collector<Double,List<Double>,Double>(){
@@ -2504,6 +2569,7 @@ public class GeomUtil {
 			
 		};
 	}
+
 
 
     
