@@ -153,10 +153,24 @@ public class Bitmap implements Serializable, TiffTags {
     	private int hblurRad=0;
     	private int thresh=1;
     	
+    	private int nwidth;
+    	private int nheight;
+    	
+    	private double scale=1;
+    	
     	public BitmapBuilder(Bitmap bm){
     		this.source=bm;
-    		
+    		this.nwidth=source.width;
+    		this.nheight=source.height;
     	}
+    	
+    	public BitmapBuilder scale(double s){
+    		this.scale=s;
+    		this.nwidth=(int)(source.width*scale);
+    		this.nheight=(int)(source.height*scale);
+    		return this;
+    	}
+    	
     	
     	public BitmapBuilder boxBlur(int rad){
     		return this.vblur(rad).hblur(rad);
@@ -176,20 +190,20 @@ public class Bitmap implements Serializable, TiffTags {
     	}
     	
     	public Bitmap build(){
-    		int[][] raw = new int[source.width][source.height];
-    		
-    		for(int i=0;i<source.width;i++){
-    			for(int j=0;j<source.height;j++){
-    				raw[i][j]=source.getAsInt(i, j);
+    		int[][] raw = new int[nwidth][nheight];
+    		double iscale=1/scale;
+    		for(int i=0;i<nwidth;i++){
+    			for(int j=0;j<nheight;j++){
+    				raw[i][j]=source.getAsInt((int)Math.round(iscale*i), (int)Math.round(iscale*j));
     			}
     		}
     		if(vblurRad>0)vblur(raw,vblurRad);
     		if(hblurRad>0)hblur(raw,hblurRad);
     		
-    		Bitmap bm2 = new Bitmap(source.width,source.height);
+    		Bitmap bm2 = new Bitmap(nwidth,nheight);
     		
-    		for(int i=0;i<source.width;i++){
-    			for(int j=0;j<source.height;j++){
+    		for(int i=0;i<nwidth;i++){
+    			for(int j=0;j<nheight;j++){
     				if(raw[i][j]>=thresh)bm2.set(i, j, true);
     			}
     		}

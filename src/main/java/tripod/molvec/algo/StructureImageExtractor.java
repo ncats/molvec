@@ -769,6 +769,12 @@ public class StructureImageExtractor {
 				bitmap=new Bitmap.BitmapBuilder(bitmap).boxBlur(1).threshold(1).build();
 				thin=bitmap.thin();
 			}
+			/*
+			if(bitmap.height()<200 || bitmap.width()<200){
+				bitmap=new Bitmap.BitmapBuilder(bitmap).scale(2).boxBlur(2).threshold(5).build();
+				thin=bitmap.thin();
+			}
+			*/
 			
 		}
 		
