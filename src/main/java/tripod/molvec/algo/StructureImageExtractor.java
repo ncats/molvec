@@ -742,7 +742,9 @@ public class StructureImageExtractor {
 
 	private void load(Bitmap aBitMap) throws IOException{
 
-
+		
+//aBitMap=new Bitmap.BitmapBuilder(aBitMap).vblur(1).hblur(1).threshold(1).build();
+		
 		ctabRaw.clear();
 		ocrAttempt.clear();
 		bitmap = aBitMap;
@@ -754,6 +756,22 @@ public class StructureImageExtractor {
 
 
 
+		
+		
+
+		thin = bitmap.thin();
+		
+		{
+			List<int[]> hollow =thin.findHollowPoints();
+			
+			if(hollow.size()> 0.002*thin.fractionPixelsOn()*thin.width()*thin.height()){
+				System.out.println("ASDAS");
+				bitmap=new Bitmap.BitmapBuilder(bitmap).vblur(1).hblur(1).threshold(1).build();
+				thin=bitmap.thin();
+			}
+			
+		}
+		
 		polygons = bitmap.connectedComponents(Bitmap.Bbox.DoublePolygon);
 
 		boolean isLarge = false;
@@ -762,9 +780,6 @@ public class StructureImageExtractor {
 		}
 		
 
-		
-
-		thin = bitmap.thin();
 
 		// segments are generated for thinned bitmap only, since
 		//  it can quite noisy on normal bitmap!
@@ -3262,6 +3277,7 @@ public class StructureImageExtractor {
 					});
 			
 			
+			
 			if(!toMergeNodes.isEmpty()){
 				toMergeNodes.forEach(nm->{
 					//nervous about this
@@ -3422,7 +3438,26 @@ public class StructureImageExtractor {
 						}
 					});
 			
-			
+			ctab.getEdges()
+			    .stream()
+			    .filter(e->e.getDashed())
+			    .map(e->Tuple.of(e,GeomUtil.findCenterOfShape(e.getLine())))
+			    .filter(e->!dashShapes.stream().filter(d->d.contains(e.v())).findAny().isPresent())
+			    .map(t->t.k())
+			    .collect(Collectors.toList())
+			    .forEach(t->{
+			    	//might be bad edges
+			    	Shape sl=GeomUtil.growLine(t.getLine(),ctab.getAverageBondLength()/3);
+			    	boolean findLines=lines.stream()
+			    						   .map(l->GeomUtil.findCenterOfShape(l))
+			    	                       .filter(l->sl.contains(l))
+			    	                       .findAny()
+			    	                       .isPresent();
+			    	//realRescueOCRCandidates.add(sl);
+			    	if(!findLines){
+			    		ctab.removeEdge(t);
+			    	}
+			    });
 
 			ctab.getEdges()
 				.stream()

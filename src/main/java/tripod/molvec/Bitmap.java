@@ -146,6 +146,123 @@ public class Bitmap implements Serializable, TiffTags {
     	return new CropBackedBitmap(this,c);
     }
     
+    public static class BitmapBuilder{
+    	private Bitmap source;
+    	
+    	private int vblurRad=0;
+    	private int hblurRad=0;
+    	private int thresh=1;
+    	
+    	public BitmapBuilder(Bitmap bm){
+    		this.source=bm;
+    		
+    	}
+    	
+    	public BitmapBuilder vblur(int rad){
+    		vblurRad =rad;
+    		return this;
+    	}
+    	public BitmapBuilder hblur(int rad){
+    		hblurRad =rad;
+    		return this;
+    	}
+    	public BitmapBuilder threshold(int t){
+    		this.thresh=t;
+    		return this;
+    	}
+    	
+    	public Bitmap build(){
+    		int[][] raw = new int[source.width][source.height];
+    		
+    		for(int i=0;i<source.width;i++){
+    			for(int j=0;j<source.height;j++){
+    				raw[i][j]=source.getAsInt(i, j);
+    			}
+    		}
+    		if(vblurRad>0)vblur(raw,vblurRad);
+    		if(hblurRad>0)hblur(raw,hblurRad);
+    		
+    		Bitmap bm2 = new Bitmap(source.width,source.height);
+    		
+    		for(int i=0;i<source.width;i++){
+    			for(int j=0;j<source.height;j++){
+    				if(raw[i][j]>=thresh)bm2.set(i, j, true);
+    			}
+    		}
+    		return bm2;
+    	}
+    	
+    	
+    	/**
+    	 * Vertical "motion" Blur: This is a one-dimensional blurring of an image,
+    	 * without renormalizing.
+    	 * 
+    	 * @param bmap
+    	 *            bitmap as 2d int array
+    	 * @param rad
+    	 *            radius for vertical blur
+    	 */
+    	protected static void vblur(int[][] bmap, int rad) {
+    		int sofar = 0;
+    		List<Integer> added = new ArrayList<Integer>();
+    		for (int i = 0; i < bmap.length; i++) {
+    			for (int j = 0; j < rad * 2 + bmap[0].length; j++) {
+    				// System.out.println(sofar + ":" + added.size());
+    				if (j < bmap[0].length) {
+    					added.add(bmap[i][j]);
+    					sofar += bmap[i][j];
+    				} else {
+    					if (j < bmap[0].length + rad) {
+    						added.add(bmap[i][bmap[0].length - 1]);
+    						sofar += bmap[i][bmap[0].length - 1];
+    					}
+    				}
+    				if (j >= rad) {
+    					if (j - rad < bmap[0].length) {
+    						bmap[i][j - rad] = sofar;
+    					}
+    					sofar -= added.get(0);
+    					added.remove(0);
+    				}
+    			}
+    		}
+    	}
+
+    	/**
+    	 * Horizontal "motion" Blur: This is a one-dimensional blurring of an image,
+    	 * without renormalizing.
+    	 * 
+    	 * @param bmap
+    	 *            bitmap as 2d int array
+    	 * @param rad
+    	 *            radius for horizontal blur
+    	 */
+    	protected static void hblur(int[][] bmap, int rad) {
+    		int sofar = 0;
+    		List<Integer> added = new ArrayList<Integer>();
+    		for (int j = 0; j < bmap[0].length; j++) {
+    			for (int i = 0; i < rad * 2 + bmap.length; i++) {
+    				// System.out.println(sofar + ":" + added.size());
+    				if (i < bmap.length) {
+    					added.add(bmap[i][j]);
+    					sofar += bmap[i][j];
+    				} else {
+    					if (i < bmap.length + rad) {
+    						added.add(bmap[bmap.length - 1][j]);
+    						sofar += bmap[bmap.length - 1][j];
+    					}
+    				}
+    				if (i >= rad) {
+    					if (i - rad < bmap.length) {
+    						bmap[i - rad][j] = sofar;
+    					}
+    					sofar -= added.get(0);
+    					added.remove(0);
+    				}
+    			}
+    		}
+    	}
+    }
 
     /**
      * bounding box shape
@@ -168,6 +285,22 @@ public class Bitmap implements Serializable, TiffTags {
     };
 
 
+    
+    public List<int[]> findHollowPoints(){
+    	return IntStream.range(0, width)
+    			.mapToObj(i->IntStream.range(0, height).mapToObj(j->new int[]{i,j}))
+    			.flatMap(t->t)
+    	    .filter(xy->this.get(xy[0]-1, xy[1]) &&
+    	    		    this.get(xy[0], xy[1]-1) &&
+    	    		    this.get(xy[0]+1, xy[1]) &&
+    	    		    this.get(xy[0], xy[1]+1)
+    	    		)
+    	    .collect(Collectors.toList());
+    }
+    
+    
+    
+    
     static class SparseArray<T> {
         Map<Integer, Map<Integer, T>> data =
             new HashMap<Integer, Map<Integer, T>> ();
