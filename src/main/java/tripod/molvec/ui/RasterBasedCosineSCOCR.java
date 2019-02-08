@@ -219,10 +219,14 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 			  .forEach(xy->{
 				  bmap[xy[0]][xy[1]]=1;
 			  });  
-			vblur(bmap, 2);
-			hblur(bmap, 2);
 			Rectangle2D rect = new Rectangle2D.Double(0, 0, bm.width(),bm.height());
 			return new RasterChar(bmap,rect);
+		}
+		
+		public RasterChar blur(int r){
+			vblur(this.data, r);
+			hblur(this.data, r);
+			return this;
 		}
 		
 		public static RasterChar fromDefault(Bitmap bm){

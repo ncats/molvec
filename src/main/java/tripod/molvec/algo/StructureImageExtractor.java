@@ -1982,8 +1982,8 @@ public class StructureImageExtractor {
 				
 				dontMerge.put("OO", Arrays.asList("O","O"));
 				dontMerge.put("OF", Arrays.asList("O","F"));
-				dontMerge.put("oF", Arrays.asList("O","F"));
-				dontMerge.put("Fo", Arrays.asList("F","O"));
+				dontMerge.put("oF", Arrays.asList("o","F"));
+				dontMerge.put("Fo", Arrays.asList("F","o"));
 				dontMerge.put("FO", Arrays.asList("F","O"));
 				dontMerge.put("FF", Arrays.asList("F","F"));
 				dontMerge.put("CH3CH3", Arrays.asList("CH3","CH3"));

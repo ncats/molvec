@@ -758,10 +758,11 @@ public class Viewer extends JPanel
         if (null != name) {
             File file = new File (fd.getDirectory(), name);
             Bitmap poly = bitmap.crop(highlights.iterator().next());
+            Bitmap poly2 = thin.crop(highlights.iterator().next());
             try {
-            	RasterChar rc=RasterChar.fromDefault(poly);
+            	RasterChar rc=RasterChar.fromDefault(poly2).blur(1);
             	System.out.println(Base64.getEncoder().encodeToString(rc.rawDataAsString().getBytes()));
-                poly.write(file);
+            	poly2.write(file);
             }
             catch (IOException ex) {
                 JOptionPane.showMessageDialog
