@@ -1612,7 +1612,15 @@ public class MoleculeTest {
 			String keyGot=Inchi.asStdInchi(c).getKey();
 			assertEquals(keyReal,keyGot);
 		} )});
+		//explicitCarbonStructureWithTallerFont.png
+		list.add(new Object[]{"explicitCarbonStructureWithTallerFont", new TestSpec("moleculeTest/explicitCarbonStructureWithTallerFont.png", c->{
+			Chemical cReal=ChemicalBuilder.createFromSmiles("CC1CC2OC2CC1COC(=O)C3CC4OC4CC3C").build();
 
+			
+			String keyReal=Inchi.asStdInchi(cReal).getKey();
+			String keyGot=Inchi.asStdInchi(c).getKey();
+			assertEquals(keyReal,keyGot);
+		} )});
 		//chainOnEdge.png
 		list.add(new Object[]{"chainOnEdge", new TestSpec("moleculeTest/chainOnEdge.png", c->{
 			Chemical cReal=ChemicalBuilder.createFromSmiles("COc1ccc(CCN2CCCc3cc(O)c(OC)cc23)cc1O").build();

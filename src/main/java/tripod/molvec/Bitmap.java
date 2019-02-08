@@ -158,6 +158,10 @@ public class Bitmap implements Serializable, TiffTags {
     		
     	}
     	
+    	public BitmapBuilder boxBlur(int rad){
+    		return this.vblur(rad).hblur(rad);
+    	}
+    	
     	public BitmapBuilder vblur(int rad){
     		vblurRad =rad;
     		return this;

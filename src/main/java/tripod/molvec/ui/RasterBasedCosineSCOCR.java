@@ -193,6 +193,42 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 			this.rect=new Rectangle2D.Double(0,0,dimB[0],dimB[1]);
 			return this;
 		}		
+		public static RasterChar fromRawString(String raw){
+			String[] rawlines = raw.split("\n");
+			int[] dim =Arrays.stream(rawlines[0].split("x")).mapToInt(s->Integer.parseInt(s)).toArray();
+			double[] dimB =Arrays.stream(rawlines[1].split("x")).mapToDouble(s->Double.parseDouble(s)).toArray();
+			RasterChar rc = new RasterChar(null,null);
+			rc.data=Arrays.stream(rawlines)
+							.skip(2)
+							.map(l->Arrays.stream(l.split(","))
+			    		        .mapToInt(s->Integer.parseInt(s,16))
+			    		        .toArray())
+							.toArray(i->new int[dim[0]][dim[1]]);
+			rc.rect=new Rectangle2D.Double(0,0,dimB[0],dimB[1]);
+			return rc;
+		}
+		
+		public static RasterChar from(Bitmap bm, int wid, int hit){
+			int[][] bmap = new int[wid][hit];
+			
+			double scalex = ((double)wid)/bm.width();
+			double scaley = ((double)hit)/bm.height();
+			
+			bm.getXYOnPoints()
+			  .map(xy->new int[]{(int)(xy[0]*scalex),(int)(xy[1]*scaley)})
+			  .forEach(xy->{
+				  bmap[xy[0]][xy[1]]=1;
+			  });  
+			vblur(bmap, 2);
+			hblur(bmap, 2);
+			Rectangle2D rect = new Rectangle2D.Double(0, 0, bm.width(),bm.height());
+			return new RasterChar(bmap,rect);
+		}
+		
+		public static RasterChar fromDefault(Bitmap bm){
+			return from(bm,DEF_WIDTH,DEF_HEIGHT);
+		}
+		
 		
 		private CachedSupplier<Integer> _totalC = CachedSupplier.of(()->{
 			int totalc = 0;

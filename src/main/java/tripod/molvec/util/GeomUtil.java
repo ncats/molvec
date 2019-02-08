@@ -576,6 +576,7 @@ public class GeomUtil {
     }
     
     public static Line2D findLongestSplittingLine(Shape s){
+    	if(s instanceof Line2D)return (Line2D)s;
     	Point2D center = GeomUtil.centerOfMass(s);
     	int ptNum = 1000;
     	List<Point2D> pts = 
@@ -609,6 +610,12 @@ public class GeomUtil {
     	//assuming this always gives back in CW or CCW order
     	List<LineWrapper> lines = Arrays.stream(lines(s)).map(l->LineWrapper.of(l)).collect(Collectors.toList());
     	
+    	if(lines.size()==0){
+    		Rectangle2D rect=s.getBounds2D();
+    		Point2D p1=new Point2D.Double(rect.getMinX(),rect.getMinY());
+    		Point2D p2=new Point2D.Double(rect.getMaxX(),rect.getMaxY());
+    		return Stream.of(p1,p2).collect(Collectors.toList());
+    	}
     	
     	List<Point2D> pts = new ArrayList<Point2D>();
     	
@@ -628,6 +635,7 @@ public class GeomUtil {
     				break;
     			}
     			lenSoFar+=nl;
+    			gline=lines.get(j);
     		}
     		
     		

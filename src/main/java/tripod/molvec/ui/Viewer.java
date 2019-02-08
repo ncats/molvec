@@ -36,6 +36,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -68,6 +69,7 @@ import tripod.molvec.algo.CentroidEuclideanMetric;
 import tripod.molvec.algo.NearestNeighbors;
 import tripod.molvec.algo.StructureImageExtractor;
 import tripod.molvec.algo.Tuple;
+import tripod.molvec.ui.RasterBasedCosineSCOCR.RasterChar;
 import tripod.molvec.util.ConnectionTable;
 import tripod.molvec.util.GeomUtil;
 
@@ -371,12 +373,12 @@ public class Viewer extends JPanel
 	    Graphics2D g2 = imgbuf.createGraphics();
 	    draw (g2);
 	    g2.dispose();
-            try {
-                ImageIO.write(imgbuf, "png", new File ("snapshot.png"));
-            }
-            catch (IOException ex) {
-                ex.printStackTrace();
-            }
+//            try {
+//                ImageIO.write(imgbuf, "png", new File ("snapshot.png"));
+//            }
+//            catch (IOException ex) {
+//                ex.printStackTrace();
+//            }
 	}
 
         Rectangle r = getBounds ();
@@ -757,6 +759,8 @@ public class Viewer extends JPanel
             File file = new File (fd.getDirectory(), name);
             Bitmap poly = bitmap.crop(highlights.iterator().next());
             try {
+            	RasterChar rc=RasterChar.fromDefault(poly);
+            	System.out.println(Base64.getEncoder().encodeToString(rc.rawDataAsString().getBytes()));
                 poly.write(file);
             }
             catch (IOException ex) {

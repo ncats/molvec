@@ -106,19 +106,19 @@ public class Peaks {
             }
         }
 
-        try {
-            PrintStream ps = new PrintStream
-                (new FileOutputStream ("smoothed.txt"));
-            for (int i = 0; i < smoothed.length; ++i) {
-                if (smoothed[i] > 0) {
-                    ps.println(i+" "+smoothed[i]);
-                }
-            }
-            ps.close();
-        }
-        catch (Exception ex) {
-            ex.printStackTrace();
-        }
+//        try {
+//            PrintStream ps = new PrintStream
+//                (new FileOutputStream ("smoothed.txt"));
+//            for (int i = 0; i < smoothed.length; ++i) {
+//                if (smoothed[i] > 0) {
+//                    ps.println(i+" "+smoothed[i]);
+//                }
+//            }
+//            ps.close();
+//        }
+//        catch (Exception ex) {
+//            ex.printStackTrace();
+//        }
         smoothed = null;
 
         // sort them in descending order
