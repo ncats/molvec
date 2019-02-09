@@ -420,11 +420,71 @@ public class StructureImageExtractor {
 					}else{
 						onFind.accept(s, ll);
 					}
-				}else{
+					// if the height is too tall, it might be two chars pushed together
+					// but that's only really likely if the shape is pretty close to being a box
+				}else if(bounds2d.getHeight() >  bounds2d.getWidth()*2 && bounds2d.getHeight() <  bounds2d.getWidth()*3){
+						double sarea=GeomUtil.area(s);
+						double bbarea=GeomUtil.area(bounds2d);
+						
+						if(sarea/bbarea > 0.8 && bounds2d.getHeight()>4 && bounds2d.getWidth()>8){
+							
+							double[] ratios=new double[]{0.5};
+							
+							boolean better=false;
+							Shape gshape1=null;
+							Shape gshape2=null;
+							
+							List<Tuple<Shape,List<Tuple<Character,Number>>>> bsplitMatches=null;
+							
+							for(double ratio:ratios){
+								List<Tuple<Shape,List<Tuple<Character,Number>>>> splitMatches = new ArrayList<>();
+								
+								Shape box1= new Rectangle2D.Double(bounds2d.getMinX(), bounds2d.getMinY(), bounds2d.getWidth(), bounds2d.getHeight()*ratio);
+								Shape box2= new Rectangle2D.Double(bounds2d.getMinX(), bounds2d.getMinY() + bounds2d.getHeight()*ratio, bounds2d.getWidth(), bounds2d.getHeight()*(1-ratio));
+								
+								Shape cropShape1=GeomUtil.getIntersectionShape(box1, s).get();
+								Shape cropShape2=GeomUtil.getIntersectionShape(box2, s).get();
+								
+								processOCRShape(socr,cropShape1,bitmap,thin,(sf,lf)->{
+									if(lf.get(0).v().doubleValue()>=bestMatch[0]-0.0){
+										splitMatches.add(Tuple.of(sf,lf));
+									}
+									//onFind.accept(sf, lf);
+								});
+								processOCRShape(socr,cropShape2,bitmap,thin,(sf,lf)->{
+									if(lf.get(0).v().doubleValue()>=bestMatch[1]-0.0){
+										splitMatches.add(Tuple.of(sf,lf));
+									}
+								});
+								if(splitMatches.size()>1){
+									bsplitMatches=splitMatches;
+									gshape1=cropShape1;
+									gshape2=cropShape2;
+									
+									bestMatch[0]=splitMatches.get(0).v().get(0).v().doubleValue();
+									bestMatch[1]=splitMatches.get(1).v().get(0).v().doubleValue();
+									
+									better=true;
+								}
+							}
+							
+							if(better){
+								bsplitMatches.stream().forEach(t->{
+									onFind.accept(t.k(), t.v());
+								});
+								toAddShapes.add(gshape1);
+								toAddShapes.add(gshape2);
+								toRemoveShapes.add(s);
+							}else{
+								onFind.accept(s, ll);
+							}
+							
+						}else{
+							onFind.accept(s, ll);
+						}
+					}else{
 					onFind.accept(s, ll);
-				}
-				
-				
+				}				
 			}
 		});
 		
@@ -769,12 +829,7 @@ public class StructureImageExtractor {
 				bitmap=new Bitmap.BitmapBuilder(bitmap).boxBlur(1).threshold(1).build();
 				thin=bitmap.thin();
 			}
-			/*
-			if(bitmap.height()<200 || bitmap.width()<200){
-				bitmap=new Bitmap.BitmapBuilder(bitmap).scale(2).boxBlur(2).threshold(5).build();
-				thin=bitmap.thin();
-			}
-			*/
+			
 			
 		}
 		
@@ -1987,6 +2042,10 @@ public class StructureImageExtractor {
 				Map<String,List<String>> dontMerge = new HashMap<>();
 				
 				dontMerge.put("OO", Arrays.asList("O","O"));
+				dontMerge.put("Oo", Arrays.asList("O","o"));
+				dontMerge.put("oO", Arrays.asList("o","O"));
+				dontMerge.put("oo", Arrays.asList("o","o"));
+				
 				dontMerge.put("OF", Arrays.asList("O","F"));
 				dontMerge.put("oF", Arrays.asList("o","F"));
 				dontMerge.put("Fo", Arrays.asList("F","o"));
@@ -2038,6 +2097,11 @@ public class StructureImageExtractor {
 					}
 					
 					BranchNode bn = BranchNode.interpretOCRStringAsAtom2(val);
+					
+					//sometimes the letters it chooses are kinda weird ... and it should know better based on context
+					//for example OO
+					
+					
 					if(val.length()>5){
 						if(bn==null){
 							removeBad=true;
@@ -2822,6 +2886,22 @@ public class StructureImageExtractor {
 			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 
+			if(true){
+				ConnectionTable biggestSection = ctab.getDisconnectedComponents()
+					    .stream()
+					    .map(ct->Tuple.of(ct,GeomUtil.area(ct.getConvexHull())).withVComparator())
+					    .max(Comparator.naturalOrder())
+					    .map(t->t.k())
+					    .orElse(null);
+				if(biggestSection!=null){
+					if(biggestSection.getAverageBondLength()<20){
+							bitmap=new Bitmap.BitmapBuilder(bitmap).scale(2).gaussBlur(1).threshold(6).build();
+							load(bitmap);
+							return;
+					}
+				}
+			}
+			
 
 			if(ctab.getDisconnectedComponents().size()>1){
 				

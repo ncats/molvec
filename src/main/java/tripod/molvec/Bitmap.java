@@ -155,6 +155,7 @@ public class Bitmap implements Serializable, TiffTags {
     	
     	private int nwidth;
     	private int nheight;
+    	private int blurRep=1;
     	
     	private double scale=1;
     	
@@ -175,9 +176,18 @@ public class Bitmap implements Serializable, TiffTags {
     	public BitmapBuilder boxBlur(int rad){
     		return this.vblur(rad).hblur(rad);
     	}
+    	public BitmapBuilder gaussBlur(int rad){
+    		return this.vblur(2).hblur(2).blurRepeats(rad);
+    	}
+    	
+    	public BitmapBuilder blurRepeats(int n){
+    		blurRep=n;
+    		return this;
+    	}
     	
     	public BitmapBuilder vblur(int rad){
     		vblurRad =rad;
+    		
     		return this;
     	}
     	public BitmapBuilder hblur(int rad){
@@ -197,8 +207,10 @@ public class Bitmap implements Serializable, TiffTags {
     				raw[i][j]=source.getAsInt((int)Math.round(iscale*i), (int)Math.round(iscale*j));
     			}
     		}
-    		if(vblurRad>0)vblur(raw,vblurRad);
-    		if(hblurRad>0)hblur(raw,hblurRad);
+    		for(int i=0;i<this.blurRep;i++){
+    			if(vblurRad>0)vblur(raw,vblurRad);
+    			if(hblurRad>0)hblur(raw,hblurRad);
+    		}
     		
     		Bitmap bm2 = new Bitmap(nwidth,nheight);
     		
