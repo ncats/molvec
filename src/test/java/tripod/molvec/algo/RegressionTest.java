@@ -59,6 +59,12 @@ public class RegressionTest {
 		
 	}
 	
+	private static Chemical getCleanChemical(Chemical c) throws IOException{
+		String[] lines = c.toMol().split("\n");
+		lines[1]="";
+		String mol=Arrays.stream(lines).collect(Collectors.joining("\n"));
+		return Chemical.parseMol(mol);
+	}
 	
 	
 	public static Result testMolecule(File image, File sdf){
@@ -91,6 +97,7 @@ public class RegressionTest {
 			}
 			
 			Chemical c1=ChemicalBuilder.createFromMol(rawMol,Charset.defaultCharset()).build();
+			c1=getCleanChemical(c1);
 			System.out.println("--------------------------------");
 			System.out.println(sdf.getAbsolutePath());
 			System.out.println("--------------------------------");
@@ -127,7 +134,8 @@ public class RegressionTest {
 			
 			StructureImageExtractor sie = cget.get();
 			
-			Chemical c=sie.getChemical();
+			Chemical c=getCleanChemical(sie.getChemical());
+			
 			
 			//c1.makeHydrogensImplicit();
 			//c.makeHydrogensImplicit();
@@ -240,7 +248,7 @@ public class RegressionTest {
 	}
 	
 	
-	@Ignore
+	//@Ignore
 	@Test
 	public void test1(){
 		File dir1 = getFile("regressionTest/uspto");
@@ -273,8 +281,8 @@ public class RegressionTest {
 					}
 		    	  	return l;
 		      })
-//		      .collect(shuffler(new Random(11111124l)))		      
-//		      .limit(100)
+		      .collect(shuffler(new Random(11111125l)))		      
+		      .limit(500)
 
 //NOTE, I THINK THIS TECHNICALLY WORKS, BUT SINCE THERE IS PARALLEL THINGS GOING ON IN EACH, IT SOMETIMES WILL STARVE A CASE FOR A LONG TIME
 //		      .parallel()

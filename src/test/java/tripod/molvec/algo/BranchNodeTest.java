@@ -34,6 +34,14 @@ public class BranchNodeTest {
 		assertEquals("-C(=O,-O)",BranchNode.interpretOCRStringAsAtom2("CO2").toString());
 	}
 	@Test
+	public void parentheticalGroupShouldReturnPsuedoNode(){
+		assertEquals("-?(-C(-C),-C(-C))",BranchNode.interpretOCRStringAsAtom2("(CH2CH3)2").toString());
+	}
+	@Test
+	public void parentheticalGroupWithLeadAtomShouldReturnRealNode(){
+		assertEquals("-N(-C(-C),-C(-C))",BranchNode.interpretOCRStringAsAtom2("N(CH2CH3)2").toString());
+	}
+	@Test
 	public void methylEsterShouldHave4NodesWithCorrectBonds(){
 		String s=BranchNode.interpretOCRStringAsAtom2("CO2C").toString();
 		

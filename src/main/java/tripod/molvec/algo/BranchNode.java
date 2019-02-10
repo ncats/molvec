@@ -443,7 +443,9 @@ class BranchNode{
 				)){
 			BranchNode bn = new BranchNode("C");
 			bn.addChild(new BranchNode("O").setOrderToParent(2));
-			bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
+			BranchNode oalcohol=new BranchNode("O").setOrderToParent(1).flagForCombining();
+			bn.addChild(oalcohol);
+			bn.setRightBranchNode(oalcohol);
 			return bn;
 		}else if((       s.equalsIgnoreCase("CN")
 				|| s.equalsIgnoreCase("NC"))){

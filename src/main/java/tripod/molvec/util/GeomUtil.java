@@ -2577,6 +2577,45 @@ public class GeomUtil {
 			
 		};
 	}
+	
+
+	public static <T> Collector<T,List<T>,List<List<T>>> groupThings(Predicate<Tuple<T,T>> accept){
+		
+		
+		
+		return new Collector<T,List<T>,List<List<T>>>(){
+
+			@Override
+			public BiConsumer<List<T>, T> accumulator() {
+				return (l,t)->l.add(t);
+			}
+
+			@Override
+			public Set<java.util.stream.Collector.Characteristics> characteristics() {
+				return new HashSet<java.util.stream.Collector.Characteristics>();
+			}
+
+			@Override
+			public BinaryOperator<List<T>> combiner() {
+
+				return (l1,l2)->{
+					l1.addAll(l2);
+					return l1;
+				};
+			}
+
+			@Override
+			public Function<List<T>, List<List<T>>> finisher() {
+				return l->groupThings(l,accept);
+			}
+
+			@Override
+			public Supplier<List<T>> supplier() {
+				return ()->new ArrayList<T>();
+			}
+
+		};
+	}
 
 
 
