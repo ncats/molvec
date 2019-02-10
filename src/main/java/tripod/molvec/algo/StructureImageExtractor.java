@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -37,6 +38,7 @@ import tripod.molvec.Bitmap.WedgeInfo;
 import tripod.molvec.CachedSupplier;
 import tripod.molvec.algo.Tuple.KEqualityTuple;
 import tripod.molvec.ui.FontBasedRasterCosineSCOCR;
+import tripod.molvec.ui.RasterBasedCosineSCOCR.RasterChar;
 import tripod.molvec.ui.SCOCR;
 import tripod.molvec.ui.StupidestPossibleSCOCRSansSerif;
 import tripod.molvec.ui.StupidestPossibleSCOCRSerif;
@@ -759,26 +761,26 @@ public class StructureImageExtractor {
 
 				boolean[] got = new boolean[]{false};
 
-				if(!got[0]){
-					//I'm not sure 1 is the right number here
-					Shape nshape = GeomUtil.growShapeNPoly(bb.getConvuxHull(),2,12);
-					
-					
-					
-					processOCRShape(scocr,nshape,bitmap,thin,(s,potential)->{
-						String st=potential.get(0).k().toString();
-						double cos=potential.get(0).v().doubleValue();
-						if(cos>OCRcutoffCosineRescueInitial){
-							BranchNode n=BranchNode.interpretOCRStringAsAtom2(st);
-							if(n!=null && n.isRealNode()){
-								if(cos>OCRcutoffCosine || bb.getLineDensity()>ldensityCutoff*1.05){
-									cons.accept(nshape, potential);
-									got[0]=true;
-								}
-							}
-						}	
-					});
-				}
+//				if(!got[0]){
+//					//I'm not sure 1 is the right number here
+//					Shape nshape = GeomUtil.growShapeNPoly(bb.getConvuxHull(),2,12);
+//					
+//					
+//					
+//					processOCRShape(scocr,nshape,bitmap,thin,(s,potential)->{
+//						String st=potential.get(0).k().toString();
+//						double cos=potential.get(0).v().doubleValue();
+//						if(cos>OCRcutoffCosineRescueInitial){
+//							BranchNode n=BranchNode.interpretOCRStringAsAtom2(st);
+//							if(n!=null && n.isRealNode()){
+//								if(cos>OCRcutoffCosine || bb.getLineDensity()>ldensityCutoff*1.05){
+//									cons.accept(nshape, potential);
+//									got[0]=true;
+//								}
+//							}
+//						}	
+//					});
+//				}
 				if(!got[0]){
 					//I'm not sure 1 is the right number here
 					Shape nshape = GeomUtil.growShape(bb.getCenteredConvexRect(),1);
@@ -963,10 +965,13 @@ public class StructureImageExtractor {
 				if(ss.equalsIgnoreCase("C")){
 					return;
 				}
-				//never get B, probably an H
+//				//never get B, probably an H
 				if(ss.equals("B")){
-					potential.set(0, Tuple.of('H',potential.get(0).v()));
-				}
+					System.out.println("It's a b");
+//					potential.set(0, Tuple.of('H',potential.get(0).v()));
+//					RasterChar rc=RasterChar.fromDefault(bitmap.crop(s)).blur(2);
+//	            	System.out.println(Base64.getEncoder().encodeToString(rc.rawDataAsString().getBytes()));
+				}				
 				ocrAttempt.put(s, potential);
 				
 				CharType ct=OCRIsLikely(potential.get(0));
@@ -3564,15 +3569,25 @@ public class StructureImageExtractor {
 									if(e.getDashed() && e.getOrder()==1){
 										//Keep it _only_ if there are 
 										//at least 3 lines that are found in the area around the bond
-										Shape lshape=GeomUtil.growLine(useLine, ctab.getAverageBondLength()*0.1);
-										long clines=lines.stream()
+										double grow=ctab.getAverageBondLength()*0.1;
+										Shape lshape=GeomUtil.growLine(useLine, grow);
+										List<Shape> lineShapes=lines.stream()
 										     .map(l->Tuple.of(l,GeomUtil.findCenterOfShape(l)))
 										     .filter(l->!bestGuessOCR.keySet().stream().filter(ss->ss.contains(l.v())).findAny().isPresent())
 										     .filter(l->GeomUtil.cosTheta(l.k(),useLine)>0.8)
 										     .filter(l->lshape.contains(l.v()))
-										     .count();
-										if(clines<3){
+										     .map(l->l.k())
+										     .map(l->GeomUtil.growLine(l, grow))
+										     .collect(Collectors.toList());
+										if(lineShapes.size()<3){
 											e.setDashed(false);
+										}else{
+											double tarea=lineShapes.stream()
+											                       .mapToDouble(s->GeomUtil.area(s))
+											                       .sum();
+											if(tarea>0.7*GeomUtil.area(lshape)){
+												e.setDashed(false);
+											}
 										}
 									}
 								}
