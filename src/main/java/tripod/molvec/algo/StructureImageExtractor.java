@@ -112,7 +112,7 @@ public class StructureImageExtractor {
 	private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE_INITIAL = 1/2.9;
 
 	private final double MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 1.3;
-	private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 0.5;
+	private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 0.4;
 
 	
 	private final boolean REMOVE_NONSENSE_OCR_LINES = false;
