@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -757,7 +758,7 @@ public class Viewer extends JPanel
         String name = fd.getFile();
         if (null != name) {
             File file = new File (fd.getDirectory(), name);
-            Bitmap poly = bitmap.crop(highlights.iterator().next());
+            Bitmap poly = bitmap.crop(highlights.stream().map(s->Tuple.of(s,GeomUtil.area(s)).withVComparator()).min(Comparator.naturalOrder()).map(t->t.k()).orElse(null));
             try {
             	RasterChar rc=RasterChar.fromDefault(poly).blur(2);
             	System.out.println(Base64.getEncoder().encodeToString(rc.rawDataAsString().getBytes()));

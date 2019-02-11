@@ -309,11 +309,17 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 				       .add(rc);
 			});
 		}
+		
 	}
 
 	@Override
 	public void setAlphabet(Set<Character> charSet) {
 		_alphabet = charSet;
+		
+		//hacky control chars
+		_alphabet.add('~');
+		_alphabet.add('$');
+		_alphabet.add('!');
 		makeAlphabetMaps();
 	}
 
@@ -377,8 +383,9 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 	
 	private double correlation(List<int[]> xys, int[][] ccount, int total, int twidth, int theight, Character c){
 		double maxCor = Double.MIN_VALUE;
-		
-		for (RasterChar rc: charVal.get(c)) {
+		List<RasterChar> rcl = charVal.get(c);
+		if(rcl==null)return 0;
+		for (RasterChar rc: rcl) {
 			int[][] cM = rc.data;
 			int totalC = 0;
 			double cor = 0;

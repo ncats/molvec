@@ -381,6 +381,8 @@ class BranchNode{
 
 	private static BranchNode interpretOCRStringAsAtom(String s, boolean tokenOnly){
 		
+		
+		
 		if(s.equals("HCl") || s.equals("HC1") || s.equals("Hcl") || s.equals("Hc1")){
 			return new BranchNode("Cl").setLinkable(false);
 		}
@@ -604,7 +606,7 @@ class BranchNode{
 			
 			bn.setCombiningNode(carbonyl);
 			return bn;
-		}else if(s.equalsIgnoreCase("Ph") || s.equals("Pb") || s.equals("pb")){
+		}else if(s.matches("[Pp]h") || s.equals("Pb") || s.equals("pb")){
 			BranchNode bn = new BranchNode("C").thetaOffset(1);
 			
 			bn.addChild(new BranchNode("C").setOrderToParent(2)
@@ -754,6 +756,11 @@ class BranchNode{
 			if(m.find()){
 				return interpretOCRStringAsAtom("O" + m.group(1));
 			}
+		}else if(s.matches("NH[Cc]H2[cC][Oo0][Oo0]H")){
+			return interpretOCRStringAsAtom("N")
+					 .addChild(interpretOCRStringAsAtom("C")
+							     .addChild(interpretOCRStringAsAtom("COOH"))
+							 );
 		}
 		
 		

@@ -248,10 +248,10 @@ public class RegressionTest {
 	}
 	
 	
-	@Ignore
+	//@Ignore
 	@Test
 	public void test1(){
-		File dir1 = getFile("regressionTest/uspto");
+		File dir1 = getFile("regressionTest/testSet1");
 		
 		try {
 			ChemicalBuilder cb = ChemicalBuilder.createFromSmiles("CCCC");
@@ -266,6 +266,7 @@ public class RegressionTest {
 		Arrays.stream(dir1.listFiles())
 		      .filter(f->f.getName().contains("."))
 		      //.filter(f->f.getName().contains("2008058707_41_chem"))
+		      
 		      .map(f->Tuple.of(f.getName().split("[.]")[0],f))
 		      .collect(Tuple.toGroupedMap())
 		      .values()
@@ -281,8 +282,8 @@ public class RegressionTest {
 					}
 		    	  	return l;
 		      })
-		      .collect(shuffler(new Random(11111125l)))		      
-		      .limit(500)
+		      .collect(shuffler(new Random(11111126l)))		      
+		      .limit(100)
 
 //NOTE, I THINK THIS TECHNICALLY WORKS, BUT SINCE THERE IS PARALLEL THINGS GOING ON IN EACH, IT SOMETIMES WILL STARVE A CASE FOR A LONG TIME
 //		      .parallel()

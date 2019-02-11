@@ -154,7 +154,7 @@ public class StructureImageExtractor {
 
 	//This number is likely one of the most important to adjust.
 	//It may have to have some changes done to the algorithm using it too
-	private final double MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.31;
+	private final double MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.30;
 
 
 	private final double MIN_LONGEST_WIDTH_RATIO_FOR_OCR_TO_AVERAGE=0.5;
@@ -424,7 +424,7 @@ public class StructureImageExtractor {
 					}
 					// if the height is too tall, it might be two chars pushed together
 					// but that's only really likely if the shape is pretty close to being a box
-				}else if(bounds2d.getHeight() >  bounds2d.getWidth()*2 && bounds2d.getHeight() <  bounds2d.getWidth()*3){
+				}else if(bounds2d.getHeight() >  bounds2d.getWidth()*2.4 && bounds2d.getHeight() <  bounds2d.getWidth()*3){
 						double sarea=GeomUtil.area(s);
 						double bbarea=GeomUtil.area(bounds2d);
 						
@@ -966,11 +966,11 @@ public class StructureImageExtractor {
 					return;
 				}
 //				//never get B, probably an H
-				if(ss.equals("B")){
+				if(ss.equals("H")){
 					System.out.println("It's a b");
 //					potential.set(0, Tuple.of('H',potential.get(0).v()));
-//					RasterChar rc=RasterChar.fromDefault(bitmap.crop(s)).blur(2);
-//	            	System.out.println(Base64.getEncoder().encodeToString(rc.rawDataAsString().getBytes()));
+					RasterChar rc=RasterChar.fromDefault(bitmap.crop(s)).blur(2);
+	            	System.out.println(Base64.getEncoder().encodeToString(rc.rawDataAsString().getBytes()));
 				}				
 				ocrAttempt.put(s, potential);
 				
@@ -2107,6 +2107,22 @@ public class StructureImageExtractor {
 					Shape parent=tt.k();
 					
 					
+					if(val.contains("~")){
+						if(val.equals("~")){
+							val="Cl";
+						}else{
+							val=val.replace("~", "O");
+						}
+					}
+					
+					if(val.contains("$")){
+						val=val.replace("$", "O2");
+					}
+					if(val.contains("!")){
+						val=val.replace("!", "H3");
+					}
+					
+					
 					if(val.matches("[cC][h][1ilt][r][a][1ilt]")){
 						removeBad=true;
 					}
@@ -2137,6 +2153,20 @@ public class StructureImageExtractor {
 //						bestGuessOCR.put(contains.get(1), val.substring(0,1));
 						continue;
 					}
+					
+					if(val.contains("F8")){
+						val=val.replace("F8", "F3");
+					}
+					if(val.matches("[cC]H[Ss]")){
+						val=val.replaceAll("[cC]H[Ss]", "CH3");
+					}
+					if(val.matches(".*[cC][tlI][Ss].*")){
+						val=val.replaceAll("[cC][tlI][Ss]", "Cl3");
+					}
+					if(val.matches(".*[cC][tlI][8].*")){
+						val=val.replaceAll("[cC][tlI][8]", "Cl3");
+					}
+					
 					
 					BranchNode bn = BranchNode.interpretOCRStringAsAtom2(val);
 					
@@ -2347,16 +2377,64 @@ public class StructureImageExtractor {
 											return false;
 										}
 									}
-									if(!s.contains(n.getPoint()) && actual.isTerminal() && n.getEdgeCount()>1){
-										//System.out.println("Term?");
-										long cc=n.getNeighborNodes()
-										 .stream()
-										 .map(t->t.k())
-										 .filter(nn->GeomUtil.distanceTo(s, nn.getPoint())<2)
-										 .count();
-										
-										if(cc==0)return false;
+									boolean contains=s.contains(n.getPoint());
+									
+									if(!contains){
+										if(actual.isTerminal() && n.getEdgeCount()>1){
+											//System.out.println("Term?");
+											long cc=n.getNeighborNodes()
+											 .stream()
+											 .map(t->t.k())
+											 .filter(nn->GeomUtil.distanceTo(s, nn.getPoint())<2)
+											 .count();
+											
+											if(cc==0)return false;
+										}
+										if(n.getEdgeCount()>1){
+											boolean nhas=n.getNeighborNodes().stream()
+											                    .map(n1->n1.k().getPoint())
+											                    .filter(p->s.contains(p))
+											                    .findAny()
+											                    .isPresent();
+											if(!nhas){
+												boolean edgeHas=n.getEdges()
+																 .stream()
+																 .map(e->e.getLine())
+																 .map(l->GeomUtil.getLineInside(l, s))
+																 .filter(l->l.isPresent())
+																 .findAny()
+																 .isPresent();
+												if(!edgeHas){
+													
+													double avgNDist=GeomUtil.eachCombination(n.getNeighborNodes()
+															                  .stream()
+																			  .map(n1->n1.k().getPoint())
+																			  .collect(Collectors.toList()))
+													        .map(t->new Line2D.Double(t.k(), t.v()))
+													        .mapToDouble(l->GeomUtil.length(l))
+													        .average()
+													        .orElseGet(()->ctab.getAverageBondLength());
+													if(avgNDist>ctab.getAverageBondLength()){
+														if(!sym.equals("H")){
+															Tuple<Shape,Double> bs=GeomUtil.findClosestShapeTo(likelyOCR, n.getPoint());
+															if(bs!=null){
+																char tt=Optional.ofNullable(ocrAttempt.get(bs.k()))
+																        .map(l->l.get(0).k())
+																        .orElse(null);
+																if(tt=='H'){
+																	return false;
+																}
+																		
+															}
+														}
+													}
+													
+												}
+											}
+										}
 									}
+									
+									
 									if(alreadyFixedNodes.contains(n))return false;
 									if(n.getEdgeCount()==0)return false;
 									return true;
@@ -2641,7 +2719,6 @@ public class StructureImageExtractor {
 	
 							double expected = Math.sqrt(3)/4*Math.pow(e.getEdgeLength(),2);
 							if(tarea<expected*0.5){
-								
 								
 								boolean removeLong=true;
 	
@@ -2991,7 +3068,6 @@ public class StructureImageExtractor {
 									likelyOCRIgnore.add(GeomUtil.growShapeNPoly(p, 2, 16));
 									realRescueOCRCandidates.add(GeomUtil.growShapeNPoly(p, 2, 16));
 									foundNewOCR[0]=true;
-									System.out.println("Don't like this shape");
 						        });
 					}
 				}
@@ -3295,7 +3371,8 @@ public class StructureImageExtractor {
 			    .filter(n->n.getSymbol().equals("C"))
 			    .filter(n->!n.isInvented())
 			    .filter(n->n.getEdges().stream().filter(e->e.getOrder()==1).count()==2)
-			    .filter(n->Optional.ofNullable(GeomUtil.findClosestShapeTo(likelyOCR, n.getPoint())).map(t->t.v()).orElse(100.0)>2)
+			    .filter(n->Optional.ofNullable(GeomUtil.findClosestShapeTo(likelyOCR, n.getPoint())).map(t->t.v()).orElse(100.0)>ctab.getAverageBondLength()*0.2)
+			    //.filter(n->n.isInRing(8))
 			    .forEach(n->{
 			    	List<Tuple<Node,Node>> tn=GeomUtil.eachCombination(n.getNeighborNodes())
 			    	        .filter(t->{
@@ -3382,7 +3459,129 @@ public class StructureImageExtractor {
 						//ctab.removeEdge(e);
 				});
 			
+			//clean bad triple bonds
+			ctab.getEdges().stream()
+				.filter(e->e.getOrder()==3)
+				.filter(e->!e.isInventedBond())
+				.filter(e->e.getRealNode1().getSymbol().equals("C") && e.getRealNode2().getSymbol().equals("C"))
+				.collect(Collectors.toList())
+				.forEach(e->{
+						
+						Line2D lb = e.getLine();
+						Point2D apnt=Stream.of(lb.getP1(),lb.getP2()).collect(GeomUtil.averagePoint());
+						
+						List<Tuple<Line2D,Point2D>> possibleOtherDoubleBonds = rejBondOrderLines.stream()
+								 .filter(l->GeomUtil.length(l)>ctab.getAverageBondLength()*0.4)
+								 .filter(l->GeomUtil.cosTheta(l,e.getLine())>0.8)
+				                 .map(l->Tuple.of(l,GeomUtil.findCenterOfShape(l)))
+				                 .filter(p->p.v().distance(apnt)<ctab.getAverageBondLength()*0.8)
+				                 .collect(Collectors.toList());
+						
+						if(possibleOtherDoubleBonds.size() ==1){
+							//probably should have been a double bond
+							e.setOrder(2);
+							return;
+						}
+						List<Tuple<Edge,Shape>> edgeShapes = ctab.getEdges()
+								                                 .stream()
+								                                 .filter(e1->e1!=e)
+								                                 .map(e1->Tuple.of(e1,GeomUtil.growLine(e1.getLine(), ctab.getAverageBondLength()*0.5)))
+								                                 .collect(Collectors.toList());
+						
+						List<Tuple<Line2D,Edge>> bestEdge = possibleOtherDoubleBonds.stream()
+						                        .map(t->Tuple.of(t.k(),edgeShapes.stream()
+						                        		                     .filter(es->es.v().contains(t.v()))
+						                        		                     .filter(es->GeomUtil.cosTheta(t.k(),es.k().getLine())>0.8)
+						                        		                     .map(ee->ee.k())
+						                        		                     .findAny()
+						                        		                     .orElse(null)
+						                        		))
+						                        .collect(Collectors.toList());
+						
+						
+						long c=bestEdge.stream()
+						        .filter(te->{
+						        	if(te.v()!=null){
+						        		if(te.v().getOrder()==1){
+						        			te.v().setOrder(2);
+						        		}
+						        		return true;
+						        	}
+						        	return false;
+						        })
+						        .count();
+						if(c==1){
+							e.setOrder(2);
+						}else if(c==2){
+							e.setOrder(1);
+						}
+						
+						//ctab.removeEdge(e);
+				});
 			
+			
+			
+			//look for pentavalent Carbons
+			ctab.getNodes()
+			    .stream()
+			    .filter(n->n.getSymbol().equals("C"))
+			    .filter(n->n.getValanceTotal()>=5)
+			    .forEach(n->{
+			    	//only deal with bad double bonds
+			    	if(n.getEdgeCount()<=4){
+			    		int toomuch = n.getValanceTotal()-4;
+			    		if(toomuch==1 && n.getEdgeCount()==4){
+			    			Optional<Edge> ope=n.getEdges()
+			    			 .stream()
+			    			 .filter(e->e.getOrder()==1)
+			    			 .filter(e->e.getDashed())
+			    			 .findFirst();
+			    			if(ope.isPresent()){
+			    				ope.ifPresent(e->{
+			    					ctab.removeEdge(e);
+			    				});
+			    			}else{
+			    				n.getEdges()
+				    			 .stream()
+				    			 .filter(e->e.getOrder()>1)
+				    			 .forEach(e->e.setOrder(1));
+			    			}
+			    		}else if(toomuch==1 && n.getEdgeCount()==3){
+			    			Optional<Edge> opEdge=n.getEdges()
+								    			   .stream()
+								    			   .filter(e->e.getOrder()>2)
+								    			   .findFirst();
+			    			if(opEdge.isPresent()){
+			    				opEdge.ifPresent(e->{
+			    					e.setOrder(2);
+			    				});
+			    			}else{
+			    				n.getEdges()
+				    			   .stream()
+				    			   .filter(e->e.getOrder()==2)
+				    			   .map(e->Tuple.of(e, GeomUtil.growLine(e.getLine(), ctab.getAverageBondLength()/3.0)))
+				    			   .map(t->Tuple.of(t.k(),rejBondOrderLines.stream()
+				    					                        .map(l->Tuple.of(l,GeomUtil.findCenterOfShape(l)))
+				    					                        .filter(p->t.v().contains(p.v()))
+				    					                        .mapToDouble(t1->GeomUtil.length(t1.k()))
+				    					                        .findAny()))
+				    			   
+				    			   //.filter(t->t.v().isPresent())
+				    			   .map(Tuple.vmap(v->v.orElse(0.0)))
+				    			   .map(t->t.withVComparator())
+				    			   .min(Comparator.naturalOrder())
+				    			   .map(e->e.k())
+				    			   .ifPresent(e->{
+				    				   e.setOrder(1);
+				    			   });
+				    			   ;
+			    				
+			    				
+			    				
+			    			}
+			    		}
+			    	}
+			    });
 			
 			
 			
