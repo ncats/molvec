@@ -822,6 +822,12 @@ class BranchNode{
 				return bn1;
 			}
 			
+		}else if(s.equals("NN")){
+			BranchNode nn1= new BranchNode("N");
+			BranchNode nn2= new BranchNode("N").setOrderToParent(2);
+			nn1.addChild(nn2);
+			nn1.setRightBranchNode(nn2);
+			return nn1;
 		}
 		
 		

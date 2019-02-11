@@ -2022,6 +2022,8 @@ public class MoleculeTest {
 					" 18 21  2  0  0  0  0 \n" + 
 					"M  END", Charset.defaultCharset()).build();
 
+			System.out.println(cReal.toMol());
+			System.out.println(c.toMol());
 			String keyReal=Inchi.asStdInchi(cReal).getKey();
 			String keyGot=Inchi.asStdInchi(c).getKey();
 			assertEquals(keyReal,keyGot);

@@ -149,7 +149,7 @@ public class StructureImageExtractor {
 	private final double MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE= 1;
 
 	private final double MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING=0.3;
-	private final double MAX_THETA_FOR_OCR_SEPERATION=45 * Math.PI/180.0;
+	private final double MAX_THETA_FOR_OCR_SEPERATION=80 * Math.PI/180.0;
 
 
 	//This number is likely one of the most important to adjust.
@@ -366,7 +366,7 @@ public class StructureImageExtractor {
 						double[] ratios=new double[]{0.5};
 						
 						
-						if(bounds2d.getWidth()>2.3*bounds2d.getHeight()){
+						if(bounds2d.getWidth()>2.3*bounds2d.getHeight() &&bounds2d.getWidth()<3.4*bounds2d.getHeight()){
 							ratios=new double[]{0.58,0.44};
 						}
 						
@@ -2150,6 +2150,14 @@ public class StructureImageExtractor {
 					if(val.contains("!")){
 						val=val.replace("!", "H3");
 					}
+					if(val.contains("`")){
+						val=val.replace("`", "HO");
+					}
+					if(val.contains("%")){
+						val=val.replace("%", "OC");
+					}
+					
+					
 					
 					
 					if(val.matches("[cC][h][1ilt][r][a][1ilt]")){
@@ -4042,7 +4050,7 @@ public class StructureImageExtractor {
 		  		int so=n.getEdges().stream().mapToInt(e->e.getOrder()).sum();
 	    		if(so==o){
 		    		Point2D p=n.getPoint();
-		    		Shape neg=mightBeNegative.stream().filter(s->!already.contains(s)).filter(s->GeomUtil.distanceTo(s, p)<ctab.getAverageBondLength()/2).findAny().orElse(null);
+		    		Shape neg=mightBeNegative.stream().filter(s->!already.contains(s)).filter(s->GeomUtil.distanceTo(s, p)<ctab.getAverageBondLength()*0.7).findAny().orElse(null);
 		    		
 		    		if(neg!=null){
 		    			Point2D ncenter=GeomUtil.findCenterOfShape(neg);	
