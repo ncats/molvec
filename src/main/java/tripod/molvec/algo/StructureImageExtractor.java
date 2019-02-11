@@ -847,7 +847,7 @@ public class StructureImageExtractor {
 			List<int[]> hollow =thin.findHollowPoints();
 			
 			if(hollow.size()> 0.002*thin.fractionPixelsOn()*thin.width()*thin.height()){
-				bitmap=new Bitmap.BitmapBuilder(bitmap).boxBlur(1).threshold(1).build();
+				bitmap=new Bitmap.BitmapBuilder(bitmap).boxBlur(1).threshold(2).build();
 				thin=bitmap.thin();
 			}
 			
