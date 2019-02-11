@@ -761,6 +761,8 @@ class BranchNode{
 					 .addChild(interpretOCRStringAsAtom("C")
 							     .addChild(interpretOCRStringAsAtom("COOH"))
 							 );
+		}else if(s.matches("H3[Cc][Oo0]2S")){
+			return interpretOCRStringAsAtom("SO2CH3");
 		}
 		
 		
