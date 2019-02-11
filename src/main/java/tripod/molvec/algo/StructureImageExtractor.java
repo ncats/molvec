@@ -3628,7 +3628,6 @@ public class StructureImageExtractor {
 										toMergeNodes.add(nadd);
 									}else{
 										if(forN1.size()==1 && forN2.size()==1){
-											System.out.println("That makes sense...");
 											//probably reset the nodes now
 											Line2D splitLine=GeomUtil.findLongestSplittingLine(bshape);
 											Node n1=forN1.get(0);	
