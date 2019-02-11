@@ -847,7 +847,6 @@ public class StructureImageExtractor {
 			List<int[]> hollow =thin.findHollowPoints();
 			
 			if(hollow.size()> 0.002*thin.fractionPixelsOn()*thin.width()*thin.height()){
-				System.out.println("ASDAS");
 				bitmap=new Bitmap.BitmapBuilder(bitmap).boxBlur(1).threshold(1).build();
 				thin=bitmap.thin();
 			}
@@ -860,6 +859,28 @@ public class StructureImageExtractor {
 		boolean isLarge = false;
 		if (!polygons.isEmpty()) {
 			isLarge = polygons.size() > 4000;
+			
+			//it could be that there's just a lot of really tiny pieces
+//			
+//			if(isLarge){
+//				System.out.println("Looks large");
+//				List<Shape> toRemove=polygons.stream()
+//				        					 .map(p->Tuple.of(p,GeomUtil.area(p)))
+//				        					 .filter(t->t.v()<5)
+//				        					 .map(t->t.k())
+//				        					 .map(s->GeomUtil.growShapeNPoly(s, 1, 16))
+//				        					 .collect(Collectors.toList());
+//				if(!toRemove.isEmpty() && (polygons.size()-toRemove.size())<4000){
+//					System.out.println("removing noise");
+//					Bitmap bm=new Bitmap.BitmapBuilder(bitmap)
+//					          .remove(toRemove)
+//					          .build();
+//					load(bm);
+//					return;
+//					
+//				}
+//			}
+			
 		}
 		
 
@@ -965,13 +986,21 @@ public class StructureImageExtractor {
 				if(ss.equalsIgnoreCase("C")){
 					return;
 				}
-//				//never get B, probably an H
-				if(ss.equals("H")){
-					System.out.println("It's a b");
-//					potential.set(0, Tuple.of('H',potential.get(0).v()));
-					RasterChar rc=RasterChar.fromDefault(bitmap.crop(s)).blur(2);
-	            	System.out.println(Base64.getEncoder().encodeToString(rc.rawDataAsString().getBytes()));
-				}				
+////				//never get B, probably an H
+//				if(ss.equals("H")){
+//					System.out.println("It's a b");
+////					potential.set(0, Tuple.of('H',potential.get(0).v()));
+//					RasterChar rc=RasterChar.fromDefault(bitmap.crop(s)).blur(2);
+//	            	System.out.println(Base64.getEncoder().encodeToString(rc.rawDataAsString().getBytes()));
+//				}				
+				
+				Point2D cent=GeomUtil.findCenterOfShape(s);
+				boolean cont=likelyOCRAll.stream()
+				            .filter(s1->s1.contains(cent))
+				            .findAny()
+				            .isPresent();
+				if(cont)return;
+				
 				ocrAttempt.put(s, potential);
 				
 				CharType ct=OCRIsLikely(potential.get(0));

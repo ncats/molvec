@@ -251,7 +251,7 @@ public class RegressionTest {
 	//@Ignore
 	@Test
 	public void test1(){
-		File dir1 = getFile("regressionTest/uspto");
+		File dir1 = getFile("regressionTest/testSet1");
 		
 		try {
 			ChemicalBuilder cb = ChemicalBuilder.createFromSmiles("CCCC");
@@ -282,8 +282,8 @@ public class RegressionTest {
 					}
 		    	  	return l;
 		      })
-		      .collect(shuffler(new Random(11111126l)))		      
-		      .limit(50)
+		      .collect(shuffler(new Random(11111127l)))		      
+		      .limit(200)
 
 //NOTE, I THINK THIS TECHNICALLY WORKS, BUT SINCE THERE IS PARALLEL THINGS GOING ON IN EACH, IT SOMETIMES WILL STARVE A CASE FOR A LONG TIME
 //		      .parallel()

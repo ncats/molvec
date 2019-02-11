@@ -53,6 +53,7 @@ import com.sun.media.jai.codec.TIFFDirectory;
 import com.sun.media.jai.codec.TIFFEncodeParam;
 import com.sun.media.jai.codec.TIFFField;
 
+import tripod.molvec.Bitmap.BitmapBuilder;
 import tripod.molvec.algo.Tuple;
 import tripod.molvec.image.ImageUtil;
 import tripod.molvec.image.TiffTags;
@@ -153,6 +154,9 @@ public class Bitmap implements Serializable, TiffTags {
     	private int hblurRad=0;
     	private int thresh=1;
     	
+    	
+    	private List<Shape> toRemove=new ArrayList<>();
+    	
     	private int nwidth;
     	private int nheight;
     	private int blurRep=1;
@@ -204,7 +208,15 @@ public class Bitmap implements Serializable, TiffTags {
     		double iscale=1/scale;
     		for(int i=0;i<nwidth;i++){
     			for(int j=0;j<nheight;j++){
-    				raw[i][j]=source.getAsInt((int)Math.round(iscale*i), (int)Math.round(iscale*j));
+    				int x=(int)Math.round(iscale*i);
+    				int y=(int)Math.round(iscale*j);
+    				boolean ignore=toRemove.stream()
+    				        .filter(r->r.contains(x, y))
+    				        .findAny()
+    				        .isPresent();
+    				if(!ignore){
+    					raw[i][j]=source.getAsInt((int)Math.round(iscale*i), (int)Math.round(iscale*j));
+    				}
     			}
     		}
     		for(int i=0;i<this.blurRep;i++){
@@ -292,6 +304,11 @@ public class Bitmap implements Serializable, TiffTags {
     			}
     		}
     	}
+
+		public BitmapBuilder remove(List<Shape> toRemove) {	
+			this.toRemove=toRemove;
+			return this;
+		}
     }
 
     /**

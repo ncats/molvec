@@ -763,6 +763,65 @@ class BranchNode{
 							 );
 		}else if(s.matches("H3[Cc][Oo0]2S")){
 			return interpretOCRStringAsAtom("SO2CH3");
+		}else if(s.matches("H3[Cc]([Cc]H2)*[Oo0]([Cc]H2)*")){
+			Pattern p = Pattern.compile("H3[Cc]([Cc]H2)*[Oo0]([Cc]H2)*");
+			Matcher m=p.matcher(s);
+			if(m.find()){
+				
+				BranchNode bn1=new BranchNode("O");
+				
+				BranchNode addTo=bn1;
+				String ss1=m.group(1);
+				String ss2=m.group(2);
+				
+				if(ss1!=null && ss1.length()>0){
+					BranchNode child=interpretOCRStringAsAtom(ss1);
+					bn1.addChild(child);
+					addTo=child;
+				}
+				BranchNode on=new BranchNode("C");
+				addTo.addChild(on);
+				addTo=on;
+				
+				if(ss2!=null && ss2.length()>0){
+					BranchNode parent=interpretOCRStringAsAtom(ss2);
+					parent.addChild(bn1);
+					bn1=parent;
+				}
+				
+				return bn1;
+			}
+			
+		}else if(s.matches("[Cc]H2([Cc]H2)*[Oo0]([Cc]H2)*[Cc]H3")){
+			Pattern p = Pattern.compile("[Cc]H2([Cc]H2)*[Oo0]([Cc]H2)*[Cc]H3");
+			Matcher m=p.matcher(s);
+			if(m.find()){
+				
+				BranchNode bn1=new BranchNode("C");
+				
+				BranchNode addTo=bn1;
+				String ss1=m.group(1);
+				String ss2=m.group(2);
+				
+				if(ss1!=null && ss1.length()>0){
+					BranchNode child=interpretOCRStringAsAtom(ss1);
+					bn1.addChild(child);
+					addTo=child;
+				}
+				BranchNode on=new BranchNode("O");
+				addTo.addChild(on);
+				addTo=on;
+				
+				if(ss2!=null && ss2.length()>0){
+					BranchNode child=interpretOCRStringAsAtom(ss2);
+					addTo.addChild(child);
+					addTo=child;
+				}
+				addTo.addChild(new BranchNode("C"));
+				
+				return bn1;
+			}
+			
 		}
 		
 		
