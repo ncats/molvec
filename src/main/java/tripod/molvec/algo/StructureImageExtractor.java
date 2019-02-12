@@ -102,7 +102,7 @@ public class StructureImageExtractor {
 	private List<ConnectionTable> ctabRaw = new ArrayList<ConnectionTable>();
 
 	
-	private final int MAX_OCR_FULL_REPEATS=10;
+	private final int MAX_OCR_FULL_REPEATS=6;
 	private final int MAX_REPS = 2;
 	
 	
@@ -190,7 +190,7 @@ public class StructureImageExtractor {
 	 * @return
 	 * @throws IOException
 	 */
-	public static StructureImageExtractor createFromImage(BufferedImage bufferedImage)throws IOException{
+	public static StructureImageExtractor createFromImage(BufferedImage bufferedImage)throws Exception{
 		BufferedImage img = bufferedImage;
 		if(BufferedImage.TYPE_BYTE_GRAY != bufferedImage.getType()){
 			img = toGrayScale(bufferedImage);
@@ -216,26 +216,26 @@ public class StructureImageExtractor {
 		return grayScaled;
 
 	}
-	public StructureImageExtractor(Raster raster)throws IOException{
+	public StructureImageExtractor(Raster raster)throws Exception{
 		this(raster, false);
 	}
-	public StructureImageExtractor(Raster raster, boolean debug )throws IOException{
+	public StructureImageExtractor(Raster raster, boolean debug )throws Exception{
 		this.DEBUG = debug;
 		load(Bitmap.createBitmap(raster));
 	}
-	public StructureImageExtractor(byte[] file, boolean debug) throws IOException{
+	public StructureImageExtractor(byte[] file, boolean debug) throws Exception{
 		this.DEBUG=debug;
 		load(file);
 	}
-	public StructureImageExtractor(File file, boolean debug) throws IOException{
+	public StructureImageExtractor(File file, boolean debug) throws Exception{
 		this.DEBUG=debug;
 		load(file);
 	}
 	
-	public StructureImageExtractor(byte[] file) throws IOException{
+	public StructureImageExtractor(byte[] file) throws Exception{
 		this(file,false);
 	}
-	public StructureImageExtractor(File file) throws IOException{
+	public StructureImageExtractor(File file) throws Exception{
 		this(file,false);
 	}
 	
@@ -326,7 +326,9 @@ public class StructureImageExtractor {
 
 
 
-	private void processOCR(SCOCR socr, List<Shape> polygons,Bitmap bitmap, Bitmap thin, BiConsumer<Shape,List<Tuple<Character,Number>>> onFind){
+	private void processOCR(SCOCR socr, List<Shape> polygons,Bitmap bitmap, Bitmap thin, BiConsumer<Shape,List<Tuple<Character,Number>>> onFind) throws Exception{
+		
+		boolean[] interupt=new boolean[]{false};
 		/*
 		 * Looks at each polygon, and gets the likely OCR chars.
 		 */   
@@ -339,6 +341,12 @@ public class StructureImageExtractor {
 		
 		.parallel()
 		.forEach(s->{
+			if (Thread.interrupted())  // Clears interrupted status!
+				interupt[0]=true;
+			if(interupt[0]){
+				return;
+			}
+			
 			Rectangle2D bounds2d = s.getBounds2D();
 			if(bounds2d.getWidth()>0 && bounds2d.getHeight()>0){
 				List<Tuple<Character,Number>> ll = new ArrayList<>();
@@ -489,6 +497,8 @@ public class StructureImageExtractor {
 				}				
 			}
 		});
+		
+		if(interupt[0])throw new InterruptedException();
 		
 		polygons.removeAll(toRemoveShapes);
 		polygons.addAll(toAddShapes);
@@ -651,11 +661,11 @@ public class StructureImageExtractor {
 		}
 	}
 
-	private void load(byte[] file) throws IOException{
+	private void load(byte[] file) throws Exception{
 		load(bitmap = Bitmap.read(file).clean());
 
 	}
-	private void load(File file) throws IOException{
+	private void load(File file) throws Exception{
 		load(bitmap = Bitmap.read(file).clean());
 
 	}
@@ -822,10 +832,10 @@ public class StructureImageExtractor {
 			});
 	}
 
-	private void load(Bitmap aBitMap) throws IOException{
+	private void load(Bitmap aBitMap) throws Exception{
 
 		
-//aBitMap=new Bitmap.BitmapBuilder(aBitMap).vblur(1).hblur(1).threshold(1).build();
+		
 		
 		ctabRaw.clear();
 		ocrAttempt.clear();
@@ -923,7 +933,9 @@ public class StructureImageExtractor {
 				likelyOCRAll.add(s);
 
 			}
+			
 		});
+		
 		
 		double averageHeightOCR1=likelyOCR.stream()
 				.map(Shape::getBounds2D)
@@ -1021,6 +1033,10 @@ public class StructureImageExtractor {
 		
 		
 		while(foundNewOCR[0] && repeats<MAX_OCR_FULL_REPEATS){
+			
+			if (Thread.interrupted())  // Clears interrupted status!
+			      throw new InterruptedException();
+			
 			repeats++;
 			foundNewOCR[0]=false;
 			intersectionNodes.clear();
@@ -1261,7 +1277,8 @@ public class StructureImageExtractor {
 			
 			
 			while(tooLongBond){
-				
+				if (Thread.interrupted())  // Clears interrupted status!
+				      throw new InterruptedException();
 				
 				
 				rescueOCRCandidates.clear();

@@ -175,12 +175,12 @@ public class Viewer extends JPanel
         item.addActionListener(this);
     }
 
-    public Viewer (File file) throws IOException {
+    public Viewer (File file) throws Exception {
         this ();
         load (file);
     }
 
-    public Viewer (File file, double scale) throws IOException {
+    public Viewer (File file, double scale) throws Exception {
         this ();
 	//sx = (double)(bitmap.width()+3*THICKNESS)/bitmap.width();
 	//sy = (double)(bitmap.height()+3*THICKNESS)/bitmap.height();
@@ -303,7 +303,7 @@ public class Viewer extends JPanel
         return (available & flag) != 0;
     }
 
-    public File load () throws IOException {
+    public File load () throws Exception {
         FileDialog fd = getFileDialog ();
 
         fd.setMode(FileDialog.LOAD);
@@ -317,16 +317,16 @@ public class Viewer extends JPanel
         return file;
     }
     
-    public File reload () throws IOException {
+    public File reload () throws Exception {
     	load(currentFile);
         return this.currentFile;
     }
 
-    public void load (File file) throws IOException {
+    public void load (File file) throws Exception {
         load (file, Math.min(sx, sy));
     }
 
-    public void load (File file, double scale) throws IOException {
+    public void load (File file, double scale) throws Exception {
     	currentFile=file;
         sx = scale;
         sy = scale;
@@ -923,7 +923,7 @@ public class Viewer extends JPanel
         Viewer viewer;
         JToolBar toolbar;
 
-        ViewerFrame (File file, double scale) throws IOException {
+        ViewerFrame (File file, double scale) throws Exception {
             this ();
             setTitle (file.getName());
             viewer.load(file, scale);           
@@ -1171,14 +1171,14 @@ public class Viewer extends JPanel
             repaint ();
         }
 
-        public void load (File file, double scale) throws IOException {
+        public void load (File file, double scale) throws Exception {
             viewer.load(file, scale);
             repaint ();
         }
     }
     
 
-    static JFrame createApp (String name, double scale) throws IOException {
+    static JFrame createApp (String name, double scale) throws Exception {
         logger.info("Loading "+name+"; scale="+scale+"...");
         ViewerFrame vf = new ViewerFrame (new File (name), scale);
 	return vf;

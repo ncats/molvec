@@ -154,53 +154,56 @@ public class ConnectionTable{
 	
 	
 	private List<Ring> _getRingMap(){
-		Stack<Node> st=new Stack<Node>();
-		Set<Edge> nadda=new HashSet<>();
-		
-		st.push(this.nodes.get(0));
-		
-		Map<Node,List<List<Node>>> nrings = new HashMap<>();
-		
-		
-		consumePaths(st,nadda,(nst)->{
-			Node term = nst.peek();
-			List<Node> mlist=new ArrayList<Node>();
-			boolean started = false;
-			for(Node n1:nst){
-				if(started){
-					mlist.add(n1);
-				}else{
-					if(n1==term){
-						started=true;
-					}
-				}
-			}
-			for(Node n:mlist){
-				nrings.computeIfAbsent(n, k->{
-					return new ArrayList<List<Node>>();
-				}).add(mlist);
-			}
-		});
-		
-		return nrings.entrySet()
-		      .stream()
-		      .map(Tuple::of)
-		      .map(Tuple.vmap(nl->{
-		    	  List<Node> best = nl.stream()
-		    	    .map(nn->Tuple.of(nn,nn.size()).withVComparator())
-		    	    .min(Comparator.naturalOrder())
-		    	    .map(t->t.k())
-		    	    .orElse(null);
-		    	  return nl.stream().filter(nn->nn.size()==best.size()).collect(Collectors.toList());
-		      }))
-		      .flatMap(t->t.v().stream())
-		      .map(t->Tuple.of(t,t.stream().mapToInt(nn->nn.getIndex()).sorted().mapToObj(i->i+"").collect(Collectors.joining())))
-		      .map(t->t.swap())
-		      .map(t->t.withKEquality())
-		      .distinct()
-		      .map(t->t.v())
-		      .map(n->Ring.of(n, this))
-		      .collect(Collectors.toList());
+		return getDisconnectedNodeSets().stream()
+				.flatMap(nl1->{
+					Stack<Node> st=new Stack<Node>();
+					Set<Edge> nadda=new HashSet<>();
+					
+					st.push(nl1.get(0));
+					
+					Map<Node,List<List<Node>>> nrings = new HashMap<>();
+					
+					
+					consumePaths(st,nadda,(nst)->{
+						Node term = nst.peek();
+						List<Node> mlist=new ArrayList<Node>();
+						boolean started = false;
+						for(Node n1:nst){
+							if(started){
+								mlist.add(n1);
+							}else{
+								if(n1==term){
+									started=true;
+								}
+							}
+						}
+						for(Node n:mlist){
+							nrings.computeIfAbsent(n, k->{
+								return new ArrayList<List<Node>>();
+							}).add(mlist);
+						}
+					});
+					
+					return nrings.entrySet()
+					      .stream()
+					      .map(Tuple::of)
+					      .map(Tuple.vmap(nl->{
+					    	  List<Node> best = nl.stream()
+					    	    .map(nn->Tuple.of(nn,nn.size()).withVComparator())
+					    	    .min(Comparator.naturalOrder())
+					    	    .map(t->t.k())
+					    	    .orElse(null);
+					    	  return nl.stream().filter(nn->nn.size()==best.size()).collect(Collectors.toList());
+					      }))
+					      .flatMap(t->t.v().stream())
+					      .map(t->Tuple.of(t,t.stream().mapToInt(nn->nn.getIndex()).sorted().mapToObj(i->i+"").collect(Collectors.joining())))
+					      .map(t->t.swap())
+					      .map(t->t.withKEquality())
+					      .distinct()
+					      .map(t->t.v())
+					      .map(n->Ring.of(n, this));
+				})
+				.collect(Collectors.toList());
 		
 		
 		
@@ -323,6 +326,14 @@ public class ConnectionTable{
 		.collect(Collectors.toList());
 		
 	}
+	
+	public List<List<Node>> getDisconnectedNodeSets(){
+		//note: very inefficient
+		return GeomUtil.groupThings(this.nodes, t->t.k().connectsTo(t.v()))
+		.stream()
+		.collect(Collectors.toList());
+	}
+	
 	
 	
 	public Chemical toChemical(){
@@ -1211,31 +1222,13 @@ public class ConnectionTable{
 		}
 		
 		public boolean isInRing(int maxRing){
-			Set<Node> neighborsStart =getNeighborNodes().stream().map(t->t.k()).collect(Collectors.toSet());
-			Set<Node> neighborsNext =new HashSet<>();
-			List<Node> dontInclude =new ArrayList<>();
-			dontInclude.add(this);
+			List<Ring> rings = ConnectionTable.this.getRings();
 			
-			for(int i=0;i<maxRing;i++){
-				for(Node nn: neighborsStart){
-					nn.getNeighborNodes().stream()
-										 .map(t->t.k())
-					                     .filter(n2->!dontInclude.contains(n2))
-					                     .forEach(n2->{
-					                    	 neighborsNext.add(n2);
-					                     });
-				}
-				
-				if(neighborsNext.contains(this)){
-					return true;
-				}
-				dontInclude.clear();
-				dontInclude.addAll(neighborsStart);
-				neighborsStart= new HashSet<>(neighborsNext);
-				neighborsNext.clear();
-			}
-			return false;
-			
+			return rings.stream()
+					.filter(r->r.size()<=maxRing)
+			     .filter(r->r.getNodes().contains(this))
+			     .findAny()
+			     .isPresent();
 			
 			
 			

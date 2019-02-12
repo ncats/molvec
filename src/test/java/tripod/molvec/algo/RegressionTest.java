@@ -105,7 +105,7 @@ public class RegressionTest {
 			CachedSupplier<StructureImageExtractor> cget = CachedSupplier.of(()->{
 				try {
 					return new StructureImageExtractor(image);
-				} catch (IOException e1) {
+				} catch (Exception e1) {
 					throw new RuntimeException(e1);
 				}
 			});
@@ -122,6 +122,7 @@ public class RegressionTest {
 					if(cget.hasRun())break;
 					Thread.sleep(1);
 					if(System.currentTimeMillis()-start > 60000){
+						th.interrupt();
 						System.out.println("OH NO TIMEOUT!\t" + image.getAbsolutePath());
 						return Result.TIMEOUT;
 					}
@@ -251,7 +252,7 @@ public class RegressionTest {
 	//@Ignore
 	@Test
 	public void test1(){
-		File dir1 = getFile("regressionTest/testSet1");
+		File dir1 = getFile("regressionTest/uspto");
 		
 		try {
 			ChemicalBuilder cb = ChemicalBuilder.createFromSmiles("CCCC");
