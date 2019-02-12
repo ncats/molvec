@@ -3964,6 +3964,88 @@ public class StructureImageExtractor {
 			
 	
 //			
+			
+
+			
+			ctab.getRings()
+			    .stream()
+			    .filter(r->r.size()==6)
+			    .forEach(r->{
+			    	List<Edge> doubles=r.getEdges()
+			    	 .stream()
+			    	 .filter(e->e.getOrder()==2)
+			    	 .collect(Collectors.toList());
+			    	
+			    	if(doubles.size()==2){
+			    		Set<Node> sp2s = doubles.stream().flatMap(e->Stream.of(e.getRealNode1(),e.getRealNode2())).collect(Collectors.toSet());
+			    		
+			    		Edge maybeDouble=r.getEdges()
+			    		 .stream()
+			    		 .filter(e->!sp2s.contains(e.getRealNode1()))
+			    		 .filter(e->!sp2s.contains(e.getRealNode2()))
+			    		 .findFirst()
+			    		 .orElse(null);
+			    		if(maybeDouble!=null){
+			    			
+			    			if(maybeDouble.getRealNode1().getValanceTotal()==4 || maybeDouble.getRealNode2().getValanceTotal()==4){
+			    				return;
+			    			}
+			    			
+			    			Shape ls = GeomUtil.growLine(maybeDouble.getLine(), ctab.getAverageBondLength()*0.3);
+			    			
+			    			long c=lines.stream()
+			    			     .map(l->Tuple.of(l, GeomUtil.findCenterOfShape(l)))
+			    			     .filter(t->ls.contains(t.v()))
+			    			     .filter(t->GeomUtil.cosTheta(t.k(), maybeDouble.getLine())>0.8)
+			    			     .count();
+			    			
+			    			if(c>1){
+			    				maybeDouble.setOrder(2);
+			    			}
+			    			     
+			    		}
+			    		
+			    	}
+			    });
+			
+			ctab.getRings()
+		    .stream()
+		    .filter(r->r.size()==6)
+		    .filter(r->r.isConjugated())
+		    .forEach(r->{
+		    	Point2D center=GeomUtil.centerOfMass(r.getConvexHull());
+		    	Shape p=GeomUtil.convexHull2(GeomUtil.makeNPolyCenteredAt(new Point2D.Double(0,0), 6, 100));
+		    	//Shape p2=GeomUtil.convexHull2(GeomUtil.makeNPolyCenteredAt(center, 6, ctab.getAverageBondLength()));
+		    	Point2D anchor = r.getNodes().stream()
+		    			          .map(n->Tuple.of(n, n.getPoint().distance(center)).withVComparator())
+		    			          .max(Comparator.naturalOrder())
+		    			          .map(t->t.k().getPoint())
+		    			          .orElse(null);
+		    	Line2D nline = new Line2D.Double(center,anchor);
+		    	AffineTransform at=GeomUtil.getTransformFromLineToLine(new Line2D.Double(new Point2D.Double(0,0),new Point2D.Double(100,0)),nline,false);
+		    	Shape ns=at.createTransformedShape(p);
+		    	
+		    	Point2D[] verts2 = GeomUtil.vertices(ns);
+		    	
+		    	
+		    	r.getNodes()
+		    	 .forEach(n->{
+		    		Point2D np=Arrays.stream(verts2)
+		    		      .map(v->Tuple.of(v, v.distance(n.getPoint())).withVComparator())
+		    		      .min(Comparator.naturalOrder())
+		    		      .map(t->t.k())
+		    		      .orElse(null);
+		    		n.setPoint(np);
+		    	 });
+		    	
+		    	
+		    	
+		    	
+		    	realRescueOCRCandidates.add(ns);
+		    	
+		    	//realRescueOCRCandidates.add(p2);
+		    	
+		    });
 
 
 
@@ -4140,7 +4222,6 @@ public class StructureImageExtractor {
 		       });
 		
 		if(DEBUG)ctabRaw.add(ctab.cloneTab());
-		
 		
 		
 		    

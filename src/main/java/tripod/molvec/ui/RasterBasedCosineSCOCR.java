@@ -322,6 +322,8 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 		_alphabet.add('!');
 		_alphabet.add('%');
 		_alphabet.add('`');
+		_alphabet.add('(');
+		_alphabet.add(')');
 		makeAlphabetMaps();
 	}
 

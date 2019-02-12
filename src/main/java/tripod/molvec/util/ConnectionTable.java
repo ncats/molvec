@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Stack;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
@@ -52,6 +53,216 @@ public class ConnectionTable{
 	
 	private CachedSupplier<Map<Integer,List<Edge>>> _bondMap = CachedSupplier.of(()->_getEdgeMap());
 	private CachedSupplier<Map<Node,Integer>> _nodeMap = CachedSupplier.of(()->_getNodeMap());
+	private CachedSupplier<List<Ring>> _ring = CachedSupplier.of(()->_getRingMap());
+	
+	
+	public static class Ring{
+		private List<Node> nodes;
+		private List<Edge> edges;
+		
+		private ConnectionTable parent;
+		
+		public Ring(List<Node> nodes, List<Edge> edges, ConnectionTable par){
+			this.parent=par;
+			this.setNodes(nodes);
+			this.setEdges(edges);
+		}
+		
+		public static Ring of(List<Node> ring, ConnectionTable ct){
+			Set<Node> contain = ring.stream().collect(Collectors.toSet());
+			
+			List<Edge> edges=ring.stream()
+			    .flatMap(n->n.getEdges().stream())
+			    .distinct()
+			    .filter(e->contain.contains(e.getRealNode1()) && contain.contains(e.getRealNode2()))
+			    .collect(Collectors.toList());
+			return new Ring(ring,edges,ct);
+			
+		}
+		
+		public Shape getConvexHull(){
+			return this.getNodes().stream().map(n->n.getPoint()).collect(GeomUtil.convexHull());
+		}
+
+		public int size() {
+			return getNodes().size();
+		}
+		
+		public boolean isConjugated(){
+			long c=this.nodes.stream()
+					  .filter(n->n.getEdges().stream().filter(e->e.getOrder()==2).findAny().isPresent())
+					  .count();
+			return c==this.size();
+		}
+
+		public List<Edge> getEdges() {
+			return edges;
+		}
+
+		public void setEdges(List<Edge> edges) {
+			this.edges = edges;
+		}
+
+		public List<Node> getNodes() {
+			return nodes;
+		}
+
+		public void setNodes(List<Node> nodes) {
+			this.nodes = nodes;
+		}
+		
+		
+	}
+	
+	public List<Ring> getSmallestSetOfSmallestRings(){
+		return null;
+	}
+	
+	
+	private static int LARGEST_RING=8;
+	
+	public List<Ring> getRings(){
+		return this._ring.get();
+	}
+	
+	
+	private void consumePaths(Stack<Node> soFar, Set<Edge> used, Consumer<Stack<Node>> found){
+		Node p=soFar.peek();
+		
+		for(Tuple<Node,Edge> en : p.getNeighborNodes()){
+			if(used.contains(en.v())){
+				continue;
+			}
+			used.add(en.v());
+			
+			
+			
+			if(soFar.contains(en.k())){
+				soFar.push(en.k());
+				found.accept(soFar);
+				soFar.pop();
+			}
+			soFar.push(en.k());		
+			
+			consumePaths(soFar,used,found);
+			
+			used.remove(en.v());
+			soFar.pop();
+		}
+		
+	}
+	
+	
+	private List<Ring> _getRingMap(){
+		Stack<Node> st=new Stack<Node>();
+		Set<Edge> nadda=new HashSet<>();
+		
+		st.push(this.nodes.get(0));
+		
+		Map<Node,List<List<Node>>> nrings = new HashMap<>();
+		
+		
+		consumePaths(st,nadda,(nst)->{
+			Node term = nst.peek();
+			List<Node> mlist=new ArrayList<Node>();
+			boolean started = false;
+			for(Node n1:nst){
+				if(started){
+					mlist.add(n1);
+				}else{
+					if(n1==term){
+						started=true;
+					}
+				}
+			}
+			for(Node n:mlist){
+				nrings.computeIfAbsent(n, k->{
+					return new ArrayList<List<Node>>();
+				}).add(mlist);
+			}
+		});
+		
+		return nrings.entrySet()
+		      .stream()
+		      .map(Tuple::of)
+		      .map(Tuple.vmap(nl->{
+		    	  List<Node> best = nl.stream()
+		    	    .map(nn->Tuple.of(nn,nn.size()).withVComparator())
+		    	    .min(Comparator.naturalOrder())
+		    	    .map(t->t.k())
+		    	    .orElse(null);
+		    	  return nl.stream().filter(nn->nn.size()==best.size()).collect(Collectors.toList());
+		      }))
+		      .flatMap(t->t.v().stream())
+		      .map(t->Tuple.of(t,t.stream().mapToInt(nn->nn.getIndex()).sorted().mapToObj(i->i+"").collect(Collectors.joining())))
+		      .map(t->t.swap())
+		      .map(t->t.withKEquality())
+		      .distinct()
+		      .map(t->t.v())
+		      .map(n->Ring.of(n, this))
+		      .collect(Collectors.toList());
+		
+		
+		
+		
+		
+		
+//		
+//		Set<Node> notRings = new HashSet<Node>();
+//		List<Node> possible=this.getNodes();
+//		
+//		boolean[] found=new boolean[]{true};
+//		
+//		while(found[0]){
+//			found[0]=false;
+//			possible=possible
+//			    .stream()
+//			    .filter(n->{
+//			    	long c=n.getNeighborNodes()
+//			    	 .stream()
+//			    	 .map(n1->n1.k())
+//			    	 .filter(n1->!notRings.contains(n1))
+//			    	 .count();
+//			    	
+//			    	if(c<2){
+//			    		notRings.add(n);
+//			    		found[0]=true;
+//			    		return false;
+//			    	}
+//			    	return true;
+//			    })
+//			    .collect(Collectors.toList());
+//		}
+//		
+//		
+//		for(Node n:possible){
+//		
+//			Set<Node> neighborsStart =n.getNeighborNodes().stream().map(t->t.k()).collect(Collectors.toSet());
+//			Set<Node> neighborsNext =new HashSet<>();
+//			List<Node> dontInclude =new ArrayList<>();
+//			dontInclude.addAll(notRings);
+//			dontInclude.add(n);
+//			
+//			for(int i=0;i<LARGEST_RING;i++){
+//				for(Node nn: neighborsStart){
+//					nn.getNeighborNodes().stream()
+//										 .map(t->t.k())
+//					                     .filter(n2->!dontInclude.contains(n2))
+//					                     .forEach(n2->{
+//					                    	 neighborsNext.add(n2);
+//					                     });
+//				}
+//				
+//				if(neighborsNext.contains(n)){
+//					//ring
+//				}
+//				dontInclude.clear();
+//				dontInclude.addAll(neighborsStart);
+//				neighborsStart= new HashSet<>(neighborsNext);
+//				neighborsNext.clear();
+//			}
+//		}
+	}
 	
 	
 	public Node addNode(Point2D p){
@@ -939,6 +1150,7 @@ public class ConnectionTable{
 	private void resetCaches(){
 		_bondMap.resetCache();
 		_nodeMap.resetCache();
+		_ring.resetCache();
 		_averageBondLength.resetCache();
 		
 	}
