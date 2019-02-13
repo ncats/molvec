@@ -60,6 +60,7 @@ import tripod.molvec.image.TiffTags;
 import tripod.molvec.image.binarization.SigmaThreshold;
 import tripod.molvec.util.GeomUtil;
 import tripod.molvec.util.GeomUtil.LineDistanceCalculator;
+import tripod.molvec.util.GeomUtil.LineWrapper;
 
 /**
  * A bitmap image
@@ -79,6 +80,65 @@ public class Bitmap implements Serializable, TiffTags {
             debug = Boolean.getBoolean ("bitmap.debug");
         } catch (Exception ex) { }
         DEBUG = debug;
+    }
+    
+    public static class BitmapScaled{
+    	public int twidth;
+    	public int theight;
+    	public int[][] ccount;
+    	public List<int[]> xys;
+    	public int tcount;
+    	
+    	
+    	
+    	
+    	public static BitmapScaled of(Bitmap r, int DEF_WIDTH, int DEF_HEIGHT){
+	    	int twidth = r.width();
+			int theight = r.height();
+			
+			int[][] ccount = new int[DEF_WIDTH][DEF_HEIGHT];
+			
+			List<int[]> xys=r.getXYOnPoints()
+							    .map(xy->{
+							    	int cx = (xy[0] * DEF_WIDTH) / twidth;
+							    	int cy = (xy[1] * DEF_HEIGHT) / theight;
+							    	return new int[]{cx,cy,1};
+							    })
+							    .collect(Collectors.groupingBy(i->i[0]+","+i[1]))
+							    .values()
+							    .stream()
+							    .map(il->{
+							    	int[] r1=il.get(0);
+							    	r1[2]=il.size();
+							    	return r1;
+							    })
+							    .collect(Collectors.toList());
+			
+			int tcount= xys.stream().mapToInt(r1->r1[2]).sum();
+			
+			for(int i=0;i<twidth;i++){
+				for(int j=0;j<theight;j++){
+				   	int cx = (i * DEF_WIDTH) / twidth;
+			    	int cy = (j * DEF_HEIGHT) / theight;
+			    	ccount[cx][cy]++;
+				}
+			}
+			BitmapScaled bms=new BitmapScaled();
+			bms.ccount=ccount;
+			bms.twidth=twidth;
+			bms.theight=theight;
+			bms.xys=xys;
+			bms.tcount=tcount;
+			return bms;
+    	}
+    }
+    
+    private Map<String,BitmapScaled> _scaleMap = new HashMap<>();
+    
+    public BitmapScaled getScaled(int nwid, int nhit){
+    	return _scaleMap.computeIfAbsent(nwid+"_"+nhit, k->{
+    		return BitmapScaled.of(this, nwid, nhit);
+    	});
     }
     
     
@@ -716,12 +776,7 @@ public class Bitmap implements Serializable, TiffTags {
     	
     	
     	int nscan=scanline*8;
-//    	
-//    	this.getXYOnPoints()
-//    	    .forEach(xy->{
-//    	    	distanceX[xy[0]]=0;
-//    	    	distanceY[xy[1]]=0;
-//    	    });
+
     	
     	for (int y = 0; y < this.height; ++y) {
              for (int x = 0; x < this.width; ++x) {
@@ -737,10 +792,7 @@ public class Bitmap implements Serializable, TiffTags {
              }
         }
     	
-    	BiFunction<Integer,Integer,Integer> translate = (x,y)->{
-    		int yoff=y*nscan;
-    		return  yoff + x;
-    	};
+    	BiFunction<Integer,Integer,Integer> translate = (x,y)->y*nscan + x;
     	
     	int[] dx = new int[]{-1, 0, 1,-1,1,-1,0,1};
     	int[] dy = new int[]{-1,-1,-1, 0,0, 1,1,1};
@@ -2122,14 +2174,14 @@ public class Bitmap implements Serializable, TiffTags {
     public static int MAX_REPS=1000;
     
     
-    public List<Line2D> combineLines(List<Line2D> ilines, double maxMinDistance, double maxAvgDeviation, double maxDistanceToConsiderSamePoint, double maxAngle, double minLengthForAngleCompare){
-    	List<Line2D> lines = ilines;
+    public List<LineWrapper> combineLines(List<LineWrapper> ilines, double maxMinDistance, double maxAvgDeviation, double maxDistanceToConsiderSamePoint, double maxAngle, double minLengthForAngleCompare){
+    	List<LineWrapper> lines = ilines;
     	int[] reps1=new int[]{0};
     	
     	boolean gotOne=true;
     	while(gotOne){
     		gotOne=false;
-    		List<Line2D> nlines=combineLines2(lines, maxMinDistance, maxAvgDeviation, maxDistanceToConsiderSamePoint,maxAngle,minLengthForAngleCompare,reps1);
+    		List<LineWrapper> nlines=combineLines2(lines, maxMinDistance, maxAvgDeviation, maxDistanceToConsiderSamePoint,maxAngle,minLengthForAngleCompare,reps1);
     		if(nlines.size()!=lines.size()){
     			gotOne=true;
     			lines=nlines;
@@ -2139,17 +2191,15 @@ public class Bitmap implements Serializable, TiffTags {
     	return lines;
     }
     
-    private List<Line2D> combineLines2(List<Line2D> ilines, double maxMinDistance, double maxAvgDeviation, double maxDistanceToConsiderSamePoint,double maxAngle, double minLengthForAngleCompare, int[] reps){
+    private List<LineWrapper> combineLines2(List<LineWrapper> ilines, double maxMinDistance, double maxAvgDeviation, double maxDistanceToConsiderSamePoint,double maxAngle, double minLengthForAngleCompare, int[] reps){
     	byte[] distMet=distanceData.get();
     	
-    	List<Line2D> lines=ilines.stream()
-    	     .map(l->Tuple.of(l,GeomUtil.lengthSquared(l)).withVComparator())
+    	List<LineWrapper> lines=ilines.stream()
     	     .sorted()
-    	     .map(t->t.k())
     	     .collect(Collectors.toList());
     	
     	List<Point2D> allPoints=lines.stream()
-       	     .flatMap(l->Stream.of(l.getP1(),l.getP2()))
+       	     .flatMap(l->l.streamPoints())
        	     .collect(Collectors.toList());
     	
     	List<Point2D> dontmerge=GeomUtil.groupPointsCloserThan(allPoints,maxDistanceToConsiderSamePoint)
@@ -2176,7 +2226,7 @@ public class Bitmap implements Serializable, TiffTags {
 		for (int i = 0; i < lines.size(); i++) {
 			if (reps[0] >= MAX_REPS)
 				break;    
-			Line2D line1 = lines.get(i);
+			LineWrapper line1 = lines.get(i);
 			ii[0]=i;			
 			
 			boolean[] foundOne= new boolean[]{false};
@@ -2184,11 +2234,11 @@ public class Bitmap implements Serializable, TiffTags {
 			IntStream.range(i+1,lines.size())
 			         .mapToObj(k->Tuple.of(k,k))
 			         .map(Tuple.kmap(k->lines.get(k)))
-			         .map(Tuple.kmap(l->LineDistanceCalculator.from(line1, l)))
+			         .map(Tuple.kmap(l->LineDistanceCalculator.from(line1.getLine(), l.getLine())))
 			         .map(t->t.withKComparatorMap(lu->lu.getAbsoluteClosestDistance()))
 			         .sorted()
 			         .filter(t->{
-			        	 Line2D line2=lines.get(t.v());
+			        	 LineWrapper line2=lines.get(t.v());
 			        	 double dist=t.k().getAbsoluteClosestDistance();
 			        	 //if(alreadyMerged.clines.get(t.v())
 			        	
@@ -2196,10 +2246,10 @@ public class Bitmap implements Serializable, TiffTags {
 			         })
 			         .filter(t->{
 			        	 
-			        	 Line2D line2=lines.get(t.v());
-			        	 if(GeomUtil.length(line1)>minLengthForAngleCompare && 
-			        	    GeomUtil.length(line2)>minLengthForAngleCompare){
-				        	 if(GeomUtil.cosTheta(line1,line2)<maxCosAng){
+			        	 LineWrapper line2=lines.get(t.v());
+			        	 if(line1.length()>minLengthForAngleCompare && 
+			        	    line2.length()>minLengthForAngleCompare){
+				        	 if(line1.absCosTheta(line2)<maxCosAng){
 				        		 return false;
 				        	 }
 			        	 }
@@ -2219,7 +2269,7 @@ public class Bitmap implements Serializable, TiffTags {
 			         .filter(t->{
 			        	 	int j=t.v();
 			        	 	LineDistanceCalculator ldc = t.k();
-			        	 	Line2D line2 = lines.get(j);
+			        	 	LineWrapper line2 = lines.get(j);
 							Line2D combined = ldc.getLineFromFarthestPoints();
 							double sx = combined.getX1();
 							double sy = combined.getY1();
@@ -2238,7 +2288,7 @@ public class Bitmap implements Serializable, TiffTags {
 							}
 							double sqrtSTDErr = Math.sqrt(sumSqDist / len);
 							if (sqrtSTDErr <= maxAvgDeviation) {
-								if (len > GeomUtil.length(line1) && len > GeomUtil.length(line2)) {
+								if (len > line1.length() && len > line2.length()) {
 									return true;
 								}else if(line1.intersectsLine(line2)){
 										return true;
@@ -2252,7 +2302,7 @@ public class Bitmap implements Serializable, TiffTags {
 			         .ifPresent(t->{
 			        	 	int j=t.v();
 			        	 	LineDistanceCalculator ldc = t.k();
-			        	 	Line2D line2 = lines.get(j);
+			        	 	LineWrapper line2 = lines.get(j);
 			        	 	Line2D combined = ldc.getLineFromFarthestPoints();
 			        	 	
 //			        	 	System.out.println("Old line 1:" + LineUtil.length(line1));
@@ -2260,7 +2310,7 @@ public class Bitmap implements Serializable, TiffTags {
 //							System.out.println("New line:" + LineUtil.length(combined));
 //							System.out.println("Dist:" + ldc.getSmallestPointDistance());
 //							
-							lines.set(ii[0], combined);
+							lines.set(ii[0], LineWrapper.of(combined));
 							lines.remove(j);
 							reps[0]++;
 							foundOne[0]=true;

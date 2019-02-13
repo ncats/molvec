@@ -43,6 +43,7 @@ import tripod.molvec.CachedSupplier;
 import tripod.molvec.algo.Tuple;
 import tripod.molvec.algo.Tuple.KEqualityTuple;
 import tripod.molvec.util.ConnectionTable.Node;
+import tripod.molvec.util.GeomUtil.LineWrapper;
 
 public class ConnectionTable{
 	private List<Node> nodes = new ArrayList<Node>();
@@ -689,25 +690,25 @@ public class ConnectionTable{
 	}
 	
 	public ConnectionTable mergeNodesCloserThan(double maxDistance, Predicate<Node> incudeNode,Function<List<Node>, Point2D> combiner){
-		List<List<Node>> mergeList=GeomUtil.groupThings(nodes.stream().filter(incudeNode).collect(Collectors.toList()), (t)->{
+		double maxDSq=maxDistance*maxDistance;
+		GeomUtil.groupThings(nodes.stream().filter(incudeNode).collect(Collectors.toList()), (t)->{
 								Node n1=t.k();
 								Node n2=t.v();
-								return n1.point.distance(n2.point)<maxDistance;
+								return n1.point.distanceSq(n2.point)<maxDSq;
 							})
 							.stream()
 							.filter(nl->nl.size()>=2)
-							.collect(Collectors.toList());
-		
-		mergeList.forEach(ml->{
-			List<Integer> nindexs = ml.stream().map(n->n.getIndex()).collect(Collectors.toList());
-			//System.out.println("NIA:" + nindexs);
-			Point2D centerpt = combiner.apply(ml);
-			if(centerpt!=null){
-				this.mergeNodes(nindexs, (pl)->{
-					return centerpt;
-				});			
-			}
-		});
+							.collect(Collectors.toList())
+							.forEach(ml->{
+								List<Integer> nindexs = ml.stream().map(n->n.getIndex()).collect(Collectors.toList());
+								//System.out.println("NIA:" + nindexs);
+								Point2D centerpt = combiner.apply(ml);
+								if(centerpt!=null){
+									this.mergeNodes(nindexs, (pl)->{
+										return centerpt;
+									});			
+								}
+							});
 		return this;
 	}
 	
@@ -1032,7 +1033,7 @@ public class ConnectionTable{
 		         .mapToObj(i->i)
 		         .collect(Collectors.toMap(i->i, i->i));
 		
-		List<LinkedHashSet<Integer>> mergeNodes=GeomUtil.groupMultipleBonds(edgeMap.keySet().stream().collect(Collectors.toList()),5*Math.PI/180, 2, .8, 0)
+		List<LinkedHashSet<Integer>> mergeNodes=GeomUtil.groupMultipleBonds(edgeMap.keySet().stream().map(l->LineWrapper.of(l)).collect(Collectors.toList()),5*Math.PI/180, 2, .8, 0)
 		.stream()
 		.filter(l->l.size()>1)
 		.map(l->{

@@ -41,6 +41,7 @@ import java.util.stream.Stream;
 
 import tripod.molvec.CachedSupplier;
 import tripod.molvec.algo.Tuple;
+import tripod.molvec.util.GeomUtil.LineWrapper;
 
 
 public class GeomUtil {
@@ -575,8 +576,8 @@ public class GeomUtil {
     	return lp1;
     }
     
-    public static Line2D findLongestSplittingLine(Shape s){
-    	if(s instanceof Line2D)return (Line2D)s;
+    public static LineWrapper findLongestSplittingLine(Shape s){
+    	if(s instanceof Line2D)return LineWrapper.of((Line2D)s);
     	Point2D center = GeomUtil.centerOfMass(s);
     	int ptNum = 1000;
     	List<Point2D> pts = 
@@ -599,7 +600,7 @@ public class GeomUtil {
     	
     	Point2D[] ptsDist=GeomUtil.getPairOfFarthestPoints(ptsIntersect);
     	
-    	return new Line2D.Double(ptsDist[0], ptsDist[1]);
+    	return LineWrapper.of(new Line2D.Double(ptsDist[0], ptsDist[1]));
     	
     	
     }
@@ -1452,13 +1453,14 @@ public class GeomUtil {
 	}
 
 
-	private static class LineWrapper{
+	public static class LineWrapper implements Comparable<LineWrapper>{
 		private Line2D line;
 		private double[] vec = null;
 		private double len = 0;
 		private double rlen = 0;
 		private double[] cvec= null;
 		private double[] offset = null;
+		private Point2D center=null;
 		
 		private boolean process=false;
 		
@@ -1466,10 +1468,35 @@ public class GeomUtil {
 			return this.line;
 		}
 		
+		public Point2D centerPoint(){
+			process();
+			return center;
+		}
+		
+		public List<Point2D> splitIntoNPieces(int n){
+
+			double[] v=this.vector();
+			double[] off=this.offset();
+			double rlen=1.0/(n);
+			return IntStream.range(0,n+1)
+					 .mapToObj(i->new double[]{i*v[0]*rlen-off[0], i*v[1]*rlen-off[1]})
+					 .map(d->new Point2D.Double(d[0],d[1]))
+					 .collect(Collectors.toList());
+		}
+		
+		public Stream<Point2D> streamPoints(){
+			return Stream.of(line.getP1(),line.getP2());
+		}
+		
+		public Shape growLine(double d){
+			return GeomUtil.growLine(this.line,d);
+		}
+		
 		public LineWrapper process(){
 			if(process)return this;
 			vec=asVector(line);
 			len=l2Norm(vec);
+			center=GeomUtil.findCenterOfShape(line);
 			rlen=1/len;
 			cvec = asVector(findCenterOfShape(line));
 			offset= negate(asVector(line.getP1()));
@@ -1481,6 +1508,11 @@ public class GeomUtil {
 			double d=dot(this.vector(), lw2.vector());
 			return d*this.rlen*lw2.rlen;
 		}
+		
+		public double absCosTheta(LineWrapper lw2){
+			return Math.abs(cosTheta(lw2));
+		}
+		
 		
 		public double centerRejection(LineWrapper lw2){
 			double[] l1center=this.centerVector();
@@ -1528,6 +1560,27 @@ public class GeomUtil {
 		}
 		public static LineWrapper of(Line2D l){
 			return new LineWrapper(l);
+		}
+
+		public Point2D projectPointOntoLine(Point2D p) {
+			//return GeomUtil.projectPointOntoLine(this.getLine(), p);
+			double[] vec=this.vector();
+			double[] off=this.offset();
+			
+			double[] pvec = new double[]{p.getX()+off[0],p.getY()+off[1]};
+			double dot=dot(vec, pvec);
+			double proj=dot*this.recipLength()*this.recipLength();
+			double[] projVec= new double[]{proj*vec[0],proj*vec[1]};
+			return new Point2D.Double(projVec[0]-off[0], projVec[1]-off[1]);
+		}
+
+		@Override
+		public int compareTo(LineWrapper arg0) {
+			return Double.compare(length(),arg0.length());
+		}
+
+		public boolean intersectsLine(LineWrapper line2) {
+			return this.getLine().intersectsLine(line2.getLine());
 		}
 	}
 	
@@ -1716,12 +1769,12 @@ public class GeomUtil {
 		 * @return
 		 */
 		
-		public static List<List<Line2D>> groupMultipleBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio, double minLargerProjectionRatio){
+		public static List<List<Line2D>> groupMultipleBonds(List<LineWrapper> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio, double minLargerProjectionRatio){
 			
 
 			double cosThetaCutoff=Math.cos(maxDeltaTheta);
 			
-			List<LineWrapper> lws=lines.stream().map(l->LineWrapper.of(l)).collect(Collectors.toList());
+			List<LineWrapper> lws=lines;
 			
 			return GeomUtil.groupThings(lws, (lt)->{
 				LineWrapper line1=lt.k();
@@ -1774,7 +1827,7 @@ public class GeomUtil {
 	 * @param minLargerProjectionRatio
 	 * @return
 	 */
-	public static List<Tuple<Line2D, Integer>> reduceMultiBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio, double minLargerProjectionRatio, double maxStitchLineDistanceDelta, Consumer<Line2D> rejected){
+	public static List<Tuple<Line2D, Integer>> reduceMultiBonds(List<LineWrapper> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio, double minLargerProjectionRatio, double maxStitchLineDistanceDelta, Consumer<Line2D> rejected){
 		
 		return groupMultipleBonds(lines,maxDeltaTheta,maxDeltaOffset,minProjectionRatio,minLargerProjectionRatio)
 				.stream()
@@ -1820,7 +1873,7 @@ public class GeomUtil {
 	
 	
 	
-	public static List<Line2D> stitchEdgesInMultiBonds(List<Line2D> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio, double minLargerProjectionRatio, double maxStitchLineDistanceDelta){
+	public static List<Line2D> stitchEdgesInMultiBonds(List<LineWrapper> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio, double minLargerProjectionRatio, double maxStitchLineDistanceDelta){
 		
 		return groupMultipleBonds(lines,maxDeltaTheta,maxDeltaOffset,minProjectionRatio,minLargerProjectionRatio)
 				.stream()

@@ -48,6 +48,7 @@ import tripod.molvec.util.ConnectionTable.Edge;
 import tripod.molvec.util.ConnectionTable.Node;
 import tripod.molvec.util.GeomUtil;
 import tripod.molvec.util.GeomUtil.BoundingBox;
+import tripod.molvec.util.GeomUtil.LineWrapper;
 
 public class StructureImageExtractor {
 
@@ -91,8 +92,8 @@ public class StructureImageExtractor {
 		return rescueOCRShapes;
 	}
 
-	private List<Line2D> lines;
-	private List<Line2D> linesJoined;
+	private List<LineWrapper> lines;
+	private List<LineWrapper> linesJoined;
 	private List<Tuple<Line2D,Integer>> linesOrder;    
 	private Map<Shape,List<Tuple<Character,Number>>> ocrAttempt = new ConcurrentHashMap<>();
 	private Map<Shape,String> bestGuessOCR = new HashMap<>();
@@ -673,7 +674,7 @@ public class StructureImageExtractor {
 	private boolean DEBUG=false;
 	
 	
-	private void rescueOCR(List<Line2D> lines, List<Shape> polygons, Set<Shape> likelyOCRAll, SCOCR scocr, BiConsumer<Shape,List<Tuple<Character,Number>>> cons){
+	private void rescueOCR(List<LineWrapper> lines, List<Shape> polygons, Set<Shape> likelyOCRAll, SCOCR scocr, BiConsumer<Shape,List<Tuple<Character,Number>>> cons){
 		
 			double averageWidthOCRFinal=likelyOCRAll.stream()
 					.map(Shape::getBounds2D)
@@ -695,7 +696,7 @@ public class StructureImageExtractor {
 			//this is a spotty attempt at final rescue, not particularly good
 			//only do this sometimes
 			List<Tuple<Point2D,Line2D>> centerPoints = lines.stream()
-															.map(l->Tuple.of(GeomUtil.findCenterOfShape(l),l))
+															.map(l->Tuple.of(l.centerPoint(),l.getLine()))
 															.collect(Collectors.toList());
 			
 			double ldensityCutoff=likelyOCRAll.stream()
@@ -771,26 +772,6 @@ public class StructureImageExtractor {
 
 				boolean[] got = new boolean[]{false};
 
-//				if(!got[0]){
-//					//I'm not sure 1 is the right number here
-//					Shape nshape = GeomUtil.growShapeNPoly(bb.getConvuxHull(),2,12);
-//					
-//					
-//					
-//					processOCRShape(scocr,nshape,bitmap,thin,(s,potential)->{
-//						String st=potential.get(0).k().toString();
-//						double cos=potential.get(0).v().doubleValue();
-//						if(cos>OCRcutoffCosineRescueInitial){
-//							BranchNode n=BranchNode.interpretOCRStringAsAtom2(st);
-//							if(n!=null && n.isRealNode()){
-//								if(cos>OCRcutoffCosine || bb.getLineDensity()>ldensityCutoff*1.05){
-//									cons.accept(nshape, potential);
-//									got[0]=true;
-//								}
-//							}
-//						}	
-//					});
-//				}
 				if(!got[0]){
 					//I'm not sure 1 is the right number here
 					Shape nshape = GeomUtil.growShape(bb.getCenteredConvexRect(),1);
@@ -970,6 +951,7 @@ public class StructureImageExtractor {
 								           .filter(s->s.contains(l.getP1()) || s.contains(l.getP1()))
 								           .findFirst()
 								           .isPresent())
+					   .map(l->GeomUtil.LineWrapper.of(l))
 					   .collect(Collectors.toList());
 		
 		
@@ -1128,7 +1110,7 @@ public class StructureImageExtractor {
 				boolean anyOutside=GeomUtil.getLinesNotInside(l, Arrays.asList(shape1.k(),shape2.k()))
 				        .stream()
 				        .filter(l1->l1!=null)
-				        .filter(l1->GeomUtil.length(l1)>1)
+				        .filter(GeomUtil.longerThan(1))
 				        .findAny()
 				        .isPresent();
 				if(!anyOutside)return true;
@@ -1143,32 +1125,23 @@ public class StructureImageExtractor {
 			});
 
 			List<Line2D> useLines = lines.stream()
-										 .map(l->Tuple.of(l,GeomUtil.findCenterOfShape(l)))
-									     .filter(t->!likelyOCRIgnore.stream()
-									    		    .filter(s->s.contains(t.v()))
+										 .filter(t->!likelyOCRIgnore.stream()
+									    		    .filter(s->s.contains(t.centerPoint()))
 									    		    .findAny().isPresent())
-									     .map(t->t.k())
+										 .map(l->l.getLine())
 									     .collect(Collectors.toList());
 			
 
 
-			List<Line2D> smallLines=useLines.stream()
+			List<LineWrapper> smallLines=useLines.stream()
 					.filter(tryToMerge)
+					.map(l->LineWrapper.of(l))
 					.collect(Collectors.toList());
 
 			List<Line2D> bigLines=useLines.stream()
 					.filter(tryToMerge.negate())
 					.collect(Collectors.toList());
 
-			smallLines=smallLines.stream()
-					.flatMap(l->{
-						//			                	  double len=GeomUtil.length(l);
-						//			                	  if(len<MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS && len>MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS){
-						//			                		  return GeomUtil.splitLineIn2(l).stream();  
-						//			                	  }
-						return Stream.of(l);
-					})
-					.collect(Collectors.toList());
 
 			// smallLines= thin.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
 
@@ -1176,6 +1149,7 @@ public class StructureImageExtractor {
 			smallLines= thin.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
 
 			List<Line2D> removedTinyLines =smallLines.stream()
+					.map(l->l.getLine())
 					.filter(GeomUtil.longerThan(MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS).negate())
 					.collect(Collectors.toList());
 
@@ -1186,13 +1160,13 @@ public class StructureImageExtractor {
 
 
 			smallLines=smallLines.stream()
-					.filter(GeomUtil.longerThan(MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS))
+					.filter(l->l.length()>MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS)
 					.collect(Collectors.toList());
 
 
 
 			List<Point2D> verts = smallLines.stream()
-					.flatMap(l->Stream.of(l.getP1(),l.getP2()))
+					.flatMap(l->l.streamPoints())
 					.collect(Collectors.toList());
 			//find average spacing from OCR shapes to closest vertex         
 			double[] lDistOCRToLine=likelyOCR.stream()
@@ -1220,18 +1194,19 @@ public class StructureImageExtractor {
 
 
 
-			linesJoined=Stream.concat(bigLines.stream(),
+			linesJoined=Stream.concat(
+					bigLines.stream().map(l->LineWrapper.of(l)),
 					smallLines.stream())
 					.collect(Collectors.toList());
 
 
 			double largestBond=smallLines.stream()
-					.mapToDouble(l->GeomUtil.length(l))
+					.mapToDouble(l->l.length())
 					.max()
 					.orElse(0);
 
 			double averageLine=smallLines.stream()
-					.mapToDouble(l->GeomUtil.length(l))
+					.mapToDouble(l->l.length())
 					.average()
 					.orElse(0);
 
@@ -1239,16 +1214,17 @@ public class StructureImageExtractor {
 				largestBond=1.4*averageLine;
 			}
 
-			List<Line2D> preprocess= GeomUtil.reduceMultiBonds(linesJoined, MAX_ANGLE_FOR_PARALLEL, MAX_DISTANCE_TO_MERGE_PARALLEL_LINES, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS,0,MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC, (l)->{})
+			List<LineWrapper> preprocess= GeomUtil.reduceMultiBonds(linesJoined, MAX_ANGLE_FOR_PARALLEL, MAX_DISTANCE_TO_MERGE_PARALLEL_LINES, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS,0,MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC, (l)->{})
 					.stream()
 					.map(t->t.k())
+					.map(t->LineWrapper.of(t))
 					.collect(Collectors.toList());
 
 
-			List<Line2D> rejBondOrderLines=new ArrayList<Line2D>();
+			List<LineWrapper> rejBondOrderLines=new ArrayList<>();
 			
 			linesOrder=GeomUtil.reduceMultiBonds(preprocess, MAX_ANGLE_FOR_PARALLEL, largestBond/3, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS, MIN_BIGGER_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS,MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC,
-					(rejLine->rejBondOrderLines.add(rejLine))
+					(rejLine->rejBondOrderLines.add(LineWrapper.of(rejLine)))
 					);
 
 			
@@ -1313,10 +1289,11 @@ public class StructureImageExtractor {
 
 				Function<List<Node>,Point2D> bestIntersectionPoint = (nl)->{
 					Point2D center= GeomUtil.findCenterOfVertices(nl.stream().map(n->n.getPoint()).collect(Collectors.toList()));
-					double rad=ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE;
+					double radSq=Math.pow(ctab.getAverageBondLength()*MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE,2);
+					
 
 					List<Edge> el=nl.stream()
-							.flatMap(n->n.getEdges().stream())
+							.flatMap(n->n.getEdges().stream()) //Note that this double-counts edges sometimes. That's actually good in this case
 							.collect(Collectors.toList());
 
 
@@ -1326,7 +1303,7 @@ public class StructureImageExtractor {
 								return Stream.of(GeomUtil.intersection(t.k().getLine(),t.v().getLine()));
 							})
 							.filter(p->p!=null)
-							.filter(p->p.distance(center)<rad)
+							.filter(p->p.distanceSq(center)<radSq)
 							.collect(Collectors.toList());
 
 					if(!intersections.isEmpty()){
@@ -1717,15 +1694,11 @@ public class StructureImageExtractor {
 
 			List<Node> unmatchedNodes=ctab.getNodesNotInShapes(likelyOCR, OCR_TO_BOND_MAX_DISTANCE + avgbond*SEED_BOND_RATIO_FOR_OCR_WIDTH);
 
-			List<Line2D> verticesJl=linesJoined.stream()
+			List<LineWrapper> verticesJl=linesJoined.stream()
 					.collect(Collectors.toList());
 			List<Point2D> verticesJ=
-					//Stream.concat(
-					//			  removedTinyVertices.stream(), 
 					verticesJl.stream()
-					.flatMap(l->Stream.of(l.getP1(),l.getP2()))
-					//.filter(pt->!likelyOCRAll.stream().filter(s->s.contains(pt)).findAny().isPresent())
-					//		                 									     )
+					.flatMap(l->l.streamPoints())
 					.collect(Collectors.toList());
 
 
@@ -1747,7 +1720,6 @@ public class StructureImageExtractor {
 						.map(sc->Tuple.of(sc,GeomUtil.area(sc)).withVComparator())
 						.sorted(Comparator.reverseOrder())
 						.map(t->t.k())
-						
 						.findAny()
 						.map(sc->GeomUtil.findCenterOfShape(sc))
 						.orElse(null);
@@ -1973,10 +1945,10 @@ public class StructureImageExtractor {
 								.stream()
 								.filter(sl->sl.size()>=3)
 								.map(l->{
-									Line2D splitting=GeomUtil.findLongestSplittingLine(l.stream().collect(GeomUtil.joined()));
+									LineWrapper splitting=GeomUtil.findLongestSplittingLine(l.stream().collect(GeomUtil.joined()));
 									return l.stream()
 											.map(l1->Tuple.of(l1, GeomUtil.findLongestSplittingLine(l1)))
-									        .filter(l2->GeomUtil.cosTheta(splitting, l2.v()) < Math.cos(45*Math.PI/180))
+									        .filter(l2->splitting.cosTheta(l2.v()) < Math.cos(45*Math.PI/180))
 									        .map(t->t.k())
 									        .collect(Collectors.toList());
 									
@@ -2010,6 +1982,14 @@ public class StructureImageExtractor {
 				Point2D[] pts=t.v();
 				Shape[] shapes =t.k();
 
+				//Line2D l2 = new Line2D.Double(pts[0],pts[1]);
+				double dist=pts[0].distanceSq(pts[1]);
+				double cutoff=Math.max(ctab.getAverageBondLength()*MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING,wid);
+				
+				if(dist>cutoff*cutoff){
+					return false;
+				}
+				
 				List<Tuple<Character, Number>> attempt0 = ocrAttempt.get(shapes[0]);
 				List<Tuple<Character, Number>> attempt1 = ocrAttempt.get(shapes[1]);
 				String v1= (attempt0 ==null || attempt0.isEmpty())? "" : attempt0.get(0).k().toString();
@@ -2022,13 +2002,6 @@ public class StructureImageExtractor {
 				
 				
 
-				Line2D l2 = new Line2D.Double(pts[0],pts[1]);
-				double dist=GeomUtil.length(l2);
-				double cutoff=Math.max(ctab.getAverageBondLength()*MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING,wid);
-				
-				if(dist>cutoff){
-					return false;
-				}
 				
 				double s1y1=shapes[0].getBounds2D().getMinY();
 				double s1y2=shapes[0].getBounds2D().getMaxY();
@@ -2045,9 +2018,9 @@ public class StructureImageExtractor {
 				Point2D cs1=GeomUtil.findCenterOfShape(shapes[0]);
 				Point2D cs2=GeomUtil.findCenterOfShape(shapes[1]);
 
-				Line2D cenLine = new Line2D.Double(cs1, cs2);
-				double[] vec=GeomUtil.asVector(cenLine);
-				double cosTheta=Math.abs(vec[0]/GeomUtil.length(cenLine));
+				LineWrapper cenLine = LineWrapper.of(new Line2D.Double(cs1, cs2));
+				double[] vec=cenLine.vector();
+				double cosTheta=Math.abs(vec[0]*cenLine.recipLength());
 
 				if(cosTheta>cosThetaOCRShape){
 					return true;
@@ -2523,7 +2496,7 @@ public class StructureImageExtractor {
 			
 
 
-			List<Tuple<Line2D,Point2D>> lj =Stream.concat(removedTinyLines.stream(), linesJoined.stream())
+			List<Tuple<Line2D,Point2D>> lj =Stream.concat(removedTinyLines.stream(), linesJoined.stream().map(l->l.getLine()))
 								  // 
 								   .flatMap(l->GeomUtil.getLinesNotInside(l, growLikelyOCRNonBond).stream())
 								   //.filter(l->GeomUtil.length(l)>2) // needed?
@@ -2729,8 +2702,8 @@ public class StructureImageExtractor {
 				Set<Edge> skip= new HashSet<Edge>();
 				ctab.getEdges()
 					.stream()
-					.filter(e->e.getEdgeLength()>avgL)
-					.map(l->Tuple.of(l,GeomUtil.length(l.getLine())).withVComparator())
+					.map(l->Tuple.of(l,LineWrapper.of(l.getLine())).withVComparator())
+					.filter(e->e.v().length()>avgL)
 					.sorted(Comparator.reverseOrder())
 					.map(t->t.k())
 					.filter(t->!skip.contains(t))
@@ -2840,7 +2813,7 @@ public class StructureImageExtractor {
 					.filter(e->e.getOrder()==3)
 					.collect(Collectors.toList())
 					.forEach(e->{
-						Line2D lb = e.getLine();
+						LineWrapper lb = LineWrapper.of(e.getLine());
 						
 						double len = e.getEdgeLength();
 						
@@ -2856,17 +2829,16 @@ public class StructureImageExtractor {
 							Node n1=e.getRealNode1();
 							Node n2=e.getRealNode2();
 							
-							Shape bigLineShape = GeomUtil.growLine(lb,len/3);
+							Shape bigLineShape = lb.growLine(len/3);
 							
 							Point2D apt=rejBondOrderLines.stream()
-											 .filter(l->GeomUtil.length(l)>ctab.getAverageBondLength()*0.5)
-							                 .map(l->GeomUtil.findCenterOfShape(l))
-							                 .filter(p->bigLineShape.contains(p))
-							                 .map(p->GeomUtil.projectPointOntoLine(lb,p))
+											 .filter(l->l.length()>ctab.getAverageBondLength()*0.5)
+							                 .filter(p->bigLineShape.contains(p.centerPoint()))
+							                 .map(p->lb.projectPointOntoLine(p.centerPoint()))
 							                 .collect(GeomUtil.averagePoint());
 							
 							
-							List<Point2D> pts=GeomUtil.splitIntoNPieces(lb,n);
+							List<Point2D> pts=lb.splitIntoNPieces(n);
 							Node pnode=n1;
 							Edge closestEdge = null;
 							double closestD = 999999;
@@ -3482,8 +3454,8 @@ public class StructureImageExtractor {
 						Point2D apnt=Stream.of(lb.getP1(),lb.getP2()).collect(GeomUtil.averagePoint());
 						
 						List<Point2D> possibleOtherDoubleBonds = rejBondOrderLines.stream()
-								 .filter(l->GeomUtil.length(l)>ctab.getAverageBondLength()*0.4)
-				                 .map(l->GeomUtil.findCenterOfShape(l))
+								 .filter(l->l.length()>ctab.getAverageBondLength()*0.4)
+				                 .map(l->l.centerPoint())
 				                 .filter(p->p.distance(apnt)<ctab.getAverageBondLength()*0.8)
 				                 .collect(Collectors.toList());
 						
@@ -3521,14 +3493,15 @@ public class StructureImageExtractor {
 				.collect(Collectors.toList())
 				.forEach(e->{
 						
-						Line2D lb = e.getLine();
-						Point2D apnt=Stream.of(lb.getP1(),lb.getP2()).collect(GeomUtil.averagePoint());
+						LineWrapper lb = LineWrapper.of(e.getLine());
+						Point2D apnt=lb.centerPoint();
 						
 						List<Tuple<Line2D,Point2D>> possibleOtherDoubleBonds = rejBondOrderLines.stream()
-								 .filter(l->GeomUtil.length(l)>ctab.getAverageBondLength()*0.4)
-								 .filter(l->GeomUtil.cosTheta(l,e.getLine())>0.8)
-				                 .map(l->Tuple.of(l,GeomUtil.findCenterOfShape(l)))
+								 .filter(l->l.length()>ctab.getAverageBondLength()*0.4)
+								 .filter(l->l.cosTheta(lb)>0.8)
+				                 .map(l->Tuple.of(l,l.centerPoint()))
 				                 .filter(p->p.v().distance(apnt)<ctab.getAverageBondLength()*0.8)
+				                 .map(Tuple.kmap(l->l.getLine()))
 				                 .collect(Collectors.toList());
 						
 						if(possibleOtherDoubleBonds.size() ==1){
@@ -3615,9 +3588,9 @@ public class StructureImageExtractor {
 				    			   .filter(e->e.getOrder()==2)
 				    			   .map(e->Tuple.of(e, GeomUtil.growLine(e.getLine(), ctab.getAverageBondLength()/3.0)))
 				    			   .map(t->Tuple.of(t.k(),rejBondOrderLines.stream()
-				    					                        .map(l->Tuple.of(l,GeomUtil.findCenterOfShape(l)))
+				    					                        .map(l->Tuple.of(l,l.centerPoint()))
 				    					                        .filter(p->t.v().contains(p.v()))
-				    					                        .mapToDouble(t1->GeomUtil.length(t1.k()))
+				    					                        .mapToDouble(t1->t1.k().length())
 				    					                        .findAny()))
 				    			   
 				    			   //.filter(t->t.v().isPresent())
@@ -3683,11 +3656,11 @@ public class StructureImageExtractor {
 									}else{
 										if(forN1.size()==1 && forN2.size()==1){
 											//probably reset the nodes now
-											Line2D splitLine=GeomUtil.findLongestSplittingLine(bshape);
+											LineWrapper splitLine=GeomUtil.findLongestSplittingLine(bshape);
 											Node n1=forN1.get(0);	
 											Node n2=forN2.get(0);
-											Point2D np1=GeomUtil.projectPointOntoLine(splitLine, n1.getPoint());
-											Point2D np2=GeomUtil.projectPointOntoLine(splitLine, n2.getPoint());
+											Point2D np1=splitLine.projectPointOntoLine(n1.getPoint());
+											Point2D np2=splitLine.projectPointOntoLine(n2.getPoint());
 											n1.setPoint(np1);
 											n2.setPoint(np2);
 										}
@@ -3782,15 +3755,14 @@ public class StructureImageExtractor {
 					.stream()
 					.filter(e->!e.isInventedBond())
 					.map(e->{
-						Line2D useLine=GeomUtil.getLinesNotInside(e.getLine(), growLikelyOCR)
+						LineWrapper useLine=GeomUtil.getLinesNotInside(e.getLine(), growLikelyOCR)
 								.stream()
-								.map(l->Tuple.of(l, GeomUtil.length(l)).withVComparator())
+								.map(l->LineWrapper.of(l))
 								.max(Comparator.naturalOrder())
-								.map(t->t.k())
 								.orElse(null);
 						if(useLine!=null){
 							
-							Point2D c=GeomUtil.findCenterOfShape(useLine);
+							Point2D c=useLine.centerPoint();
 							
 							Optional<Shape> isDash=dashShapes.stream()
 									  .filter(d->d.contains(c))
@@ -3822,15 +3794,14 @@ public class StructureImageExtractor {
 										//Keep it _only_ if there are 
 										//at least 3 lines that are found in the area around the bond
 										double grow=ctab.getAverageBondLength()*0.1;
-										Shape lshape=GeomUtil.growLine(useLine, grow);
+										Shape lshape=useLine.growLine(grow);
 										List<Shape> lineShapes=lines.stream()
-										     .map(l->Tuple.of(l,GeomUtil.findCenterOfShape(l)))
-										     .filter(l->!bestGuessOCR.keySet().stream().filter(ss->ss.contains(l.v())).findAny().isPresent())
-										     .filter(l->GeomUtil.cosTheta(l.k(),useLine)>0.8)
-										     .filter(l->lshape.contains(l.v()))
-										     .map(l->l.k())
-										     .map(l->GeomUtil.growLine(l, grow))
+										     .filter(l->!bestGuessOCR.keySet().stream().filter(ss->ss.contains(l.centerPoint())).findAny().isPresent())
+										     .filter(l->l.absCosTheta(useLine)>0.8)
+										     .filter(l->lshape.contains(l.centerPoint()))
+										     .map(l->l.growLine(grow))
 										     .collect(Collectors.toList());
+										
 										if(lineShapes.size()<3){
 											e.setDashed(false);
 										}else{
@@ -3843,7 +3814,7 @@ public class StructureImageExtractor {
 										}
 									}
 								}
-								return bitmap.getconfexHullAlongLine(useLine)
+								return bitmap.getconfexHullAlongLine(useLine.getLine())
 										.map(w->Tuple.of(e,w));
 							}
 						}
@@ -3932,10 +3903,11 @@ public class StructureImageExtractor {
 						Line2D l2 = new Line2D.Double(t1.k().getPoint(),t1.v().getPoint());
 						Line2D useLine=GeomUtil.getLinesNotInside(l2, growLikelyOCR)
 								.stream()
-								.map(l->Tuple.of(l, GeomUtil.length(l)).withVComparator())
+								.map(l->LineWrapper.of(l))
 								.max(Comparator.naturalOrder())
-								.map(t->t.k())
+								.map(l->l.getLine())
 								.orElse(null);
+						
 						if(useLine==null)return;
 						long c=polygons.stream()
 								.filter(s->GeomUtil.getIntersection(s, useLine).isPresent())
@@ -3958,7 +3930,7 @@ public class StructureImageExtractor {
 			    	//might be bad edges
 			    	Shape sl=GeomUtil.growLine(t.getLine(),ctab.getAverageBondLength()/3);
 			    	boolean findLines=lines.stream()
-			    						   .map(l->GeomUtil.findCenterOfShape(l))
+			    						   .map(l->l.centerPoint())
 			    	                       .filter(l->sl.contains(l))
 			    	                       .findAny()
 			    	                       .isPresent();
@@ -4011,9 +3983,9 @@ public class StructureImageExtractor {
 			    			Shape ls = GeomUtil.growLine(maybeDouble.getLine(), ctab.getAverageBondLength()*0.3);
 			    			
 			    			long c=lines.stream()
-			    			     .map(l->Tuple.of(l, GeomUtil.findCenterOfShape(l)))
+			    			     .map(l->Tuple.of(l, l.centerPoint()))
 			    			     .filter(t->ls.contains(t.v()))
-			    			     .filter(t->GeomUtil.cosTheta(t.k(), maybeDouble.getLine())>0.8)
+			    			     .filter(t->t.k().absCosTheta(LineWrapper.of(maybeDouble.getLine()))>0.8)
 			    			     .count();
 			    			
 			    			if(c>1){
@@ -4267,11 +4239,11 @@ public class StructureImageExtractor {
 	}
 
 	public List<Line2D> getLines() {
-		return lines;
+		return lines.stream().map(lw->lw.getLine()).collect(Collectors.toList());
 	}
 
 	public List<Line2D> getLinesJoined() {
-		return linesJoined;
+		return linesJoined.stream().map(lw->lw.getLine()).collect(Collectors.toList());
 	}
 
 	public List<Tuple<Line2D, Integer>> getLinesOrder() {

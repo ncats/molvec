@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import javax.imageio.ImageIO;
 
 import tripod.molvec.Bitmap;
+import tripod.molvec.Bitmap.BitmapScaled;
 import tripod.molvec.CachedSupplier;
 import tripod.molvec.algo.Tuple;
 
@@ -334,40 +335,12 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 
 	@Override
 	public Map<Character, Number> getRanking(Bitmap r) {
-		int twidth = r.width();
-		int theight = r.height();
-		
-		int[][] ccount = new int[DEF_WIDTH][DEF_HEIGHT];
-		
-		List<int[]> xys=r.getXYOnPoints()
-						    .map(xy->{
-						    	int cx = (xy[0] * DEF_WIDTH) / twidth;
-						    	int cy = (xy[1] * DEF_HEIGHT) / theight;
-						    	return new int[]{cx,cy,1};
-						    })
-						    .collect(Collectors.groupingBy(i->i[0]+","+i[1]))
-						    .values()
-						    .stream()
-						    .map(il->{
-						    	int[] r1=il.get(0);
-						    	r1[2]=il.size();
-						    	return r1;
-						    })
-						    .collect(Collectors.toList());
-		
-		int tcount= xys.stream().mapToInt(r1->r1[2]).sum();
-		
-		for(int i=0;i<twidth;i++){
-			for(int j=0;j<theight;j++){
-			   	int cx = (i * DEF_WIDTH) / twidth;
-		    	int cy = (j * DEF_HEIGHT) / theight;
-		    	ccount[cx][cy]++;
-			}
-		}
+		BitmapScaled bms=r.getScaled(DEF_WIDTH, DEF_HEIGHT);
 		
 		return _alphabet
+				//.stream()
 				.parallelStream()
-				.collect(Collectors.toMap(Function.identity(), c2->correlation(xys,ccount,tcount,twidth,theight, c2)));
+				.collect(Collectors.toMap(Function.identity(), c2->correlation(bms.xys,bms.ccount,bms.tcount,bms.twidth,bms.theight, c2)));
 	}
 
 	public static void debugPrintBmap(int[][] test) {
