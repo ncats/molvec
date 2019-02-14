@@ -21,6 +21,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -328,6 +329,47 @@ public class ConnectionTable{
 		
 	}
 	
+	
+	public List<List<Edge>> getEdgesWhichMightBeDottedLines(){
+//		double longestEdge1=this.getEdges()
+//		    .stream()
+//		    .map(e->e.getEdgeLength())
+//		    .max(Comparator.naturalOrder())
+//		    .orElse(1.0);
+		double longestEdge =this.getEdges()
+								.stream()
+								.filter(e->e.getNeighborEdges().size()>0)
+								.mapToDouble(e->e.getEdgeLength())
+								.average()
+								.orElse(this.getAverageBondLength());
+		
+		
+		
+		return this.getEdges()
+			    .stream()
+			    .filter(e->e.getEdgeLength()<longestEdge*0.3)
+			    .map(e->Tuple.of(e,LineWrapper.of(e.getLine())))
+			    .collect(GeomUtil.groupThings(t->{
+			    	LineWrapper l1=t.k().v();
+			    	LineWrapper l2=t.v().v();
+			    	
+			    	if(l1.absCosTheta(l2)<0.8){
+			    		return false;
+			    	}
+			    	if(l1.centerPoint().distance(l2.centerPoint())> longestEdge*0.3){
+			    		return false;
+			    	}
+			    	return true;
+			    }))
+			    .stream()
+			    .map(l->l.stream().map(t->t.k()).collect(Collectors.toList()))
+			    .filter(nl->nl.size()>1)
+			    .collect(Collectors.toList());
+		    
+		    
+	}
+	
+	
 	public List<List<Node>> getDisconnectedNodeSets(){
 		//note: very inefficient
 		return GeomUtil.groupThings(this.nodes, t->t.k().connectsTo(t.v()))
@@ -366,9 +408,19 @@ public class ConnectionTable{
 			Node n = nodes.get(i);
 			Point2D np = at.transform(n.getPoint(), null);
 			
-			atoms[i]=cb.addAtom(n.symbol,np.getX(),-np.getY());
+			String sym = n.symbol;
+			int isotope = 0;
+			if(n.symbol.equals("D")){
+				sym="H";
+				isotope=2;
+			}
+			
+			atoms[i]=cb.addAtom(sym,np.getX(),-np.getY());
 			if(n.getCharge()!=0){
 				atoms[i].setCharge(n.getCharge());
+			}
+			if(isotope!=0){
+//				atoms[i].setIsotope(isotope);
 			}
 		}
 		cb.aromatize(true);
@@ -1235,6 +1287,15 @@ public class ConnectionTable{
 			
 		}
 		
+		public OptionalInt getSmallestRingSize(){
+			List<Ring> rings = ConnectionTable.this.getRings();
+			
+			return rings.stream()
+					.filter(r->r.getNodes().contains(this))
+					.mapToInt(r->r.size())
+					.min();
+		}
+		
 		public Node setCharge(int c){
 			this.charge=c;
 			return this;
@@ -1316,6 +1377,10 @@ public class ConnectionTable{
 			this.n1=n1;
 			this.n2=n2;
 			this.setOrder(o);
+		}
+		
+		public Stream<Node> streamNodes(){
+			return Stream.of(this.getRealNode1(),this.getRealNode2());
 		}
 		
 		public boolean isAromatic() {
@@ -1726,7 +1791,7 @@ public class ConnectionTable{
 		this.nodes.stream()
 		          .filter(n->n.getEdgeCount()==3)
 		          .filter(n->n.getEdges().stream().filter(e->e.getOrder()>1).map(e->e.getOtherNode(n).getSymbol()).anyMatch(s->!"C".equals(s)))
-		          .filter(n->!n.isInRing(5))
+		          .filter(n->n.getSmallestRingSize().orElse(999)>4)
 		          .forEach(n->{
 		        	  Point2D cpoint=n.getPoint();
 		        	  Point2D[] pts=n.getNeighborNodes().stream()

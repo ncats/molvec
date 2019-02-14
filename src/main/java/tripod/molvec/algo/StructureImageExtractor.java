@@ -1277,13 +1277,41 @@ public class StructureImageExtractor {
 				
 				if(DEBUG)ctabRaw.add(ctab.cloneTab());
 				
+				ctab.getEdgesWhichMightBeDottedLines()
+				    .stream()
+				    .map(e->Tuple.of(e,GeomUtil.vertices(e.stream().map(e1->e1.getLine()).collect(Collectors.toList()))))
+				    .map(Tuple.vmap(vts->GeomUtil.getPairOfFarthestPoints(vts)))
+				    .forEach(s->{
+				    	List<Node> rnodes= new ArrayList<>();
+				    	List<Node> lnodes= new ArrayList<>();
+				    	s.k().stream()
+				    	     .flatMap(e->e.streamNodes())
+				    	     .distinct()
+				    	     .forEach(n->{
+				    	    	if(n.getPoint().distance(s.v()[0]) <n.getPoint().distance(s.v()[1])){
+				    	    		n.setPoint(s.v()[0]);
+				    	    		rnodes.add(n);
+				    	    	}else{
+				    	    		n.setPoint(s.v()[1]);
+				    	    		lnodes.add(n);
+				    	    	}
+				    	     });
+				    	if(rnodes.size()>0 && lnodes.size()>0){
+				    		Edge e=ctab.addEdge(rnodes.get(0).getIndex(), lnodes.get(0).getIndex(), 1);
+				    		e.setDashed(true);
+				    	}
+				    	
+				    });
+				ctab.standardCleanEdges();
+				ctab.mergeNodesCloserThan(MAX_DISTANCE_BEFORE_MERGING_NODES);
 
 				for(Shape s: likelyOCR){
 					ctab.mergeAllNodesInsideCenter(s, OCR_TO_BOND_MAX_DISTANCE);
 				}
 
 				if(DEBUG)ctabRaw.add(ctab.cloneTab());
-
+				
+			
 
 				List<List<Node>> newNodesForMerge = new ArrayList<>();
 

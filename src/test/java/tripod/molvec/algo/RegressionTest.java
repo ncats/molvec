@@ -256,7 +256,7 @@ public class RegressionTest {
 	}
 	
 	
-	@Ignore
+	//@Ignore
 	@Test
 	public void test1(){
 		File dir1 = getFile("regressionTest/usan");
@@ -289,7 +289,7 @@ public class RegressionTest {
 					}
 		    	  	return l;
 		      })
-		      .collect(shuffler(new Random(11111131l)))		      
+		      .collect(shuffler(new Random(11111133l)))		      
 		      .limit(100)
 
 //NOTE, I THINK THIS TECHNICALLY WORKS, BUT SINCE THERE IS PARALLEL THINGS GOING ON IN EACH, IT SOMETIMES WILL STARVE A CASE FOR A LONG TIME
