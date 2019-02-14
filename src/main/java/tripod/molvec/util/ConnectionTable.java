@@ -1726,6 +1726,7 @@ public class ConnectionTable{
 		this.nodes.stream()
 		          .filter(n->n.getEdgeCount()==3)
 		          .filter(n->n.getEdges().stream().filter(e->e.getOrder()>1).map(e->e.getOtherNode(n).getSymbol()).anyMatch(s->!"C".equals(s)))
+		          .filter(n->!n.isInRing(5))
 		          .forEach(n->{
 		        	  Point2D cpoint=n.getPoint();
 		        	  Point2D[] pts=n.getNeighborNodes().stream()

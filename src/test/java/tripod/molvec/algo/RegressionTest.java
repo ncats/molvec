@@ -6,6 +6,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -72,6 +73,9 @@ public class RegressionTest {
 		try{
 			AtomicBoolean lastWasAlias = new AtomicBoolean(false);
 			String rawMol=null;
+			
+			boolean assmiles = sdf.getAbsolutePath().endsWith("smi");
+			
 			try(Stream<String> stream = Files.lines(sdf.toPath())){
 				rawMol = stream
 			
@@ -95,9 +99,12 @@ public class RegressionTest {
 					})
 					.collect(Collectors.joining("\n"));
 			}
-			
-			Chemical c1=ChemicalBuilder.createFromMol(rawMol,Charset.defaultCharset()).build();
-			c1=getCleanChemical(c1);
+			Chemical c1=null;
+			if(assmiles){
+				c1=ChemicalBuilder.createFromSmiles(rawMol).build();
+			}else{
+				c1=ChemicalBuilder.createFromMol(rawMol,Charset.defaultCharset()).build();
+			}
 			System.out.println("--------------------------------");
 			System.out.println(sdf.getAbsolutePath());
 			System.out.println("--------------------------------");
@@ -252,8 +259,7 @@ public class RegressionTest {
 	//@Ignore
 	@Test
 	public void test1(){
-		File dir1 = getFile("regressionTest/uspto");
-		
+		File dir1 = getFile("regressionTest/usan");
 		try {
 			ChemicalBuilder cb = ChemicalBuilder.createFromSmiles("CCCC");
 			String ii = Inchi.asStdInchi(cb.build()).getKey();
@@ -283,8 +289,8 @@ public class RegressionTest {
 					}
 		    	  	return l;
 		      })
-//		      .collect(shuffler(new Random(11111130l)))		      
-//		      .limit(100)
+		      .collect(shuffler(new Random(11111131l)))		      
+		      .limit(100)
 
 //NOTE, I THINK THIS TECHNICALLY WORKS, BUT SINCE THERE IS PARALLEL THINGS GOING ON IN EACH, IT SOMETIMES WILL STARVE A CASE FOR A LONG TIME
 //		      .parallel()

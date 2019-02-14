@@ -1933,8 +1933,18 @@ public class StructureImageExtractor {
 			        .map(s->Tuple.of(s,GeomUtil.findCenterOfShape(s)))
 			        .filter(st->!growLikelyOCR.stream().filter(g->g.contains(st.v())).findFirst().isPresent())
 			        .map(t->t.k())
+			        .map(t->Tuple.of(t,GeomUtil.findLongestSplittingLine(t)))
+			        
+			        .filter(t->{
+			        	if(t.v()!=null){
+			        		return t.v().length()<ctab.getAverageBondLength()*0.5;
+			        	}
+			        	return true;
+			        })
+			        .map(t->t.k())
 			        .collect(Collectors.toList());
-			
+
+			        
 			List<Shape> maybeDashCollection = GeomUtil.groupThings(maybeDash, t->{
 									Shape s1=t.k();
 									Shape s2=t.v();
@@ -3998,44 +4008,78 @@ public class StructureImageExtractor {
 			    });
 			
 			ctab.getRings()
-		    .stream()
-		    .filter(r->r.size()==6)
-		    .filter(r->r.isConjugated())
-		    .forEach(r->{
-		    	Point2D center=GeomUtil.centerOfMass(r.getConvexHull());
-		    	Shape p=GeomUtil.convexHull2(GeomUtil.makeNPolyCenteredAt(new Point2D.Double(0,0), 6, 100));
-		    	//Shape p2=GeomUtil.convexHull2(GeomUtil.makeNPolyCenteredAt(center, 6, ctab.getAverageBondLength()));
-		    	Point2D anchor = r.getNodes().stream()
-		    			          .map(n->Tuple.of(n, n.getPoint().distance(center)).withVComparator())
-		    			          .max(Comparator.naturalOrder())
-		    			          .map(t->t.k().getPoint())
-		    			          .orElse(null);
-		    	Line2D nline = new Line2D.Double(center,anchor);
-		    	AffineTransform at=GeomUtil.getTransformFromLineToLine(new Line2D.Double(new Point2D.Double(0,0),new Point2D.Double(100,0)),nline,false);
-		    	Shape ns=at.createTransformedShape(p);
-		    	
-		    	Point2D[] verts2 = GeomUtil.vertices(ns);
-		    	
-		    	
-		    	r.getNodes()
-		    	 .forEach(n->{
-		    		Point2D np=Arrays.stream(verts2)
-		    		      .map(v->Tuple.of(v, v.distance(n.getPoint())).withVComparator())
-		    		      .min(Comparator.naturalOrder())
-		    		      .map(t->t.k())
-		    		      .orElse(null);
-		    		n.setPoint(np);
-		    	 });
-		    	
-		    	
-		    	
-		    	
-		    	realRescueOCRCandidates.add(ns);
-		    	
-		    	//realRescueOCRCandidates.add(p2);
-		    	
-		    });
-
+			    .stream()
+			    .filter(r->r.size()==6)
+			    .filter(r->r.isConjugated())
+			    .forEach(r->{
+			    	Point2D center=GeomUtil.centerOfMass(r.getConvexHull());
+			    	Shape p=GeomUtil.convexHull2(GeomUtil.makeNPolyCenteredAt(new Point2D.Double(0,0), 6, 100));
+			    	//Shape p2=GeomUtil.convexHull2(GeomUtil.makeNPolyCenteredAt(center, 6, ctab.getAverageBondLength()));
+			    	Point2D anchor = r.getNodes().stream()
+			    			          .map(n->Tuple.of(n, n.getPoint().distance(center)).withVComparator())
+			    			          .max(Comparator.naturalOrder())
+			    			          .map(t->t.k().getPoint())
+			    			          .orElse(null);
+			    	Line2D nline = new Line2D.Double(center,anchor);
+			    	AffineTransform at=GeomUtil.getTransformFromLineToLine(new Line2D.Double(new Point2D.Double(0,0),new Point2D.Double(100,0)),nline,false);
+			    	Shape ns=at.createTransformedShape(p);
+			    	
+			    	Point2D[] verts2 = GeomUtil.vertices(ns);
+			    	
+			    	
+			    	r.getNodes()
+			    	 .forEach(n->{
+			    		Point2D np=Arrays.stream(verts2)
+			    		      .map(v->Tuple.of(v, v.distance(n.getPoint())).withVComparator())
+			    		      .min(Comparator.naturalOrder())
+			    		      .map(t->t.k())
+			    		      .orElse(null);
+			    		n.setPoint(np);
+			    	 });
+			    	
+			    	
+			    	
+			    	
+			    	realRescueOCRCandidates.add(ns);
+			    	
+			    	//realRescueOCRCandidates.add(p2);
+			    	
+			    });
+//			ctab.getRings()
+//			    .stream()
+//			    .filter(r->r.size()==4)
+//			    .peek(r->System.out.println("Found ring:" + r.size()))
+//			    .forEach(r->{
+//			    	Point2D center=GeomUtil.centerOfMass(r.getConvexHull());
+//			    	Shape p=GeomUtil.convexHull2(GeomUtil.makeNPolyCenteredAt(new Point2D.Double(0,0), 4, 100));
+//			    	//Shape p2=GeomUtil.convexHull2(GeomUtil.makeNPolyCenteredAt(center, 6, ctab.getAverageBondLength()));
+//			    	Point2D anchor = r.getNodes().stream()
+//			    			          .map(n->Tuple.of(n, n.getPoint().distance(center)).withVComparator())
+//			    			          .max(Comparator.naturalOrder())
+//			    			          .map(t->t.k().getPoint())
+//			    			          .orElse(null);
+//			    	Line2D nline = new Line2D.Double(center,anchor);
+//			    	AffineTransform at=GeomUtil.getTransformFromLineToLine(new Line2D.Double(new Point2D.Double(0,0),new Point2D.Double(100,0)),nline,false);
+//			    	Shape ns=at.createTransformedShape(p);
+//			    	
+//			    	Point2D[] verts2 = GeomUtil.vertices(ns);
+//			    	
+//			    	
+//			    	r.getNodes()
+//			    	 .forEach(n->{
+//			    		Point2D np=Arrays.stream(verts2)
+//			    		      .map(v->Tuple.of(v, v.distance(n.getPoint())).withVComparator())
+//			    		      .min(Comparator.naturalOrder())
+//			    		      .map(t->t.k())
+//			    		      .orElse(null);
+//			    		n.setPoint(np);
+//			    	 });
+//			    	
+//			    	realRescueOCRCandidates.add(ns);
+//			    	
+//			    	//realRescueOCRCandidates.add(p2);
+//			    	
+//			    });
 
 
 			if(DEBUG)ctabRaw.add(ctab.cloneTab());

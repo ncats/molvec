@@ -26,11 +26,9 @@ class BranchNode{
 		keepers.add("H");
 		keepers.add("S");
 		keepers.add("P");
-		
-		
+		keepers.add("Hg");
+		keepers.add("Na");
 		keepers.add("B"); //(not sure I want to confirm that yet, it's so rare)
-		
-		
 		keepers.add("Br");
 		keepers.add("Cl");
 		keepers.add("F");
