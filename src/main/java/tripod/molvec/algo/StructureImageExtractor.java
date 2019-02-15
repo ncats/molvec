@@ -2385,13 +2385,46 @@ public class StructureImageExtractor {
 						.sorted()
 						.filter(t->!t.v().k().startsWith("#")) //??? if it isn't a number, this should never be the case now, but might be in the future
 						.map(Tuple.vmap(t->t.k()))
+						.collect(Collectors.toList())
 						.forEach(shapeString->{
 							Shape s= shapeString.k();
 							String sym = shapeString.v();
-							BranchNode actual = BranchNode.interpretOCRStringAsAtom2(sym);
-							Point2D centert = GeomUtil.findCenterOfShape(s);
+							
+							Point2D cen = GeomUtil.findCenterOfShape(s);
+							Point2D centert = cen;
 			
+							BranchNode actual1;
+							if(sym.equals("I")){
+								List<Node> ln=ctab.getNodesInsideShape(s, 2);
+								if(ln.isEmpty())return;
+								boolean isLinker=ln.stream().filter(n->n.getEdgeCount()>1).findAny().isPresent();
+								if(isLinker)return;
+								boolean tooClose=ctab.getNodes()
+								    .stream()
+								    .filter(n->!ln.contains(n))
+								    .filter(n->n.getPoint().distance(cen)<ctab.getAverageBondLength()*0.8)
+								    .findAny()
+								    .isPresent();
+								if(tooClose)return;
+								boolean doublePoss=rejBondOrderLines.stream()
+												  .filter(lw->lw.growLine(ctab.getAverageBondLength()*0.1).contains(cen))
+												  .findAny()
+												  .isPresent();
+								
+								if(doublePoss)return;
+								if(s.getBounds2D().getHeight()>ctab.getAverageBondLength()*0.7){
+									return;
+								}
+								actual1=new BranchNode("I");
+								bestGuessOCR.put(s, "t"); //t is used for 'I' for bad legacy reasons I'm too lazy to fix
+							}else{
+								actual1 = BranchNode.interpretOCRStringAsAtom2(sym);	
+							}
+							BranchNode actual = actual1;
+							
+							
 							if(actual!=null && actual.isRealNode()){
+								
 								if(sym.length()>1){
 									List<Line2D> externalLines=ctab.getAllEdgesEntering(s, MAX_BOND_RATIO_FOR_MERGING_TO_OCR*ctab.getAverageBondLength())
 											.stream()
@@ -2931,10 +2964,11 @@ public class StructureImageExtractor {
 					appliedOCR.add(s);
 					
 					List<Node> nlist=ctab.getNodesInsideShape(s, 0.1).stream().filter(n->!n.isInvented()).collect(Collectors.toList());
-					
 					if(actual.getSymbol().equals("I") && !nlist.isEmpty() && nlist.get(0).getEdgeCount()>1){
+					
 						continue;
 					}
+					
 					
 					//Didn't merge, maybe merge now?
 					if(nlist.size()>1){

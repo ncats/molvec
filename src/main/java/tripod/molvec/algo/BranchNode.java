@@ -30,6 +30,7 @@ class BranchNode{
 		keepers.add("As");
 		keepers.add("D");
 		keepers.add("Hg");
+		//keepers.add("I");
 		keepers.add("Na");
 		keepers.add("B"); //(not sure I want to confirm that yet, it's so rare)
 		keepers.add("Br");
@@ -487,6 +488,9 @@ class BranchNode{
 			return bn;
 		}else if(s.equals("t")){
 			BranchNode bn = new BranchNode("I");
+			return bn;
+		}else if(s.equals("AS") || s.equals("A8")){
+			BranchNode bn = new BranchNode("As");
 			return bn;
 		}else if(s.equals("NCH3") || s.equals("NcH3") || s.equals("NHcH3") || s.equals("NHCH3")){
 			BranchNode bn = new BranchNode("N");
