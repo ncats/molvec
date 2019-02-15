@@ -1012,7 +1012,7 @@ public class StructureImageExtractor {
 			});
 		}
 
-		
+		double[] ignoreTooSmall=new double[]{0.0};
 		
 		while(foundNewOCR[0] && repeats<MAX_OCR_FULL_REPEATS){
 			
@@ -1207,10 +1207,11 @@ public class StructureImageExtractor {
 
 			double averageLine=smallLines.stream()
 					.mapToDouble(l->l.length())
+					.filter(d->d>ignoreTooSmall[0])
 					.average()
 					.orElse(0);
 
-			if(largestBond>2*averageLine){
+			if(largestBond>2.0*averageLine){
 				largestBond=1.4*averageLine;
 			}
 
@@ -1250,6 +1251,7 @@ public class StructureImageExtractor {
 			double maxRatio=0.5;
 			double maxTotalRatio=1.4;
 			
+			List<LineWrapper> dottedLines = new ArrayList<>();
 			
 			
 			while(tooLongBond){
@@ -1277,6 +1279,8 @@ public class StructureImageExtractor {
 				
 				if(DEBUG)ctabRaw.add(ctab.cloneTab());
 				
+				List<Double> allDashLengths = new ArrayList<>();
+				
 				ctab.getEdgesWhichMightBeDottedLines()
 				    .stream()
 				    .map(e->Tuple.of(e,GeomUtil.vertices(e.stream().map(e1->e1.getLine()).collect(Collectors.toList()))))
@@ -1285,6 +1289,7 @@ public class StructureImageExtractor {
 				    	List<Node> rnodes= new ArrayList<>();
 				    	List<Node> lnodes= new ArrayList<>();
 				    	s.k().stream()
+				    		 .peek(e->allDashLengths.add(e.getEdgeLength()))
 				    	     .flatMap(e->e.streamNodes())
 				    	     .distinct()
 				    	     .forEach(n->{
@@ -1296,14 +1301,28 @@ public class StructureImageExtractor {
 				    	    		lnodes.add(n);
 				    	    	}
 				    	     });
+				    	
+				    	dottedLines.add(LineWrapper.of(new Line2D.Double(s.v()[0],s.v()[1])));
 				    	if(rnodes.size()>0 && lnodes.size()>0){
 				    		Edge e=ctab.addEdge(rnodes.get(0).getIndex(), lnodes.get(0).getIndex(), 1);
 				    		e.setDashed(true);
+				    		
+				    		foundNewOCR[0]=true;
 				    	}
 				    	
 				    });
 				ctab.standardCleanEdges();
 				ctab.mergeNodesCloserThan(MAX_DISTANCE_BEFORE_MERGING_NODES);
+				
+				double avgDot=allDashLengths.stream().mapToDouble(d->d).average().orElse(2);
+				
+				if(foundNewOCR[0] && avgDot>ignoreTooSmall[0]){
+					System.out.println("update to line estimate");
+					ignoreTooSmall[0]=avgDot*1.1;
+					break;
+				}else{
+					foundNewOCR[0]=false;
+				}
 
 				for(Shape s: likelyOCR){
 					ctab.mergeAllNodesInsideCenter(s, OCR_TO_BOND_MAX_DISTANCE);
@@ -3840,54 +3859,63 @@ public class StructureImageExtractor {
 									  .filter(d->d.contains(c))
 									  .findFirst();
 							
-							if(isDash.isPresent()){
-								
+							boolean isDotted=dottedLines.stream().map(dl->dl.growLine(ctab.getAverageBondLength()*.3))
+							                   .filter(sl->sl.contains(c))
+							                   .findAny()
+							                   .isPresent();
+							if(isDotted){
 								e.setDashed(true);
-								if(e.getOrder()!=1){
-									if(e.getRealNode1().getSymbol().equals("C") && e.getRealNode2().getSymbol().equals("C")){
-											//do nothing
-									}else{
-										e.setOrder(1);
-									}							
-								}
-								
-								Point2D cmass=GeomUtil.centerOfMass(isDash.get());
-								if(e.getRealNode1().getPoint().distance(cmass)< e.getRealNode2().getPoint().distance(cmass)){
-									e.switchNodes();
-								}
 							}else{
-								//IDK
-								if(e.getRealNode1().getSymbol().equals("C") && e.getRealNode2().getSymbol().equals("C")){
-									//well, sometimes it's still okay to be a dash, if we _really_ think that
-									//it's a "regular" dashed line "- - - - "
-									//instead of the wedge-like dash line "| | | | |"
-									//Not sure how to check for this
-									if(e.getDashed() && e.getOrder()==1){
-										//Keep it _only_ if there are 
-										//at least 3 lines that are found in the area around the bond
-										double grow=ctab.getAverageBondLength()*0.1;
-										Shape lshape=useLine.growLine(grow);
-										List<Shape> lineShapes=lines.stream()
-										     .filter(l->!bestGuessOCR.keySet().stream().filter(ss->ss.contains(l.centerPoint())).findAny().isPresent())
-										     .filter(l->l.absCosTheta(useLine)>0.8)
-										     .filter(l->lshape.contains(l.centerPoint()))
-										     .map(l->l.growLine(grow))
-										     .collect(Collectors.toList());
-										
-										if(lineShapes.size()<3){
-											e.setDashed(false);
+							
+								if(isDash.isPresent()){
+									
+									e.setDashed(true);
+									if(e.getOrder()!=1){
+										if(e.getRealNode1().getSymbol().equals("C") && e.getRealNode2().getSymbol().equals("C")){
+												//do nothing
 										}else{
-											double tarea=lineShapes.stream()
-											                       .mapToDouble(s->GeomUtil.area(s))
-											                       .sum();
-											if(tarea>0.7*GeomUtil.area(lshape)){
+											e.setOrder(1);
+										}							
+									}
+									
+									Point2D cmass=GeomUtil.centerOfMass(isDash.get());
+									if(e.getRealNode1().getPoint().distance(cmass)< e.getRealNode2().getPoint().distance(cmass)){
+										e.switchNodes();
+									}
+								}else{
+									//IDK
+									if(e.getRealNode1().getSymbol().equals("C") && e.getRealNode2().getSymbol().equals("C")){
+										//well, sometimes it's still okay to be a dash, if we _really_ think that
+										//it's a "regular" dashed line "- - - - "
+										//instead of the wedge-like dash line "| | | | |"
+										//Not sure how to check for this
+										if(e.getDashed() && e.getOrder()==1){
+											//Keep it _only_ if there are 
+											//at least 3 lines that are found in the area around the bond
+											double grow=ctab.getAverageBondLength()*0.1;
+											Shape lshape=useLine.growLine(grow);
+											List<Shape> lineShapes=lines.stream()
+											     .filter(l->!bestGuessOCR.keySet().stream().filter(ss->ss.contains(l.centerPoint())).findAny().isPresent())
+											     .filter(l->l.absCosTheta(useLine)>0.8)
+											     .filter(l->lshape.contains(l.centerPoint()))
+											     .map(l->l.growLine(grow))
+											     .collect(Collectors.toList());
+											
+											if(lineShapes.size()<3){
 												e.setDashed(false);
+											}else{
+												double tarea=lineShapes.stream()
+												                       .mapToDouble(s->GeomUtil.area(s))
+												                       .sum();
+												if(tarea>0.7*GeomUtil.area(lshape)){
+													e.setDashed(false);
+												}
 											}
 										}
 									}
+									return bitmap.getconfexHullAlongLine(useLine.getLine())
+											.map(w->Tuple.of(e,w));
 								}
-								return bitmap.getconfexHullAlongLine(useLine.getLine())
-										.map(w->Tuple.of(e,w));
 							}
 						}
 						return Optional.empty();

@@ -1222,6 +1222,9 @@ public class ConnectionTable{
 	public double getAverageBondLength(){
 		return _averageBondLength.get();
 	}
+	public double getLargestBondLength(){
+		return this.getEdges().stream().mapToDouble(e->e.getEdgeLength()).max().orElse(1);
+	}
 	
 	private CachedSupplier<Double> _averageBondLength=CachedSupplier.of(()->{
 			return getMeanBondLength();
