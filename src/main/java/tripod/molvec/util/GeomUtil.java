@@ -904,16 +904,16 @@ public class GeomUtil {
     	return groupThings(points,merge);
     }
     
-    public static <T> List<List<T>> groupThings(Collection<T> points, Predicate<Tuple<T,T>> merge){
-    	int[] groups = IntStream.range(0, points.size())
+    public static <T> List<List<T>> groupThings(Collection<T> things, Predicate<Tuple<T,T>> merge){
+    	int[] groups = IntStream.range(0, things.size())
     							.toArray();
-    	BitSet bs = new BitSet(points.size());
+    	BitSet bs = new BitSet(things.size());
     	
-    	List<T> asList = (points instanceof List)?(List<T>)points:points.stream().collect(Collectors.toList());
+    	List<T> asList = (things instanceof List)?(List<T>)things:things.stream().collect(Collectors.toList());
     	
-    	for(int i=0;i<points.size();i++){
+    	for(int i=0;i<things.size();i++){
     		T p1=asList.get(i);
-    		for(int j=i+1;j<points.size();j++){
+    		for(int j=i+1;j<things.size();j++){
     			T p2=asList.get(j);
     			if(merge.test(Tuple.of(p1,p2))){
     				int g1= groups[i];
@@ -935,7 +935,7 @@ public class GeomUtil {
     	}
     	
     	
-    	return IntStream.range(0, points.size())
+    	return IntStream.range(0, things.size())
     	         .mapToObj(i->Tuple.of(groups[i],i))
     	         .map(Tuple.vmap(i->asList.get(i)))
     	         .collect(Tuple.toLinkedGroupedMap())
@@ -1750,6 +1750,13 @@ public class GeomUtil {
 		
 	}
 	
+	public static List<List<Line2D>> groupMultipleBondsPreGrouped(List<List<LineWrapper>> lineLists, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio, double minLargerProjectionRatio){
+		return lineLists.stream()
+					    .flatMap(ll->groupMultipleBonds(ll, maxDeltaTheta,  maxDeltaOffset,  minProjectionRatio,  minLargerProjectionRatio).stream())
+					    .collect(Collectors.toList());
+		
+	}
+	
 	
 	/**
 		 * <p>Currently, this method takes in a set of lines and attempts to group the lines based on being</p>
@@ -1775,6 +1782,8 @@ public class GeomUtil {
 			double cosThetaCutoff=Math.cos(maxDeltaTheta);
 			
 			List<LineWrapper> lws=lines;
+			
+			
 			
 			return GeomUtil.groupThings(lws, (lt)->{
 				LineWrapper line1=lt.k();
@@ -1827,9 +1836,9 @@ public class GeomUtil {
 	 * @param minLargerProjectionRatio
 	 * @return
 	 */
-	public static List<Tuple<Line2D, Integer>> reduceMultiBonds(List<LineWrapper> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio, double minLargerProjectionRatio, double maxStitchLineDistanceDelta, Consumer<Line2D> rejected){
+	public static List<Tuple<Line2D, Integer>> reduceMultiBonds(List<List<LineWrapper>> lines, double maxDeltaTheta, double maxDeltaOffset, double minProjectionRatio, double minLargerProjectionRatio, double maxStitchLineDistanceDelta, Consumer<Line2D> rejected){
 		
-		return groupMultipleBonds(lines,maxDeltaTheta,maxDeltaOffset,minProjectionRatio,minLargerProjectionRatio)
+		return groupMultipleBondsPreGrouped(lines,maxDeltaTheta,maxDeltaOffset,minProjectionRatio,minLargerProjectionRatio)
 				.stream()
 				//.map(l->GeomUtil.stitchSufficientlyStitchableLines(l, maxStitchLineDistanceDelta))
 				.map(l->GeomUtil.getLineOffsetsToLongestLine(l))

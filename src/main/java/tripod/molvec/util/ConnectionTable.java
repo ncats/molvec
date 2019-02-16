@@ -420,7 +420,7 @@ public class ConnectionTable{
 				atoms[i].setCharge(n.getCharge());
 			}
 			if(isotope!=0){
-//				atoms[i].setIsotope(isotope);
+				atoms[i].setMassNumber(isotope);
 			}
 		}
 		cb.aromatize(true);
@@ -1290,6 +1290,24 @@ public class ConnectionTable{
 			
 		}
 		
+		public List<Ring> getAllRings(){
+			List<Ring> rings = ConnectionTable.this.getRings();
+			
+			return rings.stream()
+					.filter(r->r.getNodes().contains(this))
+					.collect(Collectors.toList());
+		}
+
+		public Optional<Ring> getSmallestRing(){
+			List<Ring> rings = ConnectionTable.this.getRings();
+			
+			return rings.stream()
+					.filter(r->r.getNodes().contains(this))
+				    .map(r->Tuple.of(r,r.size()).withVComparator())
+				    .min(Comparator.naturalOrder())
+				    .map(t->t.k());
+		}
+		
 		public OptionalInt getSmallestRingSize(){
 			List<Ring> rings = ConnectionTable.this.getRings();
 			
@@ -1494,6 +1512,25 @@ public class ConnectionTable{
 
 		public boolean hasNode(Node n) {
 			if(this.getRealNode1()==n||this.getRealNode2()==n)return true;
+			return false;
+		}
+
+		public boolean isRingEdge() {
+			long rep=this.streamNodes()
+			    .map(n->n.getAllRings())
+			    .filter(r->r.size()>0)
+			    .flatMap(r->r.stream())
+			    .collect(Collectors.groupingBy(r->r))
+			    .entrySet()
+			    .stream()
+			    .map(Tuple::of)
+			    .map(t->t.v())
+			    .filter(v->v.size()==2)
+			    .count();
+			
+			if(rep>0){
+				return true;
+			}
 			return false;
 		}
 		

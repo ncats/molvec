@@ -27,6 +27,7 @@ class BranchNode{
 		keepers.add("S");
 		keepers.add("P");
 		keepers.add("Pt");
+		keepers.add("K");
 		keepers.add("As");
 		keepers.add("D");
 		keepers.add("Hg");

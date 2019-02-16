@@ -289,8 +289,8 @@ public class RegressionTest {
 					}
 		    	  	return l;
 		      })
-		      .collect(shuffler(new Random(11111136l)))		      
-		      .limit(100)
+//		      .collect(shuffler(new Random(11111137l)))		      
+//		      .limit(1000)
 
 //NOTE, I THINK THIS TECHNICALLY WORKS, BUT SINCE THERE IS PARALLEL THINGS GOING ON IN EACH, IT SOMETIMES WILL STARVE A CASE FOR A LONG TIME
 //		      .parallel()

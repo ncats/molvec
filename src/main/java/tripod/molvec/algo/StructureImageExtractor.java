@@ -1198,6 +1198,8 @@ public class StructureImageExtractor {
 					bigLines.stream().map(l->LineWrapper.of(l)),
 					smallLines.stream())
 					.collect(Collectors.toList());
+			
+			
 
 
 			double largestBond=smallLines.stream()
@@ -1215,14 +1217,25 @@ public class StructureImageExtractor {
 				largestBond=1.4*averageLine;
 			}
 
-			List<LineWrapper> preprocess= GeomUtil.reduceMultiBonds(linesJoined, MAX_ANGLE_FOR_PARALLEL, MAX_DISTANCE_TO_MERGE_PARALLEL_LINES, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS,0,MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC, (l)->{})
+			List<List<LineWrapper>> preprocess= GeomUtil.reduceMultiBonds(Arrays.asList(linesJoined), MAX_ANGLE_FOR_PARALLEL, MAX_DISTANCE_TO_MERGE_PARALLEL_LINES, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS,0,MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC, (l)->{})
 					.stream()
 					.map(t->t.k())
 					.map(t->LineWrapper.of(t))
+					.map(t->Tuple.of(t,likelyOCR.stream()
+							                    .filter(s->s.contains(t.centerPoint()))
+							                    .findAny()
+							                    .isPresent()))
+					.collect(Collectors.groupingBy(t->t.v()))
+					.values()
+					.stream()
+					.map(tl->tl.stream().map(t->t.k()).collect(Collectors.toList()))
 					.collect(Collectors.toList());
 
 
 			List<LineWrapper> rejBondOrderLines=new ArrayList<>();
+			
+			
+			
 			
 			linesOrder=GeomUtil.reduceMultiBonds(preprocess, MAX_ANGLE_FOR_PARALLEL, largestBond/3, MIN_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS, MIN_BIGGER_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS,MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC,
 					(rejLine->rejBondOrderLines.add(LineWrapper.of(rejLine)))
@@ -3996,7 +4009,7 @@ public class StructureImageExtractor {
 			
 			
 
-			GeomUtil.eachCombination(ctab.getNodes())
+			GeomUtil.eachCombination(ctab.getNodes().stream().filter(n->!n.isInvented()).collect(Collectors.toList()))
 					.filter(t->t.k().distanceTo(t.v())<1.2*ctab.getAverageBondLength())
 					.filter(t->!t.k().getBondTo(t.v()).isPresent())
 					.forEach(t1->{
@@ -4341,6 +4354,7 @@ public class StructureImageExtractor {
 		       .forEach(cp->{
 		    	   ctab.getEdgesWithCenterWithin(cp,ctab.getAverageBondLength())
 				       .stream()
+				       .filter(e->e.isRingEdge())
 				       .forEach(Edge::setToAromatic);
 		       });
 		
