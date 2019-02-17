@@ -6,7 +6,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -22,9 +21,10 @@ import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.junit.Ignore;
 import org.junit.Test;
+import org.openscience.cdk.interfaces.IBond.Stereo;
 
+import gov.nih.ncats.chemkit.api.Bond;
 import gov.nih.ncats.chemkit.api.Chemical;
 import gov.nih.ncats.chemkit.api.ChemicalBuilder;
 import gov.nih.ncats.chemkit.api.inchi.Inchi;
@@ -64,7 +64,54 @@ public class RegressionTest {
 		String[] lines = c.toMol().split("\n");
 		lines[1]="";
 		String mol=Arrays.stream(lines).collect(Collectors.joining("\n"));
-		return Chemical.parseMol(mol);
+		Chemical nc= Chemical.parseMol(mol);
+		
+		
+		Set<String> metals = Stream.of("Na","K","Li","Mg", "Pt").collect(Collectors.toSet());
+		
+		Set<String> bondsToRemove = nc.bonds()
+		.filter(b->{
+			if(metals.contains(b.getAtom1().getSymbol())){
+				
+				b.getAtom1().setCharge(b.getAtom1().getCharge()+1);
+				b.getAtom2().setCharge(b.getAtom2().getCharge()-1);
+				return true;
+			}else if(metals.contains(b.getAtom2().getSymbol())){
+				
+				b.getAtom2().setCharge(b.getAtom2().getCharge()+1);
+				b.getAtom1().setCharge(b.getAtom1().getCharge()-1);
+				return true;
+			}
+			return false;
+		})
+		.map(b->Tuple.of(b.getAtom1(),b.getAtom2()))
+		.map(Tuple.vmap(a->a.getAtomIndexInParent()+1))
+		.map(Tuple.kmap(a->a.getAtomIndexInParent()+1))
+		.map(Tuple.vmap(i->("   " + i)))
+		.map(Tuple.kmap(i->("   " + i)))
+		.map(Tuple.vmap(i->i.toString().substring(i.toString().length()-3)))
+		.map(Tuple.kmap(i->i.toString().substring(i.toString().length()-3)))
+		.map(t->t.k()+t.v())
+		//.peek(s->System.out.println(s))
+		.collect(Collectors.toSet());
+		
+		if(!bondsToRemove.isEmpty()){
+			String[] lines2 = nc.toMol().split("\n");
+			//System.out.println("OLD:" + nc.toMol());
+			String padBonds = "   " + (nc.getBondCount()-bondsToRemove.size());
+			padBonds=padBonds.substring(padBonds.length()-3);
+			
+			lines2[3]=lines2[3].substring(0, 3) + padBonds + lines2[3].substring(6);
+			String mol2=Arrays.stream(lines2)
+					          .filter(bl->!bondsToRemove.contains((bl+"      ").substring(0, 6)))
+					          .collect(Collectors.joining("\n"));
+			
+			nc= Chemical.parseMol(mol2);
+			//System.out.println("NEW:" + nc.toMol());
+		}
+		  
+		
+		return nc;
 	}
 	
 	
@@ -272,7 +319,6 @@ public class RegressionTest {
 		
 		Arrays.stream(dir1.listFiles())
 		      .filter(f->f.getName().contains("."))
-		      //.filter(f->f.getName().contains("2008058707_41_chem"))
 		      
 		      .map(f->Tuple.of(f.getName().split("[.]")[0],f))
 		      .collect(Tuple.toGroupedMap())
@@ -289,8 +335,8 @@ public class RegressionTest {
 					}
 		    	  	return l;
 		      })
-//		      .collect(shuffler(new Random(11111137l)))		      
-//		      .limit(1000)
+		      .collect(shuffler(new Random(11111140l)))		      
+		      .limit(100)
 
 //NOTE, I THINK THIS TECHNICALLY WORKS, BUT SINCE THERE IS PARALLEL THINGS GOING ON IN EACH, IT SOMETIMES WILL STARVE A CASE FOR A LONG TIME
 //		      .parallel()

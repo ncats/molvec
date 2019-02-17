@@ -3029,6 +3029,15 @@ public class MoleculeTest {
 			assertEquals(keyReal,keyGot);
 		} )});
 		
+		//cagedStructure5.png
+				list.add(new Object[]{"cagedStructure5", new TestSpec("moleculeTest/cagedStructure5.png", c->{
+					Chemical cReal=ChemicalBuilder.createFromSmiles("COC1C2CC3=CC=C(O)C=C3C1(C)CCN2CC4CC4").build();
+
+					String keyReal=Inchi.asStdInchi(cReal).getKey();
+					String keyGot=Inchi.asStdInchi(c).getKey();
+					assertEquals(keyReal,keyGot);
+				} )});
+		
 
 		
 		list.add(new Object[]{"nhOnTopOfEachOther", new TestSpec("moleculeTest/NHOnTopOfEachOther.png", c->{

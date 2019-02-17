@@ -1330,7 +1330,6 @@ public class StructureImageExtractor {
 				double avgDot=allDashLengths.stream().mapToDouble(d->d).average().orElse(2);
 				
 				if(foundNewOCR[0] && avgDot>ignoreTooSmall[0]){
-					System.out.println("update to line estimate");
 					ignoreTooSmall[0]=avgDot*1.1;
 					break;
 				}else{
@@ -1522,14 +1521,16 @@ public class StructureImageExtractor {
 				}, (nn)->{
 					intersectionNodes.add(nn.getPoint());
 				});
-
+				List<Shape> expectedLineZones =Stream.concat(growLines.stream(), likelyOCR.stream()).collect(Collectors.toList());
+				
 				ctab.getEdges()
 				    .stream()
 				    .filter(e->splitEdges.contains(e))
 				    .collect(Collectors.toList())
 				    .forEach(e->{
 				    	Line2D ll=e.getLine();
-				    	double totLen=GeomUtil.getLinesNotInside(ll,growLines).stream().mapToDouble(l->GeomUtil.length(l)).sum();
+				    	
+				    	double totLen=GeomUtil.getLinesNotInside(ll,expectedLineZones).stream().mapToDouble(l->GeomUtil.length(l)).sum();
 				    	if(totLen>GeomUtil.length(ll)*0.8){
 				    		ctab.removeEdge(e);
 				    	}
@@ -2084,6 +2085,20 @@ public class StructureImageExtractor {
 						){
 					return false;
 				}
+				
+				double pvoverlapT = Math.max(s1y2, s2y2) - Math.min(s1y1, s2y1);
+				double pvoverlapI = Math.min(s1y2, s2y2) - Math.max(s1y1, s2y1);
+				
+				if(pvoverlapI<pvoverlapT*0.4){
+					if(likelyOCR.contains(shapes[0]) && likelyOCR.contains(shapes[1])){
+						if(!v1.equalsIgnoreCase("S") && !v2.equalsIgnoreCase("S")){
+							return false;	
+						}
+						
+					}
+				}
+				
+				
 
 				Point2D cs1=GeomUtil.findCenterOfShape(shapes[0]);
 				Point2D cs2=GeomUtil.findCenterOfShape(shapes[1]);
@@ -2840,6 +2855,24 @@ public class StructureImageExtractor {
 									});
 								return;
 							}
+							
+							if(n1.getEdgeCount()==4 && intersectionNodes.stream().filter(in->in.distance(p1)<2).findAny().isPresent()){
+								things.stream()
+									.map(t->t.v())
+									.forEach(e2->{
+										skip.add(e2);
+									});
+								return;
+							}
+							if(n2.getEdgeCount()==4 && intersectionNodes.stream().filter(in->in.distance(p2)<2).findAny().isPresent()){
+								things.stream()
+									.map(t->t.v())
+									.forEach(e2->{
+										skip.add(e2);
+									});
+								return;
+							}
+							
 							
 	
 							Edge oedge1=things.get(0).v();
