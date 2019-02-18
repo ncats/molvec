@@ -1008,7 +1008,7 @@ public class StructureImageExtractor {
 				}
 				likelyOCRAll.add(s);
 				
-				realRescueOCRCandidates.add(s);
+				//realRescueOCRCandidates.add(s);
 			});
 		}
 
@@ -1288,6 +1288,39 @@ public class StructureImageExtractor {
 						maxCandidateRatioForIntersectionWithNeighbor,
 						GeomUtil.longerThan(maxBondLength[0]).negate())
 						.mergeNodesCloserThan(MAX_DISTANCE_BEFORE_MERGING_NODES);
+
+				if(DEBUG)ctabRaw.add(ctab.cloneTab());
+				
+				ctab.getEdgesWhichMightBeWiggleLines()
+					.forEach(t->{
+						
+						realRescueOCRCandidates.add(t.k().getLine());
+						
+						Point2D p1=t.k().getLine().getP1();
+						Point2D p2=t.k().getLine().getP2();
+						List<Node> rnodes= new ArrayList<>();
+				    	List<Node> lnodes= new ArrayList<>();
+				    	t.v().stream()
+				    		 .flatMap(e->e.streamNodes())
+				    	     .distinct()
+				    	     .forEach(n->{
+				    	    	if(n.getPoint().distance(p1) <n.getPoint().distance(p2)){
+				    	    		n.setPoint(p1);
+				    	    		rnodes.add(n);
+				    	    	}else{
+				    	    		n.setPoint(p2);
+				    	    		lnodes.add(n);
+				    	    	}
+				    	     });
+				    	
+				    	if(rnodes.size()>0 && lnodes.size()>0){
+				    		Edge e=ctab.addEdge(rnodes.get(0).getIndex(), lnodes.get(0).getIndex(), 1);
+				    		e.setDashed(true);
+				    		foundNewOCR[0]=true;
+				    	}
+					});
+				ctab.mergeNodesCloserThan(MAX_DISTANCE_BEFORE_MERGING_NODES);
+				ctab.standardCleanEdges();
 				
 				
 				if(DEBUG)ctabRaw.add(ctab.cloneTab());
@@ -1700,7 +1733,7 @@ public class StructureImageExtractor {
 				}
 				if(reps>MAX_REPS)break;
 			}
-			realRescueOCRCandidates.addAll(rescueOCRCandidates);
+			//realRescueOCRCandidates.addAll(rescueOCRCandidates);
 
 
 			AtomicBoolean anyOtherIntersections = new AtomicBoolean(false);
@@ -3229,7 +3262,7 @@ public class StructureImageExtractor {
 									likelyOCRNonBond.remove(p);
 									likelyOCRAll.remove(p);
 									likelyOCRIgnore.add(GeomUtil.growShapeNPoly(p, 2, 16));
-									realRescueOCRCandidates.add(GeomUtil.growShapeNPoly(p, 2, 16));
+									//realRescueOCRCandidates.add(GeomUtil.growShapeNPoly(p, 2, 16));
 									foundNewOCR[0]=true;
 						        });
 					}
@@ -3760,7 +3793,7 @@ public class StructureImageExtractor {
 			
 			maybeDashCollection
 					.forEach(bshape->{
-								realRescueOCRCandidates.add(GeomUtil.growShapeNPoly(bshape,2,12));
+								//realRescueOCRCandidates.add(GeomUtil.growShapeNPoly(bshape,2,12));
 							
 							
 								//Looks very promising
@@ -4176,7 +4209,7 @@ public class StructureImageExtractor {
 			    	
 			    	
 			    	
-			    	realRescueOCRCandidates.add(ns);
+			    	//realRescueOCRCandidates.add(ns);
 			    	
 			    	//realRescueOCRCandidates.add(p2);
 			    	

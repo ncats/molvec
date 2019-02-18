@@ -328,7 +328,99 @@ public class ConnectionTable{
 		.collect(Collectors.toList());
 		
 	}
-	
+	public List<Tuple<LineWrapper,List<Edge>>> getEdgesWhichMightBeWiggleLines(){		
+		double maxRatio = 0.7;
+
+		List<List<Edge>> elist= this.getEdges()
+		    .stream()
+		    .map(e->Tuple.of(e,e.getLine()))
+		    .map(Tuple.vmap(l->LineWrapper.of(l)))
+		    .collect(GeomUtil.groupThings(t->{
+		    	LineWrapper lw1=t.k().v();
+		    	LineWrapper lw2=t.v().v();
+		    	
+		    	double rat = lw1.length()*lw2.recipLength();
+		    	if(rat>maxRatio && rat<=(1/maxRatio)){
+		    		double lim = (lw1.length()+lw2.length())/2;
+		    		
+		    		if(lw1.centerPoint().distance(lw2.centerPoint()) <=lim){
+		    			return true;
+		    		}
+		    	}
+		    	
+		    	
+		    	return false;
+		    }))
+		    .stream()
+		    .map(l->l.stream().map(t->t.k()).collect(Collectors.toList()))
+		    .collect(Collectors.toList());
+		
+		double maxLen=elist.stream()
+		     .filter(ll->ll.size()>1)
+		     .mapToDouble(ll->ll.stream().mapToDouble(l->l.getEdgeLength()).average().orElse(0))
+		     .max()
+		     .orElse(1);
+		List<List<Edge>> elist2= this.getEdges()
+			    .stream()
+			    .filter(e->e.getEdgeLength()<maxLen*maxRatio)
+			    .map(e->Tuple.of(e,e.getLine()))
+			    .map(Tuple.vmap(l->LineWrapper.of(l)))
+			    .collect(GeomUtil.groupThings(t->{
+			    	LineWrapper lw1=t.k().v();
+			    	LineWrapper lw2=t.v().v();
+			    	double lim = (lw1.length()+lw2.length())/2;
+		    		
+		    		if(lw1.centerPoint().distance(lw2.centerPoint()) <=lim){
+		    				return true;
+		    		}
+			    	
+			    	
+			    	return false;
+			    }))
+			    .stream()
+			    .map(l->l.stream().map(t->t.k()).collect(Collectors.toList()))
+			    .collect(Collectors.toList());
+		return elist2.stream()
+		     .filter(ll->ll.size()>=5)
+		     .map(ll->Tuple.of(ll,ll.stream()
+		    		                .flatMap(e->e.streamNodes())
+		    		                .map(n->n.getPoint())
+		    		                .collect(GeomUtil.convexHull())
+		    		                ))
+		     .map(Tuple.vmap(s->GeomUtil.findLongestSplittingLine(s)))
+		     .filter(t->t.v().length()<=maxLen*(1/maxRatio))
+		     .filter(t->t.v().length()>=maxLen*(maxRatio))
+		     .filter(t->{
+		    	 int[] cc=new int[]{0,0};
+		    	 t.k().stream()
+		    	  .flatMap(e->e.streamNodes()).distinct()
+		    	  .map(n->n.getPoint())
+		    	  .map(p->GeomUtil.projectPointOntoLineWithRejection(t.v().getLine(), p))
+		    	  .map(t1->t1.v())
+		    	  .forEach(d->{
+		    		  if(d>0){
+		    			  cc[0]++;
+		    		  }else{
+		    			  cc[1]++;
+		    		  }
+		    	  });
+		    	 
+		    	 if(cc[0]>0 && cc[1]>0){
+		    		 double ratAbove=((double)cc[0])/(double)((cc[0]+cc[1]));
+		    		 if(ratAbove>=0.3 && ratAbove<=0.7){
+		    			 return true;
+		    		 }
+		    	 }
+		    	 
+		    	 return false;
+		     })
+		     .map(t->t.swap())
+		     .collect(Collectors.toList())
+		     ; 
+		
+		
+		    
+	}
 	
 	public List<List<Edge>> getEdgesWhichMightBeDottedLines(){
 //		double longestEdge1=this.getEdges()

@@ -3409,6 +3409,58 @@ public class MoleculeTest {
 			String keyGot=Inchi.asStdInchi(c).getKey();
 			assertEquals(keyReal,keyGot);
 		} )});
+		//wiggleBond.png
+		list.add(new Object[]{"wiggleBond", new TestSpec("moleculeTest/wiggleBond.png", c->{
+			String mol =
+					"\n" + 
+					"\n" + 
+					"\n" + 
+					" 19 20  0  0  0  0  0  0  0  0999 V2000\n" + 
+					"   -0.2234    0.4263    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.2859    0.4702    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -4.2501    0.4263    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.2510    0.4429    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.7563   -0.4216    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.2376   -1.3028    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.2526   -1.3028    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.7538   -0.4183    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    2.2359    1.2998    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.2411    1.3040    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.7392    0.4429    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.2339   -0.4204    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.7364    1.2908    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    2.7306    0.4346    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    2.2287   -0.4245    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    3.7669    0.4702    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    4.2488    1.2908    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.7538    1.2975    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    4.2488   -0.4382    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  1  2  1  0  0  0  0 \n" + 
+					"  2  5  1  0  0  0  0 \n" + 
+					"  4  3  1  6  0  0  0 \n" + 
+					" 12 15  1  0  0  0  0 \n" + 
+					" 11 12  2  0  0  0  0 \n" + 
+					"  5  6  1  6  0  0  0 \n" + 
+					" 14 16  1  0  0  0  0 \n" + 
+					"  4 18  1  0  0  0  0 \n" + 
+					" 14 15  2  0  0  0  0 \n" + 
+					"  4  8  1  0  0  0  0 \n" + 
+					"  5  8  1  0  0  0  0 \n" + 
+					" 16 17  2  0  0  0  0 \n" + 
+					"  8  7  1  1  0  0  0 \n" + 
+					" 16 19  1  0  0  0  0 \n" + 
+					" 13 18  1  0  0  0  0 \n" + 
+					"  9 10  2  0  0  0  0 \n" + 
+					"  9 14  1  0  0  0  0 \n" + 
+					"  2 13  1  0  0  0  0 \n" + 
+					"  1 11  1  0  0  0  0 \n" + 
+					" 10 11  1  0  0  0  0 \n" + 
+					"M  END";
+			Chemical cReal=Chemical.parseMol(mol);
+			String keyReal=Inchi.asStdInchi(cReal).getKey();
+			String keyGot=Inchi.asStdInchi(c).getKey();
+			assertEquals(keyReal,keyGot);
+		} )});
 
 		//nitrogenAttachedToBondAndPlus.png
 		list.add(new Object[]{"nitrogenAttachedToBondAndPlus", new TestSpec("moleculeTest/nitrogenAttachedToBondAndPlus.png", c->{
