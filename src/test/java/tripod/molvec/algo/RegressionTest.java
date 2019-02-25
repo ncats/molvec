@@ -21,6 +21,7 @@ import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.openscience.cdk.interfaces.IBond.Stereo;
 
