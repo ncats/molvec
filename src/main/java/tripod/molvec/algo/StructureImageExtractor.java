@@ -4097,6 +4097,7 @@ public class StructureImageExtractor {
 						if(useLine==null)return;
 						long c=polygons.stream()
 								.filter(s->GeomUtil.getIntersection(s, useLine).isPresent())
+								.filter(s->GeomUtil.findLongestSplittingLine(s).length()<ctab.getAverageBondLength())
 								.count();
 						if(c>2){
 							ctab.addEdge(t1.k().getIndex(), t1.v().getIndex(), 1);
