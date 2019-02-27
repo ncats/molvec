@@ -3801,16 +3801,21 @@ public class StructureImageExtractor {
 								Point2D[] pts=GeomUtil.getPairOfFarthestPoints(bshape);
 								List<Node> forN1=ctab.getNodes()
 								    .stream()
-								    .filter(n->n.getPoint().distance(pts[0])< ctab.getAverageBondLength()*0.3)
+								    .filter(n->n.getPoint().distance(pts[0])< ctab.getAverageBondLength()*0.6)
 								    .collect(Collectors.toList());
 								List<Node> forN2=ctab.getNodes()
 									    .stream()
-									    .filter(n->n.getPoint().distance(pts[1])< ctab.getAverageBondLength()*0.3)
+									    .filter(n->n.getPoint().distance(pts[1])< ctab.getAverageBondLength()*0.6)
+									    .filter(n->!forN1.contains(n))
 									    .collect(Collectors.toList());
 								
 								
 								
 								if(forN1.size()+forN2.size()==0)return;
+								LineWrapper splitLine=GeomUtil.findLongestSplittingLine(bshape);
+								
+								
+								
 								
 								if(forN1.size()+forN2.size()>1){
 									if(forN1.size()>1){
@@ -3826,7 +3831,9 @@ public class StructureImageExtractor {
 									}else{
 										if(forN1.size()==1 && forN2.size()==1){
 											//probably reset the nodes now
-											LineWrapper splitLine=GeomUtil.findLongestSplittingLine(bshape);
+											//realRescueOCRCandidates.add(GeomUtil.growShapeNPoly(bshape,2,12));
+											
+											realRescueOCRCandidates.add(splitLine.getLine());
 											Node n1=forN1.get(0);	
 											Node n2=forN2.get(0);
 											Point2D np1=splitLine.projectPointOntoLine(n1.getPoint());
@@ -3869,7 +3876,7 @@ public class StructureImageExtractor {
 										Node realNode=ctab.addNode(op);
 										BranchNode bn=bestGuessOCR.entrySet().stream()
 																 .map(Tuple::of)
-																 .filter(t->t.k().contains(op))
+																 .filter(t->GeomUtil.growShapeNPoly(t.k(), len*0.3, 12).contains(op))
 																 .map(Tuple.vmap(s1->BranchNode.interpretOCRStringAsAtom2(s1)))
 																 .findFirst()
 																 .map(t->t.v())
@@ -3895,7 +3902,7 @@ public class StructureImageExtractor {
 				});
 				ctab.standardCleanEdges();
 			}
-			
+			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 			        
 			//Not sure about this, sometimes want to do a final merge
 			ctab.getNodes()
@@ -4040,7 +4047,7 @@ public class StructureImageExtractor {
 							e.setWedge(true);
 							wedgeEdges.add(e);
 							e.switchNodes();
-						}else if(s.getAverageThickness()>averageThickness*2.5){
+						}else if(s.getAverageThickness()>averageThickness*2.2){
 							//very thick line
 							thickEdges.add(e);
 							e.setWedge(true);
@@ -4076,7 +4083,7 @@ public class StructureImageExtractor {
 			
 
 			GeomUtil.eachCombination(ctab.getNodes().stream().filter(n->!n.isInvented()).collect(Collectors.toList()))
-					.filter(t->t.k().distanceTo(t.v())<1.2*ctab.getAverageBondLength())
+					.filter(t->t.k().distanceTo(t.v())<1.5*ctab.getAverageBondLength())
 					.filter(t->!t.k().getBondTo(t.v()).isPresent())
 					.forEach(t1->{
 						Line2D l2 = new Line2D.Double(t1.k().getPoint(),t1.v().getPoint());
