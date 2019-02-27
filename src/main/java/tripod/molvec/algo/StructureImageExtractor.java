@@ -4087,19 +4087,32 @@ public class StructureImageExtractor {
 					.filter(t->!t.k().getBondTo(t.v()).isPresent())
 					.forEach(t1->{
 						Line2D l2 = new Line2D.Double(t1.k().getPoint(),t1.v().getPoint());
-						Line2D useLine=GeomUtil.getLinesNotInside(l2, growLikelyOCR)
+						LineWrapper useLine=GeomUtil.getLinesNotInside(l2, growLikelyOCR)
 								.stream()
 								.map(l->LineWrapper.of(l))
 								.max(Comparator.naturalOrder())
-								.map(l->l.getLine())
 								.orElse(null);
 						
 						if(useLine==null)return;
-						long c=polygons.stream()
-								.filter(s->GeomUtil.getIntersection(s, useLine).isPresent())
-								.filter(s->GeomUtil.findLongestSplittingLine(s).length()<ctab.getAverageBondLength())
-								.count();
-						if(c>2){
+						List<LineWrapper> lt=polygons.stream()
+								.filter(s->GeomUtil.getIntersection(s, useLine.getLine()).isPresent())
+								.map(s->GeomUtil.findLongestSplittingLine(s))
+								.filter(l->l.length()<ctab.getAverageBondLength())
+								.collect(Collectors.toList());
+						boolean found=false;
+						if(lt.size()>2){
+							found=true;
+							
+						}else if(lt.size()>0){
+							LineWrapper lwo=LineWrapper.of(l2);
+							found=lt.stream()
+							  .filter(lw->lw.absCosTheta(lwo)>0.8)
+							  .filter(lw->lw.length()<useLine.length())
+							  .filter(lw->lw.centerPoint().distance(useLine.centerPoint())<ctab.getAverageBondLength()/4.0)
+							  .findAny()
+							  .isPresent();
+						}
+						if(found){
 							ctab.addEdge(t1.k().getIndex(), t1.v().getIndex(), 1);
 							Edge e=ctab.getEdges().get(ctab.getEdges().size()-1);
 							e.setDashed(true);
