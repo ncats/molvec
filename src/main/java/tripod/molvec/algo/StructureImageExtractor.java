@@ -4106,7 +4106,7 @@ public class StructureImageExtractor {
 						}else if(lt.size()>0){
 							LineWrapper lwo=LineWrapper.of(l2);
 							found=lt.stream()
-							  .filter(lw->lw.absCosTheta(lwo)>0.8)
+							  .filter(lw->lw.absCosTheta(lwo)>0.9)
 							  .filter(lw->lw.length()<useLine.length())
 							  .filter(lw->lw.centerPoint().distance(useLine.centerPoint())<ctab.getAverageBondLength()/4.0)
 							  .findAny()
