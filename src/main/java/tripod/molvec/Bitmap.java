@@ -1950,6 +1950,7 @@ public class Bitmap implements Serializable, TiffTags {
 		double area;
     	double correl;
     	Line2D line;
+    	Line2D longSplit;
     	double padding;
     	
     	public Line2D getLine(){
@@ -1993,11 +1994,17 @@ public class Bitmap implements Serializable, TiffTags {
 
 		public void setHull(Shape hull) {
 			this.hull = hull;
+			this.longSplit=GeomUtil.findLongestSplittingLine(hull).getLine();
 		}
     	
 		
 		public double getAverageThickness(){
 			return this.onPixels/(GeomUtil.length(this.line)-padding*2);
+		}
+		
+		
+		public double pctOfHull(){
+			return GeomUtil.length(this.longSplit)/GeomUtil.length(this.line);
 		}
     	
     }

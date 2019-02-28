@@ -155,7 +155,9 @@ public class StructureImageExtractor {
 
 	//This number is likely one of the most important to adjust.
 	//It may have to have some changes done to the algorithm using it too
-	private final double MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.30;
+	private final double MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.28;
+	
+	private final double MAX_BOND_RATIO_FOR_LINES_CONSIDERED_FOR_POSITIONING_OCR=MAX_BOND_RATIO_FOR_MERGING_TO_OCR;
 
 
 	private final double MIN_LONGEST_WIDTH_RATIO_FOR_OCR_TO_AVERAGE=0.5;
@@ -2225,6 +2227,13 @@ public class StructureImageExtractor {
 				dontMerge.put("oO", Arrays.asList("o","O"));
 				dontMerge.put("oo", Arrays.asList("o","o"));
 				
+				dontMerge.put("SO", Arrays.asList("S","O"));
+				dontMerge.put("OS", Arrays.asList("O","S"));
+				dontMerge.put("so", Arrays.asList("s","o"));
+				dontMerge.put("os", Arrays.asList("o","s"));
+				
+				
+				
 				dontMerge.put("OF", Arrays.asList("O","F"));
 				dontMerge.put("oF", Arrays.asList("o","F"));
 				dontMerge.put("Fo", Arrays.asList("F","o"));
@@ -2506,8 +2515,20 @@ public class StructureImageExtractor {
 							if(actual!=null && actual.isRealNode()){
 								
 								if(sym.length()>1){
-									List<Line2D> externalLines=ctab.getAllEdgesEntering(s, MAX_BOND_RATIO_FOR_MERGING_TO_OCR*ctab.getAverageBondLength())
+									List<Line2D> externalLines=ctab.getAllEdgesEntering(s, MAX_BOND_RATIO_FOR_LINES_CONSIDERED_FOR_POSITIONING_OCR*ctab.getAverageBondLength())
 											.stream()
+											.filter(t->!bestGuessOCR.keySet()
+													               .stream()
+													               .filter(ss->ss!=s)
+													               .filter(ss->ss.contains(t.v().k().getPoint()))
+													               .findAny()
+													               .isPresent())
+//											.filter(t->!bestGuessOCR.keySet()
+//										               .stream()
+//										               .filter(ss->ss!=s)
+//										               .filter(ss->ss.contains(t.v().v().getPoint()))
+//										               .findAny()
+//										               .isPresent())
 											.map(t->t.k().getLine())
 											.collect(Collectors.toList());
 									if(externalLines.size()==1){
@@ -2558,6 +2579,13 @@ public class StructureImageExtractor {
 									boolean contains=s.contains(n.getPoint());
 									
 									if(!contains){
+										boolean bb=bestGuessOCR.keySet()
+												               .stream()
+										                       .filter(ss->ss.contains(n.getPoint()))
+										                       .findAny()
+										                       .isPresent();
+										if(bb)return false;
+										
 										if(actual.isTerminal() && n.getEdgeCount()>1){
 											//System.out.println("Term?");
 											long cc=n.getNeighborNodes()
@@ -4012,7 +4040,12 @@ public class StructureImageExtractor {
 			
 			Predicate<Node> couldBeStereoCenter = (n1)->n1.getEdgeCount()>=3 && n1.getSymbol().equals("C") && !n1.getEdges().stream().filter(e1->e1.getOrder()>1).findAny().isPresent();
 			
-			double averageThickness = winfo.stream().mapToDouble(t->t.v().getAverageThickness()).average().orElse(2);
+			double averageThickness = winfo.stream()
+										   .filter(t->Math.abs(t.v().getCorrel()) < WEDGE_LIKE_PEARSON_SCORE_CUTOFF)
+										   .filter(t->t.v().pctOfHull()>0.5)
+					                       .mapToDouble(t->t.v().getAverageThickness())
+					                       .average()
+					                       .orElse(2);
 			
 			Set<Edge> thickEdges = new HashSet<Edge>();
 			Set<Edge> wedgeEdges = new HashSet<Edge>();
@@ -4030,7 +4063,8 @@ public class StructureImageExtractor {
 				//TODO: we need something for thick bonds which are _not_ strictly wedges, but are meant to be
 				//wedges.
 				if(s.getAverageThickness()>averageThickness*1.9){
-					if(s.getOnPixels()>s.getArea()*0.5){
+					if(s.getOnPixels()>s.getArea()*0.5 && s.pctOfHull()>0.5){
+						
 						double cutoff=WEDGE_LIKE_PEARSON_SCORE_CUTOFF;
 						if(e.getRealNode1().getEdges().stream().filter(ed->ed.getOrder()>1).findAny().isPresent()){
 							cutoff=WEDGE_LIKE_PEARSON_SCORE_CUTOFF_DOUBLE;
@@ -4038,6 +4072,7 @@ public class StructureImageExtractor {
 						if(e.getRealNode2().getEdges().stream().filter(ed->ed.getOrder()>1).findAny().isPresent()){
 							cutoff=WEDGE_LIKE_PEARSON_SCORE_CUTOFF_DOUBLE;
 						}
+						System.out.println(s.getAverageThickness()/averageThickness);
 						
 						
 						if(wl>cutoff){
@@ -4047,7 +4082,7 @@ public class StructureImageExtractor {
 							e.setWedge(true);
 							wedgeEdges.add(e);
 							e.switchNodes();
-						}else if(s.getAverageThickness()>averageThickness*2.2){
+						}else if(s.getAverageThickness()>averageThickness*2.3){
 							//very thick line
 							thickEdges.add(e);
 							e.setWedge(true);

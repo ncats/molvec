@@ -249,7 +249,7 @@ public class FragmentTest {
 		assertEquals(6,ctab.getEdges().stream().filter(e->e.getOrder()==1).count());
 		assertEquals(3,ctab.getNodes().stream().filter(n->n.getSymbol().equals("O")).count());
 		assertEquals(8,ctab.getNodes().stream().filter(n->n.getSymbol().equals("C")).count());
-		assertEquals(0,ctab.getEdges().stream().filter(e->e.getDashed()).count());
+		assertEquals(0,ctab.getEdges().stream().filter(e->e.getOrder()==1).filter(e->e.getDashed()).count());
 	}
 	@Test
 	public void fragmentWithSmallGapInBondShoundHaveCorrectReading() throws Exception {
