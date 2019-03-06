@@ -1018,8 +1018,9 @@ public class StructureImageExtractor {
 		
 		while(foundNewOCR[0] && repeats<MAX_OCR_FULL_REPEATS){
 			
-			if (Thread.interrupted())  // Clears interrupted status!
+			if (Thread.currentThread().isInterrupted()){
 			      throw new InterruptedException();
+			}
 			
 			repeats++;
 			foundNewOCR[0]=false;
@@ -1097,19 +1098,20 @@ public class StructureImageExtractor {
 
 			Predicate<Line2D> isInOCRShape = (l)->{
 				if(likelyOCR.isEmpty())return false;
-				Tuple<Shape,Double> shape1=GeomUtil.findClosestShapeTo(likelyOCRNonBond, l.getP1());
-				if(shape1.v()>OCR_TO_BOND_MAX_DISTANCE){
+				Optional<Tuple<Shape,Double>> shape1=GeomUtil.findClosestShapeTo(likelyOCRNonBond, l.getP1());
+				
+				if(!shape1.isPresent() || shape1.get().v()>OCR_TO_BOND_MAX_DISTANCE){
 					return false;
 				}
-				Tuple<Shape,Double> shape2=GeomUtil.findClosestShapeTo(likelyOCRNonBond, l.getP2());
-				if(shape2.v()>OCR_TO_BOND_MAX_DISTANCE){
+				Optional<Tuple<Shape,Double>> shape2=GeomUtil.findClosestShapeTo(likelyOCRNonBond, l.getP2());
+				if(!shape2.isPresent() || shape2.get().v()>OCR_TO_BOND_MAX_DISTANCE){
 					return false;
 				}
-				if(shape1.k()==shape2.k()){
+				if(shape1.get().k().equals(shape2.get().k())){
 					return true;
 				}
 				
-				boolean anyOutside=GeomUtil.getLinesNotInside(l, Arrays.asList(shape1.k(),shape2.k()))
+				boolean anyOutside=GeomUtil.getLinesNotInside(l, Arrays.asList(shape1.get().k(),shape2.get().k()))
 				        .stream()
 				        .filter(l1->l1!=null)
 				        .filter(GeomUtil.longerThan(1))
@@ -1270,8 +1272,9 @@ public class StructureImageExtractor {
 			
 			
 			while(tooLongBond){
-				if (Thread.interrupted())  // Clears interrupted status!
+				if (Thread.currentThread().isInterrupted()){
 				      throw new InterruptedException();
+				}
 				
 				
 				rescueOCRCandidates.clear();
@@ -2572,7 +2575,8 @@ public class StructureImageExtractor {
 								//This is likely the source of lots of problems
 								ctab.mergeAllNodesInside(s, MAX_BOND_RATIO_FOR_MERGING_TO_OCR*ctab.getAverageBondLength(),(n)->{
 									if(sym.equals("H")){
-										if(GeomUtil.findClosestShapeTo(ocrMeaningful, n.getPoint()).k() !=s){
+										Optional<Tuple<Shape, Double>> findClosestShapeTo = GeomUtil.findClosestShapeTo(ocrMeaningful, n.getPoint());
+										if(!findClosestShapeTo.isPresent() || findClosestShapeTo.get().k() !=s){
 											return false;
 										}
 									}
@@ -2622,7 +2626,7 @@ public class StructureImageExtractor {
 													        .orElseGet(()->ctab.getAverageBondLength());
 													if(avgNDist>ctab.getAverageBondLength()){
 														if(!sym.equals("H")){
-															Tuple<Shape,Double> bs=GeomUtil.findClosestShapeTo(likelyOCR, n.getPoint());
+															Tuple<Shape,Double> bs=GeomUtil.findClosestShapeTo(likelyOCR, n.getPoint()).orElse(null);
 															if(bs!=null){
 																char tt=Optional.ofNullable(ocrAttempt.get(bs.k()))
 																        .map(l->l.get(0).k())
@@ -2647,7 +2651,10 @@ public class StructureImageExtractor {
 								},(l)->{
 			
 									boolean matchesOthers=l.stream()
-											.map(pt->GeomUtil.findClosestShapeTo(ocrMeaningful, pt).k())
+											.map(pt->GeomUtil.findClosestShapeTo(ocrMeaningful, pt))
+											.filter(Optional::isPresent)
+											.map(o-> o.get().k())
+											
 											.filter(sb->(sb!=s))
 											.findAny()
 											.isPresent();
@@ -3311,6 +3318,9 @@ public class StructureImageExtractor {
 			do{
 				toRemove.clear();
 
+				if(Thread.currentThread().isInterrupted()){
+					throw new InterruptedException();
+				}
 
 
 				ctab.getNodesNotInShapes(appliedOCR, 0)
@@ -3595,7 +3605,7 @@ public class StructureImageExtractor {
 			    .filter(n->n.getSymbol().equals("C"))
 			    .filter(n->!n.isInvented())
 			    .filter(n->n.getEdges().stream().filter(e->e.getOrder()==1).count()==2)
-			    .filter(n->Optional.ofNullable(GeomUtil.findClosestShapeTo(likelyOCR, n.getPoint())).map(t->t.v()).orElse(100.0)>ctab.getAverageBondLength()*0.2)
+			    .filter(n->GeomUtil.findClosestShapeTo(likelyOCR, n.getPoint()).map(t->t.v()).orElse(100.0)>ctab.getAverageBondLength()*0.2)
 			    //.filter(n->n.isInRing(8))
 			    .forEach(n->{
 			    	List<Tuple<Node,Node>> tn=GeomUtil.eachCombination(n.getNeighborNodes())
@@ -4311,7 +4321,9 @@ public class StructureImageExtractor {
 			
 
 		}
-		
+		if(Thread.currentThread().isInterrupted()){
+			throw new InterruptedException();
+		}
 		rescueOCRShapes=realRescueOCRCandidates;
 	
 		if(DEBUG)ctabRaw.add(ctab.cloneTab());

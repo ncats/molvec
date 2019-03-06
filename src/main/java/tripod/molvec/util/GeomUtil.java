@@ -1212,11 +1212,10 @@ public class GeomUtil {
     
     
     
-    public static Tuple<Shape,Double> findClosestShapeTo(Collection<Shape> shapes, Point2D pt){
+    public static Optional<Tuple<Shape,Double>> findClosestShapeTo(Collection<Shape> shapes, Point2D pt){
     	return shapes.stream()
     	      .map(s->Tuple.of(s,distanceTo(s,pt)).withVComparator())
-    	      .min(CompareUtil.naturalOrder())
-    	      .orElse(null);
+    	      .min(CompareUtil.naturalOrder());
     }
     
     public static Shape growLine(Line2D l, double width){

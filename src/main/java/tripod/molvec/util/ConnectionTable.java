@@ -1731,8 +1731,8 @@ public class ConnectionTable{
 				if(!nmap.getOrDefault(i,nullSet).contains(j)){
 					Node n2=nodes.get(j);
 					if(n1.distanceTo(n2)<avg*d){
-						Tuple<Shape,Double> t1=GeomUtil.findClosestShapeTo(OCRSet, n1.point);
-						Tuple<Shape,Double> t2=GeomUtil.findClosestShapeTo(OCRSet, n2.point);
+						Tuple<Shape,Double> t1=GeomUtil.findClosestShapeTo(OCRSet, n1.point).orElse(null);
+						Tuple<Shape,Double> t2=GeomUtil.findClosestShapeTo(OCRSet, n2.point).orElse(null);
 						
 						Point2D pt1=n1.point;
 						Point2D pt2=n2.point;

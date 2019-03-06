@@ -35,6 +35,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -756,6 +757,12 @@ public class Bitmap implements Serializable, TiffTags {
     private int scanline;
     private SampleModel sampleModel;
     
+    private Map<Integer, Integer> scanlineCache = new ConcurrentHashMap<>();
+    
+    private int getScanlineFor(int y){
+    	return scanlineCache.computeIfAbsent(y, k->scanline*k);
+    }
+    
     private static byte[] sqrtCache = CachedSupplier.of(()->{
     	int maxReal = 2*Byte.MAX_VALUE*Byte.MAX_VALUE; // this is like 127*127*2 = 15-bits ~ 32kB of 4x sqrts for each input
     	byte[] cache= new byte[maxReal];
@@ -1087,18 +1094,18 @@ public class Bitmap implements Serializable, TiffTags {
     }
     public boolean get (int x, int y) {
         if (x >= 0 && x < width && y >= 0 && y < height) {
-            return ((data[y * scanline + x / 8] & 0xff) & MASK[x % 8]) != 0;
+            return isOn(x,y);
         }
         return false;
     }
 
     // same as get() but without the bound checking
     public boolean isOn (int x, int y) {
-        return ((data[y * scanline + x / 8] & 0xff) & MASK[x % 8]) != 0;
+        return (data[getScanlineFor(y) + x / 8] & MASK[x % 8]) != 0;
     }
 
     public void set (int x, int y, boolean on) {
-        int loc = y * scanline + x / 8;
+        int loc = getScanlineFor(y) + x / 8;
         if (on) {
             data[loc] |= MASK[x % 8];
         } else {
@@ -1198,7 +1205,7 @@ public class Bitmap implements Serializable, TiffTags {
         WritableRaster raster =
             Raster.createWritableRaster (sampleModel, null);
         for (int y = 0; y < height; ++y) {
-            int band = y * scanline;
+            int band = getScanlineFor(y);
             for (int x = 0; x < width; ++x) {
                 // the default IndexColorModel is 0 for black and 1 white
                 raster.setSample
@@ -1426,7 +1433,7 @@ public class Bitmap implements Serializable, TiffTags {
 
                         if ((N >= 2 && N <= 6) && S == 1 && flag) {
                             /* flag this pixel to be deleted */
-                            copy[scanline * y + x / 8] &= ~MASK[x % 8];
+                            copy[getScanlineFor(y) + x / 8] &= ~MASK[x % 8];
                             changed = true;
                         }
                     } /* endif boundary pixel */
@@ -1499,7 +1506,7 @@ public class Bitmap implements Serializable, TiffTags {
                             if ((parity == 0 && ep == 0) 
                                 || (parity == 1 && fp == 0)) {
                                 // delete this pixel
-                                copy[scanline * y + x / 8] &= ~MASK[x % 8];
+                                copy[getScanlineFor(y) + x / 8] &= ~MASK[x % 8];
                                 changed = true;
                             }
                         }
@@ -2156,7 +2163,7 @@ public class Bitmap implements Serializable, TiffTags {
     		//TODO: do interp eventually
     		int ix=(int)Math.round(x);
     		int iy=(int)Math.round(y);
-    		int ni=iy*scanline*8+ix;
+    		int ni=getScanlineFor(iy)*8+ix;
     		if(ni>distMet.length || ni<0)return (double)Byte.MAX_VALUE/4;
     		return (double) (distMet[ni]/4);    		
     	};
@@ -2221,7 +2228,7 @@ public class Bitmap implements Serializable, TiffTags {
     		//do interp eventually
     		int ix=(int)Math.round(x);
     		int iy=(int)Math.round(y);
-    		return (double) (distMet[iy*scanline*8+ix]/4);    		
+    		return (double) (distMet[getScanlineFor(iy)*8+ix]/4);    		
     	};
     	
     	double maxCosAng = Math.abs(Math.cos(maxAngle));

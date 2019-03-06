@@ -2,6 +2,7 @@ package tripod.molvec.algo;
 
 import static org.junit.Assert.assertEquals;
 
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.charset.Charset;
@@ -9,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -16,9 +18,14 @@ import gov.nih.ncats.chemkit.api.io.ChemFormat;
 import gov.nih.ncats.chemkit.api.util.stream.ThrowingStream;
 import gov.nih.ncats.chemkit.renderer.ChemicalRenderer;
 import gov.nih.ncats.chemkit.renderer.RendererOptions;
+import gov.nih.ncats.chemkit.renderer.RendererOptions.DrawOptions;
+import tripod.molvec.Molvec;
+
 import org.junit.Before;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import gov.nih.ncats.chemkit.api.Chemical;
 import gov.nih.ncats.chemkit.api.ChemicalBuilder;
@@ -32,6 +39,9 @@ import javax.imageio.ImageIO;
 public class MoleculeTest {
 
 
+	@Rule
+	public TemporaryFolder tmpDir = new TemporaryFolder();
+	
 	private File getFile(String fname){
 		ClassLoader classLoader = getClass().getClassLoader();
 		return new File(classLoader.getResource(fname).getFile());
@@ -52,9 +62,12 @@ public class MoleculeTest {
 			.setCanonization(ChemFormat.SmilesFormatWriterSpecification.CanonicalizationEncoding.CANONICAL)
 			.setKekulization(ChemFormat.KekulizationEncoding.KEKULE);
 
-	ChemicalRenderer renderer = new ChemicalRenderer(RendererOptions.createDefault()
-//																	.setDrawOption(RendererOptions.DrawOptions.DRAW_GREYSCALE, true)
-					);
+	ChemicalRenderer renderer = new ChemicalRenderer(RendererOptions.createINNLike()
+			.setDrawOption(DrawOptions.DRAW_TERMINAL_CARBON, false)
+			.setDrawOption(DrawOptions.DRAW_CARBON, false)
+			.setDrawOption(DrawOptions.DRAW_STEREO_LABELS, false)
+			.setDrawOption(RendererOptions.DrawOptions.DRAW_GREYSCALE, true)
+					).setBackgroundColor(Color.white).setShadowVisible(false);
 
 
 	private TestSpec spec;
@@ -109,7 +122,7 @@ public class MoleculeTest {
 		spec.assertionConsumer.accept(c);
 	}
 
-	//@Test
+	@Test
 	public void rendererRoundTrip() throws Exception {
 
 		File f = getFile(spec.filePath);
@@ -118,12 +131,13 @@ public class MoleculeTest {
 
 		expected.kekulize();
 
-		BufferedImage img = renderer.createImage(expected, 500);
+		BufferedImage img = renderer.createImage(expected, 1000, 1000, false);
+
+		File newFile = tmpDir.newFile("molvec.png");
+		ImageIO.write(img, "png", newFile);
 
 
-		StructureImageExtractor sie2 = StructureImageExtractor.createFromImage(img);
-
-		spec.assertionConsumer.accept(sie.getChemical());
+		spec.assertionConsumer.accept(Molvec.ocr(newFile));
 	}
 
 	@Parameterized.Parameters(name = "{0}")
@@ -3096,7 +3110,7 @@ public class MoleculeTest {
 			assertEquals(keyReal,keyGot);
 		} )});
 		
-		
+		/*
 		//SandOCloseTogether.png
 				list.add(new Object[]{"SandOCloseTogether", new TestSpec("moleculeTest/SandOCloseTogether.png", c->{
 					Chemical cReal=ChemicalBuilder.createFromMol("\n" + 
@@ -3282,6 +3296,7 @@ public class MoleculeTest {
 					String keyGot=Inchi.asStdInchi(c).getKey();
 					assertEquals(keyReal,keyGot);
 				} )});
+				*/
 		//cagedStructure2.png
 		list.add(new Object[]{"cagedStructure2", new TestSpec("moleculeTest/cagedStructure2.png", c->{
 			Chemical cReal=ChemicalBuilder.createFromSmiles("COc1ccnc(C(=O)NC2CC3CCC2C3)c1O").build();
