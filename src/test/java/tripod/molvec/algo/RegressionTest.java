@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
@@ -23,13 +24,12 @@ import java.util.stream.Stream;
 
 import org.junit.Ignore;
 import org.junit.Test;
-import org.openscience.cdk.interfaces.IBond.Stereo;
 
-import gov.nih.ncats.chemkit.api.Bond;
 import gov.nih.ncats.chemkit.api.Chemical;
 import gov.nih.ncats.chemkit.api.ChemicalBuilder;
 import gov.nih.ncats.chemkit.api.inchi.Inchi;
 import tripod.molvec.CachedSupplier;
+import tripod.molvec.Molvec;
 
 public class RegressionTest {
 
@@ -38,13 +38,14 @@ public class RegressionTest {
 		CORRECT_STEREO_INSENSITIVE_INCHI,
 		LARGEST_FRAGMENT_CORRECT_FULL_INCHI,
 		LARGEST_FRAGMENT_CORRECT_STEREO_INSENSITIVE_INCHI,
-		CORRECT,
-		LARGEST_FRAGMENT_CORRECT,
-		WEIRD_SOURCE,
+		FORMULA_CORRECT,
+		LARGEST_FRAGMENT_FORMULA_CORRECT,
+
 		ATOMS_RIGHT_WRONG_BONDS,
 		LARGEST_FRAGMENT_ATOM_RIGHT_WRONG_BONDS,
 		ATOM_COUNT_BOND_COUNT_RIGHT_WRONG_LABELS_OR_CONNECTIVITY,
 		LARGEST_FRAGMENT_ATOM_COUNT_BOND_COUNT_RIGHT_WRONG_LABELS_OR_CONNECTIVITY,
+		WEIRD_SOURCE,
 		RIGHT_HEVAY_ATOMS,
 		RIGHT_BONDS,
 		LARGEST_FRAGMENT_RIGHT_BONDS,
@@ -157,41 +158,48 @@ public class RegressionTest {
 			System.out.println(sdf.getAbsolutePath());
 			System.out.println("--------------------------------");
 			
-			CachedSupplier<StructureImageExtractor> cget = CachedSupplier.of(()->{
-				try {
-					return new StructureImageExtractor(image);
-				} catch (Exception e1) {
-					throw new RuntimeException(e1);
-				}
-			});
-			
-			
-			Thread th = new Thread(()->{
-				cget.get();
-			});
-			
-			try{
-				long start = System.currentTimeMillis();
-				th.start();
-				while(true){
-					if(cget.hasRun())break;
-					Thread.sleep(1);
-					if(System.currentTimeMillis()-start > 60000){
-						th.interrupt();
-						System.out.println("OH NO TIMEOUT!\t" + image.getAbsolutePath());
-						return Result.TIMEOUT;
-					}
-				}
-			
-			
+//			CachedSupplier<StructureImageExtractor> cget = CachedSupplier.of(()->{
+//				try {
+//					return new StructureImageExtractor(image);
+//				} catch (Exception e1) {
+//					throw new RuntimeException(e1);
+//				}
+//			});
+
+
+//			Thread th = new Thread(()->{
+//				cget.get();
+//			});
+			Chemical c;
+			try {
+				 c = getCleanChemical(Molvec.ocrAsync(image).get(60, TimeUnit.SECONDS));
+			}catch(TimeoutException te) {
+				return Result.TIMEOUT;
 			}catch(Exception e){
-				throw e;
+				return Result.ERROR;
 			}
-			
-			StructureImageExtractor sie = cget.get();
-			
-			Chemical c=getCleanChemical(sie.getChemical());
-			
+//			try{
+//				long start = System.currentTimeMillis();
+//				th.start();
+//				while(true){
+//					if(cget.hasRun())break;
+//					Thread.sleep(100);
+//					if(System.currentTimeMillis()-start > 60000){
+//						th.interrupt();
+//						System.out.println("OH NO TIMEOUT!\t" + image.getAbsolutePath());
+//						return Result.TIMEOUT;
+//					}
+//				}
+//
+//
+//			}catch(Exception e){
+//				return Result.ERROR;
+//			}
+//
+//			StructureImageExtractor sie = cget.get();
+//
+//			Chemical c=getCleanChemical(sie.getChemical());
+//
 			
 			//c1.makeHydrogensImplicit();
 			//c.makeHydrogensImplicit();
@@ -231,7 +239,7 @@ public class RegressionTest {
 			
 			if(formReal.equals(formFound)){
 				//System.out.println("Matched!");
-				return Result.CORRECT;
+				return Result.FORMULA_CORRECT;
 			}else{
 				String withoutHydrogensReal =formReal.replaceAll("H[0-9]*", "");
 				String withoutHydrogensFound=formFound.replaceAll("H[0-9]*", "");
@@ -267,7 +275,7 @@ public class RegressionTest {
 					}
 					
 					if(clargestR.getFormula().equals(clargestF.getFormula())){
-						return Result.LARGEST_FRAGMENT_CORRECT;
+						return Result.LARGEST_FRAGMENT_FORMULA_CORRECT;
 					}
 					String fragwHReal =clargestR.getFormula().replaceAll("H[0-9]*", "");
 					String fragwHFound=clargestF.getFormula().replaceAll("H[0-9]*", "");
@@ -304,7 +312,7 @@ public class RegressionTest {
 	}
 	
 	
-	@Ignore
+//	@Ignore
 	@Test
 	public void test1(){
 		File dir1 = getFile("regressionTest/usan");
@@ -312,7 +320,7 @@ public class RegressionTest {
 			ChemicalBuilder cb = ChemicalBuilder.createFromSmiles("CCCC");
 			String ii = Inchi.asStdInchi(cb.build()).getKey();
 			System.out.println(ii);
-			Thread.sleep(1000);
+			Thread.sleep(2000);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -337,7 +345,7 @@ public class RegressionTest {
 		    	  	return l;
 		      })
 		      .collect(shuffler(new Random(11111140l)))		      
-		      .limit(100)
+		      .limit(2000)
 
 //NOTE, I THINK THIS TECHNICALLY WORKS, BUT SINCE THERE IS PARALLEL THINGS GOING ON IN EACH, IT SOMETIMES WILL STARVE A CASE FOR A LONG TIME
 //		      .parallel()
