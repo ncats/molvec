@@ -316,15 +316,15 @@ public class RegressionTest {
 	@Test
 	public void test1(){
 		File dir1 = getFile("regressionTest/usan");
-		try {
-			ChemicalBuilder cb = ChemicalBuilder.createFromSmiles("CCCC");
-			String ii = Inchi.asStdInchi(cb.build()).getKey();
-			System.out.println(ii);
-			Thread.sleep(2000);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+//		try {
+//			ChemicalBuilder cb = ChemicalBuilder.createFromSmiles("CCCC");
+//			String ii = Inchi.asStdInchi(cb.build()).getKey();
+//			System.out.println(ii);
+//			Thread.sleep(2000);
+//		} catch (Exception e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 		
 		Arrays.stream(dir1.listFiles())
 		      .filter(f->f.getName().contains("."))

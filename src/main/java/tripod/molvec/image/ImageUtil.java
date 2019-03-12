@@ -1,14 +1,13 @@
 package tripod.molvec.image;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.awt.*;
 import java.awt.color.*;
 import java.awt.image.*;
 
 import javax.imageio.*;
 
+import java.util.Arrays;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 import com.sun.media.jai.codec.*;
@@ -17,13 +16,12 @@ import com.sun.media.jai.codec.*;
 public class ImageUtil implements TiffTags {
     private static final Logger logger = Logger.getLogger
 	(ImageUtil.class.getName());
-    public static BufferedImage decodeTIFF (byte[] file) throws IOException {
+    private static BufferedImage decodeTIFF (byte[] file) throws IOException {
         return decodeTiff( ImageCodec.createImageDecoder("TIFF", new ByteArraySeekableStream(file), new TIFFDecodeParam ()));
     }
 
-
-    public static BufferedImage decodeTIFF (File file) throws IOException {
-	return decodeTiff(ImageCodec.createImageDecoder("TIFF", file, new TIFFDecodeParam ()));
+    private static BufferedImage decodeTIFF (InputStream file) throws IOException {
+        return decodeTiff(ImageCodec.createImageDecoder("TIFF", file, new TIFFDecodeParam ()));
     }
 
     private static BufferedImage decodeTiff(ImageDecoder decoder) throws IOException{
@@ -159,6 +157,23 @@ public class ImageUtil implements TiffTags {
     	return grayscale.getImage();
     }
 
+    private static boolean isTiff(PushbackInputStream pushbackInputStream) throws IOException{
+       byte[] magicNumber = new byte[2];
+        int len = pushbackInputStream.read(magicNumber,0,2);
+//        System.out.println("MAGIC NUMBER = " + Arrays.toString(magicNumber));
+        pushbackInputStream.unread(magicNumber,0,len);
+        if(len !=2){
+            return false;
+        }
+
+        //0x4949 or 0x4d4d
+        return ((magicNumber[0] == 0x49 && magicNumber[1] == 0x49) || (magicNumber[0] == 0x4d && magicNumber[1] == 0x4d));
+    }
+    private static boolean isTiff(byte[] f) throws IOException{
+
+        //0x4949 or 0x4d4d
+        return ((f[0] == 0x49 && f[1] == 0x49) || (f[0] == 0x4d && f[1] == 0x4d));
+    }
     public static BufferedImage grayscale (BufferedImage bi) {
         Grayscale grayscale = new Grayscale (bi.getData());
     	Raster raster = grayscale.getRaster();
@@ -170,24 +185,31 @@ public class ImageUtil implements TiffTags {
     }
 
     public static BufferedImage grayscale (byte[] file) throws IOException {
-        try {
-            return decodeTIFF (file);
+        if(isTiff(file)) {
+            try {
+                return decodeTIFF(file);
+            } catch (Exception ex) {
+                logger.info("## bytearray not a TIFF image ("
+                        + ex.getMessage() + "); trying generic decoding... ");
+
+            }
         }
-        catch (Exception ex) {
-            logger.info("## bytearray not a TIFF image ("
-                    +ex.getMessage()+"); trying generic decoding... ");
-            return decode (ImageIO.read(new ByteArrayInputStream(file)));
-        }
+        return decode(ImageIO.read(new ByteArrayInputStream(file)));
     }
     public static BufferedImage grayscale (File file) throws IOException {
-        try {
-            return decodeTIFF (file);
+        BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
+        try(PushbackInputStream pushbackInputStream = new PushbackInputStream(in,2);
+        ) {
+            if (isTiff(pushbackInputStream)) {
+                try {
+                    return decodeTIFF(in);
+                } catch (Exception ex) {
+                    logger.info("## " + file.getName() + " not a TIFF image ("
+                            + ex.getMessage() + "); trying generic decoding... ");
+                }
+            }
         }
-        catch (Exception ex) {
-            logger.info("## "+file.getName()+" not a TIFF image ("
-                        +ex.getMessage()+"); trying generic decoding... ");
-            return decode (ImageIO.read(file));
-        }
+        return decode(ImageIO.read(file));
     }
 
     public static BufferedImage decode (File file) throws IOException {
