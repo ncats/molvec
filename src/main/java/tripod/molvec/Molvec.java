@@ -17,11 +17,26 @@ public class Molvec {
 		return sie.getChemical();
 		
 	}
-	
+
+	public static Chemical ocr(byte[] image) throws Exception{
+		StructureImageExtractor sie = new StructureImageExtractor(image);
+		return sie.getChemical();
+
+	}
 	public static Chemical ocr(BufferedImage image) throws Exception{
 		StructureImageExtractor sie = StructureImageExtractor.createFromImage(image);
 		return sie.getChemical();
 		
+	}
+	public static CompletableFuture<Chemical> ocrAsync(byte[] image){
+		return CompletableFuture.supplyAsync(() -> {
+			try{
+				return ocr(image);
+			}catch(Exception e){
+				e.printStackTrace();
+				return null;
+			}
+		});
 	}
 	
 	public static CompletableFuture<Chemical> ocrAsync(File image){

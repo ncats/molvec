@@ -49,6 +49,7 @@ import tripod.molvec.util.ConnectionTable.Node;
 import tripod.molvec.util.GeomUtil;
 import tripod.molvec.util.GeomUtil.BoundingBox;
 import tripod.molvec.util.GeomUtil.LineWrapper;
+import tripod.molvec.util.RunningAverage;
 
 public class StructureImageExtractor {
 
@@ -338,11 +339,13 @@ public class StructureImageExtractor {
 		List<Shape> toAddShapes = Collections.synchronizedList(new ArrayList<Shape>());
 		List<Shape> toRemoveShapes = Collections.synchronizedList(new ArrayList<Shape>());
 
-		polygons.stream()
+		polygons
+				.parallelStream()
+//				.stream()
 //		.collect(Collectors.toList())
 //		.stream()
 		
-		.parallel()
+//		.parallel()
 		.forEach(s->{
 			if (Thread.interrupted())  // Clears interrupted status!
 				interupt[0]=true;
@@ -482,7 +485,7 @@ public class StructureImageExtractor {
 							}
 							
 							if(better){
-								bsplitMatches.stream().forEach(t->{
+								bsplitMatches.forEach(t->{
 									onFind.accept(t.k(), t.v());
 								});
 								toAddShapes.add(gshape1);
@@ -769,8 +772,7 @@ public class StructureImageExtractor {
 				        	});
 			        });
 			
-			rescueShapes1.stream()
-			             .forEach(bb->{
+			rescueShapes1.forEach(bb->{
 
 				boolean[] got = new boolean[]{false};
 
@@ -1113,7 +1115,7 @@ public class StructureImageExtractor {
 				
 				boolean anyOutside=GeomUtil.getLinesNotInside(l, Arrays.asList(shape1.get().k(),shape2.get().k()))
 				        .stream()
-				        .filter(l1->l1!=null)
+				        .filter(Objects::nonNull)
 				        .filter(GeomUtil.longerThan(1))
 				        .findAny()
 				        .isPresent();
@@ -1329,8 +1331,8 @@ public class StructureImageExtractor {
 				
 				
 				if(DEBUG)ctabRaw.add(ctab.cloneTab());
-				
-				List<Double> allDashLengths = new ArrayList<>();
+
+				RunningAverage allDashLengths = new RunningAverage(2);
 				
 				ctab.getEdgesWhichMightBeDottedLines()
 				    .stream()
@@ -1365,7 +1367,7 @@ public class StructureImageExtractor {
 				ctab.standardCleanEdges();
 				ctab.mergeNodesCloserThan(MAX_DISTANCE_BEFORE_MERGING_NODES);
 				
-				double avgDot=allDashLengths.stream().mapToDouble(d->d).average().orElse(2);
+				double avgDot=allDashLengths.computeAvg();
 				
 				if(foundNewOCR[0] && avgDot>ignoreTooSmall[0]){
 					ignoreTooSmall[0]=avgDot*1.1;
