@@ -132,15 +132,17 @@ public class ImageUtil implements TiffTags {
 
     public static BufferedImage decode (BufferedImage bi) {
         Raster raster = bi.getData();
-
+        int bands=raster.getNumBands();
     	int max = 0;
     	int min = Integer.MAX_VALUE;
     	for (int i = 0; i < raster.getWidth(); ++i) {
     	    for (int j = 0; j < raster.getHeight(); ++j) {
-                int pixel = raster.getSample(i, j, 0);
-                //System.out.print(pixel%10);
-                if (pixel > max) max = pixel;
-                if (pixel < min) min = pixel;
+    	    	for(int k=0;k<bands;k++){
+	                int pixel = raster.getSample(i, j, k);
+	                //System.out.print(pixel%10);
+	                if (pixel > max) max = pixel;
+	                if (pixel < min) min = pixel;
+    	    	}
     	    }
     	    //System.out.println();
     	}
