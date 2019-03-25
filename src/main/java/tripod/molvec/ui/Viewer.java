@@ -346,10 +346,9 @@ public class Viewer extends JPanel
         ctabRaw=sie.getCtabRaw();
         ocrAttmept=sie.getOcrAttmept();
         this.bestGuessOCR=sie.getBestGuessOCR();
+
         
-        System.out.println("Loaded");
-        
-        System.out.println(sie.getChemical().toMol());
+        System.out.println(sie.toMol());
         resetAndRepaint ();
     }
     

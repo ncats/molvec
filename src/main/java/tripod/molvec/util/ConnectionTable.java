@@ -11,19 +11,10 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.OptionalInt;
-import java.util.Set;
-import java.util.Stack;
+import java.text.NumberFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
@@ -33,17 +24,10 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import gov.nih.ncats.chemkit.api.Atom;
-import gov.nih.ncats.chemkit.api.Bond;
-import gov.nih.ncats.chemkit.api.Bond.BondType;
-import gov.nih.ncats.chemkit.api.Bond.Stereo;
-import gov.nih.ncats.chemkit.api.Chemical;
-import gov.nih.ncats.chemkit.api.ChemicalBuilder;
 import tripod.molvec.Bitmap;
 import tripod.molvec.CachedSupplier;
 import tripod.molvec.algo.Tuple;
 import tripod.molvec.algo.Tuple.KEqualityTuple;
-import tripod.molvec.util.ConnectionTable.Node;
 import tripod.molvec.util.GeomUtil.LineWrapper;
 
 public class ConnectionTable{
@@ -468,14 +452,193 @@ public class ConnectionTable{
 		.stream()
 		.collect(Collectors.toList());
 	}
-	
-	
-	
+	public String toMol(){
+		return toMol(1, true);
+	}
+	public String toMol(double averageBondLength, boolean center){
+		AffineTransform at = new AffineTransform();
+		double blcur = Math.max(this.getAverageBondLength(),1);
+
+		double scale = averageBondLength/blcur;
+
+
+
+		at.scale(scale, scale);
+		if(center){
+			if(this.getNodes().size()>0){
+				Rectangle2D rect=this.getNodes().stream().map(n->n.getPoint()).collect(GeomUtil.convexHull()).getBounds2D();
+				at.translate(-rect.getCenterX(), -rect.getCenterY());
+			}
+		}
+
+
+
+		String newLine = System.lineSeparator();
+		String header = new StringBuilder(80)
+						.append(newLine)
+//		IIPPPPPPPPMMDDYYHHmmddSSssssssssssEEEEEEEEEEEERRRRRR
+//				(FORTRAN: A2<--A8--><---A10-->A2I2<--F10.5-><---F12.5--><-I6-> )
+						.append("  Molvec01")
+				//date/time (M/D/Y,H:m)
+						.append(MOL_DATETIME_FORMATTER.format(LocalDateTime.now()))
+						.append("2D") //always write out 2D coords
+						.append(newLine).append(newLine)
+						.toString();
+
+		String countsLine = new StringBuilder(80)
+						.append(writeMolInt(getNodes().size(), 3))
+						.append(writeMolInt(edges.size(), 3))
+				//TODO for now mark eveything as chiral
+				//CDK sets this to 1 only if there's a tetrahedral stereo in molecule
+						.append("  0  0  0  0  0  0  0  0999 V2000")
+					.append(newLine)
+						.toString();
+
+		StringBuilder atomBlockBuilder = makeAtomBlock(at, newLine);
+
+		StringBuilder bondBuilder = makeBondBlock(newLine);
+
+
+		String mol= new StringBuilder(header.length() + countsLine.length() + atomBlockBuilder.length() + bondBuilder.length() +5)
+				.append(header)
+					.append(countsLine)
+				.append(atomBlockBuilder)
+				.append(bondBuilder)
+				.append("M  END")
+						.toString();
+
+		System.out.println(mol);
+		return mol;
+	}
+
+	private StringBuilder makeBondBlock(String newLine){
+		StringBuilder bondBuilder = new StringBuilder(edges.size() *6);
+		boolean useSingle=true;
+
+		for(Edge e : edges){
+			int order = e.getOrder();
+			if(e.isAromatic()){
+				order =4;
+//				order =useSingle? 1: 2;
+//				useSingle = !useSingle;
+			}else if(order <1 || order > 4){
+				order =1;
+			}
+			int bondStereo=0;
+			if(e.getOrder() ==1){
+				if(e.getDashed()){
+					bondStereo=6; //down
+				}else if(e.getWedge()){
+					bondStereo =1; // up
+				}
+			}
+
+			bondBuilder.append(writeMolInt(e.n1+1, 3))
+					.append(writeMolInt(e.n2+1, 3))
+					.append(writeMolInt(order, 3))
+					.append(writeMolInt(bondStereo, 3))
+					.append(newLine);
+
+		}
+		return bondBuilder;
+	}
+	private  StringBuilder makeAtomBlock(AffineTransform at, String newLine){
+		StringBuilder atomBlockBuilder = new StringBuilder(82* nodes.size());
+		for(Node n : this.nodes){
+			Point2D np = at.transform(n.getPoint(), null);
+
+			String sym = n.symbol;
+			int massDifference = 0;
+			if(n.symbol.equals("D")){
+				sym="H";
+				massDifference=1;
+			}
+
+
+
+			atomBlockBuilder.append(writeMolDouble(np.getX(), 10))
+					.append(writeMolDouble(-np.getY(), 10))
+					.append(writeMolDouble(Double.NaN, 10))	//only write 2d coords
+					.append(' ')
+					.append(leftPaddWithSpaces(sym, 3))		//TODO should we check to make sure sym is always < 3 chars?
+					.append(writeMolInt(massDifference, 2))
+					.append(writeMolInt(computeMolCharge(n.charge), 3))
+							.append("  0  0  0  0  0  0  0  0  0  0")		//TODO really compute charge
+			.append(newLine);
+
+		}
+		return atomBlockBuilder;
+	}
+
+	private static int computeMolCharge(int charge){
+		switch(charge){
+			case -3: return 7;
+			case -2: return 6;
+			case -1: return 5;
+			case 0: return 0;
+			case 1: return 3;
+			case 2: return 2;
+			case 3: return 1;
+			default: return 0;
+		}
+	}
+
+	private static ThreadLocal<NumberFormat> MOL_FLOAT_FORMAT = ThreadLocal.withInitial(()->{
+		NumberFormat nf = NumberFormat.getNumberInstance(Locale.ENGLISH);
+		nf.setMinimumIntegerDigits(1);
+		nf.setMaximumIntegerDigits(4);
+		nf.setMinimumFractionDigits(4);
+		nf.setMaximumFractionDigits(4);
+		nf.setGroupingUsed(false);
+
+		return nf;
+	});
+
+	private static String writeMolInt(int value, int numDigits){
+		String s = Integer.toString(value);
+		if(s.length()>numDigits){
+			s="0";
+		}
+		return rightPaddWithSpaces(s, numDigits);
+	}
+
+	private static String writeMolDouble(double d, int width) {
+		String value;
+		if (Double.isNaN(d) || Double.isInfinite(d)){
+			value = "0.0000";
+		}else{
+			value = MOL_FLOAT_FORMAT.get().format(d);
+		}
+		return rightPaddWithSpaces(value, width);
+	}
+
+	private static String rightPaddWithSpaces(String value, int numDigits) {
+		int padd = numDigits - value.length();
+		StringBuilder builder = new StringBuilder(numDigits);
+		for(int i=0; i< padd; i++){
+			builder.append(' ');
+		}
+		builder.append(value);
+		return builder.toString();
+	}
+	private static String leftPaddWithSpaces(String value, int numDigits) {
+		int padd = numDigits - value.length();
+		StringBuilder builder = new StringBuilder(numDigits);
+		builder.append(value);
+		for(int i=0; i< padd; i++){
+			builder.append(' ');
+		}
+
+		return builder.toString();
+	}
+
+	private static DateTimeFormatter MOL_DATETIME_FORMATTER = DateTimeFormatter.ofPattern("MMddyyHHmm");
+	/*
 	public Chemical toChemical(){
 		//return toChemical(this.getAverageBondLength(), false);
 		return toChemical(1,true);
 	}
-	
+
 	public Chemical toChemical(double averageBondLength, boolean center){
 		
 		AffineTransform at = new AffineTransform();
@@ -523,7 +686,7 @@ public class ConnectionTable{
 		
 		for(Edge e : edges){
 			if(e.getOrder()==1){
-				Bond b=cb.addBond(atoms[e.n1],atoms[e.n2],BondType.SINGLE);
+				Bond b=cb.addBond(atoms[e.n1],atoms[e.n2], BondType.SINGLE);
 				if(e.getDashed()){
 					b.setStereo(Stereo.DOWN);
 				}
@@ -630,7 +793,8 @@ public class ConnectionTable{
 		}
 		return tc;
 	}
-	
+	*/
+
 	public ConnectionTable mergeNodesAverage(int n1, int n2){
 		return mergeNodes(n1,n2,(node1,node2)->new Point2D.Double((node1.getX()+node2.getX())/2,(node1.getY()+node2.getY())/2));
 	}
@@ -1581,6 +1745,7 @@ public class ConnectionTable{
 		}
 		
 		public Edge setToAromatic(){
+			System.out.println("SETTING TO AROMATIC!!!");
 			return setOrder(AROMATIC_ORDER);
 		}
 		
@@ -1608,22 +1773,18 @@ public class ConnectionTable{
 		}
 
 		public boolean isRingEdge() {
-			long rep=this.streamNodes()
+			return this.streamNodes()
 			    .map(n->n.getAllRings())
 			    .filter(r->r.size()>0)
 			    .flatMap(r->r.stream())
-			    .collect(Collectors.groupingBy(r->r))
+			    .collect(Collectors.groupingBy(Function.identity()))
 			    .entrySet()
 			    .stream()
 			    .map(Tuple::of)
 			    .map(t->t.v())
 			    .filter(v->v.size()==2)
-			    .count();
-			
-			if(rep>0){
-				return true;
-			}
-			return false;
+			    .findAny().isPresent();
+
 		}
 		
 	}

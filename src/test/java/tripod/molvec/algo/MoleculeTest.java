@@ -6,6 +6,7 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -19,12 +20,9 @@ import gov.nih.ncats.chemkit.api.util.stream.ThrowingStream;
 import gov.nih.ncats.chemkit.renderer.ChemicalRenderer;
 import gov.nih.ncats.chemkit.renderer.RendererOptions;
 import gov.nih.ncats.chemkit.renderer.RendererOptions.DrawOptions;
+import org.junit.*;
 import tripod.molvec.Molvec;
 
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import gov.nih.ncats.chemkit.api.Chemical;
@@ -38,7 +36,20 @@ import javax.imageio.ImageIO;
 @RunWith(Parameterized.class)
 public class MoleculeTest {
 
+//	static File writeToFolder = new File("testResults");
 
+	static File writeToFolder = null;
+	@BeforeClass
+	public static void emptyFolder(){
+		if(writeToFolder !=null){
+			File[] fs= writeToFolder.listFiles();
+			if(fs !=null){
+				for(File f : fs){
+					f.delete();
+				}
+			}
+		}
+	}
 	@Rule
 	public TemporaryFolder tmpDir = new TemporaryFolder();
 	
@@ -63,8 +74,8 @@ public class MoleculeTest {
 			.setKekulization(ChemFormat.KekulizationEncoding.KEKULE);
 
 	ChemicalRenderer renderer = new ChemicalRenderer(RendererOptions.createINNLike()
-			.setDrawOption(DrawOptions.DRAW_TERMINAL_CARBON, false)
-			.setDrawOption(DrawOptions.DRAW_CARBON, false)
+			.setDrawOption(DrawOptions.DRAW_TERMINAL_CARBON, true)
+			.setDrawOption(DrawOptions.DRAW_CARBON, true)
 			.setDrawOption(DrawOptions.DRAW_STEREO_LABELS, false)
 			.setDrawOption(RendererOptions.DrawOptions.DRAW_GREYSCALE, true)
 					).setBackgroundColor(Color.white).setShadowVisible(false);
@@ -82,15 +93,9 @@ public class MoleculeTest {
 		File f=getFile(spec.filePath);
 
 		StructureImageExtractor sie = new StructureImageExtractor(f);
-		
-		//This should never be necessary, but is because CDK or chemkit will start playing with stereo
-		//if the 2nd line in the molfile is set to a specific kind of value (don't ask me why)
-		Chemical c =sie.getChemical();
-		String[] lines = c.toMol().split("\n");
-		lines[1]="";
-		String mol=Arrays.stream(lines).collect(Collectors.joining("\n"));
-		c=Chemical.parseMol(mol);
-		
+
+		Chemical c =Chemical.parseMol(sie.getCtab().toMol());
+
 		spec.assertionConsumer.accept(c);
 	}
 
@@ -111,33 +116,41 @@ public class MoleculeTest {
 		}
 
 		StructureImageExtractor sie = new StructureImageExtractor(out.toByteArray());
-		
-		//This should never be necessary, but is because CDK or chemkit will start playing with stereo
-		//if the 2nd line in the molfile is set to a specific kind of value (don't ask me why)
-		Chemical c =sie.getChemical();
-		String[] lines = c.toMol().split("\n");
-		lines[1]="";
-		String mol=Arrays.stream(lines).collect(Collectors.joining("\n"));
-		c=Chemical.parseMol(mol);
+
+		Chemical c=Chemical.parseMol(sie.getCtab().toMol());
+
+		if(writeToFolder !=null){
+			writeToFolder.mkdirs();
+			File molvec = new File(writeToFolder, f.getName()+".molvec.png");
+			BufferedImage img = renderer.createImage(c, 1000, 1000, false);
+
+			ImageIO.write(img, "png", molvec);
+			Files.copy(f.toPath(), new File(writeToFolder, f.getName()+".expected.png").toPath());
+		}
 		spec.assertionConsumer.accept(c);
 	}
 
 	@Test
+	@Ignore
 	public void rendererRoundTrip() throws Exception {
 
 		File f = getFile(spec.filePath);
 		StructureImageExtractor sie = new StructureImageExtractor(f);
-		Chemical expected = sie.getChemical();
+		Chemical expected = Chemical.parseMol(sie.getCtab().toMol());
 
 		expected.kekulize();
 
 		BufferedImage img = renderer.createImage(expected, 1000, 1000, false);
 
 		File newFile = tmpDir.newFile("molvec.png");
+
 		ImageIO.write(img, "png", newFile);
 
+		if(writeToFolder !=null){
+			Files.copy(newFile.toPath(), new File(writeToFolder, f.getName()+".roundTrip.png").toPath());
+		}
 
-		spec.assertionConsumer.accept(Molvec.ocr(newFile));
+		spec.assertionConsumer.accept(Chemical.parseMol(Molvec.ocr(newFile)));
 	}
 
 	@Parameterized.Parameters(name = "{0}")
@@ -901,7 +914,12 @@ public class MoleculeTest {
 		list.add(new Object[]{"circleAromaticTest", new TestSpec("moleculeTest/circleAromatic.png", c->{
 			Chemical cReal=ChemicalBuilder.createFromSmiles("CC1CCCc2c(O)ccc(O)c12").build();
 
+			cReal.kekulize();
+			c.kekulize();
 			String form=c.getFormula();
+
+			c.bonds().filter(b-> b.isInRing()).forEach(b-> System.out.println(b.getBondType()));
+
 			assertEquals(cReal.getFormula(),form);
 		} )});
 

@@ -32,7 +32,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import gov.nih.ncats.chemkit.api.Chemical;
 import tripod.molvec.Bitmap;
 import tripod.molvec.Bitmap.WedgeInfo;
 import tripod.molvec.CachedSupplier;
@@ -4502,9 +4501,8 @@ public class StructureImageExtractor {
 
 	}
 
-
-	public Chemical getChemical(){
-		return ctab.toChemical();
+	public String toMol(){
+		return ctab.toMol();
 	}
 
 	public Bitmap getBitmap() {

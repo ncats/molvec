@@ -65,7 +65,6 @@ public class FragmentTest {
 		File f=getFile("fragmentTest/cyclopropane.png");
 		StructureImageExtractor sie = new StructureImageExtractor(f);
 		ConnectionTable ctab = sie.getCtab();
-		System.out.println(sie.getChemical().toMol());
 		
 		assertEquals(9,ctab.getNodes().size());
 		assertEquals(10,ctab.getEdges().size());

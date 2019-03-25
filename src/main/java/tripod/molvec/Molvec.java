@@ -5,30 +5,28 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.FutureTask;
-
-import gov.nih.ncats.chemkit.api.Chemical;
 import tripod.molvec.algo.StructureImageExtractor;
 
 public class Molvec {
 
-	public static Chemical ocr(File image) throws Exception{
+	public static String ocr(File image) throws Exception{
 		StructureImageExtractor sie = new StructureImageExtractor(image);
-		return sie.getChemical();
+		String mol = sie.getCtab().toMol();
+		return mol;
 		
 	}
 
-	public static Chemical ocr(byte[] image) throws Exception{
+	public static String ocr(byte[] image) throws Exception{
 		StructureImageExtractor sie = new StructureImageExtractor(image);
-		return sie.getChemical();
+		return sie.getCtab().toMol();
 
 	}
-	public static Chemical ocr(BufferedImage image) throws Exception{
+	public static String ocr(BufferedImage image) throws Exception{
 		StructureImageExtractor sie = StructureImageExtractor.createFromImage(image);
-		return sie.getChemical();
+		return sie.getCtab().toMol();
 		
 	}
-	public static CompletableFuture<Chemical> ocrAsync(byte[] image){
+	public static CompletableFuture<String> ocrAsync(byte[] image){
 		return CompletableFuture.supplyAsync(() -> {
 			try{
 				return ocr(image);
@@ -39,7 +37,7 @@ public class Molvec {
 		});
 	}
 	
-	public static CompletableFuture<Chemical> ocrAsync(File image){
+	public static CompletableFuture<String> ocrAsync(File image){
 		return CompletableFuture.supplyAsync(() -> {
 			try{
 				return ocr(image);
@@ -49,7 +47,7 @@ public class Molvec {
 			}
 		});
 	}
-	public static CompletableFuture<Chemical> ocrAsync(File image, Executor executor){
+	public static CompletableFuture<String> ocrAsync(File image, Executor executor){
 		return CompletableFuture.supplyAsync(() -> {
 			try{
 				return ocr(image);
@@ -61,7 +59,7 @@ public class Molvec {
 	}
 	
 
-	public static CompletableFuture<Chemical> ocrAsync(BufferedImage image){
+	public static CompletableFuture<String> ocrAsync(BufferedImage image){
 		return CompletableFuture.supplyAsync(() -> {
 			try{
 				return ocr(image);
@@ -71,7 +69,7 @@ public class Molvec {
 			}
 		});
 	}
-	public static CompletableFuture<Chemical> ocrAsync(BufferedImage image, Executor executor){
+	public static CompletableFuture<String> ocrAsync(BufferedImage image, Executor executor){
 		return CompletableFuture.supplyAsync(() -> {
 			try{
 				return ocr(image);
@@ -80,5 +78,9 @@ public class Molvec {
 				return null;
 			}
 		},executor);
+	}
+
+	public static String getVersion(){
+		return "0.9.2";
 	}
 }

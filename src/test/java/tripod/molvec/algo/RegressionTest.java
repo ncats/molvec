@@ -4,14 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
@@ -62,10 +55,7 @@ public class RegressionTest {
 		
 	}
 	
-	private static Chemical getCleanChemical(Chemical c) throws IOException{
-		String[] lines = c.toMol().split("\n");
-		lines[1]="";
-		String mol=Arrays.stream(lines).collect(Collectors.joining("\n"));
+	private static Chemical getCleanChemical(String mol) throws IOException{
 		Chemical nc= Chemical.parseMol(mol);
 		
 		
@@ -115,9 +105,11 @@ public class RegressionTest {
 		
 		return nc;
 	}
-	
-	
+
 	public static Result testMolecule(File image, File sdf){
+		return testMolecule(image, sdf, 60);
+	}
+	public static Result testMolecule(File image, File sdf, long timeoutInSeconds){
 		
 		try{
 			AtomicBoolean lastWasAlias = new AtomicBoolean(false);
@@ -171,9 +163,13 @@ public class RegressionTest {
 //				cget.get();
 //			});
 			Chemical c;
+			CompletableFuture<String> chemicalCompletableFuture = Molvec.ocrAsync(image);
+
 			try {
-				 c = getCleanChemical(Molvec.ocrAsync(image).get(60, TimeUnit.SECONDS));
+				c = getCleanChemical(chemicalCompletableFuture.get(timeoutInSeconds, TimeUnit.SECONDS));
 			}catch(TimeoutException te) {
+				System.out.println("timeout!!");
+				chemicalCompletableFuture.cancel(true);
 				return Result.TIMEOUT;
 			}catch(Exception e){
 				return Result.ERROR;
@@ -325,8 +321,14 @@ public class RegressionTest {
 //			// TODO Auto-generated catch block
 //			e.printStackTrace();
 //		}
-		
-		Arrays.stream(dir1.listFiles())
+		List<String> dataMethod = new ArrayList<>();
+		dataMethod.add("@Parameterized.Parameters(name=\"{0}\")");
+		dataMethod.add("public static List<Object[]> getData(){");
+		dataMethod.add("\tFile dir = new File(RegressionTest2.class.getResource(\"/regressionTest/usan\").getFile());");
+
+		dataMethod.add("\n\tList<Object[]> list = new ArrayList<>();\n");
+
+			Arrays.stream(dir1.listFiles())
 		      .filter(f->f.getName().contains("."))
 		      
 		      .map(f->Tuple.of(f.getName().split("[.]")[0],f))
@@ -345,28 +347,47 @@ public class RegressionTest {
 		    	  	return l;
 		      })
 		      .collect(shuffler(new Random(11111140l)))		      
-		      .limit(2000)
+//		      .limit(500)
 
 //NOTE, I THINK THIS TECHNICALLY WORKS, BUT SINCE THERE IS PARALLEL THINGS GOING ON IN EACH, IT SOMETIMES WILL STARVE A CASE FOR A LONG TIME
-//		      .parallel()
+		      .parallel()
 		      
 		      
-		      .map(fl->Tuple.of(fl,testMolecule(fl.get(1),fl.get(0))))
+		      .map(fl->Tuple.of(fl,testMolecule(fl.get(1),fl.get(0), 400)))
 		      .map(t->t.swap())
 		      .peek(t->System.out.println(t.k()))
 		      
 		      .collect(Tuple.toGroupedMap())
 		      .entrySet()
 		      .stream()
+//				.sorted()
 		      .map(Tuple::of)
 		      .forEach(t->{
 		    	  Result r=t.k();
 		    	  List<List<File>> fl = t.v();
-		    	  System.out.println("======================================");
-		    	  System.out.println(r.toString() + "\t" + fl.size());
-		    	  System.out.println("--------------------------------------");
-		    	  System.out.println(fl.stream().map(f->f.get(1).getAbsolutePath()).collect(Collectors.joining("\n")));
+//		    	  System.out.println("======================================");
+//		    	  System.out.println(r.toString() + "\t" + fl.size());
+//		    	  System.out.println("--------------------------------------");
+//		    	  System.out.println(fl.stream().map(f->f.get(1).getAbsolutePath()).collect(Collectors.joining("\n")));
+
+				  dataMethod.add("\t\tadd"+r.name()+"(list, dir);");
+
+		System.out.println("\tprivate static void add"+r.name()+"(List<Object[]> list, File dir){\n"+
+			"\t\t//=================================\n"+
+			"\t\t//            " + r.name() + "  " + fl.size() +"\n" +
+			"\t\t//--------------------------------------\n");
+		for(List<File> f : fl) {
+			String fileName = f.get(1).getName();
+			//trim off .png
+			String noExt = fileName.substring(0, fileName.length()-4);
+			System.out.println("\t\tlist.add(test(RegressionTest.Result." + r.name()+", dir, \"" + noExt + "\"));");
+		}
+		System.out.println("\t}\n");
+
 		      });
+
+			dataMethod.add("\t\treturn list;\n\t}");
+			System.out.println(dataMethod.stream().collect(Collectors.joining("\n")));
 	}
 	
 	public static <T> Collector<T,List<T>,Stream<T>> shuffler(Random r){
