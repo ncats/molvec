@@ -94,8 +94,8 @@ public class MoleculeTest {
 
 		StructureImageExtractor sie = new StructureImageExtractor(f);
 
-		Chemical c =Chemical.parseMol(sie.getCtab().toMol());
-
+		//Chemical c =Chemical.parseMol(sie.getCtab().toMol());
+		 Chemical c =Chemical.parseMol(sie.getCtab().toMol()).toBuilder().aromatize(false).build();
 		spec.assertionConsumer.accept(c);
 	}
 
@@ -117,7 +117,7 @@ public class MoleculeTest {
 
 		StructureImageExtractor sie = new StructureImageExtractor(out.toByteArray());
 
-		Chemical c=Chemical.parseMol(sie.getCtab().toMol());
+		 Chemical c =Chemical.parseMol(sie.getCtab().toMol()).toBuilder().aromatize(false).build();
 
 		if(writeToFolder !=null){
 			writeToFolder.mkdirs();
