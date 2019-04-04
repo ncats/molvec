@@ -60,12 +60,6 @@
         <version>0.9.2</version>
         <scope>test</scope>
 </dependency>
-    <dependency>
-        <groupId>chemaxon</groupId>
-        <artifactId>jchem</artifactId>
-        <version>1.0.0fake</version>
-        <scope>provided</scope>
-    </dependency>
 <dependency>
         <groupId>gov.nih.ncats</groupId>
         <artifactId>chemkit-renderer</artifactId>
