@@ -31,6 +31,7 @@ import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -1039,6 +1040,12 @@ public class Bitmap implements Serializable, TiffTags {
             return createBitmap (ImageUtil.grayscale(file).getData());
         }
     }
+    
+    public static Bitmap read (BufferedImage bi) {
+    	 return createBitmap (ImageUtil.grayscale(bi).getData());
+    }
+    
+    
 
 
     public void writetif (String file) throws IOException {
@@ -1703,7 +1710,7 @@ public class Bitmap implements Serializable, TiffTags {
     List<Shape> connectedComponentPolygonShapes
         (short[] eqvtab, short[][] labels) {
 
-        Map<Short, List<Point>> coords = new HashMap<Short, List<Point>> ();
+        Map<Short, List<Point>> coords = new LinkedHashMap<Short, List<Point>> ();
         for (int y = 0; y < height; ++y)
             for (int x = 0; x < width; ++x) {
                 short label = labels[y][x];
@@ -1734,7 +1741,7 @@ public class Bitmap implements Serializable, TiffTags {
     List<Shape> connectedComponentDoublePrecisionPolygonShapes
 	    (short[] eqvtab, short[][] labels) {
 	
-	    Map<Short, List<Point>> coords = new HashMap<Short, List<Point>> ();
+	    Map<Short, List<Point>> coords = new LinkedHashMap<Short, List<Point>> ();
 	    for (int y = 0; y < height; ++y)
 	        for (int x = 0; x < width; ++x) {
 	            short label = labels[y][x];
@@ -1776,7 +1783,7 @@ public class Bitmap implements Serializable, TiffTags {
     List<Shape> connectedComponentRectangularShapes
         (short[] eqvtab, short[][] labels) {
 
-        Map<Short, Rectangle> ltab = new HashMap<Short, Rectangle> ();
+        Map<Short, Rectangle> ltab = new LinkedHashMap<Short, Rectangle> ();
         List<Shape> comps = new ArrayList<Shape> ();
 
         for (int y = 0; y < height; ++y)

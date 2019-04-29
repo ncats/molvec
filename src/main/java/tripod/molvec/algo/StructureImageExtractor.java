@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -96,7 +97,7 @@ public class StructureImageExtractor {
 	private List<LineWrapper> linesJoined;
 	private List<Tuple<Line2D,Integer>> linesOrder;    
 	private Map<Shape,List<Tuple<Character,Number>>> ocrAttempt = new ConcurrentHashMap<>();
-	private Map<Shape,String> bestGuessOCR = new HashMap<>();
+	private Map<Shape,String> bestGuessOCR = new LinkedHashMap<>();
 	
 
 	private ConnectionTable ctab;
@@ -1718,8 +1719,6 @@ public class StructureImageExtractor {
 			
 
 
-
-//				System.out.println("Removed bad edges:" + ctabRaw.size());
 				if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 				double avgBondLength=ctab.getAverageBondLength();
@@ -1959,6 +1958,7 @@ public class StructureImageExtractor {
 
 			});
 
+			
 			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 
@@ -2387,7 +2387,6 @@ public class StructureImageExtractor {
 						.map(Tuple::of)
 						.filter(t->t.v().equals("H"))
 						.collect(Collectors.toList())
-						.stream()
 						.forEach(t->{
 							double cutoff=Math.max(ctab.getAverageBondLength()*MAX_BOND_RATIO_FOR_OCR_CHAR_SPACING,averageWidthOCR);
 							
@@ -2458,7 +2457,6 @@ public class StructureImageExtractor {
 
 			List<Shape> ocrMeaningful=bestGuessOCR.keySet()
 					.stream()
-					.peek(t->System.out.println(bestGuessOCR.get(t)))
 					.filter(s->BranchNode.interpretOCRStringAsAtom2(bestGuessOCR.get(s))!=null)
 					.collect(Collectors.toList());
 
@@ -2468,12 +2466,17 @@ public class StructureImageExtractor {
 
 			Set<Node> alreadyFixedNodes = new HashSet<Node>();
 
-			
+			Function<Shape, Double> priorityNumber = (s)->{
+				Rectangle2D rect = s.getBounds2D();
+				return rect.getWidth()*rect.getHeight() + (1+rect.getX())/1000.0 + (1+rect.getY())/1000000.0; 
+			};
 			
 			bestGuessOCR.entrySet()
 						.stream()
 						.map(Tuple::of)
-						.map(Tuple.vmap(s->Tuple.of(s,(s.equals("H"))?1:0).withVComparator()))
+						.map(t->Tuple.of(t.k(),
+								         Tuple.of(t.v(),(t.v().equals("H"))?1.0:0.0 + 1.0/(priorityNumber.apply(t.k())))
+								              .withVComparator()))
 						.map(t->t.withVComparator())
 						.sorted()
 						.filter(t->!t.v().k().startsWith("#")) //??? if it isn't a number, this should never be the case now, but might be in the future
@@ -2677,7 +2680,6 @@ public class StructureImageExtractor {
 			ctab.standardCleanEdges();
 
 
-			
 			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 			
@@ -4083,7 +4085,6 @@ public class StructureImageExtractor {
 						if(e.getRealNode2().getEdges().stream().filter(ed->ed.getOrder()>1).findAny().isPresent()){
 							cutoff=WEDGE_LIKE_PEARSON_SCORE_CUTOFF_DOUBLE;
 						}
-						System.out.println(s.getAverageThickness()/averageThickness);
 						
 						
 						if(wl>cutoff){

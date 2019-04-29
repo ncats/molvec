@@ -112,16 +112,15 @@ public class ConnectionTable{
 	}
 	
 	
-	private void consumePaths(Stack<Node> soFar, Set<Edge> used, Consumer<Stack<Node>> found){
+	private void consumePathsUntilRing(Stack<Node> soFar, Set<Edge> used, Consumer<Stack<Node>> found, int MAX_DEPTH){
 		Node p=soFar.peek();
+		if(soFar.size()>MAX_DEPTH)return;
 		
 		for(Tuple<Node,Edge> en : p.getNeighborNodes()){
 			if(used.contains(en.v())){
 				continue;
 			}
 			used.add(en.v());
-			
-			
 			
 			if(soFar.contains(en.k())){
 				soFar.push(en.k());
@@ -130,7 +129,7 @@ public class ConnectionTable{
 			}
 			soFar.push(en.k());		
 			
-			consumePaths(soFar,used,found);
+			consumePathsUntilRing(soFar,used,found, MAX_DEPTH);
 			
 			used.remove(en.v());
 			soFar.pop();
@@ -142,33 +141,34 @@ public class ConnectionTable{
 	private List<Ring> _getRingMap(){
 		return getDisconnectedNodeSets().stream()
 				.flatMap(nl1->{
-					Stack<Node> st=new Stack<Node>();
-					Set<Edge> nadda=new HashSet<>();
-					
-					st.push(nl1.get(0));
-					
 					Map<Node,List<List<Node>>> nrings = new HashMap<>();
 					
-					
-					consumePaths(st,nadda,(nst)->{
-						Node term = nst.peek();
-						List<Node> mlist=new ArrayList<Node>();
-						boolean started = false;
-						for(Node n1:nst){
-							if(started){
-								mlist.add(n1);
-							}else{
-								if(n1==term){
-									started=true;
+					for(Node nn: nl1){
+						Stack<Node> st=new Stack<Node>();
+						Set<Edge> nadda=new HashSet<>();
+						
+						st.push(nn);
+						
+						consumePathsUntilRing(st,nadda,(nst)->{
+							Node term = nst.peek();
+							List<Node> mlist=new ArrayList<Node>();
+							boolean started = false;
+							for(Node n1:nst){
+								if(started){
+									mlist.add(n1);
+								}else{
+									if(n1==term){
+										started=true;
+									}
 								}
 							}
-						}
-						for(Node n:mlist){
-							nrings.computeIfAbsent(n, k->{
-								return new ArrayList<List<Node>>();
-							}).add(mlist);
-						}
-					});
+							for(Node n:mlist){
+								nrings.computeIfAbsent(n, k->{
+									return new ArrayList<List<Node>>();
+								}).add(mlist);
+							}
+						},10);
+					}
 					
 					return nrings.entrySet()
 					      .stream()
