@@ -3,7 +3,7 @@ NCATS (chemical) ocr
 engine that can a way to vectorize
 chemical images into Chemical objects preserving the 2D layout as much as 
 possible. The code is still very raw in terms of utility. Please forward
-questions and/or problems to nguyenda@mail.nih.gov.
+questions and/or problems to tyler.peryea@nih.gov.
 
 #How To Build
    
