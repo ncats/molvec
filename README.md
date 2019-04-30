@@ -6,9 +6,18 @@ possible. The code is still very raw in terms of utility. Please forward
 questions and/or problems to nguyenda@mail.nih.gov.
 
 #How To Build
-   $ mvn install
    
-   This project has a dependency on Chemkit
+   This project has a dependency on Chemkit, to install those dependencies automatically using the default CDK implementation, run this command:
+
+   $ bash mavenInstall.sh
+
+   Once the dependencies are installed, you can build the whole project as a jar file with:
+
+   $ mvn clean pacakge
+
+   Or install the project into your maven repository using:
+
+   $ mvn install
    
 ##Example Usage
 
