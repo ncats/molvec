@@ -105,7 +105,7 @@
    <configuration>
                <archive>
                   <manifest>
-                     <mainClass>tripod.molvec.ui.Viewer</mainClass>
+                     <mainClass>gov.nih.ncats.molvec.ui.Viewer</mainClass>
                   </manifest>
                </archive>
                <descriptorRefs>
