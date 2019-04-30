@@ -1650,6 +1650,38 @@ public class MoleculeTest {
 			String keyGot=Inchi.asStdInchi(c).getKey();
 			assertEquals(keyReal,keyGot);
 		} )});
+		
+				list.add(new Object[]{"redFragment", new TestSpec("moleculeTest/redFragment.png", c->{
+					Chemical cReal=ChemicalBuilder.createFromMol("\n" + 
+							"\n" + 
+							"\n" + 
+							" 10 10  0  0  0  0  0  0  0  0999 V2000\n" + 
+							"    0.8970   -0.5168    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    1.7047   -0.9675    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -0.0163   -1.0073    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -0.0139    1.0260    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -0.9282    0.5765    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -0.9371   -0.5212    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -0.0089   -1.9671    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -0.0221    1.9659    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    0.9014    0.5319    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -1.7047    1.0139    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"  1  2  1  0  0  0  0 \n" + 
+							"  1  3  1  0  0  0  0 \n" + 
+							"  3  6  1  0  0  0  0 \n" + 
+							"  4  5  1  0  0  0  0 \n" + 
+							"  3  7  2  0  0  0  0 \n" + 
+							"  1  9  1  0  0  0  0 \n" + 
+							"  5  6  1  0  0  0  0 \n" + 
+							"  4  8  2  0  0  0  0 \n" + 
+							"  4  9  1  0  0  0  0 \n" + 
+							"  5 10  1  0  0  0  0 \n" + 
+							"M  END", Charset.defaultCharset()).build();
+
+					String keyReal=Inchi.asStdInchi(cReal).getKey();
+					String keyGot=Inchi.asStdInchi(c).getKey();
+					assertEquals(keyReal,keyGot);
+				} )});
 		list.add(new Object[]{"multiIodine", new TestSpec("moleculeTest/multiIodine.png", c->{
 			Chemical cReal=ChemicalBuilder.createFromMol("\n" + 
 					"  CDK     02141919243D\n" + 
