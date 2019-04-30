@@ -523,10 +523,10 @@ public class ConnectionTable{
 			}
 			int bondStereo=0;
 			if(e.getOrder() ==1){
-				if(e.getDashed()){
-					bondStereo=6; //down
-				}else if(e.getWedge()){
+				if(e.getWedge()){
 					bondStereo =1; // up
+				}else if(e.getDashed()){
+					bondStereo=6; //down
 				}
 			}
 
