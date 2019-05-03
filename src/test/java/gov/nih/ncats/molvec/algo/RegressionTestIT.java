@@ -276,6 +276,8 @@ public class RegressionTestIT {
 			}catch(Exception e){
 				return Result.ERROR;
 			}
+			//c = getCleanChemical(getOSRAChemical(image).toMol());
+			
 //			try{
 //				long start = System.currentTimeMillis();
 //				th.start();
@@ -413,7 +415,7 @@ public class RegressionTestIT {
 //	@Ignore
 	@Test
 	public void test1(){
-		File dir1 = getFile("regressionTest/usan");
+		File dir1 = getFile("regressionTest/maybridge");
 //		try {
 //			ChemicalBuilder cb = ChemicalBuilder.createFromSmiles("CCCC");
 //			String ii = Inchi.asStdInchi(cb.build()).getKey();
@@ -426,7 +428,7 @@ public class RegressionTestIT {
 		List<String> dataMethod = new ArrayList<>();
 		dataMethod.add("@Parameterized.Parameters(name=\"{0}\")");
 		dataMethod.add("public static List<Object[]> getData(){");
-		dataMethod.add("\tFile dir = new File(RegressionTest2.class.getResource(\"/regressionTest/usan\").getFile());");
+		dataMethod.add("\tFile dir = new File(RegressionTest2.class.getResource(\"/regressionTest/maybridge\").getFile());");
 
 		dataMethod.add("\n\tList<Object[]> list = new ArrayList<>();\n");
 
@@ -449,7 +451,7 @@ public class RegressionTestIT {
 		    	  	return l;
 		      })
 		      .collect(shuffler(new Random(11111140l)))		      
-//		      .limit(500)
+		      .limit(100)
 
 //NOTE, I THINK THIS TECHNICALLY WORKS, BUT SINCE THERE IS PARALLEL THINGS GOING ON IN EACH, IT SOMETIMES WILL STARVE A CASE FOR A LONG TIME
 		      .parallel()
