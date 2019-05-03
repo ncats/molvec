@@ -835,6 +835,8 @@ class BranchNode{
 			nn1.addChild(nn2);
 			nn1.setRightBranchNode(nn2);
 			return nn1;
+		}else if(s.equals("Sl") || s.equals("SI")){
+			return new BranchNode("Si");
 		}
 		
 		
