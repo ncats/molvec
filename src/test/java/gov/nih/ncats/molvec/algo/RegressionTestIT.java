@@ -4,8 +4,19 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
@@ -15,16 +26,17 @@ import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import gov.nih.ncats.molvec.algo.Tuple;
-import tripod.molvec.algo.ShellCommandRunner.Builder;
-import tripod.molvec.algo.ShellCommandRunner.Monitor;
-
 import org.junit.Test;
 
+import gov.nih.ncats.chemkit.api.Atom;
+import gov.nih.ncats.chemkit.api.AtomCoordinates;
+import gov.nih.ncats.chemkit.api.Bond;
+import gov.nih.ncats.chemkit.api.Bond.Stereo;
 import gov.nih.ncats.chemkit.api.Chemical;
 import gov.nih.ncats.chemkit.api.ChemicalBuilder;
 import gov.nih.ncats.chemkit.api.inchi.Inchi;
 import gov.nih.ncats.molvec.Molvec;
+import gov.nih.ncats.molvec.algo.ShellCommandRunner.Monitor;
 
 public class RegressionTestIT {
 
@@ -58,53 +70,92 @@ public class RegressionTestIT {
 	}
 	
 
-//	public static Chemical getOSRAChemical(File f) throws IOException, InterruptedException{
-//		StringBuilder resp = new StringBuilder();
-//		AtomicBoolean done=new AtomicBoolean(false);
+	public static Chemical combineChemicals(Chemical c1, Chemical c2){
+		ChemicalBuilder nc = c1.copy().toBuilder();
+		
+		Map<Atom,Atom> oldToNew = new HashMap<>();
+		
+		for(int i=0;i<c1.getAtomCount();i++){
+			Atom aa=nc.atomAt(i);
+			AtomCoordinates ac=aa.getAtomCoordinates();
+			aa.setAtomCoordinates(AtomCoordinates.valueOf(ac.getX(), ac.getY(), ac.getZ().orElse(0)));
+		}
+		
+		c2.atoms()
+		  .forEach(a->{
+			  AtomCoordinates ac=a.getAtomCoordinates();
+			  
+			  Atom na=nc.addAtom(a.getSymbol(), ac.getX(), ac.getY(), ac.getZ().orElse(0));
+			  oldToNew.put(a, na);
+			  na.setCharge(a.getCharge());
+			  na.setMassNumber(a.getMassNumber());
+			  na.setAtomCoordinates(AtomCoordinates.valueOf(ac.getX(), ac.getY(), ac.getZ().orElse(0)));
+		  });
+		
+		c2.bonds()
+		  .forEach(b->{
+			  Atom na1=oldToNew.get(b.getAtom1());
+			  Atom na2=oldToNew.get(b.getAtom2());
+			  Bond nb=nc.addBond(na1,na2, b.getBondType());
+			  if(b.getStereo()!=null && b.getStereo()!=Stereo.NONE){
+				  nb.setStereo(b.getStereo());  
+			  }
+			  //
+		  });
 //		
-//		Monitor m=(new Builder()).activeDir("/home/tyler/workspace/cnsmpo")
-//	               .command("osra", "-f sdf", f.getAbsolutePath())
-//	               .build()
-//	               
-//	               .run();
-//		m.onError(l->{
-//			try{
-//				System.err.println(l);
-//			m.kill();
-//			}catch(Exception e){
-//				e.printStackTrace();
-//			}
-//		});
-//		m.onInput(l->{resp.append(l + "\n");});
-//		m.onKilled(k->{done.set(true);});
-//	
-//		while(!done.get()){
-//			Thread.sleep(10);
-//		}
-//		
-//		StringBuilder sbnew = new StringBuilder();
-//		
-//		Chemical fc= Arrays.stream(resp.toString().split("\n"))
-//		      .map(l->{
-//		    	  sbnew.append(l+"\n");
-//		    	  if(l.equals("$$$$")){
-//		    		  String f1=sbnew.toString();
-//		    		  sbnew.setLength(0);
-//		    		  try {
-//						return Chemical.parseMol(f1);
-//					} catch (IOException e) {
-//						// TODO Auto-generated catch block
-//						e.printStackTrace();
-//					}
-//		    	  }
-//		    	  return null;
-//		      })
-//		      .filter(c->c!=null)
-//		      .reduce((c1,c2)->combineChemicals(c1,c2))
-//		      .orElse(new ChemicalBuilder().build());
-//		
-//		return fc;
-//	}
+		
+		return nc.build();
+	}
+	
+
+	
+
+	public static Chemical getOSRAChemical(File f) throws IOException, InterruptedException{
+		StringBuilder resp = new StringBuilder();
+		AtomicBoolean done=new AtomicBoolean(false);
+		
+		Monitor m=(new ShellCommandRunner.Builder()).activeDir("./")
+	               .command("osra", "-f sdf", f.getAbsolutePath())
+	               .build()
+	               .run();
+		m.onError(l->{
+			try{
+				System.err.println(l);
+			m.kill();
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+		});
+		m.onInput(l->{resp.append(l + "\n");});
+		m.onKilled(k->{done.set(true);});
+	
+		while(!done.get()){
+			Thread.sleep(10);
+		}
+		
+		StringBuilder sbnew = new StringBuilder();
+		
+		Chemical fc= Arrays.stream(resp.toString().split("\n"))
+		      .map(l->{
+		    	  sbnew.append(l+"\n");
+		    	  if(l.equals("$$$$")){
+		    		  String f1=sbnew.toString();
+		    		  sbnew.setLength(0);
+		    		  try {
+						return Chemical.parseMol(f1);
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+		    	  }
+		    	  return null;
+		      })
+		      .filter(c->c!=null)
+		      .reduce((c1,c2)->combineChemicals(c1,c2))
+		      .orElse(new ChemicalBuilder().build());
+		
+		return fc;
+	}
 	
 	private static Chemical getCleanChemical(String mol) throws IOException{
 		Chemical nc= Chemical.parseMol(mol);
