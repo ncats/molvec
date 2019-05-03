@@ -16,6 +16,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import gov.nih.ncats.molvec.algo.Tuple;
+import tripod.molvec.algo.ShellCommandRunner.Builder;
+import tripod.molvec.algo.ShellCommandRunner.Monitor;
+
 import org.junit.Test;
 
 import gov.nih.ncats.chemkit.api.Chemical;
@@ -53,6 +56,55 @@ public class RegressionTestIT {
 		return new File(classLoader.getResource(fname).getFile());
 		
 	}
+	
+
+//	public static Chemical getOSRAChemical(File f) throws IOException, InterruptedException{
+//		StringBuilder resp = new StringBuilder();
+//		AtomicBoolean done=new AtomicBoolean(false);
+//		
+//		Monitor m=(new Builder()).activeDir("/home/tyler/workspace/cnsmpo")
+//	               .command("osra", "-f sdf", f.getAbsolutePath())
+//	               .build()
+//	               
+//	               .run();
+//		m.onError(l->{
+//			try{
+//				System.err.println(l);
+//			m.kill();
+//			}catch(Exception e){
+//				e.printStackTrace();
+//			}
+//		});
+//		m.onInput(l->{resp.append(l + "\n");});
+//		m.onKilled(k->{done.set(true);});
+//	
+//		while(!done.get()){
+//			Thread.sleep(10);
+//		}
+//		
+//		StringBuilder sbnew = new StringBuilder();
+//		
+//		Chemical fc= Arrays.stream(resp.toString().split("\n"))
+//		      .map(l->{
+//		    	  sbnew.append(l+"\n");
+//		    	  if(l.equals("$$$$")){
+//		    		  String f1=sbnew.toString();
+//		    		  sbnew.setLength(0);
+//		    		  try {
+//						return Chemical.parseMol(f1);
+//					} catch (IOException e) {
+//						// TODO Auto-generated catch block
+//						e.printStackTrace();
+//					}
+//		    	  }
+//		    	  return null;
+//		      })
+//		      .filter(c->c!=null)
+//		      .reduce((c1,c2)->combineChemicals(c1,c2))
+//		      .orElse(new ChemicalBuilder().build());
+//		
+//		return fc;
+//	}
 	
 	private static Chemical getCleanChemical(String mol) throws IOException{
 		Chemical nc= Chemical.parseMol(mol);
