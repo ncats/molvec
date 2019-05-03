@@ -1705,11 +1705,107 @@ public class StructureImageExtractor {
 					}
 				});
 
+				
+				
+				ctab.getRings()
+			    .stream()
+			    .filter(r->r.size()>4 && r.size()<7)
+			    .forEach(r->{
+			    	Point2D center=GeomUtil.centerOfMass(r.getConvexHull());
+			    	Shape p=GeomUtil.convexHull2(GeomUtil.makeNPolyCenteredAt(new Point2D.Double(0,0), r.size(), 100));
+			    	//Shape p2=GeomUtil.convexHull2(GeomUtil.makeNPolyCenteredAt(center, 6, ctab.getAverageBondLength()));
+			    	Point2D anchor = r.getNodes().stream()
+			    			          .map(n->Tuple.of(n, n.getPoint().distance(center)).withVComparator())
+			    			          .max(Comparator.naturalOrder())
+			    			          .map(t->t.k().getPoint())
+			    			          .orElse(null);
+			    	Line2D nline = new Line2D.Double(center,anchor);
+			    	AffineTransform at=GeomUtil.getTransformFromLineToLine(new Line2D.Double(new Point2D.Double(0,0),new Point2D.Double(100,0)),nline,false);
+			    	Shape ns=at.createTransformedShape(p);
+			    	
+			    	double ll=GeomUtil.length(nline)*0.03;
+			    	
+			    	Point2D[] verts2 = GeomUtil.vertices(ns);
+			    	
+			    	boolean looksOkay = r.getNodes()
+			    	 .stream()
+			    	 .map(n->{
+			    		double dd=Arrays.stream(verts2)
+			    		      .map(v->Tuple.of(v, v.distance(n.getPoint())).withVComparator())
+			    		      .min(Comparator.naturalOrder())
+			    		      .map(t->t.v())
+			    		      .orElse(0.0);
+			    		return dd;
+			    	 })
+			    	 .filter(d->d>ll)
+			    	 .findAny()
+			    	 .isPresent();
+			    	
+			    	if(looksOkay){
+			    		//this means the rings are likely to be real.
+			    		//with that in mind, let's take a look and see if there are things that should be merged
+			    		//specifically, we want edges that are dashes
+			    		Set<Edge> eset = r.getEdges().stream().collect(Collectors.toSet());
+			    		toRemoveEdges.removeAll(eset);
+			    		toRemove.removeAll(r.getNodes());
+			    		
+			    		eset
+			    		 .stream()
+			    		 .filter(ee->ee.getDashed())
+			    		 .forEach(ed->{
+			    			 ed.getRealNode1()
+			    			   .getNeighborNodes()
+			    			   .stream()
+			    			   .filter(ne->!eset.contains(ne))
+			    			   .filter(ne->ne.k().distanceTo(ed.getRealNode2()) < ed.getEdgeLength())
+			    			   .filter(ne->ne.k().getEdgeCount()==1)
+			    			   .filter(ne->{
+			    				   return GeomUtil.cosTheta(ne.v().getLine(), ed.getLine())>Math.cos(15*Math.PI/180.0);
+			    			   })
+			    			   .findFirst()
+			    			   .ifPresent(ne->{
+			    				   ed.setDashed(ne.v().getDashed());
+			    				   if(ed.getOrder()==1){
+			    					   ed.setOrder(ne.v().getOrder());   
+			    				   }
+			    				   toRemoveEdges.add(ne.v());
+			    				   toRemove.add(ne.k());
+			    			   });
+			    			 ed.getRealNode2()
+			    			   .getNeighborNodes()
+			    			   .stream()
+			    			   .filter(ne->!eset.contains(ne))
+			    			   .filter(ne->ne.k().distanceTo(ed.getRealNode1()) < ed.getEdgeLength())
+			    			   //.filter(ne->ne.k().getEdgeCount()==1)
+			    			   .filter(ne->{
+			    				   return GeomUtil.cosTheta(ne.v().getLine(), ed.getLine())>Math.cos(15*Math.PI/180.0);
+			    			   })
+			    			   .findFirst()
+			    			   .ifPresent(ne->{
+			    				   ed.setDashed(ne.v().getDashed());
+			    				   if(ed.getOrder()==1){
+			    					   ed.setOrder(ne.v().getOrder());   
+			    				   }
+			    				   toRemoveEdges.add(ne.v());
+			    				   toRemove.add(ne.k());
+			    			   });
+			    			 
+			    		 });
+			    		 ;
+			    		
+			    		
+			    		realRescueOCRCandidates.add(ns);
+			    	}			    	
+			    });
 
+				
+				
 				toRemoveEdges.forEach(e->ctab.removeEdge(e));
 				
 				//fuzzy adding missing stuff
 				if(DEBUG)ctabRaw.add(ctab.cloneTab());
+				
+				
 				toRemove.forEach(n->ctab.removeNodeAndEdges(n));
 				//ctab.removeOrphanNodes();
 
@@ -4271,13 +4367,6 @@ public class StructureImageExtractor {
 			    		n.setPoint(np);
 			    	 });
 			    	
-			    	
-			    	
-			    	
-			    	//realRescueOCRCandidates.add(ns);
-			    	
-			    	//realRescueOCRCandidates.add(p2);
-			    	
 			    });
 //			ctab.getRings()
 //			    .stream()
@@ -4477,6 +4566,39 @@ public class StructureImageExtractor {
 							   
 			}
 		}
+		
+		ctab.getNodes()
+			.stream()
+			.filter(ca->ca.getSymbol().equals("S"))
+			.filter(ca->ca.getValanceTotal()==5)
+			.forEach(ca->{
+				ca.getNeighborNodes().stream()
+				  .filter(cn->cn.k().getSymbol().equals("O"))
+				  .filter(cn->cn.k().getCharge()==0)
+				  .filter(cn->cn.v().getOrder()==1)
+				  .limit(1)
+				  .forEach(co->{
+					  co.v().setOrder(2);
+				  });
+			});
+		
+		
+		ctab.getNodes()
+			.stream()
+			.filter(ca->ca.getSymbol().equals("N"))
+			.filter(ca->ca.getValanceTotal()==4)
+			.filter(ca->ca.getEdgeCount()==2)
+			.forEach(ca->{
+				ca.getNeighborNodes().stream()
+				  .filter(cn->!cn.k().getSymbol().equals("C"))
+				  .filter(cn->cn.k().getCharge()==0)
+				  .filter(cn->cn.v().getOrder()==2)
+				  .limit(1)
+				  .forEach(co->{
+					  co.v().setOrder(1);
+				  });
+			});
+		
 		 
 		if(DEBUG)ctabRaw.add(ctab.cloneTab());
 		
