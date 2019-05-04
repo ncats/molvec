@@ -898,23 +898,29 @@ public class StructureImageExtractor {
 
 		Set<Shape> verticalShapes = Collections.synchronizedSet(new LinkedHashSet<Shape>());
 
+		Set<Shape> NPlusShapes = Collections.synchronizedSet(new LinkedHashSet<Shape>());
+		
 		processOCR(socr[0],polygons,bitmap,thin,(s,potential)->{
 			ocrAttempt.put(s, potential);
 			
 			if(potential.stream().filter(e->e.v().doubleValue()>OCRcutoffCosine).findAny().isPresent()){
 				CharType ct=OCRIsLikely(potential.get(0));
-				if(ct.equals(CharType.ChemLikely)){
-					likelyOCR.add(s);
-					likelyOCRNonBond.add(s);
-					
-				}else if(ct.equals(CharType.NumericLikely)){
-					likelyOCRNonBond.add(s);
-					likelyOCRNumbers.add(s);
-				}else if(ct.equals(CharType.VerticalBondLikely)){
-					verticalShapes.add(s);
+				
+				if(potential.get(0).k().toString().equals("?")){
+					NPlusShapes.add(s);
+				}else{
+					if(ct.equals(CharType.ChemLikely)){
+						likelyOCR.add(s);
+						likelyOCRNonBond.add(s);
+						
+					}else if(ct.equals(CharType.NumericLikely)){
+						likelyOCRNonBond.add(s);
+						likelyOCRNumbers.add(s);
+					}else if(ct.equals(CharType.VerticalBondLikely)){
+						verticalShapes.add(s);
+					}
+					likelyOCRAll.add(s);
 				}
-				likelyOCRAll.add(s);
-
 			}
 			
 		});
@@ -927,6 +933,40 @@ public class StructureImageExtractor {
 				.filter(Objects::nonNull) //sometimes get NPEs here not sure why or how
 				.average()
 				.orElse(10000);
+		
+		double averageWidthOCR1=likelyOCR.stream()
+				.map(Shape::getBounds2D)
+				.filter(Objects::nonNull)
+				.mapToDouble(Rectangle2D::getWidth)
+				.filter(Objects::nonNull) //sometimes get NPEs here not sure why or how
+				.average()
+				.orElse(0);
+		
+
+		NPlusShapes
+			.stream()
+			.filter(s->s.getBounds2D().getWidth()<averageWidthOCR1*2)
+			.forEach(s->{
+				
+				
+				
+				CharType ct=OCRIsLikely(ocrAttempt.get(s).get(0));
+				
+				if(ct.equals(CharType.ChemLikely)){
+					likelyOCR.add(s);
+					likelyOCRNonBond.add(s);
+					
+				}else if(ct.equals(CharType.NumericLikely)){
+					likelyOCRNonBond.add(s);
+					likelyOCRNumbers.add(s);
+				}else if(ct.equals(CharType.VerticalBondLikely)){
+					verticalShapes.add(s);
+				}
+				likelyOCRAll.add(s);				
+				
+			});
+		
+		
 		
 		verticalShapes.stream()
 		              .filter(s->s.getBounds2D().getHeight()>averageHeightOCR1*1.5)
@@ -3432,6 +3472,7 @@ public class StructureImageExtractor {
 					    .stream()
 					    .filter(ct->ct.getAverageBondLength()<0.7*bestbond || ct.getAverageBondLength()>1.33*bestbond)
 					    .map(ct->ct.getAreaAround(bestbond))
+					    .filter(a->a!=null)
 					    .collect(GeomUtil.union())
 					    .orElse(null);
 					
@@ -3905,7 +3946,7 @@ public class StructureImageExtractor {
 						
 						List<Tuple<Line2D,Point2D>> possibleOtherDoubleBonds = rejBondOrderLines.stream()
 								 .filter(l->l.length()>ctab.getAverageBondLength()*0.4)
-								 .filter(l->l.cosTheta(lb)>0.8)
+								 .filter(l->l.absCosTheta(lb)>0.8)
 				                 .map(l->Tuple.of(l,l.centerPoint()))
 				                 .filter(p->p.v().distance(apnt)<ctab.getAverageBondLength()*0.8)
 				                 .map(Tuple.kmap(l->l.getLine()))
