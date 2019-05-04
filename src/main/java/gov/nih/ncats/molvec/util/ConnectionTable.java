@@ -1770,18 +1770,18 @@ public class ConnectionTable{
 		}
 
 		public boolean isRingEdge() {
-			return this.streamNodes()
-			    .map(n->n.getAllRings())
-			    .filter(r->r.size()>0)
-			    .flatMap(r->r.stream())
-			    .collect(Collectors.groupingBy(Function.identity()))
-			    .entrySet()
-			    .stream()
-			    .map(Tuple::of)
-			    .map(t->t.v())
-			    .filter(v->v.size()==2)
-			    .findAny().isPresent();
+			return !getAllRings().isEmpty();
 
+		}
+
+		public List<Ring> getAllRings() {
+		
+			List<Ring> rings = ConnectionTable.this.getRings();
+			
+			return rings.stream()
+					.filter(r->r.getEdges().contains(this))
+					.collect(Collectors.toList());
+			
 		}
 		
 	}

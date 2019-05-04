@@ -43,6 +43,7 @@ import gov.nih.ncats.molvec.util.CompareUtil;
 import gov.nih.ncats.molvec.util.ConnectionTable;
 import gov.nih.ncats.molvec.util.ConnectionTable.Edge;
 import gov.nih.ncats.molvec.util.ConnectionTable.Node;
+import gov.nih.ncats.molvec.util.ConnectionTable.Ring;
 import gov.nih.ncats.molvec.util.GeomUtil;
 import gov.nih.ncats.molvec.util.GeomUtil.BoundingBox;
 import gov.nih.ncats.molvec.util.GeomUtil.LineWrapper;
@@ -1723,7 +1724,7 @@ public class StructureImageExtractor {
 			    	AffineTransform at=GeomUtil.getTransformFromLineToLine(new Line2D.Double(new Point2D.Double(0,0),new Point2D.Double(100,0)),nline,false);
 			    	Shape ns=at.createTransformedShape(p);
 			    	
-			    	double ll=GeomUtil.length(nline)*0.03;
+			    	double ll=GeomUtil.length(nline)*0.02;
 			    	
 			    	Point2D[] verts2 = GeomUtil.vertices(ns);
 			    	
@@ -1751,50 +1752,78 @@ public class StructureImageExtractor {
 			    		
 			    		eset
 			    		 .stream()
-			    		 .filter(ee->ee.getDashed())
+			    		 //.filter(ee->ee.getDashed())
 			    		 .forEach(ed->{
+			    			 
+			    			 boolean[] changed=new boolean[]{false};
+			    			 
 			    			 ed.getRealNode1()
 			    			   .getNeighborNodes()
 			    			   .stream()
-			    			   .filter(ne->!eset.contains(ne))
+			    			   .filter(ne->!eset.contains(ne.v()))
 			    			   .filter(ne->ne.k().distanceTo(ed.getRealNode2()) < ed.getEdgeLength())
-			    			   .filter(ne->ne.k().getEdgeCount()==1)
 			    			   .filter(ne->{
-			    				   return GeomUtil.cosTheta(ne.v().getLine(), ed.getLine())>Math.cos(15*Math.PI/180.0);
+			    				   return GeomUtil.cosTheta(ne.v().getLine(), ed.getLine())>Math.cos(20*Math.PI/180.0);
 			    			   })
-			    			   .findFirst()
-			    			   .ifPresent(ne->{
+			    			   .filter(ne->{
+			    				   return ns.contains(ne.k().getPoint());
+			    			   })
+			    			   .forEach(ne->{
 			    				   ed.setDashed(ne.v().getDashed());
-			    				   if(ed.getOrder()==1){
+			    				   if(ed.getOrder()==1 && ne.v().getOrder()!=1){
 			    					   ed.setOrder(ne.v().getOrder());   
 			    				   }
 			    				   toRemoveEdges.add(ne.v());
 			    				   toRemove.add(ne.k());
+			    				   changed[0]=true;
 			    			   });
 			    			 ed.getRealNode2()
 			    			   .getNeighborNodes()
 			    			   .stream()
-			    			   .filter(ne->!eset.contains(ne))
+			    			   .filter(ne->!eset.contains(ne.v()))
 			    			   .filter(ne->ne.k().distanceTo(ed.getRealNode1()) < ed.getEdgeLength())
-			    			   //.filter(ne->ne.k().getEdgeCount()==1)
 			    			   .filter(ne->{
-			    				   return GeomUtil.cosTheta(ne.v().getLine(), ed.getLine())>Math.cos(15*Math.PI/180.0);
+			    				   return GeomUtil.cosTheta(ne.v().getLine(), ed.getLine())>Math.cos(20*Math.PI/180.0);
 			    			   })
-			    			   .findFirst()
-			    			   .ifPresent(ne->{
+			    			   .filter(ne->{
+			    				   return ns.contains(ne.k().getPoint());
+			    			   })
+			    			   .forEach(ne->{
 			    				   ed.setDashed(ne.v().getDashed());
-			    				   if(ed.getOrder()==1){
+			    				   if(ed.getOrder()==1 && ne.v().getOrder()!=1){
 			    					   ed.setOrder(ne.v().getOrder());   
 			    				   }
 			    				   toRemoveEdges.add(ne.v());
 			    				   toRemove.add(ne.k());
+			    				   changed[0]=true;
 			    			   });
 			    			 
+			    			 if(changed[0] && ed.getOrder()!=2){
+			    				 LineWrapper lw1= LineWrapper.of(ed.getLine());
+			    				 Point2D centerpt=lw1.centerPoint();
+			    				 linesOrder.stream()
+			    				           .filter(t->t.v()==2)
+			    				           .map(t->t.k())
+			    				           .map(t->LineWrapper.of(t))
+			    				           .filter(lw->lw.length()>ctab.getAverageBondLength()*0.4)
+			    				           .filter(lw->lw.absCosTheta(lw1)>Math.cos(Math.PI*10.0/180.0))
+			    				           .map(lw->lw.growLine(ctab.getAverageBondLength()*0.4))
+			    				           .filter(s->s.contains(centerpt))
+			    				           .findFirst()
+			    				           .ifPresent(s->{
+			    				        	  ed.setOrder(2);
+			    				        	  ed.setDashed(false);
+			    				        	  ed.setWedge(false);
+			    				           });
+			    			 }
+			    			 
+			    			  
+			    			 
+			    			 
 			    		 });
-			    		 ;
 			    		
 			    		
-			    		realRescueOCRCandidates.add(ns);
+			    		
 			    	}			    	
 			    });
 
@@ -2364,8 +2393,15 @@ public class StructureImageExtractor {
 					if(val.contains("!")){
 						val=val.replace("!", "H3");
 					}
+					
+					//This is pretty hacky
 					if(val.contains("`")){
+						if(val.contains("``")){
+							val=val.replace("``","`");
+						}
+						
 						val=val.replace("`", "HO");
+						
 					}
 					if(val.contains("%")){
 						val=val.replace("%", "OC");
@@ -2584,10 +2620,15 @@ public class StructureImageExtractor {
 			
 							BranchNode actual1;
 							if(sym.equals("I")){
-								List<Node> ln=ctab.getNodesInsideShape(s, 2);
+								Shape gs=GeomUtil.growShapeNPoly(s, 2, 10);
+								List<Node> ln=ctab.getNodesInsideShape(gs, 0.2);
+								
 								if(ln.isEmpty())return;
-								boolean isLinker=ln.stream().filter(n->n.getEdgeCount()>1).findAny().isPresent();
-								if(isLinker)return;
+								boolean isLinker=ln.stream().allMatch(n->n.getEdgeCount()>1);
+								if(isLinker){
+									
+									return;
+								}
 								boolean tooClose=ctab.getNodes()
 								    .stream()
 								    .filter(n->!ln.contains(n))
@@ -2601,10 +2642,26 @@ public class StructureImageExtractor {
 												  .isPresent();
 								
 								if(doublePoss)return;
-								if(s.getBounds2D().getHeight()>ctab.getAverageBondLength()*0.7){
+								
+								
+								
+								if(s.getBounds2D().getHeight()>Math.max(averageHeightOCR,ctab.getAverageBondLength())*1.1){
+									realRescueOCRCandidates.add(gs);
 									return;
+								}else{
+									Line2D ll = new Line2D.Double(cen.getX(),cen.getY()-ctab.getAverageBondLength()*0.7,
+																  cen.getX(),cen.getY()+ctab.getAverageBondLength()*0.7);
+									
+									boolean inter=likelyOCRNonBond.stream()
+									                .filter(ss->GeomUtil.intersects(ss, ll))
+									                .findAny()
+									                .isPresent();
+									if(inter)return;
+									
+									
 								}
 								actual1=new BranchNode("I");
+								//bestGuessOCR.remove(s);
 								bestGuessOCR.put(s, "t"); //t is used for 'I' for bad legacy reasons I'm too lazy to fix
 							}else{
 								actual1 = BranchNode.interpretOCRStringAsAtom2(sym);	
@@ -3102,6 +3159,8 @@ public class StructureImageExtractor {
 				});
 
 			}
+			
+			System.out.println("cleaning triples:" + ctabRaw.size());
 			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 			double fbondlength=ctab.getAverageBondLength();
 
@@ -3132,16 +3191,17 @@ public class StructureImageExtractor {
 							Shape bigLineShape = lb.growLine(len/3);
 							
 							Point2D apt=rejBondOrderLines.stream()
-											 .filter(l->l.length()>ctab.getAverageBondLength()*0.5)
+											 .filter(l->l.length()>otherBondAverage*0.4)
 							                 .filter(p->bigLineShape.contains(p.centerPoint()))
 							                 .map(p->lb.projectPointOntoLine(p.centerPoint()))
 							                 .collect(GeomUtil.averagePoint());
 							
 							
 							List<Point2D> pts=lb.splitIntoNPieces(n);
+							
 							Node pnode=n1;
 							Edge closestEdge = null;
-							double closestD = 999999;
+							double closestD = Double.POSITIVE_INFINITY;
 							
 							for(int i=1;i<pts.size();i++){
 								
@@ -3163,12 +3223,15 @@ public class StructureImageExtractor {
 								pnode=nn;
 							}
 							if(closestEdge!=null){
+								
 								closestEdge.setOrder(3);
 								ctab.removeEdge(e);
 							}
 							
 						}
 					});
+			
+			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 			
 			List<Shape> appliedOCR = new ArrayList<Shape>();
 
@@ -3586,6 +3649,7 @@ public class StructureImageExtractor {
 			
 			ctab.standardCleanEdges();
 
+			System.out.println("Cleaning cages:" + ctabRaw.size());
 			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 			
 			List<Node> toRemoveNodesCage = new ArrayList<>();
@@ -3600,9 +3664,11 @@ public class StructureImageExtractor {
 
     				
 			    	//might be cage node / cross bond. To resolve this, you should see if
-			    	//1. If node and all connected nodes are in a ring
+			    	//1. If node is in a ring
 			    	//2. The variability in bond length will decrease if you split them
-			    	//3. There is a pretty big gap somewhere (sufficient)
+			    	//3. Removing the node wouldn't stop ALL neighbors from being in a ring
+			    	//4. There is a pretty big gap somewhere (sufficient) 
+			    	//5. The node is in a 4-membered ring, a 3-membered ring, and a 5 membered ring
 			    	if(n.isInRing(7)){
 			    		
 			    		//probably cage then
@@ -3661,27 +3727,64 @@ public class StructureImageExtractor {
 			    					doit=true;
 			    				}else{		    				
 				    				//Really do it, but first make sure that the average bond length makes sense
-				    				
-				    				double averageOtherBondLength=ctab.getEdges().stream()
-				    				               .filter(e2->!e2.hasNode(n))
-				    				               .mapToDouble(e2->e2.getEdgeLength())
-				    				               .average()
-				    				               .orElse(ctab.getAverageBondLength());
-				    				
-				    				double averageCurrentBondLength=n.getEdges().stream().mapToDouble(e->e.getEdgeLength()).average().orElse(0);
-				    				
-				    				double averageNewBondLength=0.5*(npair1.get(0).distanceTo(npair1.get(1)) +
-				    											npair2.get(0).distanceTo(npair2.get(1)));
-				    				
-				    				if(Math.abs(averageNewBondLength-averageOtherBondLength)<Math.abs(averageCurrentBondLength-averageOtherBondLength)){
-				    						doit=true;
-				    				}
+			    					//OR that it meets special ring criteria
+			    					
+			    					int[] rings = new int[7];
+			    					
+			    					n.getAllRings()
+			    					 .forEach(r->{
+			    						 rings[r.size()]++;
+			    					 });
+			    					
+			    					if(rings[3]>0 && rings[4]>0 && rings[5]>0){
+			    						doit=true;
+			    					}else{
+				    					
+					    				
+					    				double averageOtherBondLength=ctab.getEdges().stream()
+					    				               .filter(e2->!e2.hasNode(n))
+					    				               .mapToDouble(e2->e2.getEdgeLength())
+					    				               .average()
+					    				               .orElse(ctab.getAverageBondLength());
+					    				
+					    				double averageCurrentBondLength=n.getEdges().stream().mapToDouble(e->e.getEdgeLength()).average().orElse(0);
+					    				
+					    				double averageNewBondLength=0.5*(npair1.get(0).distanceTo(npair1.get(1)) +
+					    											npair2.get(0).distanceTo(npair2.get(1)));
+					    				
+					    				if(Math.abs(averageNewBondLength-averageOtherBondLength)<Math.abs(averageCurrentBondLength-averageOtherBondLength)){
+					    						doit=true;
+					    				}
+			    					}
 			    				}
 			    				
 			    				if(doit){
-			    					ctab.addEdge(npair1.get(0).getIndex(), npair1.get(1).getIndex(),1);
-				    				ctab.addEdge(npair2.get(0).getIndex(), npair2.get(1).getIndex(),1);
-				    				toRemoveNodesCage.add(n);
+			    					List<Edge> redges=n.getEdges();
+			    					List<Node> nn = n.getNeighborNodes().stream().map(t->t.k()).collect(Collectors.toList());
+			    					Edge nedge1=ctab.addEdge(npair1.get(0).getIndex(), npair1.get(1).getIndex(),1);
+			    					Edge nedge2=ctab.addEdge(npair2.get(0).getIndex(), npair2.get(1).getIndex(),1);
+				    				
+				    				redges.forEach(e->ctab.removeEdge(e));
+				    				//ctab.removeNode(n.getIndex());
+				    				
+				    				boolean cancel=false;
+				    				if(!nn.stream().filter(nn1->nn1.isInRing(7)).findAny().isPresent()){
+				    					cancel=true;
+				    				}
+				    				
+				    				if(cancel){
+				    					ctab.removeEdge(nedge1);
+				    					ctab.removeEdge(nedge2);
+				    				}else{
+				    					toRemoveNodesCage.add(n);	
+				    				}
+				    				redges.forEach(e->ctab.addEdge(e.getRealNode1().getIndex(),e.getRealNode2().getIndex(),e.getOrder())
+				    						.setDashed(e.getDashed())
+				    						.setWedge(e.getWedge())
+				    						);
+				    				
+				    				
+				    				
 			    				}
 			    			}
 			    		}
@@ -3913,6 +4016,31 @@ public class StructureImageExtractor {
 			    		}
 			    	}
 			    });
+			
+			//Here, we should remove some bad cage bonds
+			
+			
+			//In this case, it's all very short bonds in 2 4-membered ring 
+			//and all other edges in that ring are more than 30% longer than 
+			//the edge in question
+			ctab.getEdges()
+			    .stream()
+			    .filter(e->!e.isInventedBond())
+			    .filter(e->e.getOrder()==1)
+			    .filter(e->e.getEdgeLength()<ctab.getAverageBondLength()*0.5)
+			    .collect(Collectors.toList())
+			    .forEach(e->{
+			    	List<Ring> rings = e.getAllRings().stream().filter(r->r.size() ==4).collect(Collectors.toList());
+			    	
+			    	if(rings.size()==2){
+			    		boolean smallestEdge=rings.stream()
+			    		     .allMatch(r->r.getEdges().stream().filter(e2->e2!=e).allMatch(e2->e2.getEdgeLength()>1.3*e.getEdgeLength()));
+			    		if(smallestEdge){
+			    			ctab.removeEdge(e);
+			    		}
+			    	}
+			    });
+			
 			
 			
 			
@@ -4416,6 +4544,9 @@ public class StructureImageExtractor {
 	
 		if(DEBUG)ctabRaw.add(ctab.cloneTab());
 		
+		
+		
+		
 		//fix bad Sulfurs
 		ctab.getNodes().stream()
 		    .filter(n->n.getSymbol().equals("S"))
@@ -4429,6 +4560,18 @@ public class StructureImageExtractor {
 		    		                    	nn.v().setOrder(1);
 		    		                    });
 		    });
+		
+		
+		//fix bad double-bond to stupid OCR
+				ctab.getNodes().stream()
+				    .filter(n->n.getSymbol().equals("H"))
+				    .filter(n->n.getValanceTotal()>2)
+				    .forEach(n->{
+				    		//probably a C
+				    		n.setSymbol("C");
+				    });
+				
+
 		
 		
 		//charge bad nitrogens		

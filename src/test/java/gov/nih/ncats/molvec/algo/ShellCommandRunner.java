@@ -202,29 +202,5 @@ public class ShellCommandRunner {
 		
 	}
 	
-	public static void main(String[] args) throws IOException, InterruptedException{
-		Monitor m=(new Builder()).activeDir("/home/tyler/workspace/cnsmpo")
-		               .command("osra", "-f sdf", "/home/tyler/workspace/molvec/src/test/resources/regressionTest/usanWrongSet1/cas-229975-97-7.png")
-		               .build()
-		               
-		               .run();
-		m.onInput(l->{
-							System.out.println(l);
-		            	   if(l.equals("$$$$")){
-		            		   
-		            		   try {
-								m.kill();
-							} catch (Exception e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-		            		   
-		            	   }
-		               });
-		
-		
-		
-		
-	}
 	
 }
