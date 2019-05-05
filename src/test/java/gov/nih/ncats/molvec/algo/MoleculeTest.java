@@ -4122,6 +4122,79 @@ public class MoleculeTest {
 			String keyGot=Inchi.asStdInchi(c).getKey();
 			assertEquals(keyReal,keyGot);
 		} )});
+		
+		//ringLooksLikeLowerCaseR.png
+		list.add(new Object[]{"ringLooksLikeLowerCaseR", new TestSpec("moleculeTest/ringLooksLikeLowerCaseR.png", c->{
+
+			String mol =
+					"\n" + 
+					"  Molvec0105041916442D\n" + 
+					"\n" + 
+					"  7  7  0  0  0  0  0  0  0  0999 V2000\n" + 
+					"   -0.4459    1.0052    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.3081    0.4877    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.4419    0.5042    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.3080    0.9900    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.4110   -1.0070    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.2921   -0.5181    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.4513   -0.4895    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  1  2  1  0\n" + 
+					"  1  3  2  0\n" + 
+					"  3  4  1  0\n" + 
+					"  2  6  2  0\n" + 
+					"  3  7  1  0\n" + 
+					"  5  6  1  0\n" + 
+					"  5  7  2  0\n" + 
+					"M  END";
+			Chemical cReal=Chemical.parseMol(mol);
+			String keyReal=Inchi.asStdInchi(cReal).getKey();
+			String keyGot=Inchi.asStdInchi(c).getKey();
+			assertEquals(keyReal,keyGot);
+		} )});
+		
+		
+		list.add(new Object[]{"5memberHeteroRingWithNoisyDoubleBond", new TestSpec("moleculeTest/5memberHeteroRingWithNoisyDoubleBond.png", c->{
+
+			String mol =
+					"\n" + 
+					"  Molvec0105041917362D\n" + 
+					"\n" + 
+					" 12 13  0  0  0  0  0  0  0  0999 V2000\n" + 
+					"   -0.0895    0.5248    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.9614    0.0218    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.9628   -0.9851    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.9276   -1.2982    0.0000 S   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.6865    0.5277    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.7829    0.0219    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.0895   -1.4897    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.7825   -0.9868    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    2.5194    0.0128    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.6525    1.4898    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.9222    0.3232    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.5215   -0.4795    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  1  2  1  0\n" + 
+					"  2  3  2  0\n" + 
+					"  4 12  1  0\n" + 
+					"  3  4  1  0\n" + 
+					"  1  6  2  0\n" + 
+					" 11 12  2  0\n" + 
+					"  3  7  1  0\n" + 
+					"  5  6  1  0\n" + 
+					"  2 11  1  0\n" + 
+					"  5  9  1  0\n" + 
+					"  6  8  1  0\n" + 
+					"  7  8  2  0\n" + 
+					"  5 10  2  0\n" + 
+					"M  END";
+			Chemical cReal=Chemical.parseMol(mol);
+			String keyReal=Inchi.asStdInchi(cReal).getKey();
+			String keyGot=Inchi.asStdInchi(c).getKey();
+			assertEquals(keyReal,keyGot);
+		} )});
+		
+		
+		
+		
 		//bondThatLooksALittleLikeH.png
 		list.add(new Object[]{"bondThatLooksALittleLikeH", new TestSpec("moleculeTest/bondThatLooksALittleLikeH.png", c->{
 

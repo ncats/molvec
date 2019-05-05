@@ -837,6 +837,8 @@ class BranchNode{
 			return nn1;
 		}else if(s.equals("Sl") || s.equals("SI")){
 			return new BranchNode("Si");
+		}else if(s.equals("Sr") || s.equals("sr")){
+			return new BranchNode("Br");
 		}
 		
 		
