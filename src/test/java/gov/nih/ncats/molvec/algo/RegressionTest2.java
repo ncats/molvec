@@ -673,7 +673,7 @@ public class RegressionTest2 {
     @Test
     public void test(){
 
-        RegressionTestIT.Result actual = RegressionTestIT.testMolecule(inputImage, expectedSmi, 300);
+        RegressionTestIT.Result actual = RegressionTestIT.testMolecule(inputImage, expectedSmi, 300).result;
         if(actual.ordinal() < expectedResult.ordinal()){
                 IMPROVED.add( inputImage.getName() + "  " + expectedResult + "  => " + actual);
         }

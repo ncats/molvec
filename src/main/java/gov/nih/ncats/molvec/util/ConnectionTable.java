@@ -109,9 +109,14 @@ public class ConnectionTable{
 	}
 	
 	
-	private void consumePathsUntilRing(Stack<Node> soFar, Set<Edge> used, Consumer<Stack<Node>> found, int MAX_DEPTH){
+	private void consumePathsUntilRing(Stack<Node> soFar, Set<Edge> used, Consumer<Stack<Node>> found, int MAX_DEPTH) throws InterruptedException{
 		Node p=soFar.peek();
 		if(soFar.size()>MAX_DEPTH)return;
+		
+		if(Thread.interrupted()){
+			throw new InterruptedException();
+			
+		}
 		
 		for(Tuple<Node,Edge> en : p.getNeighborNodes()){
 			if(used.contains(en.v())){
@@ -119,7 +124,7 @@ public class ConnectionTable{
 			}
 			used.add(en.v());
 			
-			if(soFar.contains(en.k())){
+			if(soFar.get(0).equals(en.k())){
 				soFar.push(en.k());
 				found.accept(soFar);
 				soFar.pop();
@@ -136,35 +141,69 @@ public class ConnectionTable{
 	
 	
 	private List<Ring> _getRingMap(){
+		int MAX_RING_TOTAL = 10;
+		int MAX_RING_AFTER_INITIAL = 6;
 		return getDisconnectedNodeSets().stream()
 				.flatMap(nl1->{
-					Map<Node,List<List<Node>>> nrings = new HashMap<>();
-					
-					for(Node nn: nl1){
-						Stack<Node> st=new Stack<Node>();
-						Set<Edge> nadda=new HashSet<>();
+					try{
+						Map<Node,List<List<Node>>> nrings = new HashMap<>();
 						
-						st.push(nn);
-						
-						consumePathsUntilRing(st,nadda,(nst)->{
-							Node term = nst.peek();
-							List<Node> mlist=new ArrayList<Node>();
-							boolean started = false;
-							for(Node n1:nst){
-								if(started){
-									mlist.add(n1);
-								}else{
-									if(n1==term){
-										started=true;
+						for(Node nn: nl1){
+							Stack<Node> st=new Stack<Node>();
+							Set<Edge> nadda=new HashSet<>();
+							
+							boolean[] foundRing = new boolean[]{false};
+							
+							st.push(nn);
+							
+							consumePathsUntilRing(st,nadda,(nst)->{
+								Node term = nst.peek();
+								List<Node> mlist=new ArrayList<Node>();
+								boolean started = false;
+								for(Node n1:nst){
+									if(started){
+										mlist.add(n1);
+									}else{
+										if(n1==term){
+											started=true;
+										}
 									}
 								}
+								for(Node n:mlist){
+									nrings.computeIfAbsent(n, k->{
+										return new ArrayList<List<Node>>();
+									}).add(mlist);
+								}
+								foundRing[0]=true;
+							},MAX_RING_AFTER_INITIAL);
+							
+							if(!foundRing[0]){
+								st.clear();
+								nadda.clear();
+								st.push(nn);
+								consumePathsUntilRing(st,nadda,(nst)->{
+									Node term = nst.peek();
+									List<Node> mlist=new ArrayList<Node>();
+									boolean started = false;
+									for(Node n1:nst){
+										if(started){
+											mlist.add(n1);
+										}else{
+											if(n1==term){
+												started=true;
+											}
+										}
+									}
+									for(Node n:mlist){
+										nrings.computeIfAbsent(n, k->{
+											return new ArrayList<List<Node>>();
+										}).add(mlist);
+									}
+									foundRing[0]=true;
+								},MAX_RING_TOTAL);
 							}
-							for(Node n:mlist){
-								nrings.computeIfAbsent(n, k->{
-									return new ArrayList<List<Node>>();
-								}).add(mlist);
-							}
-						},10);
+					
+						
 					}
 					
 					return nrings.entrySet()
@@ -183,8 +222,19 @@ public class ConnectionTable{
 					      .map(t->t.swap())
 					      .map(t->t.withKEquality())
 					      .distinct()
+					      .map(t->t.swap())
+					      .map(t->t.withVComparator())
+					      .sorted(Comparator.reverseOrder())
+					      .map(t->t.swap())
 					      .map(t->t.v())
+					      .map(t->Tuple.of(t,t.size()).withVComparator())
+					      .sorted()
+					      .map(t->t.k())
 					      .map(n->Ring.of(n, this));
+					}catch(InterruptedException te){
+						te.printStackTrace();
+						throw new RuntimeException(te);
+					}
 				})
 				.collect(Collectors.toList());
 		

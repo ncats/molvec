@@ -1367,7 +1367,7 @@ public class StructureImageExtractor {
 				ctab.mergeNodesCloserThan(MAX_DISTANCE_BEFORE_MERGING_NODES);
 				ctab.standardCleanEdges();
 				
-				
+				System.out.println("Looking for dashes:" + ctabRaw.size());
 				if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 				RunningAverage allDashLengths = new RunningAverage(2);
@@ -1522,6 +1522,7 @@ public class StructureImageExtractor {
 				});
 
 
+				System.out.println("Merging:" + ctabRaw.size());
 				if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 
@@ -1668,6 +1669,7 @@ public class StructureImageExtractor {
 				}
 
 				
+				System.out.println("Finding new bonds:" + ctabRaw.size());
 				if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 				ctab.makeMissingNodesForShapes(likelyOCR,MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,MIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL);
@@ -1760,6 +1762,10 @@ public class StructureImageExtractor {
 				});
 
 				toRemoveEdgesImmediately.forEach(e->ctab.removeEdge(e));
+				
+				
+				System.out.println("Looking for rings:" + ctabRaw.size());
+				if(DEBUG)ctabRaw.add(ctab.cloneTab());
 				
 				ctab.getRings()
 			    .stream()
@@ -1885,6 +1891,7 @@ public class StructureImageExtractor {
 				toRemoveEdges.forEach(e->ctab.removeEdge(e));
 				
 				//fuzzy adding missing stuff
+				System.out.println("Removing bad edges:" + ctabRaw.size());
 				if(DEBUG)ctabRaw.add(ctab.cloneTab());
 				
 				
@@ -1893,7 +1900,7 @@ public class StructureImageExtractor {
 
 			
 
-
+				System.out.println("Checking if bond length looks okay:" + ctabRaw.size());
 				if(DEBUG)ctabRaw.add(ctab.cloneTab());
 
 				double avgBondLength=ctab.getAverageBondLength();
@@ -2642,7 +2649,8 @@ public class StructureImageExtractor {
 					.filter(s->BranchNode.interpretOCRStringAsAtom2(bestGuessOCR.get(s))!=null)
 					.collect(Collectors.toList());
 
-			
+
+			System.out.println("Assigning OCR:" + ctabRaw.size());
 			if(DEBUG)ctabRaw.add(ctab.cloneTab());
 			//ctab.removeOrphanNodes();
 

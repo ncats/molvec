@@ -61,6 +61,17 @@ public class RegressionTestIT {
 		ERROR,
 		TIMEOUT
 	}
+	public static class TestResult{
+		public Result result;
+		public long time;
+		
+		public static TestResult of(Result r, long ms){
+			TestResult tr = new TestResult();
+			tr.result=r;
+			tr.time=ms;
+			return tr;
+		}
+	}
 	
 
 	private File getFile(String fname){
@@ -139,7 +150,7 @@ public class RegressionTestIT {
 		      .map(l->{
 		    	  sbnew.append(l+"\n");
 		    	  if(l.equals("$$$$")){
-		    		  String f1=sbnew.toString();
+		    		  String f1=sbnew.toString().replace(" *   ", " C   ");
 		    		  sbnew.setLength(0);
 		    		  try {
 						return Chemical.parseMol(f1);
@@ -208,11 +219,11 @@ public class RegressionTestIT {
 		return nc;
 	}
 
-	public static Result testMolecule(File image, File sdf){
+	public static TestResult testMolecule(File image, File sdf){
 		return testMolecule(image, sdf, 60);
 	}
-	public static Result testMolecule(File image, File sdf, long timeoutInSeconds){
-		
+	public static TestResult testMolecule(File image, File sdf, long timeoutInSeconds){
+		long start= System.currentTimeMillis();
 		try{
 			AtomicBoolean lastWasAlias = new AtomicBoolean(false);
 			String rawMol=null;
@@ -252,6 +263,9 @@ public class RegressionTestIT {
 			System.out.println(sdf.getAbsolutePath());
 			System.out.println("--------------------------------");
 			
+			
+			
+			
 //			CachedSupplier<StructureImageExtractor> cget = CachedSupplier.of(()->{
 //				try {
 //					return new StructureImageExtractor(image);
@@ -272,11 +286,11 @@ public class RegressionTestIT {
 			}catch(TimeoutException te) {
 				System.out.println("timeout!!");
 				chemicalCompletableFuture.cancel(true);
-				return Result.TIMEOUT;
+				return TestResult.of(Result.TIMEOUT, System.currentTimeMillis()-start);
 			}catch(Exception e){
-				return Result.ERROR;
+				return TestResult.of(Result.ERROR, System.currentTimeMillis()-start);
 			}
-			//c = getCleanChemical(getOSRAChemical(image).toMol());
+//			c = getCleanChemical(getOSRAChemical(image).toMol());
 			
 //			try{
 //				long start = System.currentTimeMillis();
@@ -304,6 +318,9 @@ public class RegressionTestIT {
 			//c1.makeHydrogensImplicit();
 			//c.makeHydrogensImplicit();
 			
+			long total = System.currentTimeMillis()-start;
+			
+			
 			String iinchi=Inchi.asStdInchi(c).getKey();
 			String rinchi=Inchi.asStdInchi(c1).getKey();
 			
@@ -327,25 +344,25 @@ public class RegressionTestIT {
 			System.out.println("Image:" + c.toSmiles());
 			
 			if(smilesFound.equals("")){
-				return Result.FOUND_NOTHING;
+				return TestResult.of(Result.FOUND_NOTHING,total);
 			}
 			
 			if(rinchi.equals(iinchi)){
-				return Result.CORRECT_FULL_INCHI;
+				return TestResult.of(Result.CORRECT_FULL_INCHI,total);
 			}
 			if(rinchi.split("-")[0].equals(iinchi.split("-")[0])){
-				return Result.CORRECT_STEREO_INSENSITIVE_INCHI;
+				return TestResult.of(Result.CORRECT_STEREO_INSENSITIVE_INCHI,total);
 			}
 			
 			if(formReal.equals(formFound)){
 				//System.out.println("Matched!");
-				return Result.FORMULA_CORRECT;
+				return TestResult.of(Result.FORMULA_CORRECT,total);
 			}else{
 				String withoutHydrogensReal =formReal.replaceAll("H[0-9]*", "");
 				String withoutHydrogensFound=formFound.replaceAll("H[0-9]*", "");
 				
 				if(withoutHydrogensReal.equals(withoutHydrogensFound)){
-					return Result.ATOMS_RIGHT_WRONG_BONDS;
+					return TestResult.of(Result.ATOMS_RIGHT_WRONG_BONDS,total);
 				}
 				
 				if(smilesReal.contains(".") || smilesFound.contains(".") ){
@@ -368,20 +385,20 @@ public class RegressionTestIT {
 					rinchi=Inchi.asStdInchi(clargestR).getKey();
 					
 					if(rinchi.equals(iinchi)){
-						return Result.LARGEST_FRAGMENT_CORRECT_FULL_INCHI;
+						return TestResult.of(Result.LARGEST_FRAGMENT_CORRECT_FULL_INCHI,total);
 					}
 					if(rinchi.split("-")[0].equals(iinchi.split("-")[0])){
-						return Result.LARGEST_FRAGMENT_CORRECT_STEREO_INSENSITIVE_INCHI;
+						return TestResult.of(Result.LARGEST_FRAGMENT_CORRECT_STEREO_INSENSITIVE_INCHI,total);
 					}
 					
 					if(clargestR.getFormula().equals(clargestF.getFormula())){
-						return Result.LARGEST_FRAGMENT_FORMULA_CORRECT;
+						return TestResult.of(Result.LARGEST_FRAGMENT_FORMULA_CORRECT,total);
 					}
 					String fragwHReal =clargestR.getFormula().replaceAll("H[0-9]*", "");
 					String fragwHFound=clargestF.getFormula().replaceAll("H[0-9]*", "");
 					
 					if(fragwHReal.equals(fragwHFound)){
-						return Result.LARGEST_FRAGMENT_ATOM_RIGHT_WRONG_BONDS;
+						return TestResult.of(Result.LARGEST_FRAGMENT_ATOM_RIGHT_WRONG_BONDS,total);
 					}
 					clargestR.makeHydrogensImplicit();
 					clargestF.makeHydrogensImplicit();
@@ -392,30 +409,30 @@ public class RegressionTestIT {
 					int frbondCount=clargestR.getBondCount();
 					int fibondCount=clargestF.getBondCount();
 					if(fratomCount==fiatomCount && frbondCount == fibondCount){
-						return Result.LARGEST_FRAGMENT_ATOM_COUNT_BOND_COUNT_RIGHT_WRONG_LABELS_OR_CONNECTIVITY;
+						return TestResult.of(Result.LARGEST_FRAGMENT_ATOM_COUNT_BOND_COUNT_RIGHT_WRONG_LABELS_OR_CONNECTIVITY,total);
 					}
 				}
 				if(smilesReal.contains("|")){
-					return Result.WEIRD_SOURCE;
+					return TestResult.of(Result.WEIRD_SOURCE,total);
 				}
 				if(ratomCount==iatomCount && rbondCount == ibondCount){
-					return Result.ATOM_COUNT_BOND_COUNT_RIGHT_WRONG_LABELS_OR_CONNECTIVITY;
+					return TestResult.of(Result.ATOM_COUNT_BOND_COUNT_RIGHT_WRONG_LABELS_OR_CONNECTIVITY,total);
 				}
 				
 				//System.out.println("NO MATCH!");
-				return Result.INCORRECT;
+				return TestResult.of(Result.INCORRECT,total);
 			}
 		}catch(Exception e){
 			e.printStackTrace();
 		}
-		return Result.ERROR;
+		return TestResult.of(Result.ERROR,System.currentTimeMillis()-start);
 	}
 	
 	
 //	@Ignore
 	@Test
 	public void test1(){
-		File dir1 = getFile("regressionTest/maybridge");
+		File dir1 = getFile("regressionTest/testSet1");
 //		try {
 //			ChemicalBuilder cb = ChemicalBuilder.createFromSmiles("CCCC");
 //			String ii = Inchi.asStdInchi(cb.build()).getKey();
@@ -428,7 +445,7 @@ public class RegressionTestIT {
 		List<String> dataMethod = new ArrayList<>();
 		dataMethod.add("@Parameterized.Parameters(name=\"{0}\")");
 		dataMethod.add("public static List<Object[]> getData(){");
-		dataMethod.add("\tFile dir = new File(RegressionTest2.class.getResource(\"/regressionTest/maybridge\").getFile());");
+		dataMethod.add("\tFile dir = new File(RegressionTest2.class.getResource(\"/regressionTest/testSet1\").getFile());");
 
 		dataMethod.add("\n\tList<Object[]> list = new ArrayList<>();\n");
 
@@ -450,8 +467,8 @@ public class RegressionTestIT {
 					}
 		    	  	return l;
 		      })
-		      .collect(shuffler(new Random(11111140l)))		      
-		      .limit(100)
+		      .collect(shuffler(new Random(140l)))		      
+		      //.limit(10)
 
 //NOTE, I THINK THIS TECHNICALLY WORKS, BUT SINCE THERE IS PARALLEL THINGS GOING ON IN EACH, IT SOMETIMES WILL STARVE A CASE FOR A LONG TIME
 		      .parallel()
@@ -459,8 +476,7 @@ public class RegressionTestIT {
 		      
 		      .map(fl->Tuple.of(fl,testMolecule(fl.get(1),fl.get(0), 400)))
 		      .map(t->t.swap())
-		      .peek(t->System.out.println(t.k()))
-		      
+		      .map(t->Tuple.of(t.k().result,Tuple.of(t,t.v())))
 		      .collect(Tuple.toGroupedMap())
 		      .entrySet()
 		      .stream()
@@ -468,30 +484,31 @@ public class RegressionTestIT {
 		      .map(Tuple::of)
 		      .forEach(t->{
 		    	  Result r=t.k();
-		    	  List<List<File>> fl = t.v();
-//		    	  System.out.println("======================================");
-//		    	  System.out.println(r.toString() + "\t" + fl.size());
-//		    	  System.out.println("--------------------------------------");
-//		    	  System.out.println(fl.stream().map(f->f.get(1).getAbsolutePath()).collect(Collectors.joining("\n")));
+		    	  List<List<File>> fl = t.v().stream().map(t1->t1.v()).collect(Collectors.toList());
+		    	  
+		    	  System.out.println("======================================");
+		    	  System.out.println(r.toString() + "\t" + fl.size());
+		    	  System.out.println("--------------------------------------");
+		    	  System.out.println(t.v().stream().map(tf->tf.v().get(1).getAbsolutePath() + "\t" + tf.k().k().time).collect(Collectors.joining("\n")));
 
-				  dataMethod.add("\t\tadd"+r.name()+"(list, dir);");
-
-		System.out.println("\tprivate static void add"+r.name()+"(List<Object[]> list, File dir){\n"+
-			"\t\t//=================================\n"+
-			"\t\t//            " + r.name() + "  " + fl.size() +"\n" +
-			"\t\t//--------------------------------------\n");
-		for(List<File> f : fl) {
-			String fileName = f.get(1).getName();
-			//trim off .png
-			String noExt = fileName.substring(0, fileName.length()-4);
-			System.out.println("\t\tlist.add(test(RegressionTestIT.Result." + r.name()+", dir, \"" + noExt + "\"));");
-		}
-		System.out.println("\t}\n");
+//				  dataMethod.add("\t\tadd"+r.name()+"(list, dir);");
+//			
+//					System.out.println("\tprivate static void add"+r.name()+"(List<Object[]> list, File dir){\n"+
+//						"\t\t//=================================\n"+
+//						"\t\t//            " + r.name() + "  " + fl.size() +"\n" +
+//						"\t\t//--------------------------------------\n");
+//					for(List<File> f : fl) {
+//						String fileName = f.get(1).getName();
+//						//trim off .png
+//						String noExt = fileName.substring(0, fileName.length()-4);
+//						System.out.println("\t\tlist.add(test(RegressionTestIT.Result." + r.name()+", dir, \"" + noExt + "\"));");
+//					}
+//					System.out.println("\t}\n");
 
 		      });
 
-			dataMethod.add("\t\treturn list;\n\t}");
-			System.out.println(dataMethod.stream().collect(Collectors.joining("\n")));
+//			dataMethod.add("\t\treturn list;\n\t}");
+//			System.out.println(dataMethod.stream().collect(Collectors.joining("\n")));
 	}
 	
 	public static <T> Collector<T,List<T>,Stream<T>> shuffler(Random r){
