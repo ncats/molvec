@@ -150,7 +150,7 @@ public class RegressionTestIT {
 		      .map(l->{
 		    	  sbnew.append(l+"\n");
 		    	  if(l.equals("$$$$")){
-		    		  String f1=sbnew.toString().replace(" *   ", " C   ");
+		    		  String f1=removeSGroupStuff(sbnew.toString().replace(" *   ", " C   "));
 		    		  sbnew.setLength(0);
 		    		  try {
 						return Chemical.parseMol(f1);
@@ -167,7 +167,33 @@ public class RegressionTestIT {
 		
 		return fc;
 	}
-	
+	private static String removeSGroupStuff(String mol){
+		AtomicBoolean lastWasAlias = new AtomicBoolean(false);
+		Stream<String> stream = Arrays.stream(mol.split("\n"));
+		
+			return stream
+		
+				.filter(l->!l.contains("SUP"))
+				.filter(l->!l.contains("SGROUP"))
+				.filter(l->!l.contains("M  S"))
+				.filter(l->{
+					if(lastWasAlias.get()){
+						lastWasAlias.set(false);
+						return false;
+					}
+					return true;
+				})
+				.filter(l->{
+					if(l.startsWith("A")){
+						lastWasAlias.set(true);
+						return false;
+					}
+					lastWasAlias.set(false);
+					return true;
+				})
+				.collect(Collectors.joining("\n"));
+		
+	}
 	private static Chemical getCleanChemical(String mol) throws IOException{
 		Chemical nc= Chemical.parseMol(mol);
 		
@@ -278,19 +304,21 @@ public class RegressionTestIT {
 //			Thread th = new Thread(()->{
 //				cget.get();
 //			});
+			
+			
 			Chemical c;
-			CompletableFuture<String> chemicalCompletableFuture = Molvec.ocrAsync(image);
-
-			try {
-				c = getCleanChemical(chemicalCompletableFuture.get(timeoutInSeconds, TimeUnit.SECONDS));
-			}catch(TimeoutException te) {
-				System.out.println("timeout!!");
-				chemicalCompletableFuture.cancel(true);
-				return TestResult.of(Result.TIMEOUT, System.currentTimeMillis()-start);
-			}catch(Exception e){
-				return TestResult.of(Result.ERROR, System.currentTimeMillis()-start);
-			}
-//			c = getCleanChemical(getOSRAChemical(image).toMol());
+//			CompletableFuture<String> chemicalCompletableFuture = Molvec.ocrAsync(image);
+//
+//			try {
+//				c = getCleanChemical(chemicalCompletableFuture.get(timeoutInSeconds, TimeUnit.SECONDS));
+//			}catch(TimeoutException te) {
+//				System.out.println("timeout!!");
+//				chemicalCompletableFuture.cancel(true);
+//				return TestResult.of(Result.TIMEOUT, System.currentTimeMillis()-start);
+//			}catch(Exception e){
+//				return TestResult.of(Result.ERROR, System.currentTimeMillis()-start);
+//			}
+			c = getCleanChemical(getOSRAChemical(image).toMol());
 			
 //			try{
 //				long start = System.currentTimeMillis();
@@ -320,7 +348,9 @@ public class RegressionTestIT {
 			
 			long total = System.currentTimeMillis()-start;
 			
-			
+			if(c.getAtomCount()==0){
+				return TestResult.of(Result.FOUND_NOTHING,total);
+			}
 			String iinchi=Inchi.asStdInchi(c).getKey();
 			String rinchi=Inchi.asStdInchi(c1).getKey();
 			
@@ -468,7 +498,7 @@ public class RegressionTestIT {
 		    	  	return l;
 		      })
 		      .collect(shuffler(new Random(140l)))		      
-		      //.limit(10)
+		      //.limit(100)
 
 //NOTE, I THINK THIS TECHNICALLY WORKS, BUT SINCE THERE IS PARALLEL THINGS GOING ON IN EACH, IT SOMETIMES WILL STARVE A CASE FOR A LONG TIME
 		      .parallel()
@@ -477,11 +507,13 @@ public class RegressionTestIT {
 		      .map(fl->Tuple.of(fl,testMolecule(fl.get(1),fl.get(0), 400)))
 		      .map(t->t.swap())
 		      .map(t->Tuple.of(t.k().result,Tuple.of(t,t.v())))
+		      .peek(t->System.out.println(t.v().v().get(1).getAbsolutePath() + ":" +t.k()))
 		      .collect(Tuple.toGroupedMap())
 		      .entrySet()
 		      .stream()
 //				.sorted()
 		      .map(Tuple::of)
+
 		      .forEach(t->{
 		    	  Result r=t.k();
 		    	  List<List<File>> fl = t.v().stream().map(t1->t1.v()).collect(Collectors.toList());

@@ -109,7 +109,7 @@ public class ConnectionTable{
 	}
 	
 	
-	private void consumePathsUntilRing(Stack<Node> soFar, Set<Edge> used, Consumer<Stack<Node>> found, int MAX_DEPTH) throws InterruptedException{
+	private void consumePathsUntilRing(Stack<Node> soFar, Set<Edge> used,Set<Node> ignoreNodes, Consumer<Stack<Node>> found, int MAX_DEPTH) throws InterruptedException{
 		Node p=soFar.peek();
 		if(soFar.size()>MAX_DEPTH)return;
 		
@@ -119,7 +119,7 @@ public class ConnectionTable{
 		}
 		
 		for(Tuple<Node,Edge> en : p.getNeighborNodes()){
-			if(used.contains(en.v())){
+			if(used.contains(en.v()) || ignoreNodes.contains(en.k())){
 				continue;
 			}
 			used.add(en.v());
@@ -131,24 +131,44 @@ public class ConnectionTable{
 			}
 			soFar.push(en.k());		
 			
-			consumePathsUntilRing(soFar,used,found, MAX_DEPTH);
+			consumePathsUntilRing(soFar,used,ignoreNodes,found, MAX_DEPTH);
 			
 			used.remove(en.v());
 			soFar.pop();
 		}
-		
 	}
 	
 	
 	private List<Ring> _getRingMap(){
 		int MAX_RING_TOTAL = 10;
 		int MAX_RING_AFTER_INITIAL = 6;
+		
 		return getDisconnectedNodeSets().stream()
 				.flatMap(nl1->{
 					try{
 						Map<Node,List<List<Node>>> nrings = new HashMap<>();
 						
-						for(Node nn: nl1){
+						Set<Node> terms = new HashSet<Node>();
+						List<Node> check = new ArrayList<Node>(nl1);
+						int tbefore=0;
+						
+						while(true){
+							for(Node nn: check){
+								long keepCount = nn.getNeighborNodes().stream().filter(t->!terms.contains(t.k())).count();
+								if(keepCount==1){
+									terms.add(nn);
+								}
+							}
+							check.removeAll(terms);
+							tbefore=terms.size();
+							if(tbefore==terms.size()){
+								break;
+							}
+						}
+						
+						for(Node nn: check){
+							
+							
 							Stack<Node> st=new Stack<Node>();
 							Set<Edge> nadda=new HashSet<>();
 							
@@ -156,7 +176,7 @@ public class ConnectionTable{
 							
 							st.push(nn);
 							
-							consumePathsUntilRing(st,nadda,(nst)->{
+							consumePathsUntilRing(st,nadda,terms,(nst)->{
 								Node term = nst.peek();
 								List<Node> mlist=new ArrayList<Node>();
 								boolean started = false;
@@ -181,7 +201,7 @@ public class ConnectionTable{
 								st.clear();
 								nadda.clear();
 								st.push(nn);
-								consumePathsUntilRing(st,nadda,(nst)->{
+								consumePathsUntilRing(st,nadda,terms,(nst)->{
 									Node term = nst.peek();
 									List<Node> mlist=new ArrayList<Node>();
 									boolean started = false;

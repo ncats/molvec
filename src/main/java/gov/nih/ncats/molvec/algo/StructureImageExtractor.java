@@ -846,8 +846,24 @@ public class StructureImageExtractor {
 			
 			
 		}
-		
+		System.out.println("Checking noise");
 		polygons = bitmap.connectedComponents(Bitmap.Bbox.DoublePolygon);
+		
+		
+		long noise=polygons.stream()
+						 .map(p->p.getBounds2D())
+						 .map(p->Tuple.of(p,GeomUtil.area(p)))
+						 .filter(t->t.v()<6)
+						 .map(t->t.k())
+						 .count();
+
+		if(noise> polygons.size()*0.8){
+			System.out.println("Looks noisey");
+			bitmap=new Bitmap.BitmapBuilder(bitmap).boxBlur(2).threshold(7).build();
+			thin=bitmap.thin();
+			polygons = bitmap.connectedComponents(Bitmap.Bbox.DoublePolygon);
+		}
+		
 
 		boolean isLarge = false;
 		if (!polygons.isEmpty()) {

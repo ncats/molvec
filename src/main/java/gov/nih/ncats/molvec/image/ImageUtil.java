@@ -199,14 +199,14 @@ public class ImageUtil implements TiffTags {
         BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
         try(PushbackInputStream pushbackInputStream = new PushbackInputStream(in,2);
         ) {
-            if (isTiff(pushbackInputStream)) {
+//           if (isTiff(pushbackInputStream)) {
                 try {
                     return decodeTIFF(in);
                 } catch (Exception ex) {
                     logger.info("## " + file.getName() + " not a TIFF image ("
                             + ex.getMessage() + "); trying generic decoding... ");
-                }
-            }
+//                }
+           }
         }
         return decode(ImageIO.read(file));
     }
