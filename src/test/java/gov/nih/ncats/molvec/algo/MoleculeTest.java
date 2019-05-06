@@ -93,7 +93,7 @@ public class MoleculeTest {
 		StructureImageExtractor sie = new StructureImageExtractor(f);
 
 		//Chemical c =Chemical.parseMol(sie.getCtab().toMol());
-		 Chemical c =Chemical.parseMol(sie.getCtab().toMol()).toBuilder().aromatize(false).build();
+		Chemical c =Chemical.parseMol(sie.getCtab().toMol()).toBuilder().aromatize(false).build();
 		spec.assertionConsumer.accept(c);
 	}
 
@@ -3214,7 +3214,52 @@ public class MoleculeTest {
 			assertEquals(keyReal,keyGot);
 		} )});
 		
-		
+		//wedgeBondWeirdAngle.png
+				list.add(new Object[]{"nonBinaryTiffFile", new TestSpec("moleculeTest/isATiffFormat.tif", c->{
+					Chemical cReal=ChemicalBuilder.createFromMol("\n" + 
+							"  Molvec0105061908342D\n" + 
+							"\n" + 
+							" 16 17  0  0  0  0  0  0  0  0999 V2000\n" + 
+							"   -1.2444   -0.3729    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -0.2218   -0.3745    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -2.7947    0.5650    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -3.2770   -0.3006    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -1.7494    0.5494    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    2.7083   -0.6945    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    3.7944   -0.7687    0.0000 Br  0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    2.1066   -1.4709    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    2.2175    0.1675    0.0000 S   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    0.4047    0.3337    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    0.2464   -1.1630    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -1.7863   -1.2492    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    1.1457   -1.0767    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    1.2135   -0.0604    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -3.7944    0.5864    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -3.2770    1.4734    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"  1  2  1  0\n" + 
+							"  1  5  1  0\n" + 
+							"  3  4  1  0\n" + 
+							"  3  5  1  0\n" + 
+							" 11 13  1  0\n" + 
+							"  3 15  1  0\n" + 
+							"  3 16  1  0\n" + 
+							" 13 14  2  0\n" + 
+							"  2 10  1  0\n" + 
+							"  6  7  1  0\n" + 
+							"  6  8  2  0\n" + 
+							"  6  9  1  0\n" + 
+							" 10 14  1  0\n" + 
+							"  8 13  1  0\n" + 
+							"  9 14  1  0\n" + 
+							"  1 12  2  0\n" + 
+							"  2 11  1  0\n" + 
+							"M  END", Charset.defaultCharset()).build();
+
+					String keyReal=Inchi.asStdInchi(cReal).getKey();
+					String keyGot=Inchi.asStdInchi(c).getKey();
+					assertEquals(keyReal,keyGot);
+				} )});
+				
 
 		//closeNonBondedAtoms.png
 		list.add(new Object[]{"closeNonBondedAtoms", new TestSpec("moleculeTest/closeNonBondedAtoms.png", c->{

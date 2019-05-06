@@ -307,18 +307,18 @@ public class RegressionTestIT {
 			
 			
 			Chemical c;
-//			CompletableFuture<String> chemicalCompletableFuture = Molvec.ocrAsync(image);
-//
-//			try {
-//				c = getCleanChemical(chemicalCompletableFuture.get(timeoutInSeconds, TimeUnit.SECONDS));
-//			}catch(TimeoutException te) {
-//				System.out.println("timeout!!");
-//				chemicalCompletableFuture.cancel(true);
-//				return TestResult.of(Result.TIMEOUT, System.currentTimeMillis()-start);
-//			}catch(Exception e){
-//				return TestResult.of(Result.ERROR, System.currentTimeMillis()-start);
-//			}
-			c = getCleanChemical(getOSRAChemical(image).toMol());
+			CompletableFuture<String> chemicalCompletableFuture = Molvec.ocrAsync(image);
+
+			try {
+				c = getCleanChemical(chemicalCompletableFuture.get(timeoutInSeconds, TimeUnit.SECONDS));
+			}catch(TimeoutException te) {
+				System.out.println("timeout!!");
+				chemicalCompletableFuture.cancel(true);
+				return TestResult.of(Result.TIMEOUT, System.currentTimeMillis()-start);
+			}catch(Exception e){
+				return TestResult.of(Result.ERROR, System.currentTimeMillis()-start);
+			}
+//			c = getCleanChemical(getOSRAChemical(image).toMol());
 			
 //			try{
 //				long start = System.currentTimeMillis();
@@ -345,6 +345,14 @@ public class RegressionTestIT {
 			
 			//c1.makeHydrogensImplicit();
 			//c.makeHydrogensImplicit();
+			
+			c.atoms()
+			 .filter(a->a.hasAromaticBond())
+			 .filter(a->a.getSymbol().equals("C"))
+			 .forEach(aa->aa.setImplicitHCount(Math.max(0,3-aa.getBonds().size())));
+			c.kekulize();
+			
+//			c =Chemical.parseMol(c.toMol()).toBuilder().aromatize(false).build();
 			
 			long total = System.currentTimeMillis()-start;
 			
@@ -481,7 +489,6 @@ public class RegressionTestIT {
 
 			Arrays.stream(dir1.listFiles())
 		      .filter(f->f.getName().contains("."))
-		      
 		      .map(f->Tuple.of(f.getName().split("[.]")[0],f))
 		      .collect(Tuple.toGroupedMap())
 		      .values()
@@ -497,6 +504,7 @@ public class RegressionTestIT {
 					}
 		    	  	return l;
 		      })
+		      
 		      .collect(shuffler(new Random(140l)))		      
 		      //.limit(100)
 
