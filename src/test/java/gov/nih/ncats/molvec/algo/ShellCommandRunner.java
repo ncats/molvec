@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.PrintWriter;
+import java.io.PrintWriter;import java.lang.ProcessBuilder.Redirect;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -55,7 +55,8 @@ public class ShellCommandRunner {
 		    builder.command(commandParams.toArray(new String[0]));
 		}
 		builder.directory(startDir);
-		Process process = builder.start();
+		Process process = builder
+				.start();
 		
 		return new Monitor(process);
 	}

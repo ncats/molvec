@@ -8,6 +8,7 @@ import java.awt.geom.GeneralPath;
 import java.awt.geom.Line2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.awt.image.MultiPixelPackedSampleModel;
@@ -983,6 +984,78 @@ public class Bitmap implements Serializable, TiffTags {
         
 
         return bm;
+    }
+    
+    public static RenderedImage readtiftoImage (InputStream is) throws IOException {
+        ImageDecoder decoder = ImageCodec.createImageDecoder
+            ("TIFF", is, new TIFFDecodeParam ());
+
+        TIFFDirectory tif = new TIFFDirectory
+            (decoder.getInputStream (), 0);
+        TIFFField[] fields = tif.getFields ();
+
+        String unit = "";
+        double xres = 0., yres = 0.;
+        int rows = -1, photometric = -1, bpp = -1;
+        for (int j = 0; j < fields.length; ++j) {
+            TIFFField f = fields[j];
+            int tag = f.getTag ();
+            switch (tag) {
+            case TAG_RESOLUTIONUNIT: {
+                int u = f.getAsInt (0);
+                if (u == RESOLUTIONUNIT_NONE) {
+                } else if (u == RESOLUTIONUNIT_INCH) {
+                    unit = "in";
+                } else if (u == RESOLUTIONUNIT_CENT) {
+                    unit = "cm";
+                }
+            }
+                break;
+
+            case TAG_XRESOLUTION:
+                xres = f.getAsFloat (0);
+                break;
+
+            case TAG_YRESOLUTION:
+                yres = f.getAsFloat (0);
+                break;
+
+            case TAG_ROWSPERSTRIP:
+                //rows = f.getAsInt(0);
+                break;
+
+            case TAG_PHOTOMETRIC:
+                photometric = f.getAsInt (0);
+                break;
+
+            case TAG_BITSPERSAMPLE:
+                bpp = f.getAsInt (0);
+                break;
+                /*
+                  case TAG_IMAGEWIDTH:
+                  width = f.getAsFloat(0);
+                  break;
+
+                  case TAG_IMAGELENGTH:
+                  height = f.getAsFloat(0);
+                  break;
+                */
+            }
+        }
+
+        RenderedImage decodedImage = decoder.decodeAsRenderedImage ();
+        return decodedImage;
+    }
+    
+    
+    public static RenderedImage readToImage(File file) throws IOException{
+    	 try {
+    		 InputStream is = new FileInputStream(file);
+             return readtiftoImage (is);
+         }
+         catch (Exception ex) {
+             return ImageUtil.grayscale(file);
+         }
     }
     
     
@@ -2741,4 +2814,29 @@ public class Bitmap implements Serializable, TiffTags {
             bm.skeleton ().writetif (new File (argv[1]));
         }
     }
+
+
+	public Bitmap paste(Bitmap bm2, Shape ss) {
+
+		Rectangle2D bounds = ss.getBounds2D();
+		
+		
+		int minX = (int) Math.max(bounds.getMinX(), 0);
+		int minY = (int) Math.max(bounds.getMinY(), 0);
+		
+		int maxX = (int) Math.min(bounds.getMaxX(), this.width());
+		int maxY = (int) Math.min(bounds.getMaxY(), this.height());
+		
+		for(int x=minX;x<=maxX;x++){
+			for(int y=minY;y<=maxY;y++){
+				if(ss.contains(x, y)){
+					this.set(x, y, bm2.get(x, y));
+				}
+			}
+		}
+		
+			
+		return this;
+		
+	}
 }

@@ -404,6 +404,18 @@ class BranchNode{
 			}
 			full.setRightBranchNode(parent);
 			return full;
+		}else if(s.matches("[Cc][Oo][Oo][Cc][H][2]")){
+			
+			BranchNode full = new BranchNode("C").addChild(new BranchNode("O").setOrderToParent(2));
+			
+			BranchNode OMethyl = new BranchNode("O").setOrderToParent(2);
+			BranchNode meth = new BranchNode("C").setOrderToParent(1);
+			
+			OMethyl.addChild(meth);
+			
+			full.addChild(OMethyl);
+			full.setRightBranchNode(meth);
+			return full;
 		}else if(s.matches("([cC]H[2]*)+[Cc]")){
 			int c=s.split("H[2]*").length;
 			
