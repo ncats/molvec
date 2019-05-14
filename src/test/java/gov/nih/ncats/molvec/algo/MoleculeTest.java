@@ -33,6 +33,8 @@ import javax.imageio.ImageIO;
 
 @RunWith(Parameterized.class)
 public class MoleculeTest {
+	private static boolean debug=false;
+	
 
 //	static File writeToFolder = new File("testResults");
 
@@ -90,7 +92,7 @@ public class MoleculeTest {
 	public void testAsFile() throws Exception {
 		File f=getFile(spec.filePath);
 
-		StructureImageExtractor sie = new StructureImageExtractor(f);
+		StructureImageExtractor sie = new StructureImageExtractor(f,debug);
 
 		//Chemical c =Chemical.parseMol(sie.getCtab().toMol());
 		Chemical c =Chemical.parseMol(sie.getCtab().toMol()).toBuilder().aromatize(false).build();
@@ -4682,6 +4684,32 @@ public class MoleculeTest {
 			assertEquals(cReal.getFormula(),form);
 		} )});
 
+//		debug=true;
+//		StructureImageExtractor.SKIP_STEP_AT=25;
+		
+		
+		//5 -- no change
+		//6 -- CO2AsEster
+		//7 -- OConnectedToDash
+		//8 -- OConnectedToDash
+		//9 -- fluoxetine, moleculeWithCloseNitrogensInRing, cagedStructure4,OConnectedToDash, colinearAromaticBond, structureWithBridgeHeadInsideRing, bridgeHeadMoleculeWithNoGap
+		//10 -- no change
+		//11 -- MANY(17) :paxil, fluoxetine, reallyHardPeptide,moleculeWithCloseNitrogensInRing,OConnectedToDash,CO2AsEster, smallimage,wedgeBondWeirdAngle,tallerFont
+		//12 -- subscriptImplicitAtomsF3, wedgeBondWeirdAngle, OConnectedtToDash
+		//13 -- no change
+		//14 -- OConnectedToDash, dashedToPhenyl, closeNonBondedAtoms, 5memberedHetroRingWithNoisyDoubleBond
+		//15 -- can't remove, causes errors
+		//16 -- OConnectedToDash, smallImage, 5memberedRingWithNoisyDoubleBond, slightlyBentTripleBond, cagedStructure6
+		//17 -- no change
+		//18 -- no change
+		//19 -- no change
+		//20 -- no change
+		//21 -- no change
+		//22 -- 3 break
+		//23 -- bridgeHeadMoleculeWithNoGap
+		//24 -- moreDottedLinesThanNormalLines, explicitCarbonStructureWithTallerFont, StructureWithBridgeHeadsInsideRing
+		//25 -- no change
+		
 		return list;
 	}
 

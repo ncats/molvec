@@ -976,13 +976,18 @@ public class RegressionTestIT {
 		//IMAGO_SCALE
 		
 		//RegressionTestIT.EXPORT_CORRECT=true;
-		
 
-		for(int i=3;i<=20;i++){
+		for(int i=16;i<=20;i++){
 			testSet("trec", Method.MOLVEC.adapt().scale(i/10.0));
-			testSet("trec", Method.IMAGO.adapt().scale(i/10.0));
-			testSet("trec", Method.OSRA.adapt().scale(i/10.0));
 		}
+
+		for(int i=15;i<=20;i++){
+			testSet("trec", Method.IMAGO.adapt().scale(i/10.0));
+		}
+		for(int i=14;i<=20;i++){
+			testSet("trec", Method.IMAGO.adapt().scale(i/10.0));
+		}
+		//
 //			
 		
 	}
@@ -1127,7 +1132,7 @@ public class RegressionTestIT {
 		      .limit(meth.getLimit())
 
 //NOTE, I THINK THIS TECHNICALLY WORKS, BUT SINCE THERE IS PARALLEL THINGS GOING ON IN EACH, IT SOMETIMES WILL STARVE A CASE FOR A LONG TIME
-		      //.parallel()
+		      .parallel()
 		      
 		      
 		      .map(fl->Tuple.of(fl,testMolecule(fl.get(1),fl.get(0), 400, meth)))
