@@ -1,0 +1,23 @@
+Time: 5.211 seconds
+======================================
+ATOMS_RIGHT_WRONG_BONDS	1
+--------------------------------------
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/maybridge/maybridge-0064-833622069.tif	1881	Infinity
+======================================
+ATOM_COUNT_BOND_COUNT_RIGHT_WRONG_LABELS_OR_CONNECTIVITY	2
+--------------------------------------
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/maybridge/maybridge-0112-474135608.tif	981	Infinity
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/maybridge/maybridge-0192-104203990.tif	2623	Infinity
+======================================
+CORRECT_FULL_INCHI	5
+--------------------------------------
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/maybridge/maybridge-0183-574952018.tif	2223	1.2710261089035693
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/maybridge/maybridge-0055-932370610.tif	1126	0.411231309903445
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/maybridge/maybridge-0180-1065529322.tif	1524	0.2117095000540061
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/maybridge/maybridge-0148-1035602821.tif	1282	0.718120736579427
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/maybridge/maybridge-0087-1002951041.tif	1570	0.3340969089563256
+======================================
+INCORRECT	2
+--------------------------------------
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/maybridge/maybridge-0073-66491285.tif	2115	Infinity
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/maybridge/maybridge-0115-436555794.tif	1646	Infinity

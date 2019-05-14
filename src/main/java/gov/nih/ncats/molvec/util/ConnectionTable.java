@@ -143,28 +143,49 @@ public class ConnectionTable{
 		int MAX_RING_TOTAL = 10;
 		int MAX_RING_AFTER_INITIAL = 6;
 		
-		return getDisconnectedNodeSets().stream()
+		int maxNumberRings = 100;
+		
+		List<Ring> rings= getDisconnectedNodeSets().stream()
 				.flatMap(nl1->{
 					try{
+						
+						long minSSSR= 
+								     nl1.stream()
+								        .flatMap(n->n.getEdges().stream())
+								        .distinct()
+								        .count() - nl1.size() +1;
+
+						if(minSSSR>maxNumberRings)return Stream.empty();
+												
 						Map<Node,List<List<Node>>> nrings = new HashMap<>();
 						
 						Set<Node> terms = new HashSet<Node>();
 						List<Node> check = new ArrayList<Node>(nl1);
 						int tbefore=0;
 						
+						
+						
 						while(true){
 							for(Node nn: check){
 								long keepCount = nn.getNeighborNodes().stream().filter(t->!terms.contains(t.k())).count();
 								if(keepCount==1){
 									terms.add(nn);
+								}else{
+									if(nn.getEdgeCount()>7){
+										terms.add(nn);
+									}
 								}
+								
 							}
 							check.removeAll(terms);
-							tbefore=terms.size();
+							
 							if(tbefore==terms.size()){
 								break;
 							}
+							tbefore=terms.size();
 						}
+						
+						
 						
 						for(Node nn: check){
 							
@@ -221,8 +242,7 @@ public class ConnectionTable{
 									}
 									foundRing[0]=true;
 								},MAX_RING_TOTAL);
-							}
-					
+							}			
 						
 					}
 					
@@ -258,8 +278,8 @@ public class ConnectionTable{
 				})
 				.collect(Collectors.toList());
 		
-		
-		
+
+		return rings;
 		
 		
 		
@@ -1908,7 +1928,6 @@ public class ConnectionTable{
 	
 
 	public ConnectionTable fixBondOrders(Collection<Shape> likelyOCR, double shortestRealBondRatio, Consumer<Edge> edgeCons) {
-		// TODO Auto-generated method stub
 		this.edges
 		    .stream()
 		    .forEach(e->{

@@ -2,7 +2,6 @@ package gov.nih.ncats.molvec.algo;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
@@ -18,6 +17,9 @@ import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.sql.Date;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -27,9 +29,11 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -53,7 +57,6 @@ import gov.nih.ncats.chemkit.api.Bond;
 import gov.nih.ncats.chemkit.api.Bond.Stereo;
 import gov.nih.ncats.chemkit.api.Chemical;
 import gov.nih.ncats.chemkit.api.ChemicalBuilder;
-import gov.nih.ncats.chemkit.api.inchi.InChiResult;
 import gov.nih.ncats.chemkit.api.inchi.Inchi;
 import gov.nih.ncats.molvec.Bitmap;
 import gov.nih.ncats.molvec.Molvec;
@@ -409,7 +412,7 @@ public class RegressionTestIT {
                      .mapToLong(b->{
                     	 Atom oa=b.getOtherAtom(a);
                     	 int k = oa.getAtomIndexInParent();
-                    	 return (b.getBondType().getOrder() << oa.getImplicitHCount()) + hash[p][k];
+                    	 return (1 << oa.getImplicitHCount()) + hash[p][k];
                      })
                      .sum();
                     if (ha < 0) {
@@ -436,7 +439,7 @@ public class RegressionTestIT {
 		
 		List<Chemical> c1chems = c1.connectedComponentsAsStream().collect(Collectors.toList());
 		
-		InChiResult ii=Inchi.asStdInchi(c1);
+		
 		
 		if(c1chems.size()>1){
 			
@@ -720,9 +723,9 @@ public class RegressionTestIT {
 	}
 	
 	public static TestResult testMolecule(File image, File sdf){
-		return testMolecule(image, sdf, 60, Method.MOLVEC);
+		return testMolecule(image, sdf, 60, Method.MOLVEC.adapt());
 	}
-	public static TestResult testMolecule(File image, File sdf, long timeoutInSeconds, Method meth){
+	public static TestResult testMolecule(File image, File sdf, long timeoutInSeconds, MethodAdapted meth){
 		long start= System.currentTimeMillis();
 		try{
 			AtomicBoolean lastWasAlias = new AtomicBoolean(false);
@@ -799,78 +802,11 @@ public class RegressionTestIT {
 			
 			Chemical c=null;
 			
-			if(Method.MOLVEC.equals(meth)){
-				//File tmpFile = File.createTempFile("molvecTest", ".png");
-				//stdResize(image,tmpFile,1);
-				
-				CompletableFuture<String> chemicalCompletableFuture = Molvec.ocrAsync(image);
-	//
-				try {
-					c = getCleanChemical(chemicalCompletableFuture.get(timeoutInSeconds, TimeUnit.SECONDS));
-				}catch(TimeoutException te) {
-					System.out.println("timeout!!");
-					chemicalCompletableFuture.cancel(true);
-					return TestResult.of(Result.TIMEOUT, System.currentTimeMillis()-start);
-				}catch(Exception e){
-					return TestResult.of(Result.ERROR, System.currentTimeMillis()-start);
-				}
-			}else if(Method.MOLVEC_HALF.equals(meth)){
-				File tmpFile = File.createTempFile("molvecTest", ".png");
-				stdResize(image,tmpFile,0.5);
-				CompletableFuture<String> chemicalCompletableFuture = Molvec.ocrAsync(tmpFile);
-				try {
-					c = getCleanChemical(chemicalCompletableFuture.get(timeoutInSeconds, TimeUnit.SECONDS));
-				}catch(TimeoutException te) {
-					System.out.println("timeout!!");
-					chemicalCompletableFuture.cancel(true);
-					return TestResult.of(Result.TIMEOUT, System.currentTimeMillis()-start);
-				}catch(Exception e){
-					return TestResult.of(Result.ERROR, System.currentTimeMillis()-start);
-				}
-			}else 	if(Method.OSRA.equals(meth)){
-				c = getCleanChemical(getOSRAChemical(image).toMol());
-			}else 	if(Method.IMAGO.equals(meth)){
-				RegressionTestIT.IMAGO_SCALE=1;
-				c = getCleanChemical(getImagoChemical(image).toMol());
-			}else 	if(Method.IMAGO_HALF.equals(meth)){
-				RegressionTestIT.IMAGO_SCALE=0.5;
-				c = getCleanChemical(getImagoChemical(image).toMol());
-			}else if(Method.EXACT.equals(meth)){
+			if(Method.EXACT.equals(meth.method)){
 				c= getCleanChemical(c1.toMol());
+			}else{
+				c=meth.getChem(image);
 			}
-//			
-			
-			
-//			
-			
-			
-			
-			
-//			try{
-//				long start = System.currentTimeMillis();
-//				th.start();
-//				while(true){
-//					if(cget.hasRun())break;
-//					Thread.sleep(100);
-//					if(System.currentTimeMillis()-start > 60000){
-//						th.interrupt();
-//						System.out.println("OH NO TIMEOUT!\t" + image.getAbsolutePath());
-//						return Result.TIMEOUT;
-//					}
-//				}
-//
-//
-//			}catch(Exception e){
-//				return Result.ERROR;
-//			}
-//
-//			StructureImageExtractor sie = cget.get();
-//
-//			Chemical c=getCleanChemical(sie.getChemical());
-//
-			
-			//c1.makeHydrogensImplicit();
-			//c.makeHydrogensImplicit();
 			
 			c.atoms()
 			 .filter(a->a.hasAromaticBond())
@@ -889,9 +825,17 @@ public class RegressionTestIT {
 			if(c.getAtomCount()==0){
 				return TestResult.of(Result.FOUND_NOTHING,total);
 			}
-			String iinchi=Inchi.asStdInchi(c).getKey();
+			
+			String tiiinchi=null;
+			try{
+				tiiinchi=Inchi.asStdInchi(c).getKey();
+			}catch(Exception e){
+				System.out.println(c.toMol());
+				throw e;
+			}
 			String rinchi=Inchi.asStdInchi(c1).getKey();
 			
+			String iinchi= tiiinchi;
 			
 					
 			
@@ -1034,61 +978,115 @@ public class RegressionTestIT {
 		//RegressionTestIT.EXPORT_CORRECT=true;
 		
 
-		testSet("trec",true, Method.MOLVEC);
-		testSet("trec",true, Method.IMAGO);
-		testSet("trec",true, Method.OSRA);
-		testSet("uspto",true, Method.MOLVEC);
-		testSet("usan",false, Method.MOLVEC);
-		testSet("usan",false, Method.MOLVEC_HALF);
-		
-		testSet("maybridge",false, Method.OSRA);
-		testSet("maybridge",false, Method.MOLVEC);
-		
-		
-		//testSet("trec",false, Method.OSRA);
-		//RegressionTestIT.EXPORT_CORRECT=false;
-//		
-//		
-//		testSet("uspto",false, Method.IMAGO);
-//		testSet("maybridge",false, Method.IMAGO);
-//		
-//		
-//		testSet("maybridge",false, Method.OSRA);
-//
-//		testSet("usan",false, Method.OSRA);
-		//testSet("usan",false, Method.OSRA);
-		
+		for(int i=3;i<=20;i++){
+			testSet("trec", Method.MOLVEC.adapt().scale(i/10.0));
+			testSet("trec", Method.IMAGO.adapt().scale(i/10.0));
+			testSet("trec", Method.OSRA.adapt().scale(i/10.0));
+		}
+//			
 		
 	}
+	
+	private static long DEF_TIMEOUT = 400;
+	
 	
 	
 	public static enum Method{
-		OSRA,
-		MOLVEC,
-		MOLVEC_HALF,
-		IMAGO,
-		IMAGO_HALF,
-		EXACT
+		OSRA(f->()->getOSRAChemical(f).toMol()),
+		MOLVEC(f->()->{
+			CompletableFuture<String> chemicalCompletableFuture = Molvec.ocrAsync(f);
+			//
+			try {
+				return chemicalCompletableFuture.get(DEF_TIMEOUT, TimeUnit.SECONDS);
+			}catch(TimeoutException te) {
+				System.out.println("timeout!!");
+				chemicalCompletableFuture.cancel(true);
+				throw new RuntimeException(te);
+			}
+		}),
+		IMAGO(f->()->getImagoChemical(f).toMol()),
+		EXACT(f->null);
+		
+		Function<File,Callable<String>> fetcher;
+		
+		
+		Method(Function<File,Callable<String>> mfileFetcher ){
+			this.fetcher=mfileFetcher;
+		}
+		
+		
+		public Chemical getChem(File f) throws Exception{
+			return getCleanChemical(fetcher.apply(f).call());
+		}
+		
+		public MethodAdapted adapt(){
+			return MethodAdapted.from(this);
+		}
+		
 	}
+	
+	public static class MethodAdapted{
+		public Method method;
+		double scale = 1;		
+		long max = Long.MAX_VALUE;
+		boolean RMSE = false;
+		
+		
+		
+		public MethodAdapted (Method m){
+			this.method=m;
+		}
+		
+		public MethodAdapted scale(double s){
+			this.scale=s;
+			return this;
+		}
+		
+		public MethodAdapted limit(long l){
+			this.max=l;
+			return this;
+		}
+		public MethodAdapted rmse(boolean rmse){
+			this.RMSE=rmse;
+			return this;
+		}
+		
+		public boolean rmse(){
+			return this.RMSE;
+		}
+		
+		public long getLimit(){
+			return this.max;
+		}
+		
+		public Chemical getChem(File f) throws Exception{
+			File imageFile = File.createTempFile("tmpStr" + UUID.randomUUID().toString(), ".png");
+			imageFile=stdResize(f, imageFile, scale);
+			return method.getChem(imageFile);
+		}
+		
+		public static MethodAdapted from(Method m){
+			return new MethodAdapted(m);
+		}
+		
+		public String toString(){
+			return this.method.toString() + "_" + scale + "x" + ((RMSE)?"_RMSE":"");
+		}
+		
+	}
+	
+	
 	
 //	@Ignore
 	
-	public void testSet(String set, boolean align, Method meth) throws FileNotFoundException{
+	public void testSet(String set, MethodAdapted meth) throws FileNotFoundException{
 		
-		RegressionTestIT.DO_ALIGN=align;
+		RegressionTestIT.DO_ALIGN=meth.rmse();
 		
-//		try{
-//			
-//			System.out.println(Inchi.asStdInchi(ChemicalBuilder.createFromSmiles("CCCO").build()).getAuxInfo());
-//			System.out.println(Inchi.asStdInchi(ChemicalBuilder.createFromSmiles("OCCC").build()).getAuxInfo());
-//		}catch(Exception e){
-//			e.printStackTrace();
-//		}
-//		if(true)return;
 		
-		try(PrintWriter pw1 = new PrintWriter("/home/tyler/workspace/molvec/reports/" + set + meth + ((align)?"RMSE":"") + 
-				System.currentTimeMillis() + 
-				
+		
+		try(PrintWriter pw1 = new PrintWriter("/home/tyler/workspace/molvec/reports/" + set + "_" +  meth.toString() + "_" +
+				LocalDate.now().format( DateTimeFormatter.ofPattern("YYYYMMdd")) + 				
 				".txt")){
 			
 		
@@ -1097,7 +1095,6 @@ public class RegressionTestIT {
 		
 		File dir1 = getFile("regressionTest/" + set);
 		
-		boolean[] first = new boolean[]{true};
 		List<String> dataMethod = new ArrayList<>();
 		dataMethod.add("@Parameterized.Parameters(name=\"{0}\")");
 		dataMethod.add("public static List<Object[]> getData(){");
@@ -1105,6 +1102,7 @@ public class RegressionTestIT {
 
 		dataMethod.add("\n\tList<Object[]> list = new ArrayList<>();\n");
 
+		Map<Result, List<Tuple<Tuple<TestResult, List<File>>, List<File>>>> mm=
 			Arrays.stream(dir1.listFiles())
 		      .filter(f->f.getName().contains("."))
 		      //.filter(f->f.getName().contains("cas-382-67-2"))
@@ -1126,27 +1124,38 @@ public class RegressionTestIT {
 		      })
 		      
 		      .collect(shuffler(new Random(12440l)))		      
-		      //.limit(100)
+		      .limit(meth.getLimit())
 
 //NOTE, I THINK THIS TECHNICALLY WORKS, BUT SINCE THERE IS PARALLEL THINGS GOING ON IN EACH, IT SOMETIMES WILL STARVE A CASE FOR A LONG TIME
-		      .parallel()
+		      //.parallel()
 		      
 		      
 		      .map(fl->Tuple.of(fl,testMolecule(fl.get(1),fl.get(0), 400, meth)))
 		      .map(t->t.swap())
 		      .map(t->Tuple.of(t.k().result,Tuple.of(t,t.v())))
 		      .peek(t->System.out.println(t.v().v().get(1).getAbsolutePath() + ":" +t.k()))
-		      .collect(Tuple.toGroupedMap())
-		      .entrySet()
+		      .collect(Tuple.toGroupedMap());
+			
+		
+		  pw1.println("~~~~~~~~~~~~~~~~~~~~~~~~~~");
+		  pw1.println("Time\t" + ((System.currentTimeMillis()-start)/1000.0) + " seconds");
+		  pw1.println("Scale\t" + meth.scale);
+		  pw1.println("Method\t" + meth.method);
+		  pw1.println("!!!!!!!!!!!!!!!!!!!!!!!!!!");
+		
+		  for(Result r:Result.values()){
+			  int c=Optional.ofNullable(mm.get(r))
+			          .map(t->t.size())
+			          .orElse(0);
+			  pw1.println(r.toString() + "\t" + c);
+		  }
+		
+			  mm
+			  .entrySet()
 		      .stream()
-//				.sorted()
 		      .map(Tuple::of)
-
+		      .sorted(Comparator.comparing(t->t.k().ordinal()))
 		      .forEach(t->{
-		    	  if(first[0]){
-		    		  pw1.println("Time: " + ((System.currentTimeMillis()-start)/1000.0) + " seconds");
-		    		  first[0]=false;
-		    	  }
 		    	  Result r=t.k();
 		    	  List<List<File>> fl = t.v().stream().map(t1->t1.v()).collect(Collectors.toList());
 		    	  
@@ -1155,26 +1164,8 @@ public class RegressionTestIT {
 		    	  pw1.println("--------------------------------------");
 		    	  pw1.println(t.v().stream().map(tf->tf.v().get(1).getAbsolutePath() + "\t" + tf.k().k().time + "\t" + tf.k().k().RMSE).collect(Collectors.joining("\n")));
 
-//				  dataMethod.add("\t\tadd"+r.name()+"(list, dir);");
-//			
-//					System.out.println("\tprivate static void add"+r.name()+"(List<Object[]> list, File dir){\n"+
-//						"\t\t//=================================\n"+
-//						"\t\t//            " + r.name() + "  " + fl.size() +"\n" +
-//						"\t\t//--------------------------------------\n");
-//					for(List<File> f : fl) {
-//						String fileName = f.get(1).getName();
-//						//trim off .png
-//						String noExt = fileName.substring(0, fileName.length()-4);
-//						System.out.println("\t\tlist.add(test(RegressionTestIT.Result." + r.name()+", dir, \"" + noExt + "\"));");
-//					}
-//					System.out.println("\t}\n");
-
 		      });
-
-
 			}
-//			dataMethod.add("\t\treturn list;\n\t}");
-//			System.out.println(dataMethod.stream().collect(Collectors.joining("\n")));
 	}
 	
 	public static <T> Collector<T,List<T>,Stream<T>> shuffler(Random r){

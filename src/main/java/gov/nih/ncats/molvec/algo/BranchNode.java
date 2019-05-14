@@ -386,6 +386,12 @@ class BranchNode{
 	private static BranchNode interpretOCRStringAsAtom(String s, boolean tokenOnly){
 		
 		
+		if(s.contains("t43")){
+			return interpretOCRStringAsAtom(s.replace("t43", "H3"));
+		}
+		if(s.equals("t42")){
+			return interpretOCRStringAsAtom(s.replace("t42", "H2"));
+		}
 		
 		if(s.equals("HCl") || s.equals("HC1") || s.equals("Hcl") || s.equals("Hc1")){
 			return new BranchNode("Cl").setLinkable(false);
@@ -903,7 +909,7 @@ class BranchNode{
 		
 		try{
 			int r=Integer.parseInt(s);
-			if(r>0){
+			if(r>0 && r<20){
 				BranchNode repNode=new BranchNode("?");
 				repNode.setRepeat(r);
 				return repNode;
