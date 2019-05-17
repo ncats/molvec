@@ -971,22 +971,24 @@ public class RegressionTestIT {
 	@Test
 	public void test1() throws FileNotFoundException{
 		
+		testSet("usan", Method.MOLVEC.adapt().limit(10));
+		
 		//testSet("uspto",true);
 
 		//IMAGO_SCALE
 		
 		//RegressionTestIT.EXPORT_CORRECT=true;
 
-		for(int i=16;i<=20;i++){
-			testSet("trec", Method.MOLVEC.adapt().scale(i/10.0));
-		}
-
-		for(int i=15;i<=20;i++){
-			testSet("trec", Method.IMAGO.adapt().scale(i/10.0));
-		}
-		for(int i=14;i<=20;i++){
-			testSet("trec", Method.IMAGO.adapt().scale(i/10.0));
-		}
+//		for(int i=16;i<=20;i++){
+//			testSet("trec", Method.MOLVEC.adapt().scale(i/10.0));
+//		}
+//
+//		for(int i=15;i<=20;i++){
+//			testSet("trec", Method.IMAGO.adapt().scale(i/10.0));
+//		}
+//		for(int i=14;i<=20;i++){
+//			testSet("trec", Method.OSRA.adapt().scale(i/10.0));
+//		}
 		//
 //			
 		

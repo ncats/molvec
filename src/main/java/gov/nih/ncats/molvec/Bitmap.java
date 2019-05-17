@@ -58,7 +58,9 @@ import com.sun.media.jai.codec.TIFFField;
 import gov.nih.ncats.molvec.algo.Tuple;
 import gov.nih.ncats.molvec.image.ImageUtil;
 import gov.nih.ncats.molvec.image.TiffTags;
+import gov.nih.ncats.molvec.image.binarization.AdaptiveThreshold;
 import gov.nih.ncats.molvec.image.binarization.SigmaThreshold;
+import gov.nih.ncats.molvec.image.binarization.SigmaThreshold.ImageStats;
 import gov.nih.ncats.molvec.util.GeomUtil;
 import gov.nih.ncats.molvec.util.GeomUtil.LineDistanceCalculator;
 import gov.nih.ncats.molvec.util.GeomUtil.LineWrapper;
@@ -877,8 +879,66 @@ public class Bitmap implements Serializable, TiffTags {
                 ("Can't handle sample with multiple channels");
         }
 
-        //return new AdaptiveThreshold ().binarize(raster);
-        Bitmap bm= new SigmaThreshold ().binarize(raster);
+        
+        ImageStats[] is = new ImageStats[]{null};
+        
+        
+        Bitmap bm= new SigmaThreshold ().binarize(raster, stat->{
+        	is[0]=stat;
+        });
+        
+
+        
+
+        double tPctMinSig=100*((is[0].threshold-is[0].stdev)-is[0].min)/(is[0].max-is[0].min);
+        double tPctMaxSig=100*((is[0].threshold+is[0].stdev)-is[0].min)/(is[0].max-is[0].min);
+        
+        double count = 0;
+        for(int i=(int)Math.max(1, tPctMinSig);i<=Math.min(tPctMaxSig, 100);i++){
+        	count+=is[0].histogram[i];
+        }
+        
+//print histogram    
+//      for(int i=0;i<is[0].histogram.length;i++){
+//  		System.out.println(i + "\t" + is[0].histogram[i]);
+//  	}
+//  	System.out.println("Threshold:" + tPct);
+//  	System.out.println("Min Threshold:" + tPctMinSig);
+//  	System.out.println("Max Threshold:" + tPctMaxSig);
+//  
+        //If there's a little uncertainty about where to draw the threshold line, try
+        //the adaptive threshold, possibly
+        if(count> is[0].histogram[100]*0.1 || count> is[0].histogram[0]*0.1){
+
+            
+            List<Shape> polys2= bm.connectedComponents(Bitmap.Bbox.DoublePolygon);
+            
+            if(polys2.size()<4000){
+            
+            	long tstart = System.currentTimeMillis();
+    	        Bitmap bm1= new AdaptiveThreshold().binarize(raster);
+    	        List<Shape> polys1= bm1.connectedComponents(Bitmap.Bbox.DoublePolygon);
+    	        
+    	        if(polys1.size()<4000){
+    	            long sum1=polys1.stream()
+    		              .mapToLong(s->polys1.stream().filter(s2->GeomUtil.contains(s, s2)).count())
+    		              .sum();
+    		        long sum2=polys2.stream()
+    		                .mapToLong(s->polys2.stream().filter(s2->GeomUtil.contains(s, s2)).count())
+    		                .sum();
+//    		        //if there are at least 3 more shapes inside other shapes, it's 
+//    		        //probably a thresholding issue that should use the one with more shapes
+//    		        //The logic here is that aromatic double bonds are quite common, and if
+//    		        //the thresholding washes them out, then you'd expect to see about 3 or more shapes
+//    		        //inside other shapes with good thresholding than with bad thresholding
+    		        if(sum1>=sum2+3)return bm1;
+    	        }
+    	        //System.out.println("time:" + (System.currentTimeMillis()-tstart));
+            }
+        }
+        
+        
+        
         
         return bm;
         
@@ -1649,132 +1709,139 @@ public class Bitmap implements Serializable, TiffTags {
     public List<Shape> connectedComponents () {
         return connectedComponents (Bbox.Rectangular);
     }
+    
+    private Map<Bbox,List<Shape>> _cacheShapes = new HashMap<>();
+    
+    
 
     public List<Shape> connectedComponents (Bbox shape) {
-        short label = 0; // current label
-        short[][] labels = new short[height][width + 1];
+    	return _cacheShapes.computeIfAbsent(shape, (ss)->{
+    		short label = 0; // current label
+            short[][] labels = new short[height][width + 1];
 
-        // equivalence class
-        short[] eqvtab = new short[500]; // some initial default
-        short[] L = new short[4];
+            // equivalence class
+            short[] eqvtab = new short[500]; // some initial default
+            short[] L = new short[4];
 
-        for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; ++x) {
-                /* check to see if we have a black pixel */
-                if (!get (x, y))
-                    /* do nothing */ ;
-                /* boundary conditions */
-                else if (y == 0 && x == 0) {
-                    labels[y][x] = ++label;
-                } else if (y == 0) {
-                    short label1 = labels[y][x - 1];
-                    if (label1 == 0) {
-                        label1 = ++label;
-                    }
-                    labels[y][x] = label1;
-                } else if (x == 0) {
-                    int label1 = labels[y - 1][x];
-                    int label2 = labels[y - 1][x + 1];
-                    if (label1 != 0 && label2 != 0)
-                        label1 = Math.min (label1, label2);
-                    else if (label1 == 0 && label2 == 0) {
-                        label1 = ++label;
-                    } else
-                        label1 = Math.max (label1, label2);
-                    labels[y][x] = (short) label1;
-                }
-                /* assign new label */
-                else if (labels[y][x - 1] == 0
-                         && labels[y - 1][x] == 0
-                         && labels[y - 1][x - 1] == 0
-                         && labels[y - 1][x + 1] == 0) {
-                    labels[y][x] = ++label;
-                } else {
-                    L[0] = labels[y - 1][x - 1];
-                    L[1] = labels[y - 1][x];
-                    L[2] = labels[y - 1][x + 1];
-                    L[3] = labels[y][x - 1];
-
-                    Arrays.sort (L);
-
-                    /* skip all non-labeled pixels */
-                    int n;
-                    for (n = 0; n < 4 && L[n] == 0; ++n)
-                        ;
-                    /* n should not be 4 */
-                    if (n == 4) {
-                        throw new IllegalStateException ("n == 4");
-                    }
-
-                    labels[y][x] = L[n];
-                    /* now enumerate from n to 4 - 1 */
-                    for (int i = n; i < 4; ++i)
-                        for (int j = i + 1; j < 4; ++j)
-                            /* update equivalence table */
-                            union (eqvtab, L[i], L[j]);
-                }
-
-                if (label == Short.MAX_VALUE) {
-                    logger.log (Level.SEVERE, "Max number of labels reached: "
-                                + label + "; truncating search!");
-                    break;
-                }
-                // ensure there's enough space in the eqvtab
-                else if (label >= eqvtab.length) {
-                    short[] newtab = new short[label + 100];
-                    System.arraycopy (eqvtab, 0, newtab, 0, eqvtab.length);
-                    eqvtab = newtab;
-                }
-            }
-        }
-
-        if (DEBUG) {
-            System.err.print ("eqvtab:");
-            for (int i = 1; i <= label; ++i) {
-                System.err.print (" " + i + ":" + eqvtab[i]);
-            }
-            System.err.println ();
-            System.err.println ("label: " + label);
-
-            System.err.println ("eqv class labels...");
             for (int y = 0; y < height; ++y) {
                 for (int x = 0; x < width; ++x) {
-                    System.err.print
-                        (get (x, y) ? String.valueOf (labels[y][x]) : '.');
+                    /* check to see if we have a black pixel */
+                    if (!get (x, y))
+                        /* do nothing */ ;
+                    /* boundary conditions */
+                    else if (y == 0 && x == 0) {
+                        labels[y][x] = ++label;
+                    } else if (y == 0) {
+                        short label1 = labels[y][x - 1];
+                        if (label1 == 0) {
+                            label1 = ++label;
+                        }
+                        labels[y][x] = label1;
+                    } else if (x == 0) {
+                        int label1 = labels[y - 1][x];
+                        int label2 = labels[y - 1][x + 1];
+                        if (label1 != 0 && label2 != 0)
+                            label1 = Math.min (label1, label2);
+                        else if (label1 == 0 && label2 == 0) {
+                            label1 = ++label;
+                        } else
+                            label1 = Math.max (label1, label2);
+                        labels[y][x] = (short) label1;
+                    }
+                    /* assign new label */
+                    else if (labels[y][x - 1] == 0
+                             && labels[y - 1][x] == 0
+                             && labels[y - 1][x - 1] == 0
+                             && labels[y - 1][x + 1] == 0) {
+                        labels[y][x] = ++label;
+                    } else {
+                        L[0] = labels[y - 1][x - 1];
+                        L[1] = labels[y - 1][x];
+                        L[2] = labels[y - 1][x + 1];
+                        L[3] = labels[y][x - 1];
+
+                        Arrays.sort (L);
+
+                        /* skip all non-labeled pixels */
+                        int n;
+                        for (n = 0; n < 4 && L[n] == 0; ++n)
+                            ;
+                        /* n should not be 4 */
+                        if (n == 4) {
+                            throw new IllegalStateException ("n == 4");
+                        }
+
+                        labels[y][x] = L[n];
+                        /* now enumerate from n to 4 - 1 */
+                        for (int i = n; i < 4; ++i)
+                            for (int j = i + 1; j < 4; ++j)
+                                /* update equivalence table */
+                                union (eqvtab, L[i], L[j]);
+                    }
+
+                    if (label == Short.MAX_VALUE) {
+                        logger.log (Level.SEVERE, "Max number of labels reached: "
+                                    + label + "; truncating search!");
+                        break;
+                    }
+                    // ensure there's enough space in the eqvtab
+                    else if (label >= eqvtab.length) {
+                        short[] newtab = new short[label + 100];
+                        System.arraycopy (eqvtab, 0, newtab, 0, eqvtab.length);
+                        eqvtab = newtab;
+                    }
+                }
+            }
+
+            if (DEBUG) {
+                System.err.print ("eqvtab:");
+                for (int i = 1; i <= label; ++i) {
+                    System.err.print (" " + i + ":" + eqvtab[i]);
                 }
                 System.err.println ();
-            }
-        }
+                System.err.println ("label: " + label);
 
-
-        List<Shape> comps;
-        switch (shape) {
-        case Polygon:
-            comps = connectedComponentPolygonShapes (eqvtab, labels);
-            break;
-        case DoublePolygon:
-            comps = connectedComponentDoublePrecisionPolygonShapes (eqvtab, labels);
-            break;
-
-        case Rectangular:
-        default:
-            comps = connectedComponentRectangularShapes (eqvtab, labels);
-        }
-
-        if (DEBUG) {
-            System.err.println ("merged labels...");
-            for (int y = 0; y < height; ++y) {
-                for (int x = 0; x < width; ++x) {
-                    System.err.print
-                        (get (x, y) ? String.valueOf (labels[y][x]) : '.');
+                System.err.println ("eqv class labels...");
+                for (int y = 0; y < height; ++y) {
+                    for (int x = 0; x < width; ++x) {
+                        System.err.print
+                            (get (x, y) ? String.valueOf (labels[y][x]) : '.');
+                    }
+                    System.err.println ();
                 }
-                System.err.println ();
             }
-        }
-        eqvtab = null;
-        labels = null;
 
-        return comps;
+
+            List<Shape> comps;
+            switch (shape) {
+            case Polygon:
+                comps = connectedComponentPolygonShapes (eqvtab, labels);
+                break;
+            case DoublePolygon:
+                comps = connectedComponentDoublePrecisionPolygonShapes (eqvtab, labels);
+                break;
+
+            case Rectangular:
+            default:
+                comps = connectedComponentRectangularShapes (eqvtab, labels);
+            }
+
+            if (DEBUG) {
+                System.err.println ("merged labels...");
+                for (int y = 0; y < height; ++y) {
+                    for (int x = 0; x < width; ++x) {
+                        System.err.print
+                            (get (x, y) ? String.valueOf (labels[y][x]) : '.');
+                    }
+                    System.err.println ();
+                }
+            }
+            eqvtab = null;
+            labels = null;
+
+            return comps;	
+    	});
+        
     }
 
 

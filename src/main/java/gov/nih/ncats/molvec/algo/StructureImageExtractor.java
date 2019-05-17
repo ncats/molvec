@@ -1966,12 +1966,12 @@ public class StructureImageExtractor {
 
 
 
-			double shortestRealBondRatio = .3;
-			ctab.fixBondOrders(likelyOCR,shortestRealBondRatio, e->{
-				e.setOrder(1);
-			});
-
-			if(DEBUG)logState(19,"for bonds between two OCR shapes where the shapes are too close together for specifying higher order, set the order to 1");
+//			double shortestRealBondRatio = .3;
+//			ctab.fixBondOrders(likelyOCR,shortestRealBondRatio, e->{
+//				e.setOrder(1);
+//			});
+//
+//			if(DEBUG)logState(19,"for bonds between two OCR shapes where the shapes are too close together for specifying higher order, set the order to 1");
 
 
 
@@ -3231,22 +3231,22 @@ public class StructureImageExtractor {
 
 			if(DEBUG)logState(24,"remove bonds that form triangles if the triangle isn't roughly equilateral and nothing is expected to be a cage");
 			
-
-			ctab.getDashLikeScoreForAllEdges(bitmap,likelyOCR)
-			.forEach(t->{
-				if(t.v()<MIN_ST_DEV_FOR_KEEPING_DASHED_LINES && t.k().getDashed()){
-					t.k().setDashed(false);
-					//Maybe it shouldn't even be here?
-					//Try to remove it
-					double tol=ctab.getToleranceForEdge(t.k(),bitmap,likelyOCR);
-					if(tol>MAX_TOLERANCE_FOR_DASH_BONDS){
-						ctab.removeEdge(t.k());
-					}
-				}
-			});
-
-			
-			if(DEBUG)logState(25,"remove dashed edges with little pixel-support, change dashed edges with too much pixel-support to single bonds");
+//
+//			ctab.getDashLikeScoreForAllEdges(bitmap,likelyOCR)
+//			.forEach(t->{
+//				if(t.v()<MIN_ST_DEV_FOR_KEEPING_DASHED_LINES && t.k().getDashed()){
+//					t.k().setDashed(false);
+//					//Maybe it shouldn't even be here?
+//					//Try to remove it
+//					double tol=ctab.getToleranceForEdge(t.k(),bitmap,likelyOCR);
+//					if(tol>MAX_TOLERANCE_FOR_DASH_BONDS){
+//						ctab.removeEdge(t.k());
+//					}
+//				}
+//			});
+//
+//			
+//			if(DEBUG)logState(25,"remove dashed edges with little pixel-support, change dashed edges with too much pixel-support to single bonds");
 			
 			double fbondlength=ctab.getAverageBondLength();
 			
@@ -3939,7 +3939,9 @@ public class StructureImageExtractor {
 			    					
 			    					n.getAllRings()
 			    					 .forEach(r->{
-			    						 rings[r.size()]++;
+			    						 if(r.size()<=6){
+			    							 rings[r.size()]++;
+			    						 }
 			    					 });
 			    					
 			    					if(rings[3]>0 && rings[4]>0 && rings[5]>0){

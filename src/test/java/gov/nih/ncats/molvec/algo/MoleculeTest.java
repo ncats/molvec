@@ -4605,6 +4605,81 @@ public class MoleculeTest {
 			assertEquals(keyReal,keyGot);
 		} )});
 		
+		//blurryAntiAlias.png
+		
+		list.add(new Object[]{"blurryAntiAlias", new TestSpec("moleculeTest/blurryAntiAlias.png", c->{
+
+//			System.out.println("HERE!!!!!\n"+c.toMol());
+			String mol =
+					"\n" + 
+					"   JSDraw205161922142D\n" + 
+					"\n" + 
+					" 28 30  0  0  0  0            999 V2000\n" + 
+					"   28.1912   -4.6168    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   26.8974   -3.8671    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   24.2694   -8.4508    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   23.1684   -9.2499    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   25.6037   -4.6112    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   23.1684  -13.2633    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   23.7899  -11.9136    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   26.1252  -10.7683    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   27.5725  -10.7416    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   26.8710   -8.4241    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   25.6545   -9.3031    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   30.7435  -10.8016    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   32.0476  -11.5584    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   28.0343   -9.2499    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   25.2994  -12.0557    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   33.3555   -9.3027    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   33.3521  -10.8075    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   30.7470   -9.2967    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   32.0544   -8.5458    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   25.6013   -6.1066    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   26.8936   -6.8537    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   28.1872   -6.1095    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   26.7911   -2.1287    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   34.5516   -8.3797    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   24.1628   -6.7103    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   29.4371   -8.4329    0.0000 S   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   28.6025   -7.1721    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   30.1475   -7.1010    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					" 13 17  1  0  0  0  0\n" + 
+					"  5 20  1  0  0  0  0\n" + 
+					" 14 26  1  0  0  0  0\n" + 
+					"  9 14  1  0  0  0  0\n" + 
+					"  3 11  1  0  0  0  0\n" + 
+					"  7 15  1  0  0  0  0\n" + 
+					"  2 23  1  0  0  0  0\n" + 
+					" 26 27  2  0  0  0  0\n" + 
+					" 26 28  2  0  0  0  0\n" + 
+					" 10 21  1  0  0  0  0\n" + 
+					"  1  2  1  0  0  0  0\n" + 
+					"  2  5  2  0  0  0  0\n" + 
+					"  3  4  1  0  0  0  0\n" + 
+					" 12 13  2  0  0  0  0\n" + 
+					" 16 17  2  0  0  0  0\n" + 
+					"  6  7  1  0  0  0  0\n" + 
+					" 18 19  2  0  0  0  0\n" + 
+					" 16 19  1  0  0  0  0\n" + 
+					" 12 18  1  0  0  0  0\n" + 
+					" 16 24  1  0  0  0  0\n" + 
+					"  8  9  2  0  0  0  0\n" + 
+					" 18 26  1  0  0  0  0\n" + 
+					"  8 15  1  0  0  0  0\n" + 
+					" 10 14  1  0  0  0  0\n" + 
+					" 20 25  1  0  0  0  0\n" + 
+					" 21 22  1  0  0  0  0\n" + 
+					" 20 21  2  0  0  0  0\n" + 
+					"  1 22  2  0  0  0  0\n" + 
+					"  8 11  1  0  0  0  0\n" + 
+					" 10 11  2  0  0  0  0\n" + 
+					"M  END";
+			Chemical cReal=Chemical.parseMol(mol);
+			String keyReal=Inchi.asStdInchi(cReal).getKey();
+			String keyGot=Inchi.asStdInchi(c).getKey();
+			assertEquals(keyReal,keyGot);
+		} )});
+		
 				list.add(new Object[]{"rLikeRingAtom", new TestSpec("moleculeTest/rLikeRingAtom.png", c->{
 
 //					System.out.println("HERE!!!!!\n"+c.toMol());
@@ -4684,8 +4759,8 @@ public class MoleculeTest {
 			assertEquals(cReal.getFormula(),form);
 		} )});
 
-//		debug=true;
-//		StructureImageExtractor.SKIP_STEP_AT=25;
+		debug=true;
+		//StructureImageExtractor.SKIP_STEP_AT=43;
 		
 		
 		//5 -- no change
@@ -4709,6 +4784,24 @@ public class MoleculeTest {
 		//23 -- bridgeHeadMoleculeWithNoGap
 		//24 -- moreDottedLinesThanNormalLines, explicitCarbonStructureWithTallerFont, StructureWithBridgeHeadsInsideRing
 		//25 -- no change
+		//26 -- colinearTripleBond, etc
+		//27 -- almost everything breaks
+		//28 -- CO2asEster, 5memeberedHeteroRing
+		//30 -- CO2asEster
+		//31 -- smallimage, CO2asEster, bridgeHeadMoleculeWithNoGap,etc
+		//32 -- explicitCarbonWithTallerFont, smallImage, etc
+		//33 -- cagedStructure, CO2AsEster
+		//34 -- cagedStructure4, CO2AsEster, explicitCarbonStructureWithTallerFont, cagedStructure2
+		//35 -- cagedStructure6, CO2AsEster
+		//36 -- CO2AsEster
+		//37 -- colinearAromaticBond,CO2AsEster
+		//38 -- cagedStructure6, CO2AsEster
+		//39 -- MULTI (7) 
+		//40 -- OConnectedToDash, CO2AsEster
+		//41 -- MULTI (19+)
+		//42 -- MULTI (18)
+		//43 -- CO2AsEster
+		//44 -- 
 		
 		return list;
 	}

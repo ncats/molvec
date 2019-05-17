@@ -432,12 +432,6 @@ private static File stdResize(File f, File imageFile, double scale) throws IOExc
 	    Graphics2D g2 = imgbuf.createGraphics();
 	    draw (g2);
 	    g2.dispose();
-//            try {
-//                ImageIO.write(imgbuf, "png", new File ("snapshot.png"));
-//            }
-//            catch (IOException ex) {
-//                ex.printStackTrace();
-//            }
 	}
 
         Rectangle r = getBounds ();
