@@ -973,20 +973,24 @@ public class RegressionTestIT {
 		
 		
 		//All data sets stats
-		testSet("trec", Method.MOLVEC.adapt());
+		
 		testSet("maybridge", Method.MOLVEC.adapt());
-		testSet("uspto", Method.MOLVEC.adapt());
-		testSet("testSet1", Method.MOLVEC.adapt());
-		testSet("usan", Method.MOLVEC.adapt());
-		
-		
-		testSet("trec", Method.MOLVEC.adapt().rmse(true));
-		testSet("uspto", Method.MOLVEC.adapt().rmse(true));
-		
-		
-		for(int i=3;i<=20;i++){
-			testSet("trec", Method.MOLVEC.adapt().scale(i/10.0));
-		}
+
+		testSet("usan", Method.MOLVEC.adapt().scale(0.5));
+//		
+//		testSet("trec", Method.MOLVEC.adapt());
+//		testSet("uspto", Method.MOLVEC.adapt());
+//		testSet("testSet1", Method.MOLVEC.adapt());
+//		testSet("usan", Method.MOLVEC.adapt());
+//		
+//		
+//		testSet("trec", Method.MOLVEC.adapt().rmse(true));
+//		testSet("uspto", Method.MOLVEC.adapt().rmse(true));
+//		
+//		
+//		for(int i=3;i<=20;i++){
+//			testSet("trec", Method.MOLVEC.adapt().scale(i/10.0));
+//		}
 		
 		//testSet("uspto",true);
 
