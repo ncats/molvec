@@ -100,7 +100,7 @@ public class MoleculeTest {
 	}
 
 
-	//@Test
+	@Test
 	public void testAsByteArray() throws Exception {
 		File f=getFile(spec.filePath);
 
@@ -131,8 +131,8 @@ public class MoleculeTest {
 		spec.assertionConsumer.accept(c);
 	}
 
-	@Test
-	@Ignore
+	//@Test
+	//@Ignore
 	public void rendererRoundTrip() throws Exception {
 
 		File f = getFile(spec.filePath);
@@ -4721,6 +4721,73 @@ public class MoleculeTest {
 					String keyGot=Inchi.asStdInchi(c).getKey();
 					assertEquals(keyReal,keyGot);
 				} )});
+		list.add(new Object[]{"smallAntiAlias", new TestSpec("moleculeTest/smallAntiAlias.png", c->{
+
+//					System.out.println("HERE!!!!!\n"+c.toMol());
+			String mol =
+					"\n" + 
+					"  Molvec0105171902562D\n" + 
+					"\n" + 
+					" 24 26  0  0  0  0  0  0  0  0999 V2000\n" + 
+					"    2.4062    3.3297    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.4212    3.1075    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.9862    2.3240    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.8994    1.9253    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.7823   -2.0626    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    2.7521   -2.2558    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.4819    0.4728    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.8064    1.4001    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.1201    2.1435    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    2.7914    1.6223    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.2972    0.7435    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.1859    1.7337    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.4584   -1.1150    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.0095    0.9367    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    3.0920    2.5883    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.0932    2.5428    0.0000 Cl  0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.0938   -2.8086    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.5057   -0.7024    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.5626    0.1578    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.1300   -2.6158    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.5528   -3.3261    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    2.0582   -0.3270    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.2092    0.3464    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.1529   -1.7148    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  1 15  2  0\n" + 
+					" 11 12  2  0\n" + 
+					"  5 17  1  0\n" + 
+					"  7 19  1  0\n" + 
+					" 13 18  1  0\n" + 
+					" 11 19  1  0\n" + 
+					" 17 20  2  0\n" + 
+					"  3 12  1  0\n" + 
+					"  5 13  1  0\n" + 
+					" 13 22  1  0\n" + 
+					"  1  2  1  0\n" + 
+					"  3  4  2  0\n" + 
+					"  4 16  1  0\n" + 
+					" 11 23  1  0\n" + 
+					"  2  9  2  0\n" + 
+					"  5  6  2  0\n" + 
+					" 18 19  2  0\n" + 
+					"  7  8  1  1\n" + 
+					"  8  9  1  0\n" + 
+					"  8 10  2  0\n" + 
+					"  7 22  1  0\n" + 
+					" 10 15  1  0\n" + 
+					" 20 24  1  0\n" + 
+					" 14 23  2  0\n" + 
+					"  4 14  1  0\n" + 
+					" 20 21  1  0\n" + 
+					"M  END";
+			Chemical cReal=Chemical.parseMol(mol);
+			String keyReal=Inchi.asStdInchi(cReal).getKey();
+			String keyGot=Inchi.asStdInchi(c).getKey();
+			assertEquals(keyReal,keyGot);
+		} )});
+				
+				
+				
 		
 		list.add(new Object[]{"structureWithVeryShortSingleBondBetweenCarbons", new TestSpec("moleculeTest/verySmallSingleBondBetweenExplicitCarbons.png", c->{
 			Chemical cReal=ChemicalBuilder.createFromSmiles("C(C=Cc1ccc(cc1)N(c2ccccc2)c3ccc(cc3)-c4ccc(cc4)N(c5ccccc5)c6ccc(C=CC=Cc7ccccc7)cc6)=Cc8ccccc8").build();
@@ -4759,7 +4826,7 @@ public class MoleculeTest {
 			assertEquals(cReal.getFormula(),form);
 		} )});
 
-		debug=true;
+		//debug=true;
 		//StructureImageExtractor.SKIP_STEP_AT=43;
 		
 		

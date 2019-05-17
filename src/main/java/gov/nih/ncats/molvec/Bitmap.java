@@ -871,7 +871,7 @@ public class Bitmap implements Serializable, TiffTags {
     }); //distance to nearest pixel*4
     
     
-    public static Bitmap createBitmap (Raster raster) {
+    public static Bitmap createBitmap (Raster raster, double sigma) {
         SampleModel model = raster.getSampleModel();
         int band = model.getNumBands ();
         if (band > 1) {
@@ -883,19 +883,24 @@ public class Bitmap implements Serializable, TiffTags {
         ImageStats[] is = new ImageStats[]{null};
         
         
-        Bitmap bm= new SigmaThreshold ().binarize(raster, stat->{
+        Bitmap bm= new SigmaThreshold (sigma).binarize(raster, stat->{
         	is[0]=stat;
         });
         
 
         
 
+        double tPct=100*(is[0].threshold-is[0].min)/(is[0].max-is[0].min);
         double tPctMinSig=100*((is[0].threshold-is[0].stdev)-is[0].min)/(is[0].max-is[0].min);
         double tPctMaxSig=100*((is[0].threshold+is[0].stdev)-is[0].min)/(is[0].max-is[0].min);
         
         double count = 0;
+        double countOn = 0;
         for(int i=(int)Math.max(1, tPctMinSig);i<=Math.min(tPctMaxSig, 100);i++){
         	count+=is[0].histogram[i];
+        }
+        for(int i=(int)Math.max(1, tPct);i<=100;i++){
+        	countOn+=is[0].histogram[i];
         }
         
 //print histogram    
@@ -908,14 +913,13 @@ public class Bitmap implements Serializable, TiffTags {
 //  
         //If there's a little uncertainty about where to draw the threshold line, try
         //the adaptive threshold, possibly
-        if(count> is[0].histogram[100]*0.1 || count> is[0].histogram[0]*0.1){
+        if(count> countOn*0.1 || count> (is[0].count-countOn)*0.1){
 
-            
+//        	System.out.println("testing adaptive");
             List<Shape> polys2= bm.connectedComponents(Bitmap.Bbox.DoublePolygon);
             
             if(polys2.size()<4000){
             
-            	long tstart = System.currentTimeMillis();
     	        Bitmap bm1= new AdaptiveThreshold().binarize(raster);
     	        List<Shape> polys1= bm1.connectedComponents(Bitmap.Bbox.DoublePolygon);
     	        
@@ -931,7 +935,10 @@ public class Bitmap implements Serializable, TiffTags {
 //    		        //The logic here is that aromatic double bonds are quite common, and if
 //    		        //the thresholding washes them out, then you'd expect to see about 3 or more shapes
 //    		        //inside other shapes with good thresholding than with bad thresholding
-    		        if(sum1>=sum2+3)return bm1;
+    		        if(sum1>=sum2+3){
+//    		        	System.out.println("Using adaptive");
+    		        	return bm1;
+    		        }
     	        }
     	        //System.out.println("time:" + (System.currentTimeMillis()-tstart));
             }
@@ -1117,6 +1124,15 @@ public class Bitmap implements Serializable, TiffTags {
              return ImageUtil.grayscale(file);
          }
     }
+    public static RenderedImage readToImage(byte[] file) throws IOException{
+   	 try {
+   		 InputStream is = new ByteArraySeekableStream(file);
+            return readtiftoImage (is);
+        }
+        catch (Exception ex) {
+            return ImageUtil.grayscale(file);
+        }
+   }
     
     
     public Bitmap clean(){
@@ -1155,25 +1171,28 @@ public class Bitmap implements Serializable, TiffTags {
     	return clone;
     }
 
-    public static Bitmap read (byte[] file) throws IOException {
-        try {
-            return readtif (new ByteArraySeekableStream(file));
-        }
-        catch (Exception ex) {
-            return createBitmap (ImageUtil.grayscale(file).getData());
-        }
+    public static Bitmap read (byte[] file, double sigma) throws IOException {
+    	   try {
+               return readtif (new ByteArraySeekableStream(file));
+           }
+           catch (Exception ex) {
+               return createBitmap (ImageUtil.grayscale(file).getData(),sigma);
+           }
     }
-    public static Bitmap read (File file) throws IOException {
+    public static Bitmap read (byte[] file) throws IOException {
+    	return read(file,1.2);
+    }
+    public static Bitmap read (File file, double sigma) throws IOException {
         try {
             return readtif (file);
         }
         catch (Exception ex) {
-            return createBitmap (ImageUtil.grayscale(file).getData());
+            return createBitmap (ImageUtil.grayscale(file).getData(), sigma);
         }
     }
     
-    public static Bitmap read (BufferedImage bi) {
-    	 return createBitmap (ImageUtil.grayscale(bi).getData());
+    public static Bitmap read (BufferedImage bi, double sigma) {
+    	 return createBitmap (ImageUtil.grayscale(bi).getData(),sigma);
     }
     
     

@@ -191,61 +191,7 @@ public class Viewer extends JPanel
 
     public void mouseDragged (MouseEvent e) {
     }
-    public static BufferedImage convertRenderedImage(RenderedImage img) {
-	    if (img instanceof BufferedImage) {
-	        return (BufferedImage)img;  
-	    }   
-	    ColorModel cm = img.getColorModel();
-	    int width = img.getWidth();
-	    int height = img.getHeight();
-	    WritableRaster raster = cm.createCompatibleWritableRaster(width, height);
-	    boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
-	    Hashtable properties = new Hashtable();
-	    String[] keys = img.getPropertyNames();
-	    if (keys!=null) {
-	        for (int i = 0; i < keys.length; i++) {
-	            properties.put(keys[i], img.getProperty(keys[i]));
-	        }
-	    }
-	    BufferedImage result = new BufferedImage(cm, raster, isAlphaPremultiplied, properties);
-	    img.copyData(raster);
-	    return result;
-	}
-private static File stdResize(File f, File imageFile, double scale) throws IOException{
-		
-		
-		RenderedImage ri = Bitmap.readToImage(f);
-		
-		int nwidth=(int) (ri.getWidth() *scale);
-		int nheight=(int) (ri.getHeight() *scale);
-		
-        // creates output image
-        BufferedImage outputImage = new BufferedImage(nwidth,
-                nheight,ColorModel.BITMASK);
- 
-        // scales the input image to the output image
-        Graphics2D g2d = outputImage.createGraphics();
-        
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        g2d.drawImage(convertRenderedImage(ri), 0, 0, nwidth, nheight, null);
-        g2d.dispose();
-        
-        for (int x = 0; x < outputImage.getWidth(); x++) {
-            for (int y = 0; y < outputImage.getHeight(); y++) {
-                int rgba = outputImage.getRGB(x, y);
-                Color col = new Color(rgba, true);
-                col = new Color(255 - col.getRed(),
-                                255 - col.getGreen(),
-                                255 - col.getBlue());
-                outputImage.setRGB(x, y, col.getRGB());
-            }
-        }
-        
-
-		ImageIO.write(outputImage, "png", imageFile);
-		return imageFile;
-	}
+    
     public void mouseMoved (MouseEvent e) {
         if (bitmap == null) {
             return;
@@ -256,6 +202,11 @@ private static File stdResize(File f, File imageFile, double scale) throws IOExc
 
         //if ((show & POLYGONS) != 0) {
         for (Shape s : polygons) {
+            if (Path2D.contains(s.getPathIterator(afx), pt)) {
+                highlights.add(s);
+            }
+        }
+        for (Shape s : ocrAttmept.keySet()) {
             if (Path2D.contains(s.getPathIterator(afx), pt)) {
                 highlights.add(s);
             }
@@ -604,7 +555,7 @@ private static File stdResize(File f, File imageFile, double scale) throws IOExc
    
     void drawOCRShapes (Graphics2D g2) {
     	g2.setPaint(makeColorAlpha(Color.ORANGE,.5f));
-    	for (Shape a : polygons) {
+    	for (Shape a : ocrAttmept.keySet()) {
             if(ocrAttmept.containsKey(a)){
             	
     		if(ocrAttmept.get(a).stream().findFirst().map(t->t.v().doubleValue()).orElse(0.0)>ocrCutoff){

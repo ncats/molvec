@@ -585,7 +585,7 @@ class BranchNode{
 			
 			co2.addChild(et);
 			return co2;
-		}else if(s.equalsIgnoreCase("Bn") || s.equalsIgnoreCase("Bt1")){
+		}else if(s.equals("Bn") || s.equalsIgnoreCase("Bt1")){
 			
 			BranchNode carb=interpretOCRStringAsAtom("C");
 			BranchNode ben=interpretOCRStringAsAtom("Ph");
@@ -593,6 +593,8 @@ class BranchNode{
 			
 			carb.addChild(ben);
 			return carb;
+		}else if(s.equals("BN")){
+			return interpretOCRStringAsAtom("HN");
 		}else if(s.equalsIgnoreCase("CBZ") || s.equalsIgnoreCase("C6Z")){
 			System.out.println("Found cbz");
 			BranchNode carb=interpretOCRStringAsAtom("C").addChild(new BranchNode("O").setOrderToParent(2));

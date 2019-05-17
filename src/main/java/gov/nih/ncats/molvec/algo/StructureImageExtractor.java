@@ -1,5 +1,8 @@
 package gov.nih.ncats.molvec.algo;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.Shape;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Line2D;
@@ -7,15 +10,21 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.ColorConvertOp;
+import java.awt.image.ColorModel;
 import java.awt.image.Raster;
+import java.awt.image.RenderedImage;
+import java.awt.image.WritableRaster;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -32,8 +41,11 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.imageio.ImageIO;
+
 import gov.nih.ncats.molvec.Bitmap;
 import gov.nih.ncats.molvec.Bitmap.WedgeInfo;
+import gov.nih.ncats.molvec.image.ImageUtil;
 import gov.nih.ncats.molvec.CachedSupplier;
 import gov.nih.ncats.molvec.ui.FontBasedRasterCosineSCOCR;
 import gov.nih.ncats.molvec.ui.SCOCR;
@@ -223,7 +235,7 @@ public class StructureImageExtractor {
 	}
 	public StructureImageExtractor(Raster raster, boolean debug )throws Exception{
 		this.DEBUG = debug;
-		load(Bitmap.createBitmap(raster));
+		load(Bitmap.createBitmap(raster,1.2));
 	}
 	public StructureImageExtractor(byte[] file, boolean debug) throws Exception{
 		this.DEBUG=debug;
@@ -653,7 +665,7 @@ public class StructureImageExtractor {
 
 			if(asciiCache['D']==1 && (asciiCache['U']==1 ||asciiCache['u']==1)){
 
-				if(best[0] != null && (best.equals('D') || best.equals('U') || best.equals('u'))){
+				if(best[0] != null && (best[0].equals('D') || best[0].equals('U') || best[0].equals('u'))){
 					//It's probably an O, just got flagged wrong
 					potential = potential.stream()
 							.map(Tuple.kmap(c->'O'))
@@ -661,17 +673,135 @@ public class StructureImageExtractor {
 				}
 			}
 
+//			if(best[0] != null && (best[0].equals('!'))){
+//				potential = potential.stream()
+//						.map(t->{
+//							if(t.k().equals('!')){
+//								if(t.v().doubleValue()<0.7 && t.v().doubleValue() > 0.5){
+//									return Tuple.of('!',(Number)0.65);	
+//								}
+//							}
+//							return t;
+//						})
+//						.collect(Collectors.toList());
+//			}
+
 			onFind.accept(s, potential);
 		}
 	}
+	
+	private class ImageTooSmallException extends Exception{
+		
+	}
 
 	private void load(byte[] file) throws Exception{
-		load(bitmap = Bitmap.read(file).clean());
+		try{
+			load(bitmap = Bitmap.read(file).clean());
+		}catch(ImageTooSmallException e){
+			File bi= stdResize(file,3);
+			load(bitmap = Bitmap.read(bi,1.65).clean());
+		}
 
 	}
 	private void load(File file) throws Exception{
-		load(bitmap = Bitmap.read(file).clean());
+		try{
+			load(bitmap = Bitmap.read(file,1.2).clean());
+		}catch(ImageTooSmallException e){
+			File bi= stdResize(file,3);
+			load(bitmap = Bitmap.read(bi,1.65).clean());
+		}
 
+	}
+	
+	private static BufferedImage convertRenderedImage(RenderedImage img) {
+	    if (img instanceof BufferedImage) {
+	        return (BufferedImage)img;  
+	    }   
+	    ColorModel cm = img.getColorModel();
+	    int width = img.getWidth();
+	    int height = img.getHeight();
+	    WritableRaster raster = cm.createCompatibleWritableRaster(width, height);
+	    boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
+	    Hashtable properties = new Hashtable();
+	    String[] keys = img.getPropertyNames();
+	    if (keys!=null) {
+	        for (int i = 0; i < keys.length; i++) {
+	            properties.put(keys[i], img.getProperty(keys[i]));
+	        }
+	    }
+	    BufferedImage result = new BufferedImage(cm, raster, isAlphaPremultiplied, properties);
+	    img.copyData(raster);
+	    return result;
+	}
+    private static File stdResize(File f,double scale) throws IOException{
+		
+		
+		RenderedImage ri = Bitmap.readToImage(f);
+		
+		int nwidth=(int) (ri.getWidth() *scale);
+		int nheight=(int) (ri.getHeight() *scale);
+		
+        // creates output image
+        BufferedImage outputImage = new BufferedImage(nwidth,
+                nheight,ColorModel.BITMASK);
+ 
+        // scales the input image to the output image
+        Graphics2D g2d = outputImage.createGraphics();
+        
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2d.drawImage(convertRenderedImage(ri), 0, 0, nwidth, nheight, null);
+        g2d.dispose();
+        
+        for (int x = 0; x < outputImage.getWidth(); x++) {
+            for (int y = 0; y < outputImage.getHeight(); y++) {
+                int rgba = outputImage.getRGB(x, y);
+                Color col = new Color(rgba, true);
+                col = new Color(255 - col.getRed(),
+                                255 - col.getGreen(),
+                                255 - col.getBlue());
+                outputImage.setRGB(x, y, col.getRGB());
+            }
+        }
+        File tfile = File.createTempFile("tmp", ".png");
+		ImageIO.write(outputImage, "png", tfile);
+
+		return tfile;
+	}
+    private static File stdResize(byte[] f,double scale) throws IOException{
+		
+		
+		RenderedImage ri = Bitmap.readToImage(f);
+		
+		int nwidth=(int) (ri.getWidth() *scale);
+		int nheight=(int) (ri.getHeight() *scale);
+		
+        // creates output image
+        BufferedImage outputImage = new BufferedImage(nwidth,
+                nheight,ColorModel.BITMASK);
+ 
+        // scales the input image to the output image
+        Graphics2D g2d = outputImage.createGraphics();
+        
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2d.drawImage(convertRenderedImage(ri), 0, 0, nwidth, nheight, null);
+        g2d.dispose();
+        
+        for (int x = 0; x < outputImage.getWidth(); x++) {
+            for (int y = 0; y < outputImage.getHeight(); y++) {
+                int rgba = outputImage.getRGB(x, y);
+                Color col = new Color(rgba, true);
+                col = new Color(255 - col.getRed(),
+                                255 - col.getGreen(),
+                                255 - col.getBlue());
+                outputImage.setRGB(x, y, col.getRGB());
+            }
+        }
+        File tfile = File.createTempFile("tmp", ".png");
+		ImageIO.write(outputImage, "png", tfile);
+
+		return tfile;
 	}
 	
 	private boolean DEBUG=false;
@@ -2144,7 +2274,6 @@ public class StructureImageExtractor {
 							processOCRShape(socr[0],nshape,bitmap,thin,(s,potential)->{
 
 								if(potential.get(0).v().doubleValue()>OCRcutoffCosineRescue){
-
 									String st=potential.get(0).k().toString();
 									if(BranchNode.interpretOCRStringAsAtom2(st)!=null){
 										toAddAllOCR.add(s);	
@@ -2192,11 +2321,12 @@ public class StructureImageExtractor {
 						});
 					}
 				}
+				
 				ocrAttempt.put(nshape, matches);
 				
 				//polygons.add(nshape);
 				if (matches.get(0).v().doubleValue() > OCRcutoffCosineRescue) {
-					
+				
 					
 					CharType ct=OCRIsLikely(matches.get(0));
 					if(ct.equals(CharType.ChemLikely)){
@@ -2543,7 +2673,6 @@ public class StructureImageExtractor {
 						val=val.replaceAll("[cC][tlI][8]", "Cl3");
 					}
 					
-					
 					BranchNode bn = BranchNode.interpretOCRStringAsAtom2(val);
 					
 					//sometimes the letters it chooses are kinda weird ... and it should know better based on context
@@ -2700,7 +2829,7 @@ public class StructureImageExtractor {
 							BranchNode actual1;
 							if(sym.equals("I")){
 								Shape gs=GeomUtil.growShapeNPoly(s, 2, 10);
-								//realRescueOCRCandidates.add(gs);
+								//
 								List<Node> ln=ctab.getNodesInsideShape(gs, 0.2);
 								
 								if(ln.isEmpty())return;
@@ -3567,11 +3696,7 @@ public class StructureImageExtractor {
 				    .orElse(null);
 			if(biggestSection!=null){
 				if(biggestSection.getAverageBondLength()<20){
-						bitmap=new Bitmap.BitmapBuilder(bitmap).scale(2).gaussBlur(1).threshold(6).build();
-						//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-						//This is an escape hatch
-						load(bitmap);
-						return;
+					throw new ImageTooSmallException();
 				}
 			}
 			
@@ -5040,7 +5165,6 @@ public class StructureImageExtractor {
 		       });
 		
 		if(DEBUG)logState(55,"set aromatic bonds");
-		
 		
 		
 		
