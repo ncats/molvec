@@ -596,7 +596,6 @@ class BranchNode{
 		}else if(s.equals("BN")){
 			return interpretOCRStringAsAtom("HN");
 		}else if(s.equalsIgnoreCase("CBZ") || s.equalsIgnoreCase("C6Z")){
-			System.out.println("Found cbz");
 			BranchNode carb=interpretOCRStringAsAtom("C").addChild(new BranchNode("O").setOrderToParent(2));
 			BranchNode ox=new BranchNode("O").setOrderToParent(1);
 			carb.addChild(ox);

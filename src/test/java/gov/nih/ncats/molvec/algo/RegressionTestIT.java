@@ -971,7 +971,22 @@ public class RegressionTestIT {
 	@Test
 	public void test1() throws FileNotFoundException{
 		
-		testSet("usan", Method.MOLVEC.adapt().limit(10));
+		
+		//All data sets stats
+		testSet("trec", Method.MOLVEC.adapt());
+		testSet("maybridge", Method.MOLVEC.adapt());
+		testSet("uspto", Method.MOLVEC.adapt());
+		testSet("testSet1", Method.MOLVEC.adapt());
+		testSet("usan", Method.MOLVEC.adapt());
+		
+		
+		testSet("trec", Method.MOLVEC.adapt().rmse(true));
+		testSet("uspto", Method.MOLVEC.adapt().rmse(true));
+		
+		
+		for(int i=3;i<=20;i++){
+			testSet("trec", Method.MOLVEC.adapt().scale(i/10.0));
+		}
 		
 		//testSet("uspto",true);
 
@@ -979,9 +994,7 @@ public class RegressionTestIT {
 		
 		//RegressionTestIT.EXPORT_CORRECT=true;
 
-//		for(int i=16;i<=20;i++){
-//			testSet("trec", Method.MOLVEC.adapt().scale(i/10.0));
-//		}
+		
 //
 //		for(int i=15;i<=20;i++){
 //			testSet("trec", Method.IMAGO.adapt().scale(i/10.0));

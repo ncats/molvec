@@ -105,7 +105,7 @@
    <configuration>
                <archive>
                   <manifest>
-                     <mainClass>gov.nih.ncats.molvec.ui.Viewer</mainClass>
+                     <mainClass>gov.nih.ncats.molvec.Molvec</mainClass>
                   </manifest>
                </archive>
                <descriptorRefs>
@@ -113,28 +113,6 @@
                </descriptorRefs>
             </configuration>
   </plugin>
-  <!-- 
-  <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-assembly-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>create-distribution</id>
-            <phase>package</phase>
-            <goals>
-              <goal>single</goal>
-            </goals>
-            <configuration>
-              <finalName>GSRSPull-${project.version}</finalName>
-              <appendAssemblyId>false</appendAssemblyId>
-              <descriptors>
-                <descriptor>assembly/sample.xml</descriptor>
-              </descriptors>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      -->
     </plugins>
     <resources>
         <resource>

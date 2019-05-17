@@ -690,9 +690,9 @@ public class StructureImageExtractor {
 		}
 	}
 	
-	private class ImageTooSmallException extends Exception{
-		
-	}
+	private class ImageTooSmallException extends Exception{}
+	
+	
 
 	private void load(byte[] file) throws Exception{
 		try{
@@ -3759,7 +3759,6 @@ public class StructureImageExtractor {
 			
 			
 			if(foundNewOCR[0] && repeats<MAX_OCR_FULL_REPEATS){
-				System.out.println("Starting over...");
 				continue;
 			}
 			

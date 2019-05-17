@@ -73,7 +73,7 @@ public class Grayscale {
     	    }
     	}
         int range = max - min;
-        logger.info("## range="+range+", min="+min+", max="+max);
+//        logger.info("## range="+range+", min="+min+", max="+max);
 
         for (int i = 0; i < histogram.length; ++i)
             histogram[i] = 0;
@@ -118,13 +118,6 @@ public class Grayscale {
         }
         */
 
-        { Peaks peaks = new Peaks ();
-            int[] p = peaks.detect(histogram);
-            for (int i = 0; i < p.length; ++i) {
-                System.out.print(" "+p[i]);
-            }
-            System.out.println();
-        }
         
         if (cnt > 0) {
             mean /= cnt;
@@ -138,7 +131,7 @@ public class Grayscale {
             stddev = Math.sqrt(stddev/cnt);
         }
 
-        logger.info("mean: "+mean+", std: "+stddev);
+//        logger.info("mean: "+mean+", std: "+stddev);
 
         return raster;
     }

@@ -1145,8 +1145,6 @@ public class MoleculeTest {
 			c.kekulize();
 			String form=c.getFormula();
 
-			c.bonds().filter(b-> b.isInRing()).forEach(b-> System.out.println(b.getBondType()));
-
 			assertEquals(cReal.getFormula(),form);
 		} )});
 
@@ -1981,8 +1979,6 @@ public class MoleculeTest {
 					" 10 11  1  0  0  0  0 \n" + 
 					"M  END", Charset.defaultCharset()).build();
 
-			System.out.println(cReal.toMol());
-			System.out.println(c.toMol());
 			
 			String keyReal=Inchi.asStdInchi(cReal).getKey();
 			String keyGot=Inchi.asStdInchi(c).getKey();
@@ -2091,9 +2087,6 @@ public class MoleculeTest {
 					" 17 33  1  6  0  0  0 \n" + 
 					"M  END", Charset.defaultCharset()).build();
 
-			System.out.println(cReal.toMol());
-			System.out.println(c.toMol());
-			
 			String keyReal=Inchi.asStdInchi(cReal).getKey();
 			String keyGot=Inchi.asStdInchi(c).getKey();
 			assertEquals(keyReal,keyGot);
@@ -2218,8 +2211,6 @@ public class MoleculeTest {
 					"  1  7  1  6  0  0  0 \n" + 
 					"M  END", Charset.defaultCharset()).build();
 
-			System.out.println(cReal.toMol());
-			System.out.println(c.toMol());
 			
 			String keyReal=Inchi.asStdInchi(cReal).getKey();
 			String keyGot=Inchi.asStdInchi(c).getKey();
@@ -2676,8 +2667,6 @@ public class MoleculeTest {
 					" 18 21  2  0  0  0  0 \n" + 
 					"M  END", Charset.defaultCharset()).build();
 
-			System.out.println(cReal.toMol());
-			System.out.println(c.toMol());
 			String keyReal=Inchi.asStdInchi(cReal).getKey();
 			String keyGot=Inchi.asStdInchi(c).getKey();
 			assertEquals(keyReal,keyGot);
@@ -4038,7 +4027,6 @@ public class MoleculeTest {
 		//NHConnectedTogetherInChain.png
 		list.add(new Object[]{"NHConnectedTogetherInChain", new TestSpec("moleculeTest/NHConnectedTogetherInChain.png", c->{
 
-//			System.out.println("HERE!!!!!\n"+c.toMol());
 			String mol =
 					"\n" +
 							"  CDK     01311923023D\n" +
@@ -4209,7 +4197,6 @@ public class MoleculeTest {
 		//nitrogenAttachedToBondAndPlus.png
 		list.add(new Object[]{"nitrogenAttachedToBondAndPlus", new TestSpec("moleculeTest/nitrogenAttachedToBondAndPlus.png", c->{
 
-//			System.out.println("HERE!!!!!\n"+c.toMol());
 			String mol =
 					"\n" +
 							"  CDK     02041901303D\n" +
@@ -4539,7 +4526,6 @@ public class MoleculeTest {
 		//bridgeHeadMoleculeWithNoGap.png
 		list.add(new Object[]{"bridgeHeadMoleculeWithNoGap", new TestSpec("moleculeTest/bridgeHeadMoleculeWithNoGap.png", c->{
 
-//			System.out.println("HERE!!!!!\n"+c.toMol());
 			String mol =
 					"\n" + 
 					"  Molvec0105041911422D\n" + 
@@ -4869,6 +4855,22 @@ public class MoleculeTest {
 		//42 -- MULTI (18)
 		//43 -- CO2AsEster
 		//44 -- 
+		
+		
+		PrintStream old = System.out;
+		System.setOut(new PrintStream(new OutputStream(){
+
+			@Override
+			public void write(int arg0) throws IOException {
+				try{
+					throw new RuntimeException("Got:" + arg0);
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+				
+			}
+			
+		}));
 		
 		return list;
 	}
