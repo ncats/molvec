@@ -4,126 +4,15 @@ import java.io.*;
 import java.awt.image.*;
 
 import javax.imageio.*;
-
+import java.util.Map;
 import java.util.logging.Logger;
 
-import com.sun.media.jai.codec.*;
 
 
 public class ImageUtil implements TiffTags {
     private static final Logger logger = Logger.getLogger
 	(ImageUtil.class.getName());
-    private static BufferedImage decodeTIFF (byte[] file) throws IOException {
-        return decodeTiff( ImageCodec.createImageDecoder("TIFF", new ByteArraySeekableStream(file), new TIFFDecodeParam ()));
-    }
 
-    private static BufferedImage decodeTIFF (InputStream file) throws IOException {
-        return decodeTiff(ImageCodec.createImageDecoder("TIFF", file, new TIFFDecodeParam ()));
-    }
-
-    private static BufferedImage decodeTiff(ImageDecoder decoder) throws IOException{
-        int ndirs = decoder.getNumPages();
-        TIFFDirectory tif = new TIFFDirectory
-                (decoder.getInputStream(), 0);
-        TIFFField[] fields = tif.getFields();
-
-        double width = 0, height = 0;
-        String unit = "";
-        double xres = 0., yres = 0.;
-        double rows = -1;
-        int photometric = -1, bpp = -1;
-        for (int j = 0; j < fields.length; ++j) {
-            TIFFField f = fields[j];
-            int tag = f.getTag();
-            try {
-                switch (tag) {
-                    case TAG_RESOLUTIONUNIT:
-                    {
-                        int u = f.getAsInt(0);
-                        if (u == RESOLUTIONUNIT_NONE) {
-                        }
-                        else if (u == RESOLUTIONUNIT_INCH) {
-                            unit = "in";
-                        }
-                        else if (u == RESOLUTIONUNIT_CENT) {
-                            unit = "cm";
-                        }
-                    }
-                    break;
-
-                    case TAG_XRESOLUTION:
-                        xres = f.getAsFloat(0);
-                        break;
-
-                    case TAG_YRESOLUTION:
-                        yres = f.getAsFloat(0);
-                        break;
-
-                    case TAG_ROWSPERSTRIP:
-                        rows = f.getAsFloat(0);
-                        break;
-
-                    case TAG_PHOTOMETRIC:
-                        photometric = f.getAsInt(0);
-                        break;
-
-                    case TAG_BITSPERSAMPLE:
-                        bpp = f.getAsInt(0);
-                        break;
-
-                    case TAG_IMAGEWIDTH:
-                        width = f.getAsFloat(0);
-                        break;
-
-                    case TAG_IMAGELENGTH:
-                        height = f.getAsFloat(0);
-                        break;
-                }
-            }
-            catch (Exception ex) {
-                logger.warning("## TIFF decoder tag="
-                        +tag+"; "+ex.getMessage());
-            }
-        }
-
-	/*
-	if (xres > 0) {
-	    width /= xres;
-	}
-	if (yres > 0) {
-	    height /= yres;
-	}
-	*/
-
-        logger.info( tif.toString() + " has " + ndirs + " image; width="+width
-                +" height="+height +" xres="+xres+unit
-                +" yres="+yres+unit+" bpp="+bpp
-                +" photometric="+photometric+" rows="+rows);
-
-        RenderedImage decodedImage = decoder.decodeAsRenderedImage();
-        //ImageIO.write(decodedImage, "png", new File("tmp.png"));
-        Raster raster = decodedImage.getData();
-	/*
-	if (raster.getNumBands() > 1) {
-	    throw new IllegalArgumentException
-		("Sorry, can't support multiband image at the moment!");
-	}
-	*/
-
-        logger.info("sample model: nbands="+raster.getNumBands()
-                +" "+raster.getSampleModel().getClass());
-        /*
-	MultiPixelPackedSampleModel packed =
-	    (MultiPixelPackedSampleModel)raster.getSampleModel();
-	logger.info("scanline: "+packed.getScanlineStride());
-	logger.info("bit stride: "+packed.getPixelBitStride());
-        */
-
-        Grayscale grayscale = new Grayscale (raster);
-        BufferedImage big=grayscale.getImage();
-        //ImageIO.write(decodedImage, "png", new File("tmp-gray.png"));
-        return big;
-    }
 
     public static BufferedImage decode (BufferedImage bi) {
         Raster raster = bi.getData();
@@ -184,30 +73,11 @@ public class ImageUtil implements TiffTags {
     }
 
     public static BufferedImage grayscale (byte[] file) throws IOException {
-        if(isTiff(file)) {
-            try {
-                return decodeTIFF(file);
-            } catch (Exception ex) {
-                logger.info("## bytearray not a TIFF image ("
-                        + ex.getMessage() + "); trying generic decoding... ");
 
-            }
-        }
         return decode(ImageIO.read(new ByteArrayInputStream(file)));
     }
     public static BufferedImage grayscale (File file) throws IOException {
-        BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
-        try(PushbackInputStream pushbackInputStream = new PushbackInputStream(in,2);
-        ) {
-            if (isTiff(pushbackInputStream)) {
-                try {
-                    return decodeTIFF(in);
-                } catch (Exception ex) {
-                    logger.info("## " + file.getName() + " not a TIFF image ("
-                            + ex.getMessage() + "); trying generic decoding... ");
-                }
-            }
-        }
+
         return decode(ImageIO.read(file));
     }
 
