@@ -31,7 +31,7 @@ public class ImageUtil implements TiffTags {
     	    //System.out.println();
     	}
 
-        logger.info("## dynamic range: "+(max-min)+" color model: "+bi.getColorModel());
+//        logger.info("## dynamic range: "+(max-min)+" color model: "+bi.getColorModel());
         
         // rescale to 8-bit
         double scale = Math.max(256./(max-min+1),1);

@@ -7,7 +7,7 @@
   <groupId>gov.nih.ncats</groupId>
   <artifactId>molvec</artifactId>
   <packaging>jar</packaging>
-  <version>0.8.1</version>
+  <version>0.9.0</version>
   <name>MolVec</name>
 
   <!--<repositories>-->
@@ -67,13 +67,6 @@
         <scope>test</scope>
 </dependency>
 
-
-<!--<dependency>
-    <groupId>com.sun.media</groupId>
-    <artifactId>jai_codec</artifactId>
-    <version>1.1.2_01</version>
-</dependency>-->
-<!-- https://mvnrepository.com/artifact/com.sun.media/jai-codec -->
 </dependencies>
 
   <build>
@@ -105,7 +98,7 @@
    <configuration>
                <archive>
                   <manifest>
-                     <mainClass>gov.nih.ncats.molvec.ui.Viewer</mainClass>
+                     <mainClass>gov.nih.ncats.molvec.Molvec</mainClass>
                   </manifest>
                </archive>
                <descriptorRefs>
@@ -113,28 +106,6 @@
                </descriptorRefs>
             </configuration>
   </plugin>
-  <!-- 
-  <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-assembly-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>create-distribution</id>
-            <phase>package</phase>
-            <goals>
-              <goal>single</goal>
-            </goals>
-            <configuration>
-              <finalName>GSRSPull-${project.version}</finalName>
-              <appendAssemblyId>false</appendAssemblyId>
-              <descriptors>
-                <descriptor>assembly/sample.xml</descriptor>
-              </descriptors>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      -->
     </plugins>
     <resources>
         <resource>

@@ -33,6 +33,9 @@ import java.awt.geom.Path2D;
 import java.awt.geom.PathIterator;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.RenderedImage;
+import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,10 +44,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import javax.imageio.ImageIO;
 import javax.swing.AbstractButton;
 import javax.swing.Box;
 import javax.swing.JButton;
@@ -201,6 +206,11 @@ public class Viewer extends JPanel
                 highlights.add(s);
             }
         }
+        for (Shape s : ocrAttmept.keySet()) {
+            if (Path2D.contains(s.getPathIterator(afx), pt)) {
+                highlights.add(s);
+            }
+        }
         // }
 
         //logger.info("## "+highlights.size()+" highlights");
@@ -324,6 +334,9 @@ public class Viewer extends JPanel
     }
 
     public void load (File file, double scale) throws Exception {
+    	
+    	//file=stdResize(file, File.createTempFile("tmp", ".png"),1.5);
+    	
     	currentFile=file;
         sx = scale;
         sy = scale;
@@ -370,12 +383,6 @@ public class Viewer extends JPanel
 	    Graphics2D g2 = imgbuf.createGraphics();
 	    draw (g2);
 	    g2.dispose();
-//            try {
-//                ImageIO.write(imgbuf, "png", new File ("snapshot.png"));
-//            }
-//            catch (IOException ex) {
-//                ex.printStackTrace();
-//            }
 	}
 
         Rectangle r = getBounds ();
@@ -548,7 +555,7 @@ public class Viewer extends JPanel
    
     void drawOCRShapes (Graphics2D g2) {
     	g2.setPaint(makeColorAlpha(Color.ORANGE,.5f));
-    	for (Shape a : polygons) {
+    	for (Shape a : ocrAttmept.keySet()) {
             if(ocrAttmept.containsKey(a)){
             	
     		if(ocrAttmept.get(a).stream().findFirst().map(t->t.v().doubleValue()).orElse(0.0)>ocrCutoff){

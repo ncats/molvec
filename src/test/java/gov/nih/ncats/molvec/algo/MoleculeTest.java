@@ -33,6 +33,8 @@ import javax.imageio.ImageIO;
 
 @RunWith(Parameterized.class)
 public class MoleculeTest {
+	private static boolean debug=false;
+	
 
 //	static File writeToFolder = new File("testResults");
 
@@ -90,10 +92,10 @@ public class MoleculeTest {
 	public void testAsFile() throws Exception {
 		File f=getFile(spec.filePath);
 
-		StructureImageExtractor sie = new StructureImageExtractor(f);
+		StructureImageExtractor sie = new StructureImageExtractor(f,debug);
 
 		//Chemical c =Chemical.parseMol(sie.getCtab().toMol());
-		 Chemical c =Chemical.parseMol(sie.getCtab().toMol()).toBuilder().aromatize(false).build();
+		Chemical c =Chemical.parseMol(sie.getCtab().toMol()).toBuilder().aromatize(false).build();
 		spec.assertionConsumer.accept(c);
 	}
 
@@ -129,8 +131,8 @@ public class MoleculeTest {
 		spec.assertionConsumer.accept(c);
 	}
 
-	@Test
-	@Ignore
+	//@Test
+	//@Ignore
 	public void rendererRoundTrip() throws Exception {
 
 		File f = getFile(spec.filePath);
@@ -1143,8 +1145,6 @@ public class MoleculeTest {
 			c.kekulize();
 			String form=c.getFormula();
 
-			c.bonds().filter(b-> b.isInRing()).forEach(b-> System.out.println(b.getBondType()));
-
 			assertEquals(cReal.getFormula(),form);
 		} )});
 
@@ -1979,8 +1979,6 @@ public class MoleculeTest {
 					" 10 11  1  0  0  0  0 \n" + 
 					"M  END", Charset.defaultCharset()).build();
 
-			System.out.println(cReal.toMol());
-			System.out.println(c.toMol());
 			
 			String keyReal=Inchi.asStdInchi(cReal).getKey();
 			String keyGot=Inchi.asStdInchi(c).getKey();
@@ -2089,9 +2087,6 @@ public class MoleculeTest {
 					" 17 33  1  6  0  0  0 \n" + 
 					"M  END", Charset.defaultCharset()).build();
 
-			System.out.println(cReal.toMol());
-			System.out.println(c.toMol());
-			
 			String keyReal=Inchi.asStdInchi(cReal).getKey();
 			String keyGot=Inchi.asStdInchi(c).getKey();
 			assertEquals(keyReal,keyGot);
@@ -2216,8 +2211,6 @@ public class MoleculeTest {
 					"  1  7  1  6  0  0  0 \n" + 
 					"M  END", Charset.defaultCharset()).build();
 
-			System.out.println(cReal.toMol());
-			System.out.println(c.toMol());
 			
 			String keyReal=Inchi.asStdInchi(cReal).getKey();
 			String keyGot=Inchi.asStdInchi(c).getKey();
@@ -2674,8 +2667,6 @@ public class MoleculeTest {
 					" 18 21  2  0  0  0  0 \n" + 
 					"M  END", Charset.defaultCharset()).build();
 
-			System.out.println(cReal.toMol());
-			System.out.println(c.toMol());
 			String keyReal=Inchi.asStdInchi(cReal).getKey();
 			String keyGot=Inchi.asStdInchi(c).getKey();
 			assertEquals(keyReal,keyGot);
@@ -3214,7 +3205,52 @@ public class MoleculeTest {
 			assertEquals(keyReal,keyGot);
 		} )});
 		
-		
+		//wedgeBondWeirdAngle.png
+				list.add(new Object[]{"nonBinaryTiffFile", new TestSpec("moleculeTest/isATiffFormat.tif", c->{
+					Chemical cReal=ChemicalBuilder.createFromMol("\n" + 
+							"  Molvec0105061908342D\n" + 
+							"\n" + 
+							" 16 17  0  0  0  0  0  0  0  0999 V2000\n" + 
+							"   -1.2444   -0.3729    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -0.2218   -0.3745    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -2.7947    0.5650    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -3.2770   -0.3006    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -1.7494    0.5494    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    2.7083   -0.6945    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    3.7944   -0.7687    0.0000 Br  0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    2.1066   -1.4709    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    2.2175    0.1675    0.0000 S   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    0.4047    0.3337    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    0.2464   -1.1630    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -1.7863   -1.2492    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    1.1457   -1.0767    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    1.2135   -0.0604    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -3.7944    0.5864    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -3.2770    1.4734    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"  1  2  1  0\n" + 
+							"  1  5  1  0\n" + 
+							"  3  4  1  0\n" + 
+							"  3  5  1  0\n" + 
+							" 11 13  1  0\n" + 
+							"  3 15  1  0\n" + 
+							"  3 16  1  0\n" + 
+							" 13 14  2  0\n" + 
+							"  2 10  1  0\n" + 
+							"  6  7  1  0\n" + 
+							"  6  8  2  0\n" + 
+							"  6  9  1  0\n" + 
+							" 10 14  1  0\n" + 
+							"  8 13  1  0\n" + 
+							"  9 14  1  0\n" + 
+							"  1 12  2  0\n" + 
+							"  2 11  1  0\n" + 
+							"M  END", Charset.defaultCharset()).build();
+
+					String keyReal=Inchi.asStdInchi(cReal).getKey();
+					String keyGot=Inchi.asStdInchi(c).getKey();
+					assertEquals(keyReal,keyGot);
+				} )});
+				
 
 		//closeNonBondedAtoms.png
 		list.add(new Object[]{"closeNonBondedAtoms", new TestSpec("moleculeTest/closeNonBondedAtoms.png", c->{
@@ -3852,10 +3888,145 @@ public class MoleculeTest {
 			String form=c.getFormula();
 			assertEquals(cReal.getFormula(),form);
 		} )});
+		
+		//longLookingBondInCage.png
+		list.add(new Object[]{"longLookingBondInCage", new TestSpec("moleculeTest/longLookingBondInCage.png", c->{
+			String mol =
+					"\n" + 
+					"  Molvec0105121923452D\n" + 
+					"\n" + 
+					" 57 64  0  0  0  0  0  0  0  0999 V2000\n" + 
+					"   -2.2155    1.2512    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.2980    0.7507    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.3046    1.2544    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.4359    0.7514    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.4330    1.2480    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.4555    2.2522    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -4.7918    2.7665    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -5.6649    2.2557    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -5.6725   -1.7467    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.0361   -2.2705    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.1644   -1.7564    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    3.9209   -0.2596    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    3.9239    0.7507    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.4304   -0.7674    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.3008   -0.2586    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -4.7848   -2.2689    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    5.6506   -0.2586    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    4.7914   -0.7674    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.9190   -1.7717    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.4371   -0.2544    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    3.0564   -0.7674    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    6.5265   -1.7684    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    5.6464   -2.2564    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.0497    2.7527    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.9126    2.2669    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    2.1766   -0.2515    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    4.7914   -1.7517    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -4.7848   -3.2532    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -7.3873    2.2689    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -6.5448    2.7527    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    6.5373   -0.7742    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    7.3857   -0.2669    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -6.5448   -3.2699    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -6.5365   -2.2689    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    5.6339    3.7537    0.0000 H   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    5.6506    2.7611    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -5.6356   -3.7537    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.9047    1.2554    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.9274   -0.7595    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -4.7788    0.7428    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -5.6580    1.2425    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.1738   -0.7424    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.0557   -0.2453    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    2.1763    0.7526    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.3078   -0.7545    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    5.6590   -3.1531    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    6.5277    2.2626    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    6.5265    1.2684    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    5.6423    0.7674    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.0664    0.7674    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    4.7831    2.2606    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    3.8905    2.6860    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    7.0103    3.1198    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    4.7914    1.2679    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    5.6590    1.7684    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    7.3857    0.7507    0.0000 H   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    7.3773    1.7851    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					" 22 31  1  0\n" + 
+					" 47 57  1  0\n" + 
+					" 16 28  1  0\n" + 
+					" 47 53  1  0\n" + 
+					"  9 16  1  0\n" + 
+					" 47 48  1  0\n" + 
+					" 36 47  1  0\n" + 
+					" 22 23  1  0\n" + 
+					"  8 41  1  0\n" + 
+					" 40 41  2  0\n" + 
+					" 26 44  1  0\n" + 
+					" 33 37  1  0\n" + 
+					" 33 34  1  0\n" + 
+					"  2  5  1  0\n" + 
+					" 26 45  2  0\n" + 
+					"  4  5  1  0\n" + 
+					" 38 50  1  0\n" + 
+					" 14 15  2  0\n" + 
+					" 48 56  1  1\n" + 
+					"  4 20  2  0\n" + 
+					" 48 55  1  0\n" + 
+					" 14 20  1  0\n" + 
+					" 19 39  2  0\n" + 
+					" 18 27  1  0\n" + 
+					" 21 26  1  0\n" + 
+					"  3 44  2  0\n" + 
+					" 54 13  1  6\n" + 
+					" 48 49  1  0\n" + 
+					" 23 46  1  1\n" + 
+					" 20 45  1  0\n" + 
+					" 29 30  1  0\n" + 
+					" 51 54  1  0\n" + 
+					" 51 52  1  1\n" + 
+					" 28 37  1  0\n" + 
+					" 38 40  1  0\n" + 
+					" 17 18  1  0\n" + 
+					" 49 54  1  0\n" + 
+					" 15 42  1  0\n" + 
+					" 11 42  1  0\n" + 
+					"  8 30  1  0\n" + 
+					" 25 38  2  0\n" + 
+					" 24 25  1  0\n" + 
+					"  9 34  1  0\n" + 
+					"  1  2  1  0\n" + 
+					"  1 50  1  0\n" + 
+					" 31 32  2  0\n" + 
+					"  3  4  1  0\n" + 
+					"  2 15  1  0\n" + 
+					" 36 35  1  1\n" + 
+					"  5  6  2  0\n" + 
+					" 12 13  2  0\n" + 
+					" 16 19  1  0\n" + 
+					"  7  8  2  0\n" + 
+					" 12 18  1  0\n" + 
+					" 36 51  1  0\n" + 
+					" 39 43  1  0\n" + 
+					"  7 25  1  0\n" + 
+					" 42 43  2  0\n" + 
+					" 36 55  1  0\n" + 
+					" 10 19  1  0\n" + 
+					" 12 21  1  0\n" + 
+					" 17 31  1  0\n" + 
+					" 23 27  1  0\n" + 
+					" 10 11  2  0\n" + 
+					"M  END";
+			Chemical cReal=Chemical.parseMol(mol);
+			String keyReal=Inchi.asStdInchi(cReal).getKey();
+			String keyGot=Inchi.asStdInchi(c).getKey();
+			assertEquals(keyReal,keyGot);
+		} )});
+		
 		//NHConnectedTogetherInChain.png
 		list.add(new Object[]{"NHConnectedTogetherInChain", new TestSpec("moleculeTest/NHConnectedTogetherInChain.png", c->{
 
-//			System.out.println("HERE!!!!!\n"+c.toMol());
 			String mol =
 					"\n" +
 							"  CDK     01311923023D\n" +
@@ -4026,7 +4197,6 @@ public class MoleculeTest {
 		//nitrogenAttachedToBondAndPlus.png
 		list.add(new Object[]{"nitrogenAttachedToBondAndPlus", new TestSpec("moleculeTest/nitrogenAttachedToBondAndPlus.png", c->{
 
-//			System.out.println("HERE!!!!!\n"+c.toMol());
 			String mol =
 					"\n" +
 							"  CDK     02041901303D\n" +
@@ -4090,6 +4260,521 @@ public class MoleculeTest {
 			String keyGot=Inchi.asStdInchi(c).getKey();
 			assertEquals(keyReal,keyGot);
 		} )});
+		//5memberRingWithNoisyDoubleBond.png
+		list.add(new Object[]{"5memberRingWithNoisyDoubleBond", new TestSpec("moleculeTest/5memberRingWithNoisyDoubleBond.png", c->{
+
+			String mol =
+					"\n" + 
+					"  Molvec0105041912212D\n" + 
+					"\n" + 
+					"  9  9  0  0  0  0  0  0  0  0999 V2000\n" + 
+					"    0.3215    1.0717    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.0107    2.0362    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.4769    0.4823    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.3951   -1.0036    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.4715   -0.5144    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.9806    2.0308    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.2753   -0.5358    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.2753    1.0824    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.3804   -2.0362    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  1  2  2  0\n" + 
+					"  1  3  1  0\n" + 
+					"  2  6  1  0\n" + 
+					"  3  5  1  0\n" + 
+					"  4  5  1  0\n" + 
+					"  4  7  1  0\n" + 
+					"  3  8  1  0\n" + 
+					"  4  9  2  0\n" + 
+					"  6  8  2  0\n" + 
+					"M  END";
+			Chemical cReal=Chemical.parseMol(mol);
+			String keyReal=Inchi.asStdInchi(cReal).getKey();
+			String keyGot=Inchi.asStdInchi(c).getKey();
+			assertEquals(keyReal,keyGot);
+		} )});
+		
+		//ringLooksLikeLowerCaseR.png
+		list.add(new Object[]{"ringLooksLikeLowerCaseR", new TestSpec("moleculeTest/ringLooksLikeLowerCaseR.png", c->{
+
+			String mol =
+					"\n" + 
+					"  Molvec0105041916442D\n" + 
+					"\n" + 
+					"  7  7  0  0  0  0  0  0  0  0999 V2000\n" + 
+					"   -0.4459    1.0052    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.3081    0.4877    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.4419    0.5042    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.3080    0.9900    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.4110   -1.0070    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.2921   -0.5181    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.4513   -0.4895    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  1  2  1  0\n" + 
+					"  1  3  2  0\n" + 
+					"  3  4  1  0\n" + 
+					"  2  6  2  0\n" + 
+					"  3  7  1  0\n" + 
+					"  5  6  1  0\n" + 
+					"  5  7  2  0\n" + 
+					"M  END";
+			Chemical cReal=Chemical.parseMol(mol);
+			String keyReal=Inchi.asStdInchi(cReal).getKey();
+			String keyGot=Inchi.asStdInchi(c).getKey();
+			assertEquals(keyReal,keyGot);
+		} )});
+		
+		
+		list.add(new Object[]{"5memberHeteroRingWithNoisyDoubleBond", new TestSpec("moleculeTest/5memberHeteroRingWithNoisyDoubleBond.png", c->{
+
+			String mol =
+					"\n" + 
+					"  Molvec0105041917362D\n" + 
+					"\n" + 
+					" 12 13  0  0  0  0  0  0  0  0999 V2000\n" + 
+					"   -0.0895    0.5248    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.9614    0.0218    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.9628   -0.9851    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.9276   -1.2982    0.0000 S   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.6865    0.5277    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.7829    0.0219    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.0895   -1.4897    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.7825   -0.9868    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    2.5194    0.0128    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.6525    1.4898    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.9222    0.3232    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.5215   -0.4795    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  1  2  1  0\n" + 
+					"  2  3  2  0\n" + 
+					"  4 12  1  0\n" + 
+					"  3  4  1  0\n" + 
+					"  1  6  2  0\n" + 
+					" 11 12  2  0\n" + 
+					"  3  7  1  0\n" + 
+					"  5  6  1  0\n" + 
+					"  2 11  1  0\n" + 
+					"  5  9  1  0\n" + 
+					"  6  8  1  0\n" + 
+					"  7  8  2  0\n" + 
+					"  5 10  2  0\n" + 
+					"M  END";
+			Chemical cReal=Chemical.parseMol(mol);
+			String keyReal=Inchi.asStdInchi(cReal).getKey();
+			String keyGot=Inchi.asStdInchi(c).getKey();
+			assertEquals(keyReal,keyGot);
+		} )});
+		
+		
+		
+		
+		//bondThatLooksALittleLikeH.png
+		list.add(new Object[]{"bondThatLooksALittleLikeH", new TestSpec("moleculeTest/bondThatLooksALittleLikeH.png", c->{
+
+			String mol =
+					"\n" + 
+					"  Molvec0105041914002D\n" + 
+					"\n" + 
+					" 20 20  0  0  0  0  0  0  0  0999 V2000\n" + 
+					"    3.0292    0.8091    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    2.1681    0.2561    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.2579    0.7245    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.2986   -0.8611    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.3978   -1.3450    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.4408   -0.8353    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.3026   -1.3396    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    2.1279   -0.6892    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.1395   -1.4041    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.8812   -0.3774    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.2095    1.7488    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    2.0706    2.3018    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    2.9819    1.8317    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.0291   -0.8785    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.0104    0.0957    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.3332   -2.3018    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.2579    0.1118    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    3.8812    0.3107    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.8812   -1.3772    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.4408    0.2462    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  1 18  1  0\n" + 
+					"  1  2  2  0\n" + 
+					"  2  3  1  0\n" + 
+					"  1 13  1  0\n" + 
+					"  4  5  1  0\n" + 
+					" 11 12  1  0\n" + 
+					"  4 17  2  0\n" + 
+					" 12 13  2  0\n" + 
+					"  6  5  1  1\n" + 
+					" 14 15  1  0\n" + 
+					"  6 20  1  0\n" + 
+					"  4  9  1  0\n" + 
+					"  6  7  1  0\n" + 
+					"  3 20  1  0\n" + 
+					"  7  8  1  0\n" + 
+					" 14 19  1  0\n" + 
+					" 10 14  1  0\n" + 
+					"  9 14  1  0\n" + 
+					"  3 11  2  0\n" + 
+					"  7 16  2  0\n" + 
+					"M  END";
+			Chemical cReal=Chemical.parseMol(mol);
+			String keyReal=Inchi.asStdInchi(cReal).getKey();
+			String keyGot=Inchi.asStdInchi(c).getKey();
+			assertEquals(keyReal,keyGot);
+		} )});
+		
+		
+		//slightlyBentTripleBond.png
+		list.add(new Object[]{"slightlyBentTripleBond", new TestSpec("moleculeTest/slightlyBentTripleBond.png", c->{
+
+			String mol =
+					"\n" + 
+					"  Molvec0105041913552D\n" + 
+					"\n" + 
+					" 19 20  0  0  0  0  0  0  0  0999 V2000\n" + 
+					"    0.6795   -2.3950    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.1887   -2.8450    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.4833   -0.7774    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.1844    0.1612    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.5935    2.6797    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.5964    2.5709    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    2.4675    1.6563    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    2.4410   -1.0954    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.0010    1.8671    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.0020    1.6491    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.2277    0.1362    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.1304   -0.7879    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.5397   -2.8556    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.4075    0.8366    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.4063    0.9442    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.6755   -1.3817    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.4686    3.3635    0.0000 Cl  0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.6808   -3.3646    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.8260    0.9087    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  1  2  1  0\n" + 
+					"  1 18  1  0\n" + 
+					"  1 16  1  0\n" + 
+					"  3  4  2  0\n" + 
+					"  1 13  1  0\n" + 
+					" 12 16  1  0\n" + 
+					"  3 16  1  0\n" + 
+					" 11 12  2  0\n" + 
+					"  7 19  3  0\n" + 
+					" 11 15  1  0\n" + 
+					"  3  8  1  0\n" + 
+					"  5  6  2  0\n" + 
+					" 14 15  1  0\n" + 
+					"  4 19  1  0\n" + 
+					"  5  9  1  0\n" + 
+					"  6 10  1  0\n" + 
+					"  9 15  2  0\n" + 
+					"  4 11  1  0\n" + 
+					" 10 14  2  0\n" + 
+					"  6 17  1  0\n" + 
+					"M  END";
+			Chemical cReal=Chemical.parseMol(mol);
+			String keyReal=Inchi.asStdInchi(cReal).getKey();
+			String keyGot=Inchi.asStdInchi(c).getKey();
+			assertEquals(keyReal,keyGot);
+		} )});
+		
+		
+		//cagedStructure6.png
+		list.add(new Object[]{"cagedStructure6", new TestSpec("moleculeTest/cagedStructure6.png", c->{
+
+			String mol =
+					"\n" + 
+					"  Molvec0105041912512D\n" + 
+					"\n" + 
+					" 15 17  0  0  0  0  0  0  0  0999 V2000\n" + 
+					"    1.0986   -0.2681    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    2.0019   -0.7771    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.2954   -0.8291    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.2817    0.0711    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.1038   -1.5241    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.0934    0.7333    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.4827   -1.2204    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.2160   -0.7691    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.2397    0.0493    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.5237    0.4898    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.3951   -2.0632    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.1066   -0.4214    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.5155    1.5269    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.3273    2.0632    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.0020   -1.8561    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  1  2  1  0\n" + 
+					"  1  6  2  0\n" + 
+					"  3  4  1  0\n" + 
+					"  3 15  1  0\n" + 
+					"  1  8  1  0\n" + 
+					"  3  7  1  0\n" + 
+					" 13 14  1  0\n" + 
+					"  4 10  1  0\n" + 
+					"  7  8  1  0\n" + 
+					"  8  9  1  0\n" + 
+					"  5 12  1  0\n" + 
+					"  9 10  1  0\n" + 
+					"  5 11  1  0\n" + 
+					"  5 15  1  0\n" + 
+					" 10 13  1  0\n" + 
+					"  8 11  1  0\n" + 
+					" 10 12  1  0\n" + 
+					"M  END";
+			Chemical cReal=Chemical.parseMol(mol);
+			String keyReal=Inchi.asStdInchi(cReal).getKey();
+			String keyGot=Inchi.asStdInchi(c).getKey();
+			assertEquals(keyReal,keyGot);
+		} )});
+		
+		//bridgeHeadMoleculeWithNoGap.png
+		list.add(new Object[]{"bridgeHeadMoleculeWithNoGap", new TestSpec("moleculeTest/bridgeHeadMoleculeWithNoGap.png", c->{
+
+			String mol =
+					"\n" + 
+					"  Molvec0105041911422D\n" + 
+					"\n" + 
+					" 25 28  0  0  0  0  0  0  0  0999 V2000\n" + 
+					"   -3.1164    0.0988    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.0923   -1.9789    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.1990   -1.4497    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.4480   -1.4518    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.3341   -1.9472    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    3.9670    0.9742    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    3.0754    0.4765    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.7105    0.7358    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.0793    0.1552    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    4.8455    0.4498    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.4601   -0.0567    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.3324   -0.4108    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.2097   -0.4112    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.9980   -1.4708    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.5256    1.6112    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    4.8297   -0.5714    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    3.9381   -1.0691    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    2.0781   -0.9785    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    3.0605   -0.5465    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.5938    0.2433    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.2471   -0.5107    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.3286    0.0451    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -4.0097   -0.4305    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.2884    2.0319    0.0000 Br  0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -4.8453   -2.0297    0.0000 Br  0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  1 13  2  0\n" + 
+					" 11 12  1  0\n" + 
+					"  7 19  2  0\n" + 
+					" 11 15  1  0\n" + 
+					" 17 19  1  0\n" + 
+					"  3 13  1  0\n" + 
+					" 15 24  1  0\n" + 
+					" 11 21  1  0\n" + 
+					" 13 22  1  0\n" + 
+					"  9 12  1  0\n" + 
+					"  2  3  2  0\n" + 
+					"  3  5  1  0\n" + 
+					"  2 14  1  0\n" + 
+					"  4  5  2  0\n" + 
+					"  8 20  1  0\n" + 
+					" 18 19  1  0\n" + 
+					" 16 17  2  0\n" + 
+					"  6  7  1  0\n" + 
+					"  6 10  2  0\n" + 
+					"  8  9  1  0\n" + 
+					"  8 15  1  0\n" + 
+					" 10 16  1  0\n" + 
+					" 14 25  1  0\n" + 
+					" 12 22  1  0\n" + 
+					" 14 23  2  0\n" + 
+					"  1 23  1  0\n" + 
+					" 20 21  1  0\n" + 
+					" 18 21  1  0\n" + 
+					"M  END";
+			Chemical cReal=Chemical.parseMol(mol);
+			String keyReal=Inchi.asStdInchi(cReal).getKey();
+			String keyGot=Inchi.asStdInchi(c).getKey();
+			assertEquals(keyReal,keyGot);
+		} )});
+		
+		//blurryAntiAlias.png
+		
+		list.add(new Object[]{"blurryAntiAlias", new TestSpec("moleculeTest/blurryAntiAlias.png", c->{
+
+//			System.out.println("HERE!!!!!\n"+c.toMol());
+			String mol =
+					"\n" + 
+					"   JSDraw205161922142D\n" + 
+					"\n" + 
+					" 28 30  0  0  0  0            999 V2000\n" + 
+					"   28.1912   -4.6168    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   26.8974   -3.8671    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   24.2694   -8.4508    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   23.1684   -9.2499    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   25.6037   -4.6112    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   23.1684  -13.2633    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   23.7899  -11.9136    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   26.1252  -10.7683    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   27.5725  -10.7416    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   26.8710   -8.4241    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   25.6545   -9.3031    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   30.7435  -10.8016    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   32.0476  -11.5584    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   28.0343   -9.2499    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   25.2994  -12.0557    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   33.3555   -9.3027    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   33.3521  -10.8075    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   30.7470   -9.2967    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   32.0544   -8.5458    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   25.6013   -6.1066    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   26.8936   -6.8537    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   28.1872   -6.1095    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   26.7911   -2.1287    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   34.5516   -8.3797    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   24.1628   -6.7103    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   29.4371   -8.4329    0.0000 S   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   28.6025   -7.1721    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   30.1475   -7.1010    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					" 13 17  1  0  0  0  0\n" + 
+					"  5 20  1  0  0  0  0\n" + 
+					" 14 26  1  0  0  0  0\n" + 
+					"  9 14  1  0  0  0  0\n" + 
+					"  3 11  1  0  0  0  0\n" + 
+					"  7 15  1  0  0  0  0\n" + 
+					"  2 23  1  0  0  0  0\n" + 
+					" 26 27  2  0  0  0  0\n" + 
+					" 26 28  2  0  0  0  0\n" + 
+					" 10 21  1  0  0  0  0\n" + 
+					"  1  2  1  0  0  0  0\n" + 
+					"  2  5  2  0  0  0  0\n" + 
+					"  3  4  1  0  0  0  0\n" + 
+					" 12 13  2  0  0  0  0\n" + 
+					" 16 17  2  0  0  0  0\n" + 
+					"  6  7  1  0  0  0  0\n" + 
+					" 18 19  2  0  0  0  0\n" + 
+					" 16 19  1  0  0  0  0\n" + 
+					" 12 18  1  0  0  0  0\n" + 
+					" 16 24  1  0  0  0  0\n" + 
+					"  8  9  2  0  0  0  0\n" + 
+					" 18 26  1  0  0  0  0\n" + 
+					"  8 15  1  0  0  0  0\n" + 
+					" 10 14  1  0  0  0  0\n" + 
+					" 20 25  1  0  0  0  0\n" + 
+					" 21 22  1  0  0  0  0\n" + 
+					" 20 21  2  0  0  0  0\n" + 
+					"  1 22  2  0  0  0  0\n" + 
+					"  8 11  1  0  0  0  0\n" + 
+					" 10 11  2  0  0  0  0\n" + 
+					"M  END";
+			Chemical cReal=Chemical.parseMol(mol);
+			String keyReal=Inchi.asStdInchi(cReal).getKey();
+			String keyGot=Inchi.asStdInchi(c).getKey();
+			assertEquals(keyReal,keyGot);
+		} )});
+		
+				list.add(new Object[]{"rLikeRingAtom", new TestSpec("moleculeTest/rLikeRingAtom.png", c->{
+
+//					System.out.println("HERE!!!!!\n"+c.toMol());
+					String mol =
+							"\n" + 
+							"  Molvec0105041911182D\n" + 
+							"\n" + 
+							" 13 14  0  0  0  0  0  0  0  0999 V2000\n" + 
+							"    1.3018    1.7626    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    0.4286    1.2804    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    1.3134   -0.2708    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    0.4531    0.2733    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -1.3018    0.2679    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -2.1751   -0.2197    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -0.4502   -0.2006    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    0.3702   -1.7622    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -0.4902   -1.2181    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -1.3393   -1.7197    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"   -2.1697   -1.2376    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    2.1751   -1.7304    0.0000 F   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"    1.2723   -1.2900    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+							"  1  2  2  0\n" + 
+							"  2  4  1  0\n" + 
+							"  3  4  1  0\n" + 
+							"  4  7  2  0\n" + 
+							" 12 13  1  0\n" + 
+							"  5  6  1  0\n" + 
+							"  5  7  1  0\n" + 
+							"  7  9  1  0\n" + 
+							"  8  9  2  0\n" + 
+							"  6 11  1  0\n" + 
+							"  9 10  1  0\n" + 
+							"  8 13  1  0\n" + 
+							"  3 13  2  0\n" + 
+							" 10 11  1  0\n" + 
+							"M  END";
+					Chemical cReal=Chemical.parseMol(mol);
+					String keyReal=Inchi.asStdInchi(cReal).getKey();
+					String keyGot=Inchi.asStdInchi(c).getKey();
+					assertEquals(keyReal,keyGot);
+				} )});
+		list.add(new Object[]{"smallAntiAlias", new TestSpec("moleculeTest/smallAntiAlias.png", c->{
+
+//					System.out.println("HERE!!!!!\n"+c.toMol());
+			String mol =
+					"\n" + 
+					"  Molvec0105171902562D\n" + 
+					"\n" + 
+					" 24 26  0  0  0  0  0  0  0  0999 V2000\n" + 
+					"    2.4062    3.3297    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.4212    3.1075    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.9862    2.3240    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.8994    1.9253    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.7823   -2.0626    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    2.7521   -2.2558    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.4819    0.4728    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.8064    1.4001    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.1201    2.1435    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    2.7914    1.6223    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.2972    0.7435    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.1859    1.7337    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.4584   -1.1150    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -2.0095    0.9367    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    3.0920    2.5883    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -3.0932    2.5428    0.0000 Cl  0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    1.0938   -2.8086    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.5057   -0.7024    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.5626    0.1578    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    0.1300   -2.6158    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.5528   -3.3261    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"    2.0582   -0.3270    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -1.2092    0.3464    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"   -0.1529   -1.7148    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+					"  1 15  2  0\n" + 
+					" 11 12  2  0\n" + 
+					"  5 17  1  0\n" + 
+					"  7 19  1  0\n" + 
+					" 13 18  1  0\n" + 
+					" 11 19  1  0\n" + 
+					" 17 20  2  0\n" + 
+					"  3 12  1  0\n" + 
+					"  5 13  1  0\n" + 
+					" 13 22  1  0\n" + 
+					"  1  2  1  0\n" + 
+					"  3  4  2  0\n" + 
+					"  4 16  1  0\n" + 
+					" 11 23  1  0\n" + 
+					"  2  9  2  0\n" + 
+					"  5  6  2  0\n" + 
+					" 18 19  2  0\n" + 
+					"  7  8  1  1\n" + 
+					"  8  9  1  0\n" + 
+					"  8 10  2  0\n" + 
+					"  7 22  1  0\n" + 
+					" 10 15  1  0\n" + 
+					" 20 24  1  0\n" + 
+					" 14 23  2  0\n" + 
+					"  4 14  1  0\n" + 
+					" 20 21  1  0\n" + 
+					"M  END";
+			Chemical cReal=Chemical.parseMol(mol);
+			String keyReal=Inchi.asStdInchi(cReal).getKey();
+			String keyGot=Inchi.asStdInchi(c).getKey();
+			assertEquals(keyReal,keyGot);
+		} )});
+				
+				
+				
+		
 		list.add(new Object[]{"structureWithVeryShortSingleBondBetweenCarbons", new TestSpec("moleculeTest/verySmallSingleBondBetweenExplicitCarbons.png", c->{
 			Chemical cReal=ChemicalBuilder.createFromSmiles("C(C=Cc1ccc(cc1)N(c2ccccc2)c3ccc(cc3)-c4ccc(cc4)N(c5ccccc5)c6ccc(C=CC=Cc7ccccc7)cc6)=Cc8ccccc8").build();
 
@@ -4127,6 +4812,66 @@ public class MoleculeTest {
 			assertEquals(cReal.getFormula(),form);
 		} )});
 
+		//debug=true;
+		//StructureImageExtractor.SKIP_STEP_AT=43;
+		
+		
+		//5 -- no change
+		//6 -- CO2AsEster
+		//7 -- OConnectedToDash
+		//8 -- OConnectedToDash
+		//9 -- fluoxetine, moleculeWithCloseNitrogensInRing, cagedStructure4,OConnectedToDash, colinearAromaticBond, structureWithBridgeHeadInsideRing, bridgeHeadMoleculeWithNoGap
+		//10 -- no change
+		//11 -- MANY(17) :paxil, fluoxetine, reallyHardPeptide,moleculeWithCloseNitrogensInRing,OConnectedToDash,CO2AsEster, smallimage,wedgeBondWeirdAngle,tallerFont
+		//12 -- subscriptImplicitAtomsF3, wedgeBondWeirdAngle, OConnectedtToDash
+		//13 -- no change
+		//14 -- OConnectedToDash, dashedToPhenyl, closeNonBondedAtoms, 5memberedHetroRingWithNoisyDoubleBond
+		//15 -- can't remove, causes errors
+		//16 -- OConnectedToDash, smallImage, 5memberedRingWithNoisyDoubleBond, slightlyBentTripleBond, cagedStructure6
+		//17 -- no change
+		//18 -- no change
+		//19 -- no change
+		//20 -- no change
+		//21 -- no change
+		//22 -- 3 break
+		//23 -- bridgeHeadMoleculeWithNoGap
+		//24 -- moreDottedLinesThanNormalLines, explicitCarbonStructureWithTallerFont, StructureWithBridgeHeadsInsideRing
+		//25 -- no change
+		//26 -- colinearTripleBond, etc
+		//27 -- almost everything breaks
+		//28 -- CO2asEster, 5memeberedHeteroRing
+		//30 -- CO2asEster
+		//31 -- smallimage, CO2asEster, bridgeHeadMoleculeWithNoGap,etc
+		//32 -- explicitCarbonWithTallerFont, smallImage, etc
+		//33 -- cagedStructure, CO2AsEster
+		//34 -- cagedStructure4, CO2AsEster, explicitCarbonStructureWithTallerFont, cagedStructure2
+		//35 -- cagedStructure6, CO2AsEster
+		//36 -- CO2AsEster
+		//37 -- colinearAromaticBond,CO2AsEster
+		//38 -- cagedStructure6, CO2AsEster
+		//39 -- MULTI (7) 
+		//40 -- OConnectedToDash, CO2AsEster
+		//41 -- MULTI (19+)
+		//42 -- MULTI (18)
+		//43 -- CO2AsEster
+		//44 -- 
+		
+		
+		PrintStream old = System.out;
+		System.setOut(new PrintStream(new OutputStream(){
+
+			@Override
+			public void write(int arg0) throws IOException {
+				try{
+					throw new RuntimeException("Got:" + arg0);
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+				
+			}
+			
+		}));
+		
 		return list;
 	}
 

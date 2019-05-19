@@ -386,6 +386,12 @@ class BranchNode{
 	private static BranchNode interpretOCRStringAsAtom(String s, boolean tokenOnly){
 		
 		
+		if(s.contains("t43")){
+			return interpretOCRStringAsAtom(s.replace("t43", "H3"));
+		}
+		if(s.equals("t42")){
+			return interpretOCRStringAsAtom(s.replace("t42", "H2"));
+		}
 		
 		if(s.equals("HCl") || s.equals("HC1") || s.equals("Hcl") || s.equals("Hc1")){
 			return new BranchNode("Cl").setLinkable(false);
@@ -403,6 +409,18 @@ class BranchNode{
 				parent=nn;
 			}
 			full.setRightBranchNode(parent);
+			return full;
+		}else if(s.matches("[Cc][Oo][Oo][Cc][H][2]")){
+			
+			BranchNode full = new BranchNode("C").addChild(new BranchNode("O").setOrderToParent(2));
+			
+			BranchNode OMethyl = new BranchNode("O").setOrderToParent(2);
+			BranchNode meth = new BranchNode("C").setOrderToParent(1);
+			
+			OMethyl.addChild(meth);
+			
+			full.addChild(OMethyl);
+			full.setRightBranchNode(meth);
 			return full;
 		}else if(s.matches("([cC]H[2]*)+[Cc]")){
 			int c=s.split("H[2]*").length;
@@ -567,7 +585,7 @@ class BranchNode{
 			
 			co2.addChild(et);
 			return co2;
-		}else if(s.equalsIgnoreCase("Bn") || s.equalsIgnoreCase("Bt1")){
+		}else if(s.equals("Bn") || s.equalsIgnoreCase("Bt1")){
 			
 			BranchNode carb=interpretOCRStringAsAtom("C");
 			BranchNode ben=interpretOCRStringAsAtom("Ph");
@@ -575,8 +593,9 @@ class BranchNode{
 			
 			carb.addChild(ben);
 			return carb;
+		}else if(s.equals("BN")){
+			return interpretOCRStringAsAtom("HN");
 		}else if(s.equalsIgnoreCase("CBZ") || s.equalsIgnoreCase("C6Z")){
-			System.out.println("Found cbz");
 			BranchNode carb=interpretOCRStringAsAtom("C").addChild(new BranchNode("O").setOrderToParent(2));
 			BranchNode ox=new BranchNode("O").setOrderToParent(1);
 			carb.addChild(ox);
@@ -835,6 +854,10 @@ class BranchNode{
 			nn1.addChild(nn2);
 			nn1.setRightBranchNode(nn2);
 			return nn1;
+		}else if(s.equals("Sl") || s.equals("SI")){
+			return new BranchNode("Si");
+		}else if(s.equals("Sr") || s.equals("sr")|| s.equals("8r")){
+			return new BranchNode("Br");
 		}
 		
 		
@@ -887,7 +910,7 @@ class BranchNode{
 		
 		try{
 			int r=Integer.parseInt(s);
-			if(r>0){
+			if(r>0 && r<20){
 				BranchNode repNode=new BranchNode("?");
 				repNode.setRepeat(r);
 				return repNode;
