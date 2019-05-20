@@ -22,13 +22,17 @@ import gov.nih.ncats.molvec.image.Binarization;
  * UPDATE: Integral images calculated only for rows needed, on the fly
  */
 public class AdaptiveThreshold implements Binarization {
-    public static final double DEFAULT_SIGMA_THRESHOLD = 1.1;
-    public static final int DEFAULT_ADAPTIVE_BOX_RADIUS = 20;
-    public static final int DEFAULT_ADAPTIVE_MIN_THRESHOLD = 20;
-    public static final int DEFAULT_ADAPTIVE_MIN_STDDEV = 20;
+    public static final double DEFAULT_SIGMA_THRESHOLD = 3;
+    public static final int DEFAULT_ADAPTIVE_BOX_RADIUS = 200;
+    public static final double DEFAULT_ADAPTIVE_MIN_THRESHOLD_RATIO = 0.2;
+    public static final double DEFAULT_ADAPTIVE_MAX_THRESHOLD_RATIO = 0.8;
+    public static final int DEFAULT_ADAPTIVE_MIN_STDDEV = 0;
 
-    private int wsize, absMin;
-    private double sigma, minSigma;
+    private int wsize;
+    
+    private double absMax;
+    
+    private double absMin, sigma, minSigma;
 
     public AdaptiveThreshold () {
         this (DEFAULT_ADAPTIVE_BOX_RADIUS);
@@ -36,20 +40,27 @@ public class AdaptiveThreshold implements Binarization {
 
     public AdaptiveThreshold (int wsize) {
         this (wsize, DEFAULT_SIGMA_THRESHOLD, 
-              DEFAULT_ADAPTIVE_MIN_THRESHOLD,
+        		DEFAULT_ADAPTIVE_MIN_THRESHOLD_RATIO,
               DEFAULT_ADAPTIVE_MIN_STDDEV);
     }
 
     public AdaptiveThreshold (int wsize, double sigma, 
-                              int absMin, double minSigma) {
+                              double absMin, double minSigma) {
         this.wsize = wsize;
         this.sigma = sigma;
         this.absMin = absMin;
         this.minSigma = minSigma;
+        this.absMax = DEFAULT_ADAPTIVE_MAX_THRESHOLD_RATIO;
+        
     }
 
     public  Bitmap binarize (Raster inRaster) {
+    	
+    	
         Bitmap bm = new Bitmap (inRaster.getWidth (), inRaster.getHeight ());
+        wsize = (Math.min(wsize * 2 + 2,bm.height())-2)/2;
+        wsize = (Math.min(wsize * 2 + 2,bm.width())-2)/2;
+        
         int[] yMap = new int[bm.height()];
         double[][] intLines = new double[wsize * 2 + 2][bm.width()];
         double[][] intSquareLines = new double[wsize * 2 + 2][bm.width()];
@@ -62,6 +73,23 @@ public class AdaptiveThreshold implements Binarization {
                          intSquareLines, bm.width(), y);
         }
 
+        double min = Double.POSITIVE_INFINITY;
+        double max = Double.NEGATIVE_INFINITY;
+        for (int y = 0; y < bm.height(); ++y) {
+        	for (int x = 0; x < bm.width(); ++x) {
+        		double pel = inRaster.getSampleDouble (x, y, 0);
+        		if(pel>max){
+        			max=pel;
+        		}
+        		if(pel<min){
+        			min=pel;
+        		}
+        	}
+        }
+        double range = max-min;
+        
+        
+        
         for (int y = 0; y < bm.height(); ++y) {
             int y1 = Math.max (y - wsize, 0);
             int y2 = Math.min (y + wsize, bm.height() - 1);
@@ -109,9 +137,10 @@ public class AdaptiveThreshold implements Binarization {
                 double stdDEV = Math.sqrt 
                     (Math.abs (sumSquare / ((double) count)
                                                      - mean * mean));
-                double threshold = Math.max (mean + stdDEV * sigma, absMin);
+                double threshold = Math.min (mean + stdDEV * sigma, min + range*absMax);
+                threshold = Math.max(threshold, min+range*absMin);
                 double pel = inRaster.getSampleDouble (x, y, 0);
-                bm.set (x, y, pel > threshold && stdDEV > minSigma);
+                bm.set (x, y, pel > threshold);
             }
         }
 

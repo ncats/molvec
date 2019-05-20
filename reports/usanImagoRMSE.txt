@@ -1,0 +1,23 @@
+Time: 28.051 seconds
+======================================
+LARGEST_FRAGMENT_CORRECT_FULL_INCHI	1
+--------------------------------------
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/usan/cas-38260-01-4.png	1908	Infinity
+======================================
+LARGEST_FRAGMENT_ATOM_RIGHT_WRONG_BONDS	1
+--------------------------------------
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/usan/cas-66529-17-7.png	2600	Infinity
+======================================
+ERROR	1
+--------------------------------------
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/usan/cas-130804-35-2.png	27995	Infinity
+======================================
+INCORRECT	7
+--------------------------------------
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/usan/cas-661464-94-4.png	20278	Infinity
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/usan/cas-382-67-2.png	7949	Infinity
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/usan/cas-30868-30-5.png	5067	Infinity
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/usan/cas-125974-72-3.png	4085	Infinity
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/usan/cas-15879-93-3.png	3847	Infinity
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/usan/cas-182133-25-1.png	5282	Infinity
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/usan/cas-101396-42-3.png	4808	Infinity

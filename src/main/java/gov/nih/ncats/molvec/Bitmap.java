@@ -8,6 +8,7 @@ import java.awt.geom.GeneralPath;
 import java.awt.geom.Line2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.awt.image.MultiPixelPackedSampleModel;
@@ -57,7 +58,9 @@ import com.sun.media.jai.codec.TIFFField;
 import gov.nih.ncats.molvec.algo.Tuple;
 import gov.nih.ncats.molvec.image.ImageUtil;
 import gov.nih.ncats.molvec.image.TiffTags;
+import gov.nih.ncats.molvec.image.binarization.AdaptiveThreshold;
 import gov.nih.ncats.molvec.image.binarization.SigmaThreshold;
+import gov.nih.ncats.molvec.image.binarization.SigmaThreshold.ImageStats;
 import gov.nih.ncats.molvec.util.GeomUtil;
 import gov.nih.ncats.molvec.util.GeomUtil.LineDistanceCalculator;
 import gov.nih.ncats.molvec.util.GeomUtil.LineWrapper;
@@ -868,7 +871,7 @@ public class Bitmap implements Serializable, TiffTags {
     }); //distance to nearest pixel*4
     
     
-    public static Bitmap createBitmap (Raster raster) {
+    public static Bitmap createBitmap (Raster raster, double sigma) {
         SampleModel model = raster.getSampleModel();
         int band = model.getNumBands ();
         if (band > 1) {
@@ -876,8 +879,73 @@ public class Bitmap implements Serializable, TiffTags {
                 ("Can't handle sample with multiple channels");
         }
 
-        //return new AdaptiveThreshold ().binarize(raster);
-        Bitmap bm= new SigmaThreshold ().binarize(raster);
+        
+        ImageStats[] is = new ImageStats[]{null};
+        
+        
+        Bitmap bm= new SigmaThreshold (sigma).binarize(raster, stat->{
+        	is[0]=stat;
+        });
+        
+
+        
+
+        double tPct=100*(is[0].threshold-is[0].min)/(is[0].max-is[0].min);
+        double tPctMinSig=100*((is[0].threshold-is[0].stdev)-is[0].min)/(is[0].max-is[0].min);
+        double tPctMaxSig=100*((is[0].threshold+is[0].stdev)-is[0].min)/(is[0].max-is[0].min);
+        
+        double count = 0;
+        double countOn = 0;
+        for(int i=(int)Math.max(1, tPctMinSig);i<=Math.min(tPctMaxSig, 100);i++){
+        	count+=is[0].histogram[i];
+        }
+        for(int i=(int)Math.max(1, tPct);i<=100;i++){
+        	countOn+=is[0].histogram[i];
+        }
+        
+//print histogram    
+//      for(int i=0;i<is[0].histogram.length;i++){
+//  		System.out.println(i + "\t" + is[0].histogram[i]);
+//  	}
+//  	System.out.println("Threshold:" + tPct);
+//  	System.out.println("Min Threshold:" + tPctMinSig);
+//  	System.out.println("Max Threshold:" + tPctMaxSig);
+//  
+        //If there's a little uncertainty about where to draw the threshold line, try
+        //the adaptive threshold, possibly
+        if(count> countOn*0.1 || count> (is[0].count-countOn)*0.1){
+
+//        	System.out.println("testing adaptive");
+            List<Shape> polys2= bm.connectedComponents(Bitmap.Bbox.DoublePolygon);
+            
+            if(polys2.size()<4000){
+            
+    	        Bitmap bm1= new AdaptiveThreshold().binarize(raster);
+    	        List<Shape> polys1= bm1.connectedComponents(Bitmap.Bbox.DoublePolygon);
+    	        
+    	        if(polys1.size()<4000){
+    	            long sum1=polys1.stream()
+    		              .mapToLong(s->polys1.stream().filter(s2->GeomUtil.contains(s, s2)).count())
+    		              .sum();
+    		        long sum2=polys2.stream()
+    		                .mapToLong(s->polys2.stream().filter(s2->GeomUtil.contains(s, s2)).count())
+    		                .sum();
+//    		        //if there are at least 3 more shapes inside other shapes, it's 
+//    		        //probably a thresholding issue that should use the one with more shapes
+//    		        //The logic here is that aromatic double bonds are quite common, and if
+//    		        //the thresholding washes them out, then you'd expect to see about 3 or more shapes
+//    		        //inside other shapes with good thresholding than with bad thresholding
+    		        if(sum1>=sum2+3){
+//    		        	System.out.println("Using adaptive");
+    		        	return bm1;
+    		        }
+    	        }
+    	        //System.out.println("time:" + (System.currentTimeMillis()-tstart));
+            }
+        }
+        
+        
+        
         
         return bm;
         
@@ -985,6 +1053,87 @@ public class Bitmap implements Serializable, TiffTags {
         return bm;
     }
     
+    public static RenderedImage readtiftoImage (InputStream is) throws IOException {
+        ImageDecoder decoder = ImageCodec.createImageDecoder
+            ("TIFF", is, new TIFFDecodeParam ());
+
+        TIFFDirectory tif = new TIFFDirectory
+            (decoder.getInputStream (), 0);
+        TIFFField[] fields = tif.getFields ();
+
+        String unit = "";
+        double xres = 0., yres = 0.;
+        int rows = -1, photometric = -1, bpp = -1;
+        for (int j = 0; j < fields.length; ++j) {
+            TIFFField f = fields[j];
+            int tag = f.getTag ();
+            switch (tag) {
+            case TAG_RESOLUTIONUNIT: {
+                int u = f.getAsInt (0);
+                if (u == RESOLUTIONUNIT_NONE) {
+                } else if (u == RESOLUTIONUNIT_INCH) {
+                    unit = "in";
+                } else if (u == RESOLUTIONUNIT_CENT) {
+                    unit = "cm";
+                }
+            }
+                break;
+
+            case TAG_XRESOLUTION:
+                xres = f.getAsFloat (0);
+                break;
+
+            case TAG_YRESOLUTION:
+                yres = f.getAsFloat (0);
+                break;
+
+            case TAG_ROWSPERSTRIP:
+                //rows = f.getAsInt(0);
+                break;
+
+            case TAG_PHOTOMETRIC:
+                photometric = f.getAsInt (0);
+                break;
+
+            case TAG_BITSPERSAMPLE:
+                bpp = f.getAsInt (0);
+                break;
+                /*
+                  case TAG_IMAGEWIDTH:
+                  width = f.getAsFloat(0);
+                  break;
+
+                  case TAG_IMAGELENGTH:
+                  height = f.getAsFloat(0);
+                  break;
+                */
+            }
+        }
+
+        RenderedImage decodedImage = decoder.decodeAsRenderedImage ();
+        return decodedImage;
+    }
+    
+    
+    public static RenderedImage readToImage(File file) throws IOException{
+    	 try {
+    		 InputStream is = new FileInputStream(file);
+             return readtiftoImage (is);
+         }
+         catch (Exception ex) {
+             return ImageUtil.grayscale(file);
+         }
+    }
+    public static RenderedImage readToImage(byte[] file) throws IOException{
+   	 try {
+   		 InputStream is = new ByteArraySeekableStream(file);
+            return readtiftoImage (is);
+        }
+        catch (Exception ex) {
+            return ImageUtil.grayscale(file);
+        }
+   }
+    
     
     public Bitmap clean(){
     	double pon=fractionPixelsOn();
@@ -1022,25 +1171,28 @@ public class Bitmap implements Serializable, TiffTags {
     	return clone;
     }
 
-    public static Bitmap read (byte[] file) throws IOException {
-        try {
-            return readtif (new ByteArraySeekableStream(file));
-        }
-        catch (Exception ex) {
-            return createBitmap (ImageUtil.grayscale(file).getData());
-        }
+    public static Bitmap read (byte[] file, double sigma) throws IOException {
+    	   try {
+               return readtif (new ByteArraySeekableStream(file));
+           }
+           catch (Exception ex) {
+               return createBitmap (ImageUtil.grayscale(file).getData(),sigma);
+           }
     }
-    public static Bitmap read (File file) throws IOException {
+    public static Bitmap read (byte[] file) throws IOException {
+    	return read(file,1.2);
+    }
+    public static Bitmap read (File file, double sigma) throws IOException {
         try {
             return readtif (file);
         }
         catch (Exception ex) {
-            return createBitmap (ImageUtil.grayscale(file).getData());
+            return createBitmap (ImageUtil.grayscale(file).getData(), sigma);
         }
     }
     
-    public static Bitmap read (BufferedImage bi) {
-    	 return createBitmap (ImageUtil.grayscale(bi).getData());
+    public static Bitmap read (BufferedImage bi, double sigma) {
+    	 return createBitmap (ImageUtil.grayscale(bi).getData(),sigma);
     }
     
     
@@ -1576,132 +1728,139 @@ public class Bitmap implements Serializable, TiffTags {
     public List<Shape> connectedComponents () {
         return connectedComponents (Bbox.Rectangular);
     }
+    
+    private Map<Bbox,List<Shape>> _cacheShapes = new HashMap<>();
+    
+    
 
     public List<Shape> connectedComponents (Bbox shape) {
-        short label = 0; // current label
-        short[][] labels = new short[height][width + 1];
+    	return _cacheShapes.computeIfAbsent(shape, (ss)->{
+    		short label = 0; // current label
+            short[][] labels = new short[height][width + 1];
 
-        // equivalence class
-        short[] eqvtab = new short[500]; // some initial default
-        short[] L = new short[4];
+            // equivalence class
+            short[] eqvtab = new short[500]; // some initial default
+            short[] L = new short[4];
 
-        for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; ++x) {
-                /* check to see if we have a black pixel */
-                if (!get (x, y))
-                    /* do nothing */ ;
-                /* boundary conditions */
-                else if (y == 0 && x == 0) {
-                    labels[y][x] = ++label;
-                } else if (y == 0) {
-                    short label1 = labels[y][x - 1];
-                    if (label1 == 0) {
-                        label1 = ++label;
-                    }
-                    labels[y][x] = label1;
-                } else if (x == 0) {
-                    int label1 = labels[y - 1][x];
-                    int label2 = labels[y - 1][x + 1];
-                    if (label1 != 0 && label2 != 0)
-                        label1 = Math.min (label1, label2);
-                    else if (label1 == 0 && label2 == 0) {
-                        label1 = ++label;
-                    } else
-                        label1 = Math.max (label1, label2);
-                    labels[y][x] = (short) label1;
-                }
-                /* assign new label */
-                else if (labels[y][x - 1] == 0
-                         && labels[y - 1][x] == 0
-                         && labels[y - 1][x - 1] == 0
-                         && labels[y - 1][x + 1] == 0) {
-                    labels[y][x] = ++label;
-                } else {
-                    L[0] = labels[y - 1][x - 1];
-                    L[1] = labels[y - 1][x];
-                    L[2] = labels[y - 1][x + 1];
-                    L[3] = labels[y][x - 1];
-
-                    Arrays.sort (L);
-
-                    /* skip all non-labeled pixels */
-                    int n;
-                    for (n = 0; n < 4 && L[n] == 0; ++n)
-                        ;
-                    /* n should not be 4 */
-                    if (n == 4) {
-                        throw new IllegalStateException ("n == 4");
-                    }
-
-                    labels[y][x] = L[n];
-                    /* now enumerate from n to 4 - 1 */
-                    for (int i = n; i < 4; ++i)
-                        for (int j = i + 1; j < 4; ++j)
-                            /* update equivalence table */
-                            union (eqvtab, L[i], L[j]);
-                }
-
-                if (label == Short.MAX_VALUE) {
-                    logger.log (Level.SEVERE, "Max number of labels reached: "
-                                + label + "; truncating search!");
-                    break;
-                }
-                // ensure there's enough space in the eqvtab
-                else if (label >= eqvtab.length) {
-                    short[] newtab = new short[label + 100];
-                    System.arraycopy (eqvtab, 0, newtab, 0, eqvtab.length);
-                    eqvtab = newtab;
-                }
-            }
-        }
-
-        if (DEBUG) {
-            System.err.print ("eqvtab:");
-            for (int i = 1; i <= label; ++i) {
-                System.err.print (" " + i + ":" + eqvtab[i]);
-            }
-            System.err.println ();
-            System.err.println ("label: " + label);
-
-            System.err.println ("eqv class labels...");
             for (int y = 0; y < height; ++y) {
                 for (int x = 0; x < width; ++x) {
-                    System.err.print
-                        (get (x, y) ? String.valueOf (labels[y][x]) : '.');
+                    /* check to see if we have a black pixel */
+                    if (!get (x, y))
+                        /* do nothing */ ;
+                    /* boundary conditions */
+                    else if (y == 0 && x == 0) {
+                        labels[y][x] = ++label;
+                    } else if (y == 0) {
+                        short label1 = labels[y][x - 1];
+                        if (label1 == 0) {
+                            label1 = ++label;
+                        }
+                        labels[y][x] = label1;
+                    } else if (x == 0) {
+                        int label1 = labels[y - 1][x];
+                        int label2 = labels[y - 1][x + 1];
+                        if (label1 != 0 && label2 != 0)
+                            label1 = Math.min (label1, label2);
+                        else if (label1 == 0 && label2 == 0) {
+                            label1 = ++label;
+                        } else
+                            label1 = Math.max (label1, label2);
+                        labels[y][x] = (short) label1;
+                    }
+                    /* assign new label */
+                    else if (labels[y][x - 1] == 0
+                             && labels[y - 1][x] == 0
+                             && labels[y - 1][x - 1] == 0
+                             && labels[y - 1][x + 1] == 0) {
+                        labels[y][x] = ++label;
+                    } else {
+                        L[0] = labels[y - 1][x - 1];
+                        L[1] = labels[y - 1][x];
+                        L[2] = labels[y - 1][x + 1];
+                        L[3] = labels[y][x - 1];
+
+                        Arrays.sort (L);
+
+                        /* skip all non-labeled pixels */
+                        int n;
+                        for (n = 0; n < 4 && L[n] == 0; ++n)
+                            ;
+                        /* n should not be 4 */
+                        if (n == 4) {
+                            throw new IllegalStateException ("n == 4");
+                        }
+
+                        labels[y][x] = L[n];
+                        /* now enumerate from n to 4 - 1 */
+                        for (int i = n; i < 4; ++i)
+                            for (int j = i + 1; j < 4; ++j)
+                                /* update equivalence table */
+                                union (eqvtab, L[i], L[j]);
+                    }
+
+                    if (label == Short.MAX_VALUE) {
+                        logger.log (Level.SEVERE, "Max number of labels reached: "
+                                    + label + "; truncating search!");
+                        break;
+                    }
+                    // ensure there's enough space in the eqvtab
+                    else if (label >= eqvtab.length) {
+                        short[] newtab = new short[label + 100];
+                        System.arraycopy (eqvtab, 0, newtab, 0, eqvtab.length);
+                        eqvtab = newtab;
+                    }
+                }
+            }
+
+            if (DEBUG) {
+                System.err.print ("eqvtab:");
+                for (int i = 1; i <= label; ++i) {
+                    System.err.print (" " + i + ":" + eqvtab[i]);
                 }
                 System.err.println ();
-            }
-        }
+                System.err.println ("label: " + label);
 
-
-        List<Shape> comps;
-        switch (shape) {
-        case Polygon:
-            comps = connectedComponentPolygonShapes (eqvtab, labels);
-            break;
-        case DoublePolygon:
-            comps = connectedComponentDoublePrecisionPolygonShapes (eqvtab, labels);
-            break;
-
-        case Rectangular:
-        default:
-            comps = connectedComponentRectangularShapes (eqvtab, labels);
-        }
-
-        if (DEBUG) {
-            System.err.println ("merged labels...");
-            for (int y = 0; y < height; ++y) {
-                for (int x = 0; x < width; ++x) {
-                    System.err.print
-                        (get (x, y) ? String.valueOf (labels[y][x]) : '.');
+                System.err.println ("eqv class labels...");
+                for (int y = 0; y < height; ++y) {
+                    for (int x = 0; x < width; ++x) {
+                        System.err.print
+                            (get (x, y) ? String.valueOf (labels[y][x]) : '.');
+                    }
+                    System.err.println ();
                 }
-                System.err.println ();
             }
-        }
-        eqvtab = null;
-        labels = null;
 
-        return comps;
+
+            List<Shape> comps;
+            switch (shape) {
+            case Polygon:
+                comps = connectedComponentPolygonShapes (eqvtab, labels);
+                break;
+            case DoublePolygon:
+                comps = connectedComponentDoublePrecisionPolygonShapes (eqvtab, labels);
+                break;
+
+            case Rectangular:
+            default:
+                comps = connectedComponentRectangularShapes (eqvtab, labels);
+            }
+
+            if (DEBUG) {
+                System.err.println ("merged labels...");
+                for (int y = 0; y < height; ++y) {
+                    for (int x = 0; x < width; ++x) {
+                        System.err.print
+                            (get (x, y) ? String.valueOf (labels[y][x]) : '.');
+                    }
+                    System.err.println ();
+                }
+            }
+            eqvtab = null;
+            labels = null;
+
+            return comps;	
+    	});
+        
     }
 
 
@@ -2741,4 +2900,29 @@ public class Bitmap implements Serializable, TiffTags {
             bm.skeleton ().writetif (new File (argv[1]));
         }
     }
+
+
+	public Bitmap paste(Bitmap bm2, Shape ss) {
+
+		Rectangle2D bounds = ss.getBounds2D();
+		
+		
+		int minX = (int) Math.max(bounds.getMinX(), 0);
+		int minY = (int) Math.max(bounds.getMinY(), 0);
+		
+		int maxX = (int) Math.min(bounds.getMaxX(), this.width());
+		int maxY = (int) Math.min(bounds.getMaxY(), this.height());
+		
+		for(int x=minX;x<=maxX;x++){
+			for(int y=minY;y<=maxY;y++){
+				if(ss.contains(x, y)){
+					this.set(x, y, bm2.get(x, y));
+				}
+			}
+		}
+		
+			
+		return this;
+		
+	}
 }

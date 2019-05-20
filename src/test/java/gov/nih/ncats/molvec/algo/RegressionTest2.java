@@ -6,6 +6,9 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+
+import gov.nih.ncats.molvec.algo.RegressionTestIT.Method;
+
 import static org.junit.Assert.*;
 
 import java.io.File;
@@ -673,7 +676,7 @@ public class RegressionTest2 {
     @Test
     public void test(){
 
-        RegressionTestIT.Result actual = RegressionTestIT.testMolecule(inputImage, expectedSmi, 300);
+        RegressionTestIT.Result actual = RegressionTestIT.testMolecule(inputImage, expectedSmi, 300,Method.MOLVEC.adapt()).result;
         if(actual.ordinal() < expectedResult.ordinal()){
                 IMPROVED.add( inputImage.getName() + "  " + expectedResult + "  => " + actual);
         }

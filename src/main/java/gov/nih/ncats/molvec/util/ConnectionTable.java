@@ -109,62 +109,141 @@ public class ConnectionTable{
 	}
 	
 	
-	private void consumePathsUntilRing(Stack<Node> soFar, Set<Edge> used, Consumer<Stack<Node>> found, int MAX_DEPTH){
+	private void consumePathsUntilRing(Stack<Node> soFar, Set<Edge> used,Set<Node> ignoreNodes, Consumer<Stack<Node>> found, int MAX_DEPTH) throws InterruptedException{
 		Node p=soFar.peek();
 		if(soFar.size()>MAX_DEPTH)return;
 		
+		if(Thread.interrupted()){
+			throw new InterruptedException();
+			
+		}
+		
 		for(Tuple<Node,Edge> en : p.getNeighborNodes()){
-			if(used.contains(en.v())){
+			if(used.contains(en.v()) || ignoreNodes.contains(en.k())){
 				continue;
 			}
 			used.add(en.v());
 			
-			if(soFar.contains(en.k())){
+			if(soFar.get(0).equals(en.k())){
 				soFar.push(en.k());
 				found.accept(soFar);
 				soFar.pop();
 			}
 			soFar.push(en.k());		
 			
-			consumePathsUntilRing(soFar,used,found, MAX_DEPTH);
+			consumePathsUntilRing(soFar,used,ignoreNodes,found, MAX_DEPTH);
 			
 			used.remove(en.v());
 			soFar.pop();
 		}
-		
 	}
 	
 	
 	private List<Ring> _getRingMap(){
-		return getDisconnectedNodeSets().stream()
+		int MAX_RING_TOTAL = 10;
+		int MAX_RING_AFTER_INITIAL = 6;
+		
+		int maxNumberRings = 100;
+		
+		List<Ring> rings= getDisconnectedNodeSets().stream()
 				.flatMap(nl1->{
-					Map<Node,List<List<Node>>> nrings = new HashMap<>();
-					
-					for(Node nn: nl1){
-						Stack<Node> st=new Stack<Node>();
-						Set<Edge> nadda=new HashSet<>();
+					try{
 						
-						st.push(nn);
+						long minSSSR= 
+								     nl1.stream()
+								        .flatMap(n->n.getEdges().stream())
+								        .distinct()
+								        .count() - nl1.size() +1;
+
+						if(minSSSR>maxNumberRings)return Stream.empty();
+												
+						Map<Node,List<List<Node>>> nrings = new HashMap<>();
 						
-						consumePathsUntilRing(st,nadda,(nst)->{
-							Node term = nst.peek();
-							List<Node> mlist=new ArrayList<Node>();
-							boolean started = false;
-							for(Node n1:nst){
-								if(started){
-									mlist.add(n1);
+						Set<Node> terms = new HashSet<Node>();
+						List<Node> check = new ArrayList<Node>(nl1);
+						int tbefore=0;
+						
+						
+						
+						while(true){
+							for(Node nn: check){
+								long keepCount = nn.getNeighborNodes().stream().filter(t->!terms.contains(t.k())).count();
+								if(keepCount==1){
+									terms.add(nn);
 								}else{
-									if(n1==term){
-										started=true;
+									if(nn.getEdgeCount()>7){
+										terms.add(nn);
 									}
 								}
+								
 							}
-							for(Node n:mlist){
-								nrings.computeIfAbsent(n, k->{
-									return new ArrayList<List<Node>>();
-								}).add(mlist);
+							check.removeAll(terms);
+							
+							if(tbefore==terms.size()){
+								break;
 							}
-						},10);
+							tbefore=terms.size();
+						}
+						
+						
+						
+						for(Node nn: check){
+							
+							
+							Stack<Node> st=new Stack<Node>();
+							Set<Edge> nadda=new HashSet<>();
+							
+							boolean[] foundRing = new boolean[]{false};
+							
+							st.push(nn);
+							
+							consumePathsUntilRing(st,nadda,terms,(nst)->{
+								Node term = nst.peek();
+								List<Node> mlist=new ArrayList<Node>();
+								boolean started = false;
+								for(Node n1:nst){
+									if(started){
+										mlist.add(n1);
+									}else{
+										if(n1==term){
+											started=true;
+										}
+									}
+								}
+								for(Node n:mlist){
+									nrings.computeIfAbsent(n, k->{
+										return new ArrayList<List<Node>>();
+									}).add(mlist);
+								}
+								foundRing[0]=true;
+							},MAX_RING_AFTER_INITIAL);
+							
+							if(!foundRing[0]){
+								st.clear();
+								nadda.clear();
+								st.push(nn);
+								consumePathsUntilRing(st,nadda,terms,(nst)->{
+									Node term = nst.peek();
+									List<Node> mlist=new ArrayList<Node>();
+									boolean started = false;
+									for(Node n1:nst){
+										if(started){
+											mlist.add(n1);
+										}else{
+											if(n1==term){
+												started=true;
+											}
+										}
+									}
+									for(Node n:mlist){
+										nrings.computeIfAbsent(n, k->{
+											return new ArrayList<List<Node>>();
+										}).add(mlist);
+									}
+									foundRing[0]=true;
+								},MAX_RING_TOTAL);
+							}			
+						
 					}
 					
 					return nrings.entrySet()
@@ -183,13 +262,24 @@ public class ConnectionTable{
 					      .map(t->t.swap())
 					      .map(t->t.withKEquality())
 					      .distinct()
+					      .map(t->t.swap())
+					      .map(t->t.withVComparator())
+					      .sorted(Comparator.reverseOrder())
+					      .map(t->t.swap())
 					      .map(t->t.v())
+					      .map(t->Tuple.of(t,t.size()).withVComparator())
+					      .sorted()
+					      .map(t->t.k())
 					      .map(n->Ring.of(n, this));
+					}catch(InterruptedException te){
+						te.printStackTrace();
+						throw new RuntimeException(te);
+					}
 				})
 				.collect(Collectors.toList());
 		
-		
-		
+
+		return rings;
 		
 		
 		
@@ -310,7 +400,7 @@ public class ConnectionTable{
 		
 	}
 	public List<Tuple<GeomUtil.LineWrapper,List<Edge>>> getEdgesWhichMightBeWiggleLines(){
-		double maxRatio = 0.7;
+		double maxRatio = 0.679;
 
 		List<List<Edge>> elist= this.getEdges()
 		    .stream()
@@ -336,11 +426,18 @@ public class ConnectionTable{
 		    .map(l->l.stream().map(t->t.k()).collect(Collectors.toList()))
 		    .collect(Collectors.toList());
 		
-		double maxLen=elist.stream()
+		double maxLent=elist.stream()
 		     .filter(ll->ll.size()>1)
 		     .mapToDouble(ll->ll.stream().mapToDouble(l->l.getEdgeLength()).average().orElse(0))
 		     .max()
 		     .orElse(1);
+		
+		if(maxLent>this.getAverageBondLength()*1.8){
+			maxLent=this.getAverageBondLength()*1.8;
+		}
+		double maxLen = maxLent;
+		
+		
 		List<List<Edge>> elist2= this.getEdges()
 			    .stream()
 			    .filter(e->e.getEdgeLength()<maxLen*maxRatio)
@@ -361,8 +458,12 @@ public class ConnectionTable{
 			    .stream()
 			    .map(l->l.stream().map(t->t.k()).collect(Collectors.toList()))
 			    .collect(Collectors.toList());
+		
+		//there are some issues here
+		
 		return elist2.stream()
 		     .filter(ll->ll.size()>=5)
+		     .filter(ll->ll.stream().allMatch(l1->l1.getOrder()==1))
 		     .map(ll->Tuple.of(ll,ll.stream()
 		    		                .flatMap(e->e.streamNodes())
 		    		                .map(n->n.getPoint())
@@ -504,7 +605,6 @@ public class ConnectionTable{
 				.append("M  END")
 						.toString();
 
-		System.out.println(mol);
 		return mol;
 	}
 
@@ -630,167 +730,7 @@ public class ConnectionTable{
 	}
 
 	private static DateTimeFormatter MOL_DATETIME_FORMATTER = DateTimeFormatter.ofPattern("MMddyyHHmm");
-	/*
-	public Chemical toChemical(){
-		//return toChemical(this.getAverageBondLength(), false);
-		return toChemical(1,true);
-	}
 
-	public Chemical toChemical(double averageBondLength, boolean center){
-		
-		AffineTransform at = new AffineTransform();
-		double blcur = Math.max(this.getAverageBondLength(),1);
-		
-		double scale = averageBondLength/blcur;
-		
-		
-
-		at.scale(scale, scale);
-		if(center){
-			if(this.getNodes().size()>0){
-				Rectangle2D rect=this.getNodes().stream().map(n->n.getPoint()).collect(GeomUtil.convexHull()).getBounds2D();
-				at.translate(-rect.getCenterX(), -rect.getCenterY());
-			}
-		}
-		
-		ChemicalBuilder cb = new ChemicalBuilder();
-		Atom[] atoms = new Atom[nodes.size()];
-		
-		for(int i=0;i<nodes.size();i++){
-			Node n = nodes.get(i);
-			Point2D np = at.transform(n.getPoint(), null);
-			
-			String sym = n.symbol;
-			int isotope = 0;
-			if(n.symbol.equals("D")){
-				sym="H";
-				isotope=2;
-			}
-			
-			atoms[i]=cb.addAtom(sym,np.getX(),-np.getY());
-			if(n.getCharge()!=0){
-				atoms[i].setCharge(n.getCharge());
-			}
-			if(isotope!=0){
-				atoms[i].setMassNumber(isotope);
-			}
-		}
-		cb.aromatize(true);
-		
-		//List<Tuple<String,String>> changeBonds = new ArrayList<>();
-		
-		List<Tuple<Bond,Tuple<String,String>>> addedAromaticBonds = new ArrayList<>();
-		
-		for(Edge e : edges){
-			if(e.getOrder()==1){
-				Bond b=cb.addBond(atoms[e.n1],atoms[e.n2], BondType.SINGLE);
-				if(e.getDashed()){
-					b.setStereo(Stereo.DOWN);
-				}
-				if(e.getWedge()){
-					b.setStereo(Stereo.UP);
-				}
-				
-			}else if(e.getOrder()==2){
-				cb.addBond(atoms[e.n1],atoms[e.n2],BondType.DOUBLE);
-			}else if(e.getOrder()==3){
-				cb.addBond(atoms[e.n1],atoms[e.n2],BondType.TRIPLE);				
-			}else if(e.isAromatic()){
-				//doesn't work for some reason, so fix in the molfile and reload
-				int n1=e.n1+1;
-				int n2=e.n2+1;
-				String s1=("   " + n1);
-				String s2=("   " + n2);
-				s1=s1.substring(s1.length()-3);
-				s2=s2.substring(s2.length()-3);
-				
-				
-				Tuple<String,String> trans=Tuple.of(s1 + s2 + "  1", s1 + s2 + "  4");
-				
-				
-				
-				Bond b=cb.addBond(atoms[e.n1],atoms[e.n2],BondType.AROMATIC);
-				
-				addedAromaticBonds.add(Tuple.of(b,trans));
-			}else{
-				//fall back to single
-				cb.addBond(atoms[e.n1],atoms[e.n2],BondType.SINGLE);
-				
-			}
-		}
-		
-		
-		Chemical tc=cb.build();
-		if(!addedAromaticBonds.isEmpty()){
-			try {
-				List<Bond> keepBond= GeomUtil.groupThings(addedAromaticBonds, t->{
-					Bond b1=t.k().k();
-					Bond b2=t.v().k();
-					Atom a1i=b1.getAtom1();
-					Atom a2i=b1.getAtom2();
-					Atom b1i=b2.getAtom1();
-					Atom b2i=b2.getAtom2();
-					if(a1i==b1i||a1i==b2i||a2i==b1i||a2i==b2i){
-						return true;
-					}
-					return false;
-				})
-				.stream()
-				.filter(bl->bl.size()>4)
-				.map(bl->{
-					Map<Atom,AtomicInteger> acounts=new HashMap<>();
-					
-					bl.stream().forEach(bt->{
-						acounts.computeIfAbsent(bt.k().getAtom1(), (k)->new AtomicInteger(0)).incrementAndGet();
-						acounts.computeIfAbsent(bt.k().getAtom2(), (k)->new AtomicInteger(0)).incrementAndGet();
-					});
-					
-					for(int i=bl.size()-1;i>=0;i--){
-						Bond b=bl.get(i).k();
-						Atom ai1=b.getAtom1();
-						Atom ai2=b.getAtom2();
-						if(acounts.getOrDefault(ai1, new AtomicInteger(0)).get()<2 || acounts.getOrDefault(ai2, new AtomicInteger(0)).get()<2){
-							//not really a ring
-							bl.remove(i);
-							acounts.getOrDefault(ai1, new AtomicInteger(0)).decrementAndGet();
-							acounts.getOrDefault(ai2, new AtomicInteger(0)).decrementAndGet();
-							i=bl.size();
-						}
-					}
-					
-					return bl;
-				})
-				.peek(bl->System.out.println("Found bonds:" + bl.size()))
-				.flatMap(bl->bl.stream())
-				.map(t->t.k())
-				.collect(Collectors.toList());
-				
-				List<Tuple<String,String>> realTransForm = addedAromaticBonds.stream()
-																			 .filter(t->keepBond.contains(t.k()))
-																			 .map(t->t.v())
-																			 .collect(Collectors.toList());
-				
-				
-				
-				String nmol=Arrays.stream(tc.toMol().split("\n"))
-				      .map(l->{
-				    	  return realTransForm.stream()
-				    	  			 .filter(lc->l.startsWith(lc.k()))
-				    	  			 .findFirst()
-				    	  			 .map(t->l.replace(t.k(), t.v()))
-				    	  			 .orElse(l);
-				      })
-				      .collect(Collectors.joining("\n"));
-				//System.out.println(nmol);
-				return ChemicalBuilder.createFromMol(nmol, Charset.defaultCharset()).build();
-			} catch (Exception e1) {
-
-				e1.printStackTrace();
-			}
-		}
-		return tc;
-	}
-	*/
 
 	public ConnectionTable mergeNodesAverage(int n1, int n2){
 		return mergeNodes(n1,n2,(node1,node2)->new Point2D.Double((node1.getX()+node2.getX())/2,(node1.getY()+node2.getY())/2));
@@ -1742,7 +1682,6 @@ public class ConnectionTable{
 		}
 		
 		public Edge setToAromatic(){
-			System.out.println("SETTING TO AROMATIC!!!");
 			return setOrder(AROMATIC_ORDER);
 		}
 		
@@ -1770,18 +1709,18 @@ public class ConnectionTable{
 		}
 
 		public boolean isRingEdge() {
-			return this.streamNodes()
-			    .map(n->n.getAllRings())
-			    .filter(r->r.size()>0)
-			    .flatMap(r->r.stream())
-			    .collect(Collectors.groupingBy(Function.identity()))
-			    .entrySet()
-			    .stream()
-			    .map(Tuple::of)
-			    .map(t->t.v())
-			    .filter(v->v.size()==2)
-			    .findAny().isPresent();
+			return !getAllRings().isEmpty();
 
+		}
+
+		public List<Ring> getAllRings() {
+		
+			List<Ring> rings = ConnectionTable.this.getRings();
+			
+			return rings.stream()
+					.filter(r->r.getEdges().contains(this))
+					.collect(Collectors.toList());
+			
 		}
 		
 	}
@@ -1989,7 +1928,6 @@ public class ConnectionTable{
 	
 
 	public ConnectionTable fixBondOrders(Collection<Shape> likelyOCR, double shortestRealBondRatio, Consumer<Edge> edgeCons) {
-		// TODO Auto-generated method stub
 		this.edges
 		    .stream()
 		    .forEach(e->{

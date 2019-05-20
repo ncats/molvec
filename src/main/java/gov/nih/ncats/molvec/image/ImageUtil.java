@@ -95,10 +95,10 @@ public class ImageUtil implements TiffTags {
 	}
 	*/
 
-        logger.info( tif.toString() + " has " + ndirs + " image; width="+width
-                +" height="+height +" xres="+xres+unit
-                +" yres="+yres+unit+" bpp="+bpp
-                +" photometric="+photometric+" rows="+rows);
+//        logger.info( tif.toString() + " has " + ndirs + " image; width="+width
+//                +" height="+height +" xres="+xres+unit
+//                +" yres="+yres+unit+" bpp="+bpp
+//                +" photometric="+photometric+" rows="+rows);
 
         RenderedImage decodedImage = decoder.decodeAsRenderedImage();
         //ImageIO.write(decodedImage, "png", new File("tmp.png"));
@@ -110,8 +110,8 @@ public class ImageUtil implements TiffTags {
 	}
 	*/
 
-        logger.info("sample model: nbands="+raster.getNumBands()
-                +" "+raster.getSampleModel().getClass());
+//        logger.info("sample model: nbands="+raster.getNumBands()
+//                +" "+raster.getSampleModel().getClass());
         /*
 	MultiPixelPackedSampleModel packed =
 	    (MultiPixelPackedSampleModel)raster.getSampleModel();
@@ -142,7 +142,7 @@ public class ImageUtil implements TiffTags {
     	    //System.out.println();
     	}
 
-        logger.info("## dynamic range: "+(max-min)+" color model: "+bi.getColorModel());
+//        logger.info("## dynamic range: "+(max-min)+" color model: "+bi.getColorModel());
         
         // rescale to 8-bit
         double scale = Math.max(256./(max-min+1),1);
@@ -199,14 +199,14 @@ public class ImageUtil implements TiffTags {
         BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
         try(PushbackInputStream pushbackInputStream = new PushbackInputStream(in,2);
         ) {
-            if (isTiff(pushbackInputStream)) {
+           if (isTiff(pushbackInputStream)) {
                 try {
-                    return decodeTIFF(in);
+                    return decodeTIFF(pushbackInputStream);
                 } catch (Exception ex) {
                     logger.info("## " + file.getName() + " not a TIFF image ("
                             + ex.getMessage() + "); trying generic decoding... ");
                 }
-            }
+           }
         }
         return decode(ImageIO.read(file));
     }
