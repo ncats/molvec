@@ -1722,6 +1722,10 @@ public class ConnectionTable{
 					.collect(Collectors.toList());
 			
 		}
+
+		public Point2D getCenterPoint() {
+			return GeomUtil.findCenterOfShape(this.getLine());
+		}
 		
 	}
 	public Optional<Edge> getEdgeBetweenNodes(Node n1, Node n2){
@@ -2018,6 +2022,7 @@ public class ConnectionTable{
 	public ConnectionTable simpleClean(){
 		this.nodes.stream()
 		          .filter(n->n.getEdgeCount()==3)
+		          .filter(n->!n.isInvented())
 		          .filter(n->n.getEdges().stream().filter(e->e.getOrder()>1).map(e->e.getOtherNode(n).getSymbol()).anyMatch(s->!"C".equals(s)))
 		          .filter(n->n.getSmallestRingSize().orElse(999)>4)
 		          .forEach(n->{

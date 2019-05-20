@@ -73,6 +73,7 @@ import gov.nih.ncats.molvec.algo.CentroidEuclideanMetric;
 import gov.nih.ncats.molvec.algo.NearestNeighbors;
 import gov.nih.ncats.molvec.algo.StructureImageExtractor;
 import gov.nih.ncats.molvec.algo.Tuple;
+import gov.nih.ncats.molvec.image.binarization.RangeFractionThreshold;
 import gov.nih.ncats.molvec.util.ConnectionTable;
 import gov.nih.ncats.molvec.util.GeomUtil;
 
@@ -107,13 +108,14 @@ public class Viewer extends JPanel
 
     
     static Color[] colors = new Color[]{
-    		Color.black,
+    		
     		Color.RED,
-    		Color.GREEN,
-    		Color.BLUE,
-    		Color.YELLOW,
-    		Color.MAGENTA,
-    		Color.ORANGE
+    		Color.black,
+    		//Color.GREEN,
+//    		Color.BLUE,
+//    		Color.YELLOW,
+//    		Color.MAGENTA,
+//    		Color.ORANGE
         //Color.red, Color.blue, Color.black
     };
 
@@ -330,6 +332,9 @@ public class Viewer extends JPanel
     }
 
     public void load (File file) throws Exception {
+//    	File f = File.createTempFile("tmpImgViewer", ".png");
+//    	file = stdResize(file,f,0.6);
+//    	StructureImageExtractor.DEF_BINARIZATION=new RangeFractionThreshold();
         load (file, Math.min(sx, sy));
     }
 
@@ -369,7 +374,65 @@ public class Viewer extends JPanel
         repaint ();
     }
     
-    
+	private static File stdResize(File f, File imageFile, double scale) throws IOException{
+		
+		
+		RenderedImage ri = Bitmap.readToImage(f);
+		
+		int nwidth=(int) (ri.getWidth() *scale);
+		int nheight=(int) (ri.getHeight() *scale);
+		
+        // creates output image
+        BufferedImage outputImage = new BufferedImage(nwidth,
+                nheight,ColorModel.BITMASK);
+ 
+        // scales the input image to the output image
+        Graphics2D g2d = outputImage.createGraphics();
+        
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+        	       RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g2d.scale(scale, scale);
+        g2d.drawImage(convertRenderedImage(ri), 0, 0,null);
+        g2d.dispose();
+        
+        for (int x = 0; x < outputImage.getWidth(); x++) {
+            for (int y = 0; y < outputImage.getHeight(); y++) {
+                int rgba = outputImage.getRGB(x, y);
+                Color col = new Color(rgba, true);
+                col = new Color(255 - col.getRed(),
+                                255 - col.getGreen(),
+                                255 - col.getBlue());
+                outputImage.setRGB(x, y, col.getRGB());
+            }
+        }
+        
+
+		ImageIO.write(outputImage, "png", imageFile);
+		return imageFile;
+	}
+	public static BufferedImage convertRenderedImage(RenderedImage img) {
+	    if (img instanceof BufferedImage) {
+	        return (BufferedImage)img;  
+	    }   
+	    ColorModel cm = img.getColorModel();
+	    int width = img.getWidth();
+	    int height = img.getHeight();
+	    WritableRaster raster = cm.createCompatibleWritableRaster(width, height);
+	    boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
+	    Hashtable properties = new Hashtable();
+	    String[] keys = img.getPropertyNames();
+	    if (keys!=null) {
+	        for (int i = 0; i < keys.length; i++) {
+	            properties.put(keys[i], img.getProperty(keys[i]));
+	        }
+	    }
+	    BufferedImage result = new BufferedImage(cm, raster, isAlphaPremultiplied, properties);
+	    img.copyData(raster);
+	    return result;
+	}
+	
 
     @Override
     protected void paintComponent (Graphics g) {
@@ -1034,6 +1097,22 @@ public class Viewer extends JPanel
                 hbox2.add(Box.createHorizontalGlue());
                 toolbar.add(hbox2);
            }
+            {
+              	 Box hbox2 = Box.createHorizontalBox();
+                   hbox2.add(new JLabel ("Thresh 100"));
+                   hbox2.add(Box.createHorizontalStrut(5));
+                   JSpinner spinner2 = new JSpinner 
+                       (new SpinnerNumberModel (50, 0, 100, 1));
+                   spinner2.addChangeListener(e->{
+                	
+                   StructureImageExtractor.DEF_BINARIZATION=new RangeFractionThreshold(((Number)spinner2.getValue()).intValue()/100.0);
+                   	
+                   	//viewer.resetAndRepaint();
+                   });
+                   hbox2.add(spinner2);
+                   hbox2.add(Box.createHorizontalGlue());
+                   toolbar.add(hbox2);
+              }
             
             {
 	            toolbar.addSeparator();

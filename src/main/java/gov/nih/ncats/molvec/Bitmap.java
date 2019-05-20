@@ -56,11 +56,12 @@ import com.sun.media.jai.codec.TIFFEncodeParam;
 import com.sun.media.jai.codec.TIFFField;
 
 import gov.nih.ncats.molvec.algo.Tuple;
+import gov.nih.ncats.molvec.image.Binarization;
 import gov.nih.ncats.molvec.image.ImageUtil;
 import gov.nih.ncats.molvec.image.TiffTags;
 import gov.nih.ncats.molvec.image.binarization.AdaptiveThreshold;
+import gov.nih.ncats.molvec.image.binarization.ImageStats;
 import gov.nih.ncats.molvec.image.binarization.SigmaThreshold;
-import gov.nih.ncats.molvec.image.binarization.SigmaThreshold.ImageStats;
 import gov.nih.ncats.molvec.util.GeomUtil;
 import gov.nih.ncats.molvec.util.GeomUtil.LineDistanceCalculator;
 import gov.nih.ncats.molvec.util.GeomUtil.LineWrapper;
@@ -607,7 +608,7 @@ public class Bitmap implements Serializable, TiffTags {
         ;
 
         public Point2D[] dominantPoints (double threshold) {
-            // break points are candiates for dominant points
+            // break points are candidates for dominant points
             List<AEV> breaks = new ArrayList<AEV> ();
             Point2D[] cc = getCoords ();
 
@@ -685,12 +686,16 @@ public class Bitmap implements Serializable, TiffTags {
                 }
             }
 
+            
+            //This part can be optimized a little, as the 
+            //as it does a few unncessary recalculations
             while (min.k >= 0 && min.dist <= threshold) {
                 //logger.info("removing break "+min.k+" "+min.dist);
                 breaks.remove (min.k);
 
                 min.dist = Double.MAX_VALUE;
                 min.k = -1;
+
                 for (int i = 0; i < breaks.size (); ++i) {
                     AEV b = calcAEV (i, breaks, cc, closed);
                     if (min.k < 0 || b.dist < min.dist) {
@@ -727,6 +732,7 @@ public class Bitmap implements Serializable, TiffTags {
         }
 
         // calculate squared distance from pk to line pj-pi
+        // this is the same as a rejection
         static double sqDist (Point2D pk, Point2D pi, Point2D pj) {
             double a = (pk.getX () - pi.getX ()) * (pj.getY () - pi.getY ())
                 - (pk.getY () - pi.getY ()) * (pj.getX () - pi.getX ());
@@ -871,7 +877,7 @@ public class Bitmap implements Serializable, TiffTags {
     }); //distance to nearest pixel*4
     
     
-    public static Bitmap createBitmap (Raster raster, double sigma) {
+    public static Bitmap createBitmap (Raster raster, Binarization bb) {
         SampleModel model = raster.getSampleModel();
         int band = model.getNumBands ();
         if (band > 1) {
@@ -883,7 +889,8 @@ public class Bitmap implements Serializable, TiffTags {
         ImageStats[] is = new ImageStats[]{null};
         
         
-        Bitmap bm= new SigmaThreshold (sigma).binarize(raster, stat->{
+        
+        Bitmap bm= bb.binarize(raster, stat->{
         	is[0]=stat;
         });
         
@@ -904,13 +911,13 @@ public class Bitmap implements Serializable, TiffTags {
         }
         
 //print histogram    
-//      for(int i=0;i<is[0].histogram.length;i++){
-//  		System.out.println(i + "\t" + is[0].histogram[i]);
-//  	}
-//  	System.out.println("Threshold:" + tPct);
-//  	System.out.println("Min Threshold:" + tPctMinSig);
-//  	System.out.println("Max Threshold:" + tPctMaxSig);
-//  
+        for(int i=0;i<is[0].histogram.length;i++){
+        	System.out.println(i + "\t" + is[0].histogram[i]);
+        }
+        System.out.println("Threshold:" + tPct);
+        System.out.println("Min Threshold:" + tPctMinSig);
+        System.out.println("Max Threshold:" + tPctMaxSig);
+  
         //If there's a little uncertainty about where to draw the threshold line, try
         //the adaptive threshold, possibly
         if(count> countOn*0.1 || count> (is[0].count-countOn)*0.1){
@@ -1171,28 +1178,25 @@ public class Bitmap implements Serializable, TiffTags {
     	return clone;
     }
 
-    public static Bitmap read (byte[] file, double sigma) throws IOException {
+    public static Bitmap read (byte[] file, Binarization bb) throws IOException {
     	   try {
                return readtif (new ByteArraySeekableStream(file));
            }
            catch (Exception ex) {
-               return createBitmap (ImageUtil.grayscale(file).getData(),sigma);
+               return createBitmap (ImageUtil.grayscale(file).getData(),bb);
            }
     }
-    public static Bitmap read (byte[] file) throws IOException {
-    	return read(file,1.2);
-    }
-    public static Bitmap read (File file, double sigma) throws IOException {
+    public static Bitmap read (File file, Binarization bb) throws IOException {
         try {
             return readtif (file);
         }
         catch (Exception ex) {
-            return createBitmap (ImageUtil.grayscale(file).getData(), sigma);
+            return createBitmap (ImageUtil.grayscale(file).getData(), bb);
         }
     }
     
-    public static Bitmap read (BufferedImage bi, double sigma) {
-    	 return createBitmap (ImageUtil.grayscale(bi).getData(),sigma);
+    public static Bitmap read (BufferedImage bi, Binarization bb) {
+    	 return createBitmap (ImageUtil.grayscale(bi).getData(),bb);
     }
     
     
@@ -1922,11 +1926,13 @@ public class Bitmap implements Serializable, TiffTags {
 	    for (List<Point> pts : coords.values ()) {
 	    	Point2D[] ptsadjusted=pts.stream()
 	    	    .flatMap(pt->{
-	    	    	return Stream.of(new Point2D.Double(pt.getX(),pt.getY())
-	    	    					 //,new Point2D.Double(pt.getX()+1,pt.getY()),
-	    	    					 //,new Point2D.Double(pt.getX()+1,pt.getY()+1),
-	    	    					 //,new Point2D.Double(pt.getX(),pt.getY()+1
-	    	    			);
+	    	    	return Stream.of(new Point2D.Double(pt.getX(),pt.getY()));
+	    	    	
+//	    	    	return Stream.of(new Point2D.Double(pt.getX()-0.5,pt.getY()-0.5)
+//	    	    					 ,new Point2D.Double(pt.getX()-0.5,pt.getY()+0.5)
+//	    	    					 ,new Point2D.Double(pt.getX()+0.5,pt.getY()-0.5)
+//	    	    					 ,new Point2D.Double(pt.getX()+0.5,pt.getY()+0.5)
+//	    	    			);
 	    	    })
 	    	    .toArray(i->new Point2D[i]);
 	    	Shape hull = GeomUtil.convexHull2 (ptsadjusted);
@@ -2416,10 +2422,7 @@ public class Bitmap implements Serializable, TiffTags {
 			         .map(t->t.withKComparatorMap(lu->lu.getAbsoluteClosestDistance()))
 			         .sorted()
 			         .filter(t->{
-			        	 LineWrapper line2=lines.get(t.v());
 			        	 double dist=t.k().getAbsoluteClosestDistance();
-			        	 //if(alreadyMerged.clines.get(t.v())
-			        	
 			        	 return dist<maxMinDistance; 
 			         })
 			         .filter(t->{
@@ -2554,7 +2557,9 @@ public class Bitmap implements Serializable, TiffTags {
                 pt = seq.add (Nb.iterator ().next ());
             } else {
                 // multiple choice; pick best one based on the following
-                //  rule: select the one for which
+                //  rule: select the yet-unseen one for which
+            	//  the change in direction OR number of neighbor neighbors is minimized
+            	// 
                 ChainCode best = null;
                 EnumSet<ChainCode> bestNq = null;
 

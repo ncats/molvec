@@ -17,7 +17,6 @@ import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.sql.Date;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -61,11 +60,11 @@ import gov.nih.ncats.chemkit.api.inchi.Inchi;
 import gov.nih.ncats.molvec.Bitmap;
 import gov.nih.ncats.molvec.Molvec;
 import gov.nih.ncats.molvec.algo.ShellCommandRunner.Monitor;
+import gov.nih.ncats.molvec.image.binarization.RangeFractionThreshold;
 import gov.nih.ncats.molvec.util.GeomUtil;
 
 public class RegressionTestIT {
 	
-	private static double IMAGO_SCALE = 1;
 	
 	
 	private static boolean DO_ALIGN = false;
@@ -209,42 +208,19 @@ public class RegressionTestIT {
 		
 		return fc;
 	}
-	public static BufferedImage convertRenderedImage(RenderedImage img) {
-	    if (img instanceof BufferedImage) {
-	        return (BufferedImage)img;  
-	    }   
-	    ColorModel cm = img.getColorModel();
-	    int width = img.getWidth();
-	    int height = img.getHeight();
-	    WritableRaster raster = cm.createCompatibleWritableRaster(width, height);
-	    boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
-	    Hashtable properties = new Hashtable();
-	    String[] keys = img.getPropertyNames();
-	    if (keys!=null) {
-	        for (int i = 0; i < keys.length; i++) {
-	            properties.put(keys[i], img.getProperty(keys[i]));
-	        }
-	    }
-	    BufferedImage result = new BufferedImage(cm, raster, isAlphaPremultiplied, properties);
-	    img.copyData(raster);
-	    return result;
-	}
-	
+
 	public static Chemical getImagoChemical(File f) throws IOException, InterruptedException{
 		AtomicBoolean done=new AtomicBoolean(false);
 		
 		
-		double scale=IMAGO_SCALE;
 		
 		
 		String fname = UUID.randomUUID().toString();
 		
 		File imageFile = File.createTempFile(fname, ".png");
 		File molFile = File.createTempFile(fname, ".mol");
-		
-		imageFile=stdResize(f, imageFile, scale);
-		
-		
+		imageFile=stdResize(f, imageFile, 1);
+				
 		String tmpFileNameImage = imageFile.getAbsolutePath();
 		String tmpFileNameMol = molFile.getAbsolutePath();
 		
@@ -703,7 +679,10 @@ public class RegressionTestIT {
         
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        g2d.drawImage(convertRenderedImage(ri), 0, 0, nwidth, nheight, null);
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+        	       RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g2d.scale(scale, scale);
+        g2d.drawImage(convertRenderedImage(ri), 0, 0,null);
         g2d.dispose();
         
         for (int x = 0; x < outputImage.getWidth(); x++) {
@@ -721,6 +700,27 @@ public class RegressionTestIT {
 		ImageIO.write(outputImage, "png", imageFile);
 		return imageFile;
 	}
+	public static BufferedImage convertRenderedImage(RenderedImage img) {
+	    if (img instanceof BufferedImage) {
+	        return (BufferedImage)img;  
+	    }   
+	    ColorModel cm = img.getColorModel();
+	    int width = img.getWidth();
+	    int height = img.getHeight();
+	    WritableRaster raster = cm.createCompatibleWritableRaster(width, height);
+	    boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
+	    Hashtable properties = new Hashtable();
+	    String[] keys = img.getPropertyNames();
+	    if (keys!=null) {
+	        for (int i = 0; i < keys.length; i++) {
+	            properties.put(keys[i], img.getProperty(keys[i]));
+	        }
+	    }
+	    BufferedImage result = new BufferedImage(cm, raster, isAlphaPremultiplied, properties);
+	    img.copyData(raster);
+	    return result;
+	}
+	
 	
 	public static TestResult testMolecule(File image, File sdf){
 		return testMolecule(image, sdf, 60, Method.MOLVEC.adapt());
@@ -972,25 +972,54 @@ public class RegressionTestIT {
 	public void test1() throws FileNotFoundException{
 		
 		
+//		testSet("uspto", Method.MOLVEC.adapt().rmse(true));
 		//All data sets stats
 		
-		testSet("maybridge", Method.MOLVEC.adapt());
-
-		testSet("usan", Method.MOLVEC.adapt().scale(0.5));
-//		
+//		for(int j=0;j<20;j++){
+//			double sig = (j-10)/5.0;
+//			StructureImageExtractor.THRESH_STDEV=sig;
+//			for(int i=10;i<=10;i++){
+//				testSet("trec", Method.MOLVEC.adapt().limit(10).suffix("_sig[" + sig + "]").scale(i/10.0));
+//			}
+//		}
+		
+//		testSet("usan", Method.OSRA.adapt().scale(0.5));
+//		testSet("maybridge", Method.MOLVEC.adapt());
 //		testSet("trec", Method.MOLVEC.adapt());
 //		testSet("uspto", Method.MOLVEC.adapt());
 //		testSet("testSet1", Method.MOLVEC.adapt());
 //		testSet("usan", Method.MOLVEC.adapt());
+//		testSet("usan", Method.MOLVEC.adapt().scale(0.5));
+		
+		
 //		
-//		
-//		testSet("trec", Method.MOLVEC.adapt().rmse(true));
-//		testSet("uspto", Method.MOLVEC.adapt().rmse(true));
-//		
-//		
+////		testSet("uspto", Method.MOLVEC.adapt().rmse(true));
+////		
+////		
+//		for(int i=3;i<=20;i++){
+//			testSet("trec", Method.IMAGO.adapt().scale(i/10.0));
+//		}
 //		for(int i=3;i<=20;i++){
 //			testSet("trec", Method.MOLVEC.adapt().scale(i/10.0));
 //		}
+//		for(int i=4;i<=20;i++){
+//			testSet("trec", Method.OSRA.adapt().scale(i/10.0));
+//		}
+//		
+		
+		for(int j=1;j<20;j++){
+			double sig = j*5.0;
+			StructureImageExtractor.DEF_BINARIZATION = new RangeFractionThreshold(sig/100.0);
+			StructureImageExtractor.RESIZE_BINARIZATION = new RangeFractionThreshold(sig/100.0);
+			
+			for(int i=3;i<=10;i++){
+				testSet("trec", Method.MOLVEC.adapt().limit(100).suffix("_sig[" + sig + "]").scale(i/10.0));
+			}
+		}
+		
+//		testSet("usan", Method.MOLVEC.adapt());
+//		testSet("usan", Method.MOLVEC.adapt().scale(0.5));
+//		
 		
 		//testSet("uspto",true);
 
@@ -1054,6 +1083,7 @@ public class RegressionTestIT {
 		double scale = 1;		
 		long max = Long.MAX_VALUE;
 		boolean RMSE = false;
+		String suffix =""; 
 		
 		
 		
@@ -1063,6 +1093,10 @@ public class RegressionTestIT {
 		
 		public MethodAdapted scale(double s){
 			this.scale=s;
+			return this;
+		}
+		public MethodAdapted suffix(String suf){
+			this.suffix=suf;
 			return this;
 		}
 		
@@ -1094,7 +1128,11 @@ public class RegressionTestIT {
 		}
 		
 		public String toString(){
-			return this.method.toString() + "_" + scale + "x" + ((RMSE)?"_RMSE":"");
+			String limitAdd = "";
+			if(this.max<Long.MAX_VALUE){
+				limitAdd = "_limit_"+this.max;
+			}
+			return this.method.toString() + "_" + scale + "x" + ((RMSE)?"_RMSE":"" + limitAdd + suffix);
 		}
 		
 	}

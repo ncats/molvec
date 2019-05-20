@@ -10,26 +10,18 @@ import gov.nih.ncats.molvec.image.Binarization;
 /*
  * Simple threshold based on full image mean and standard deviation. 
  */
-public class SigmaThreshold implements Binarization {
-
-    static final Logger logger = Logger.getLogger(SigmaThreshold.class.getName());
-    public static double DEFAULT_SIGMA_THRESHOLD = 1.2;
-
-    public static final double DEFAULT_MIN_THRESHOLD_RATIO = 0.1;
-    public static final double DEFAULT_MAX_THRESHOLD_RATIO = 0.9;
+public class RangeFractionThreshold implements Binarization {
+    public static double DEFAULT_FRACTION = 0.26;
     
-    private double sigma;
+    private double pct;
     
-    public SigmaThreshold () {
-        this (DEFAULT_SIGMA_THRESHOLD);
+    public RangeFractionThreshold () {
+        this (DEFAULT_FRACTION);
     }
 
-    public SigmaThreshold (double sigma) {
-        this.sigma = sigma;
+    public RangeFractionThreshold (double pct) {
+        this.pct = pct;
     }
-
-    public void setSigma (double sigma) { this.sigma = sigma; }
-    public double getSigma () { return sigma; }
 
     
     public Bitmap binarize (Raster inRaster) {
@@ -83,22 +75,21 @@ public class SigmaThreshold implements Binarization {
         }
         double meanTop = sumTop / (double)countAbove;
         double meanBottom = sumBottom / (double)countBelow;
-        double threshold=mean;
+      
+        
+        double threshold = mean;
+        
+        stats.min=min;
+        stats.max=max;
+        stats.mean=mean;
+        stats.stdev=stdDEV;
+        stats.count=bm.width()*bm.height();
+        
+        threshold = stats.min + (stats.max-stats.min)*pct;
+        stats.threshold=threshold;
         
         
-        threshold = mean + stdDEV * sigma;
         
-        if(threshold>max || threshold<min){
-        	//determine whether inverted
-	        if(countAbove>countBelow){
-	        	threshold = Math.min(meanBottom + stdDEV * sigma,max);
-	        }else if(countAbove<countBelow){
-	        	threshold = Math.max(meanTop - stdDEV * sigma, min);
-	        }	
-        }
-        
-        threshold = Math.max(threshold,min+(max-min)*DEFAULT_MIN_THRESHOLD_RATIO);
-        threshold = Math.min(threshold,min+(max-min)*DEFAULT_MAX_THRESHOLD_RATIO);
         
         for (int y = 0; y < bm.height(); ++y) {
             for (int x = 0; x < bm.width(); ++x) {
@@ -106,12 +97,7 @@ public class SigmaThreshold implements Binarization {
                 bm.set (x, y, pel >= threshold);
             }
         }
-        stats.min=min;
-        stats.max=max;
-        stats.mean=mean;
-        stats.stdev=stdDEV;
-        stats.threshold=threshold;
-        stats.count=bm.width()*bm.height();
+      
         cons.accept(stats);
         
         return bm;

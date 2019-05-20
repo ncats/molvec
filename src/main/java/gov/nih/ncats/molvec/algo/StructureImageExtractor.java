@@ -15,9 +15,7 @@ import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -45,8 +43,9 @@ import javax.imageio.ImageIO;
 
 import gov.nih.ncats.molvec.Bitmap;
 import gov.nih.ncats.molvec.Bitmap.WedgeInfo;
-import gov.nih.ncats.molvec.image.ImageUtil;
 import gov.nih.ncats.molvec.CachedSupplier;
+import gov.nih.ncats.molvec.image.Binarization;
+import gov.nih.ncats.molvec.image.binarization.SigmaThreshold;
 import gov.nih.ncats.molvec.ui.FontBasedRasterCosineSCOCR;
 import gov.nih.ncats.molvec.ui.SCOCR;
 import gov.nih.ncats.molvec.ui.StupidestPossibleSCOCRSansSerif;
@@ -183,7 +182,7 @@ public class StructureImageExtractor {
 	private final double MIN_BIGGER_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS=.25;
 	private final double MAX_ANGLE_FOR_PARALLEL=10.0 * Math.PI/180.0;
 
-	private final double MIN_ST_DEV_FOR_KEEPING_DASHED_LINES=0.07;
+	private final double MIN_ST_DEV_FOR_KEEPING_DASHED_LINES=0.50;
 
 
 
@@ -198,6 +197,18 @@ public class StructureImageExtractor {
 	//This is a newish feature, and it slows things down. Turn off if speed is needed.
 	private final boolean PRE_RESCUE_OCR = true;
 
+	//This feature tends to make very minor aesthetic adjustments and may not be necessary
+	private final boolean DO_HEX_GRID_MICRO_ALIGNMENT = true;
+	
+	
+	public static double THRESH_STDEV = 1.2;
+	private static double THRESH_STDEV_RESIZE = 1.9;
+
+	public static Binarization DEF_BINARIZATION = new SigmaThreshold(THRESH_STDEV);
+	public static Binarization RESIZE_BINARIZATION = new SigmaThreshold(THRESH_STDEV_RESIZE);
+	
+	
+	
 	/**
 	 * Create a new extractor from the given bufferedImage.
 	 * @param bufferedImage
@@ -213,6 +224,9 @@ public class StructureImageExtractor {
 
 	}
 
+
+	
+	
 	/**
 	 * Convert the given BufferdImage into a new GrayScaled image.
 	 * the input image is not modified.
@@ -235,7 +249,7 @@ public class StructureImageExtractor {
 	}
 	public StructureImageExtractor(Raster raster, boolean debug )throws Exception{
 		this.DEBUG = debug;
-		load(Bitmap.createBitmap(raster,1.2));
+		load(Bitmap.createBitmap(raster,DEF_BINARIZATION));
 	}
 	public StructureImageExtractor(byte[] file, boolean debug) throws Exception{
 		this.DEBUG=debug;
@@ -696,24 +710,67 @@ public class StructureImageExtractor {
 
 	private void load(byte[] file) throws Exception{
 		try{
-			load(bitmap = Bitmap.read(file).clean());
+			load(bitmap = Bitmap.read(file,DEF_BINARIZATION).clean());
 		}catch(ImageTooSmallException e){
 			File bi= stdResize(file,3);
-			load(bitmap = Bitmap.read(bi,1.65).clean());
+			load(bitmap = Bitmap.read(bi,RESIZE_BINARIZATION).clean());
 		}
 
 	}
 	private void load(File file) throws Exception{
 		try{
-			load(bitmap = Bitmap.read(file,1.2).clean());
+			load(bitmap = Bitmap.read(file,DEF_BINARIZATION).clean());
 		}catch(ImageTooSmallException e){
 			File bi= stdResize(file,3);
-			load(bitmap = Bitmap.read(bi,1.65).clean());
+			load(bitmap = Bitmap.read(bi,RESIZE_BINARIZATION).clean());
 		}
 
 	}
-	
-	private static BufferedImage convertRenderedImage(RenderedImage img) {
+	private static File stdResize(File f , double scale) throws IOException{
+		return stdResize(Bitmap.readToImage(f),scale);
+	}
+	private static File stdResize(byte[] f , double scale) throws IOException{
+		return stdResize(Bitmap.readToImage(f),scale);
+	}
+	private static File stdResize(RenderedImage ri , double scale) throws IOException{
+		
+		
+		int nwidth=(int) (ri.getWidth() *scale);
+		int nheight=(int) (ri.getHeight() *scale);
+		
+        // creates output image
+        BufferedImage outputImage = new BufferedImage(nwidth,
+                nheight,ColorModel.BITMASK);
+ 
+        // scales the input image to the output image
+        Graphics2D g2d = outputImage.createGraphics();
+        
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+        	       RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g2d.scale(scale, scale);
+        g2d.drawImage(convertRenderedImage(ri), 0, 0,null);
+        g2d.dispose();
+        
+        for (int x = 0; x < outputImage.getWidth(); x++) {
+            for (int y = 0; y < outputImage.getHeight(); y++) {
+                int rgba = outputImage.getRGB(x, y);
+                Color col = new Color(rgba, true);
+                col = new Color(255 - col.getRed(),
+                                255 - col.getGreen(),
+                                255 - col.getBlue());
+                outputImage.setRGB(x, y, col.getRGB());
+            }
+        }
+        
+
+		File tfile = File.createTempFile("tmp", ".png");
+		ImageIO.write(outputImage, "png", tfile);
+
+		return tfile;
+	}
+	public static BufferedImage convertRenderedImage(RenderedImage img) {
 	    if (img instanceof BufferedImage) {
 	        return (BufferedImage)img;  
 	    }   
@@ -732,76 +789,6 @@ public class StructureImageExtractor {
 	    BufferedImage result = new BufferedImage(cm, raster, isAlphaPremultiplied, properties);
 	    img.copyData(raster);
 	    return result;
-	}
-    private static File stdResize(File f,double scale) throws IOException{
-		
-		
-		RenderedImage ri = Bitmap.readToImage(f);
-		
-		int nwidth=(int) (ri.getWidth() *scale);
-		int nheight=(int) (ri.getHeight() *scale);
-		
-        // creates output image
-        BufferedImage outputImage = new BufferedImage(nwidth,
-                nheight,ColorModel.BITMASK);
- 
-        // scales the input image to the output image
-        Graphics2D g2d = outputImage.createGraphics();
-        
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        g2d.drawImage(convertRenderedImage(ri), 0, 0, nwidth, nheight, null);
-        g2d.dispose();
-        
-        for (int x = 0; x < outputImage.getWidth(); x++) {
-            for (int y = 0; y < outputImage.getHeight(); y++) {
-                int rgba = outputImage.getRGB(x, y);
-                Color col = new Color(rgba, true);
-                col = new Color(255 - col.getRed(),
-                                255 - col.getGreen(),
-                                255 - col.getBlue());
-                outputImage.setRGB(x, y, col.getRGB());
-            }
-        }
-        File tfile = File.createTempFile("tmp", ".png");
-		ImageIO.write(outputImage, "png", tfile);
-
-		return tfile;
-	}
-    private static File stdResize(byte[] f,double scale) throws IOException{
-		
-		
-		RenderedImage ri = Bitmap.readToImage(f);
-		
-		int nwidth=(int) (ri.getWidth() *scale);
-		int nheight=(int) (ri.getHeight() *scale);
-		
-        // creates output image
-        BufferedImage outputImage = new BufferedImage(nwidth,
-                nheight,ColorModel.BITMASK);
- 
-        // scales the input image to the output image
-        Graphics2D g2d = outputImage.createGraphics();
-        
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        g2d.drawImage(convertRenderedImage(ri), 0, 0, nwidth, nheight, null);
-        g2d.dispose();
-        
-        for (int x = 0; x < outputImage.getWidth(); x++) {
-            for (int y = 0; y < outputImage.getHeight(); y++) {
-                int rgba = outputImage.getRGB(x, y);
-                Color col = new Color(rgba, true);
-                col = new Color(255 - col.getRed(),
-                                255 - col.getGreen(),
-                                255 - col.getBlue());
-                outputImage.setRGB(x, y, col.getRGB());
-            }
-        }
-        File tfile = File.createTempFile("tmp", ".png");
-		ImageIO.write(outputImage, "png", tfile);
-
-		return tfile;
 	}
 	
 	private boolean DEBUG=false;
@@ -997,7 +984,7 @@ public class StructureImageExtractor {
 			thin=bitmap.thin();
 			polygons = bitmap.connectedComponents(Bitmap.Bbox.DoublePolygon);
 		}else if(!blurred){
-
+//
 			//look for tiny polygons that might be broken apart
 			
 			List<Shape> toRemoveShape = new ArrayList<>();
@@ -1029,7 +1016,7 @@ public class StructureImageExtractor {
 			if(combined.size() >= 2){
 				Bitmap bm2=new Bitmap.BitmapBuilder(bitmap).boxBlur(1).threshold(1).build();
 				
-				polygons = bm2.connectedComponents(Bitmap.Bbox.DoublePolygon);
+				List<Shape> npolys = bm2.connectedComponents(Bitmap.Bbox.DoublePolygon);
 
 				Bitmap bmold=bitmap;
 				combined.stream()
@@ -1037,7 +1024,20 @@ public class StructureImageExtractor {
 						.forEach(ss->{
 							bmold.paste(bm2,ss);
 						});
-				
+				Set<Shape> toAdd = new HashSet<Shape>();
+				Set<Shape> toRem = new HashSet<Shape>();
+				combined.stream()
+					.map(ss->GeomUtil.growShapeHex(ss.getBounds2D(), 10))
+					.forEach(ss->{
+						npolys.stream()
+						      .filter(sn->GeomUtil.intersects(ss, sn))
+						      .forEach(sn->toAdd.add(sn));
+						polygons.stream()
+					      .filter(sn->GeomUtil.intersects(ss, sn))
+					      .forEach(sn->toRem.add(sn));
+					});
+				polygons.removeAll(toRem);
+				polygons.addAll(toAdd);
 				
 			}
 		}
@@ -1329,8 +1329,6 @@ public class StructureImageExtractor {
 
 			Predicate<Line2D> tryToMerge = isInOCRShape.negate().and((l)->{
 				return true;
-
-				//return LineUtil.length(l)<largestBond;
 			});
 
 			List<Line2D> useLines = lines.stream()
@@ -2673,6 +2671,9 @@ public class StructureImageExtractor {
 						val=val.replaceAll("[cC][tlI][8]", "Cl3");
 					}
 					
+					
+//					System.out.println("Got:" + val);
+					
 					BranchNode bn = BranchNode.interpretOCRStringAsAtom2(val);
 					
 					//sometimes the letters it chooses are kinda weird ... and it should know better based on context
@@ -3360,7 +3361,11 @@ public class StructureImageExtractor {
 
 			if(DEBUG)logState(24,"remove bonds that form triangles if the triangle isn't roughly equilateral and nothing is expected to be a cage");
 			
-//
+
+			//edges which are dashes now might not be dash supported later
+			//need to do something about that
+			
+			
 //			ctab.getDashLikeScoreForAllEdges(bitmap,likelyOCR)
 //			.forEach(t->{
 //				if(t.v()<MIN_ST_DEV_FOR_KEEPING_DASHED_LINES && t.k().getDashed()){
@@ -4389,6 +4394,9 @@ public class StructureImageExtractor {
 			
 			//Find floating methyls
 			
+			List<Point2D> centerOfExplicitDashes = new ArrayList<Point2D>();
+			
+			
 			
 			List<Shape> dashShapes = new ArrayList<Shape>();
 			List<List<Node>> toMergeNodes = new ArrayList<>();
@@ -4466,6 +4474,7 @@ public class StructureImageExtractor {
 												}
 												if(!ee.getDashed()){
 													ee.setDashed(true);
+													centerOfExplicitDashes.add(ee.getCenterPoint());
 												}
 											});;
 											
@@ -4582,11 +4591,13 @@ public class StructureImageExtractor {
 							                   .isPresent();
 							if(isDotted){
 								e.setDashed(true);
+								centerOfExplicitDashes.add(e.getCenterPoint());
 							}else{
 							
 								if(isDash.isPresent()){
 									
 									e.setDashed(true);
+									centerOfExplicitDashes.add(e.getCenterPoint());
 									if(e.getOrder()!=1){
 										if(e.getRealNode1().getSymbol().equals("C") && e.getRealNode2().getSymbol().equals("C")){
 												//do nothing
@@ -4609,20 +4620,36 @@ public class StructureImageExtractor {
 										if(e.getDashed() && e.getOrder()==1){
 											//Keep it _only_ if there are 
 											//at least 3 lines that are found in the area around the bond
-											double grow=ctab.getAverageBondLength()*0.1;
+											double grow=ctab.getAverageBondLength()*0.15;
 											Shape lshape=useLine.growLine(grow);
-											List<Shape> lineShapes=lines.stream()
+											List<Tuple<Shape,LineWrapper>> lineShapes=lines.stream()
 											     .filter(l->!bestGuessOCR.keySet().stream().filter(ss->ss.contains(l.centerPoint())).findAny().isPresent())
-											     .filter(l->l.absCosTheta(useLine)>0.8)
+//											     .filter(l->l.absCosTheta(useLine)>0.8)
 											     .filter(l->lshape.contains(l.centerPoint()))
-											     .map(l->l.growLine(grow))
+											     .map(l->Tuple.of(l.growLine(grow),l))
 											     .collect(Collectors.toList());
 											
 											if(lineShapes.size()<3){
-												e.setDashed(false);
+												if(lineShapes.size()>=1){
+													//there might be other polygons in the way too though
+													long cc = polygons.stream()
+													        .filter(ss->GeomUtil.area(ss.getBounds2D()) < ctab.getAverageBondLength()*ctab.getAverageBondLength())
+															.filter(ss->lshape.contains(GeomUtil.centerOfMass(ss)))
+															.filter(ss->!lineShapes.stream()
+																	               .anyMatch(ls->ss.contains(ls.v().centerPoint()))
+																	            		   )
+															.count();
+													if(cc + lineShapes.size()<3){
+														e.setDashed(false);
+													}
+//												        
+												}else{
+													e.setDashed(false);
+												}
+//												e.setDashed(false);
 											}else{
 												double tarea=lineShapes.stream()
-												                       .mapToDouble(s->GeomUtil.area(s))
+												                       .mapToDouble(s->GeomUtil.area(s.k()))
 												                       .sum();
 												if(tarea>0.7*GeomUtil.area(lshape)){
 													e.setDashed(false);
@@ -4756,7 +4783,9 @@ public class StructureImageExtractor {
 						if(found){
 							ctab.addEdge(t1.k().getIndex(), t1.v().getIndex(), 1);
 							Edge e=ctab.getEdges().get(ctab.getEdges().size()-1);
+							
 							e.setDashed(true);
+							centerOfExplicitDashes.add(e.getCenterPoint());
 						}
 					});
 			if(DEBUG)logState(44,"add dashed bond to nodes that are close enough and have 2 or more small shapes along the line between them");
@@ -4859,6 +4888,8 @@ public class StructureImageExtractor {
 			    	//Shape p2=GeomUtil.convexHull2(GeomUtil.makeNPolyCenteredAt(center, 6, ctab.getAverageBondLength()));
 			    	Point2D anchor = r.getNodes().stream()
 			    			          .map(n->Tuple.of(n, n.getPoint().distance(center)).withVComparator())
+			    			          .sorted(Comparator.reverseOrder())
+			    			          .skip(1)
 			    			          .max(Comparator.naturalOrder())
 			    			          .map(t->t.k().getPoint())
 			    			          .orElse(null);
@@ -4882,7 +4913,24 @@ public class StructureImageExtractor {
 			    });
 
 			if(DEBUG)logState(48,"resize/stretch aromatic rings to be planar");
+
+			//fix dashes which might not have had support
+			//but only if they're over-specified
 			
+			ctab.getEdges()
+			    .stream()
+			    .filter(e->e.getDashed())
+			    .map(e->Tuple.of(e,e.getCenterPoint()))
+			    .filter(et->!centerOfExplicitDashes.stream().anyMatch(p->et.v().distance(p)<ctab.getAverageBondLength()*0.5))
+			    .map(t->t.k())
+			    .filter(e->e.getNeighborEdges().stream().anyMatch(ee->ee.getWedge()))
+			    .forEach(e->{
+			    	//These edges are suspicious dashed edges
+			    	//which had little support, and seem to be over specified
+			    	e.setDashed(false);
+			    	
+			    });
+			if(DEBUG)logState(49,"remove dashed bonds that had little support and that are over-specified");
 
 		}
 		if(Thread.currentThread().isInterrupted()){
@@ -4891,9 +4939,12 @@ public class StructureImageExtractor {
 		rescueOCRShapes=realRescueOCRCandidates;
 		
 		
+
 		
 		
-		//fix bad double-bond to stupid OCR
+		
+		
+		//fix bad OCR for H which was probably C
 		ctab.getNodes().stream()
 				    .filter(n->n.getSymbol().equals("H"))
 				    .filter(n->n.getValanceTotal()>2)
@@ -4901,6 +4952,16 @@ public class StructureImageExtractor {
 				    		//probably a C
 				    		n.setSymbol("C");
 				    });
+		
+		//fix bad OCR for H which was probably N
+		ctab.getNodes().stream()
+				    .filter(n->n.getSymbol().equals("H"))
+				    .filter(n->n.getValanceTotal()>1)
+				    .forEach(n->{
+				    		//probably a N
+				    		n.setSymbol("N");
+				    });
+				
 		//fix bad "F" OCR
 		ctab.getNodes().stream()
 		    .filter(n->n.getSymbol().equals("F"))
@@ -4909,7 +4970,7 @@ public class StructureImageExtractor {
 		    		//probably a C
 		    		n.setSymbol("C");
 		    });
-		if(DEBUG)logState(49,"change symbols for H and F to C if there are more bonds than there should be");		
+		if(DEBUG)logState(50,"change symbols for H and F to C if there are more bonds than there should be");		
 
 
 		
@@ -4931,7 +4992,7 @@ public class StructureImageExtractor {
 			    			 ctab.removeEdge(t.v());
 			    		 });
 			    });
-		if(DEBUG)logState(50,"remove erroneous bonds to halogens if there are more bonds than there should be");
+		if(DEBUG)logState(51,"remove erroneous bonds to halogens if there are more bonds than there should be");
 		
 
 		//fix bad Sulfurs
@@ -5010,7 +5071,7 @@ public class StructureImageExtractor {
 		    		}
 		    });
 		
-		if(DEBUG)logState(51,"charge nitrogens and sulfurs with large number of bonds");
+		if(DEBUG)logState(52,"charge nitrogens and sulfurs with large number of bonds");
 		
 		List<Shape> mightBeNegative=polygons.stream()
 										    .filter(s->s.getBounds2D().getHeight()<ctab.getAverageBondLength()/10)
@@ -5102,7 +5163,7 @@ public class StructureImageExtractor {
 			}
 		}
 		
-		if(DEBUG)logState(52,"negative charge detection");
+		if(DEBUG)logState(53,"negative charge detection");
 		
 		ctab.getNodes()
 			.stream()
@@ -5137,9 +5198,12 @@ public class StructureImageExtractor {
 			});
 		
 		
-		if(DEBUG)logState(53,"change bond order for high valance N and S");
+		if(DEBUG)logState(54,"change bond order for high valance N and S");
 		
-		ctab.simpleClean();
+
+
+		
+		
 		
 		ctab.getEdges()
 		    .stream()
@@ -5151,7 +5215,305 @@ public class StructureImageExtractor {
 		    	ctab.removeOrphanNodes();
 		    });
 		
-		if(DEBUG)logState(54,"removed bad dashed isolated bonds");
+		if(DEBUG)logState(55,"removed bad dashed isolated bonds");
+		
+		
+		// clean up 5-membered rings
+		{
+			
+			List<Node> ignoreNodes = new ArrayList<Node>();
+			
+			Shape nshape=GeomUtil.convexHull2(GeomUtil.makeNPolyCenteredAt(new Point2D.Double(0,0), 5, 100));
+			Line2D sl = new Line2D.Double(new Point2D.Double(0,0), new Point2D.Double(100,0));
+			
+
+			//clean up dashes
+			ctab.getEdges()
+			.stream()
+			.filter(e->e.getDashed())
+			.filter(e->e.getRealNode1().getEdgeCount()==2 ||e.getRealNode2().getEdgeCount()==2)
+			.forEach(de->{
+				Node rnt = de.getRealNode1();
+				//dashed edges in chain
+				if(de.getRealNode2().getEdgeCount()==2){
+					rnt=de.getRealNode2();
+				}
+				Node rn = rnt;
+				Edge oedge= rn.getEdges().stream().filter(e->e!=de).findFirst().get();
+				Node oatom = oedge.getOtherNode(rn);
+				Point2D cpt2= oatom.getPoint();
+				Point2D cpt = rn.getPoint();
+				
+				linesOrder.stream()
+		          .filter(lo->lo.v()==1)
+		          .filter(lo->lo.k().getP1().distance(cpt2)<ctab.getAverageBondLength()*0.1 || lo.k().getP2().distance(cpt2)<ctab.getAverageBondLength()*0.1)
+		          .map(lo->Tuple.of(lo, Math.min(lo.k().getP1().distance(cpt),lo.k().getP2().distance(cpt))))
+		          .map(t->t.withVComparator())
+		          .min(Comparator.naturalOrder())
+		          .map(lo->lo.k().k())
+		          .ifPresent(nl->{
+//		        	 realRescueOCRCandidates.add(nl);
+		        	 
+		        	 Point2D np=GeomUtil.intersection(nl, de.getLine());
+		        	 if(np!=null){
+		        		 if(np.distance(cpt)< ctab.getAverageBondLength()*0.5){
+		        			 rn.setPoint(np);
+		        		 }
+		        	 }
+		          });
+				
+			});
+			
+			
+			
+			ctab.getRings()
+			    .stream()
+			    .filter(r->r.size()==5)
+			    .filter(r->r.getNodes().stream().allMatch(n->!n.isInvented()))
+			    .forEach(r->{
+			    	Shape fShape=r.getNodes()
+			    	 .stream()
+			    	 .map(rn->rn.getPoint())
+			    	 .collect(GeomUtil.convexHull());
+			    	Point2D p1 = GeomUtil.centerOfMass(fShape);
+			    	double avgDistance = r.getNodes()
+									      .stream()
+									      .map(n->n.getPoint())
+									      .mapToDouble(pp->pp.distance(p1))
+									      .average()
+									      .orElse(ctab.getAverageBondLength());
+			    	Point2D pb=r.getNodes()
+				      .stream()
+				      .map(n->n.getPoint())
+				      .map(pp->Tuple.of(pp,pp.distance(p1)))
+				      .map(Tuple.vmap(d->Math.abs(avgDistance-d)))
+				      .map(t->t.withVComparator())
+				      .min(Comparator.naturalOrder())
+				      .map(t->t.k())
+				      .orElse(null);
+			    	
+			    	if(pb!=null){
+			    		AffineTransform at1=GeomUtil.getTransformFromLineToLine(sl,new Line2D.Double(p1,pb),false);
+			    		Shape nnshape = at1.createTransformedShape(nshape);
+//			    		realRescueOCRCandidates.add(nnshape);
+				    	Point2D[] verts2 = GeomUtil.vertices(nnshape);
+				    	
+				    	List<Tuple<Node,Point2D>> updates =Arrays.stream(verts2)
+				    	      .map(v->{
+				    	    	  return r.getNodes()
+				    	    	   .stream()
+				    	    	   .map(rn->Tuple.of(rn, rn.getPoint().distance(v)).withVComparator())
+				    	    	   .filter(t->t.v()<ctab.getAverageBondLength()*0.05) // within 5% of bond length to count
+				    	    	   .min(Comparator.naturalOrder())
+				    	    	   .map(t->Tuple.of(t.k(),v));
+				    	    	
+				    	      })
+				    	      .filter(op->op.isPresent())
+				    	      .map(op->op.get())
+				    	      .collect(Collectors.toList());
+				    	if(updates.size()==5){
+				    		updates.forEach(t->{
+				    	    	 t.k().setPoint(t.v());
+				    	    	 t.k().setInvented(true);
+				    	    	 ignoreNodes.add(t.k());
+				    	      });
+				    	}
+			    	}
+			    });
+				//fixes a few positions
+				ctab.simpleClean();
+				
+				ignoreNodes.forEach(n->{
+					n.setInvented(false);
+				});
+				
+	
+	
+				
+				//clean up terminal groups to be better
+				ctab.getNodes()
+				.stream()
+				.filter(n->n.getEdgeCount()==1)
+				.filter(n->!n.isInvented())
+				.filter(n->n.getEdges().stream().allMatch(e->e.getOrder()==1))
+				.forEach(n->{
+					Point2D cpt = n.getPoint();
+					Point2D cpt2 = n.getNeighborNodes().get(0).k().getPoint();
+					
+					linesOrder.stream()
+					          .filter(lo->lo.v()==1)
+					          .filter(lo->lo.k().getP1().distance(cpt2)<ctab.getAverageBondLength()*0.1 || lo.k().getP2().distance(cpt2)<ctab.getAverageBondLength()*0.1)
+					          .map(lo->Tuple.of(lo, Math.min(lo.k().getP1().distance(cpt),lo.k().getP2().distance(cpt))))
+					          .map(t->t.withVComparator())
+					          .min(Comparator.naturalOrder())
+					          .map(lo->lo.k().k())
+					          .ifPresent(nl->{
+//					        	 realRescueOCRCandidates.add(nl);
+					        	 double dx = nl.getBounds2D().getWidth();
+					        	 double dy = nl.getBounds2D().getHeight();
+					        	 
+					        	 double cotan = Math.abs(dx) /Math.max(0.1,Math.abs(dy));
+					        	 boolean tryLin =false;
+					        	 
+					        	 if(n.getSymbol().length()==1 || cotan > 2){
+						        	 Point2D npp=GeomUtil.projectPointOntoLine(nl, cpt);
+						        	 if(npp.distance(cpt)<ctab.getAverageBondLength()*0.2){
+						        		 n.setPoint(npp);
+						        	 }else{
+						        		 tryLin=true;
+						        	 }
+					        	 }else{
+					        		 tryLin=true;
+					        	 }
+
+					        	 if(tryLin){
+					        		 Line2D ll = new Line2D.Double(cpt, new Point2D.Double(cpt.getX()+100, cpt.getY()));
+//					        		 realRescueOCRCandidates.add(ll);
+					        		 Point2D pp = GeomUtil.intersection(ll, nl);
+					        		 if(pp!=null){
+//					        			 realRescueOCRCandidates.add(GeomUtil.shapeFromVertices(GeomUtil.makeNPolyCenteredAt(pp, 10, 10)));
+					        			 if(pp.distance(cpt)<ctab.getAverageBondLength()*0.3){
+							        		 n.setPoint(pp);
+							        	 }
+					        		 }
+					        	 }
+					          });
+					
+				});
+				
+				
+				//real hex grid alignment
+				if(DO_HEX_GRID_MICRO_ALIGNMENT){
+					double DS = 1.0;
+					double DX= DS*Math.sqrt(3.0)/2.0;
+					double DY= DS*1.0;
+					double STDcutoff = DS*DS*0.04*0.04;
+					Line2D tline = new Line2D.Double(0,0,0,DY);
+					List<List<Tuple<Node,Point2D>>> changeList = new ArrayList<>();
+					
+					for(Edge e: ctab.getEdges()){
+						if(e.isInventedBond())continue;
+//						realRescueOCRCandidates.add(GeomUtil.growShapeHex(e.getLine(), 3));
+						AffineTransform at = GeomUtil.getTransformFromLineToLine(e.getLine(), tline, true);
+						
+						double offX = 0;
+						double offY = 0;
+						int offsum = 0;
+						
+						List<Tuple<Node,Point2D>> updates = new ArrayList<>();
+						
+						for(Node n: ctab.getNodes()){
+							if(n.isInvented())continue;
+							Point2D pt = at.transform(n.getPoint(),null);
+							int dxi = (int)Math.round(pt.getX()/DX);
+							double yoff=0;
+							if(Math.abs(dxi)%2!=0){
+								yoff=DY/2.0;
+							}
+							int dyi = (int)Math.round((pt.getY()+yoff)/DY);
+							
+							double px = dxi*DX;
+							double py = dyi*DY-yoff;
+							double ddx= pt.getX()-px;
+							double ddy= pt.getY()-py;
+							
+							double cutoff=STDcutoff;
+							
+							if(n.getEdges().stream().anyMatch(e1->e1.getDashed())){
+								cutoff = DS*DS*0.20*0.20;
+							}
+							if(ddx*ddx+ddy*ddy < cutoff){
+								offX+=ddx;
+								offY+=ddy;
+								offsum++;
+								Point2D pp1=at.inverseTransform(new Point2D.Double(px, py), null);
+								updates.add(Tuple.of(n,pp1));
+							}
+						}
+						
+						
+						if(updates.size()>5){
+							Point2D poff1=at.inverseTransform(new Point2D.Double(0, 0), null);
+							Point2D poff2=at.inverseTransform(new Point2D.Double(offX/offsum, offY/offsum), null);
+							double fudgex = poff2.getX()-poff1.getX();
+							double fudgey = poff2.getY()-poff1.getY();
+							
+							changeList.add(updates.stream()
+									.map(Tuple.vmap(p1->(Point2D)new Point2D.Double(p1.getX()+fudgex, p1.getY()+fudgey)))
+									.collect(Collectors.toList())
+									);
+						}
+					}
+					
+					changeList.stream()
+					.map(tl->Tuple.of(tl,tl.size()).withVComparator())
+					.sorted()
+					.map(t->t.k())
+					.forEach(tl->{
+						tl.forEach(tn->{
+							//if(tn.k().getEdgeCount()>1){
+								tn.k().setPoint(tn.v());
+							//}
+						});
+					});
+				}
+				
+				ignoreNodes.forEach(n->{
+					n.setInvented(true);
+				});
+				//Grid alignment stuff
+				
+				ctab.getNodes()
+					.stream()
+					.filter(n->!n.isInvented())
+					.map(n->n.getPoint().getX())
+					.collect(GeomUtil.groupThings(t->{
+						double dd=t.k()-t.v();
+						if(Math.abs(dd)<ctab.getAverageBondLength()*0.03){
+							return true;
+						}
+						return false;
+					}))
+					.stream()
+					.filter(dl->dl.size()>1)
+					.map(dlist->dlist.stream().mapToDouble(d->d).average().getAsDouble())
+					.forEach(d->{
+						ctab.getNodes()
+						    .stream()
+						    .filter(n->Math.abs(n.getPoint().getX()-d)<ctab.getAverageBondLength()*0.03)
+						    .forEach(n->{
+						    	n.setPoint(new Point2D.Double(d,n.getPoint().getY()));
+						    });
+					});
+				ctab.getNodes()
+					.stream()
+					.filter(n->!n.isInvented())
+					.map(n->n.getPoint().getY())
+					.collect(GeomUtil.groupThings(t->{
+						double dd=t.k()-t.v();
+						if(Math.abs(dd)<ctab.getAverageBondLength()*0.03){
+							return true;
+						}
+						return false;
+					}))
+					.stream()
+					.filter(dl->dl.size()>1)
+					.map(dlist->dlist.stream().mapToDouble(d->d).average().getAsDouble())
+					.forEach(d->{
+						ctab.getNodes()
+						    .stream()
+						    .filter(n->Math.abs(n.getPoint().getY()-d)<ctab.getAverageBondLength()*0.03)
+						    .forEach(n->{
+						    	n.setPoint(new Point2D.Double(n.getPoint().getX(),d));
+						    });
+					});
+				ignoreNodes.forEach(n->{
+					n.setInvented(false);
+				});
+			
+			if(DEBUG)logState(56,"minor adjustments to layout for rings and terminal groups");
+		}
+		
 		
 		//Make aromatic bonds
 		circles.stream()
@@ -5163,13 +5525,14 @@ public class StructureImageExtractor {
 				       .forEach(Edge::setToAromatic);
 		       });
 		
-		if(DEBUG)logState(55,"set aromatic bonds");
+		if(DEBUG)logState(57,"set aromatic bonds");
 		
 		
 		
 		
 		
-		
+
+		 
 		
 		
 		

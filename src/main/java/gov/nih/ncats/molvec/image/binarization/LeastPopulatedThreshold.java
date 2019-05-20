@@ -10,26 +10,17 @@ import gov.nih.ncats.molvec.image.Binarization;
 /*
  * Simple threshold based on full image mean and standard deviation. 
  */
-public class SigmaThreshold implements Binarization {
-
-    static final Logger logger = Logger.getLogger(SigmaThreshold.class.getName());
-    public static double DEFAULT_SIGMA_THRESHOLD = 1.2;
-
-    public static final double DEFAULT_MIN_THRESHOLD_RATIO = 0.1;
-    public static final double DEFAULT_MAX_THRESHOLD_RATIO = 0.9;
+public class LeastPopulatedThreshold implements Binarization {
     
-    private double sigma;
+    private int window;
     
-    public SigmaThreshold () {
-        this (DEFAULT_SIGMA_THRESHOLD);
+    public LeastPopulatedThreshold () {
+        this (10);
     }
 
-    public SigmaThreshold (double sigma) {
-        this.sigma = sigma;
+    public LeastPopulatedThreshold (int window) {
+        this.window = window;
     }
-
-    public void setSigma (double sigma) { this.sigma = sigma; }
-    public double getSigma () { return sigma; }
 
     
     public Bitmap binarize (Raster inRaster) {
@@ -83,22 +74,39 @@ public class SigmaThreshold implements Binarization {
         }
         double meanTop = sumTop / (double)countAbove;
         double meanBottom = sumBottom / (double)countBelow;
-        double threshold=mean;
+      
         
+        double threshold = mean;
         
-        threshold = mean + stdDEV * sigma;
-        
-        if(threshold>max || threshold<min){
-        	//determine whether inverted
-	        if(countAbove>countBelow){
-	        	threshold = Math.min(meanBottom + stdDEV * sigma,max);
-	        }else if(countAbove<countBelow){
-	        	threshold = Math.max(meanTop - stdDEV * sigma, min);
-	        }	
+        int stot = 0;
+        int mini = 55;
+        int minVal = Integer.MAX_VALUE;
+        for(int i=0;i<100;i++){
+        	stot+=stats.histogram[i];
+        	if(i>window){
+        		stot-=stats.histogram[i-window];
+        	}
+        	if(i>=window){
+        		if(stot<minVal){
+        			minVal = stot;
+        			mini=i;
+        		}
+        	}
         }
+        stats.min=min;
+        stats.max=max;
+        stats.mean=mean;
+        stats.stdev=stdDEV;
         
-        threshold = Math.max(threshold,min+(max-min)*DEFAULT_MIN_THRESHOLD_RATIO);
-        threshold = Math.min(threshold,min+(max-min)*DEFAULT_MAX_THRESHOLD_RATIO);
+        stats.count=bm.width()*bm.height();
+        
+        threshold = stats.min + (stats.max-stats.min)*(mini-window*0.5)/100.0;
+        stats.threshold=threshold;
+        System.out.println("Threshold Num:" + mini);
+        System.out.println("Threshold:" + threshold);
+        
+        
+        
         
         for (int y = 0; y < bm.height(); ++y) {
             for (int x = 0; x < bm.width(); ++x) {
@@ -106,12 +114,7 @@ public class SigmaThreshold implements Binarization {
                 bm.set (x, y, pel >= threshold);
             }
         }
-        stats.min=min;
-        stats.max=max;
-        stats.mean=mean;
-        stats.stdev=stdDEV;
-        stats.threshold=threshold;
-        stats.count=bm.width()*bm.height();
+      
         cons.accept(stats);
         
         return bm;
