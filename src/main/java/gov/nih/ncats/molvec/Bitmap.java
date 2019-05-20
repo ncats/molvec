@@ -945,7 +945,16 @@ public class Bitmap implements Serializable, TiffTags {
     }
 
 
+	public static RenderedImage readToImage(File file) throws IOException{
 
+			return ImageUtil.grayscale(file);
+
+	}
+	public static RenderedImage readToImage(byte[] file) throws IOException{
+
+			return ImageUtil.grayscale(file);
+
+	}
 
     
     public Bitmap clean(){
@@ -2603,6 +2612,28 @@ public class Bitmap implements Serializable, TiffTags {
         return segments;
     }
 
+	public Bitmap paste(Bitmap bm2, Shape ss) {
 
+		Rectangle2D bounds = ss.getBounds2D();
+
+
+		int minX = (int) Math.max(bounds.getMinX(), 0);
+		int minY = (int) Math.max(bounds.getMinY(), 0);
+
+		int maxX = (int) Math.min(bounds.getMaxX(), this.width());
+		int maxY = (int) Math.min(bounds.getMaxY(), this.height());
+
+		for(int x=minX;x<=maxX;x++){
+			for(int y=minY;y<=maxY;y++){
+				if(ss.contains(x, y)){
+					this.set(x, y, bm2.get(x, y));
+				}
+			}
+		}
+
+
+		return this;
+
+	}
 
 }
