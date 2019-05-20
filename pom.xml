@@ -103,7 +103,7 @@
    <configuration>
                <archive>
                   <manifest>
-                     <mainClass>gov.nih.ncats.molvec.Molvec</mainClass>
+                     <mainClass>gov.nih.ncats.molvec.Main</mainClass>
                   </manifest>
                </archive>
                <descriptorRefs>
@@ -111,6 +111,8 @@
                </descriptorRefs>
             </configuration>
   </plugin>
+
+
     </plugins>
     <resources>
         <resource>

@@ -1,6 +1,13 @@
 package gov.nih.ncats.molvec;
 
+import gov.nih.ncats.molvec.ui.Viewer;
 import org.apache.commons.cli.*;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.nio.file.Files;
 
 /**
  * Created by katzelda on 5/20/19.
@@ -13,16 +20,70 @@ public class Main {
 
         options.addOption("h", "help", false,"print usage text");
 
-        options.addOption("gui", false, "Run Molvec in GUI mode.");
+        options.addOption("gui", false, "Run Molvec in GUI mode. file and scale option may be set to preload file");
+        options.addOption("scale", true, "scale of image to show in viewer (only valid if gui mode AND file are specified)");
 
-        options.addOption("file", "path of image file to process. Supported formats include png, jpeg, tiff");
+        options.addOption("file", true,"path of image file to process. Supported formats include png, jpeg, tiff");
+
+        options.addOption("o",true, "path of output processed mol. Only valid when not using gui mode");
 
         CommandLineParser parser = new DefaultParser();
         try {
             // parse the command line arguments
-            CommandLine line = parser.parse( options, args );
+            CommandLine commandLine = parser.parse( options, args );
+            if(commandLine.hasOption("h")){
+                showHelp(options, System.out);
+                return;
+            }
+
+            if(commandLine.hasOption("gui")){
+                //file and scale
+                if(commandLine.hasOption("file")){
+
+                    String filepath = commandLine.getOptionValue("file");
+                    String scale= "1";
+                    if(commandLine.hasOption("scale")){
+                        scale = commandLine.getOptionValue("scale");
+                    }
+                    Viewer.main(new String[]{filepath, scale});
+                }else {
+                    Viewer.main(new String[0]);
+                }
+            }else if(commandLine.hasOption("file")){
+
+
+                    String mol = Molvec.ocr(new File(commandLine.getOptionValue("file")));
+                    if(commandLine.hasOption("o")){
+                        File outputFile = new File(commandLine.getOptionValue("o"));
+                        File parent = outputFile.getParentFile();
+                        if(parent !=null){
+                            Files.createDirectories(parent.toPath());
+                        }
+
+                        try(PrintWriter writer = new PrintWriter(new FileWriter(outputFile))){
+                            writer.println(mol);
+                        }
+                    }else{
+                        System.out.println(mol);
+                    }
+            }else{
+                //invalid
+                throw new ParseException("gui mode or file not specified");
+            }
         }catch(ParseException e){
             System.err.println( "Parsing failed.  Reason: " + e.getMessage() );
+            showHelp(options, System.err);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+    }
+
+    private static void showHelp(Options options, PrintStream ps){
+        HelpFormatter formatter = new HelpFormatter();
+        try(PrintWriter writer = new PrintWriter(ps)) {
+            formatter.printHelp(writer, HelpFormatter.DEFAULT_WIDTH, "molvec", null, options, HelpFormatter.DEFAULT_LEFT_PAD, HelpFormatter.DEFAULT_DESC_PAD, null);
+
         }
     }
 }
