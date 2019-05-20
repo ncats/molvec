@@ -23,9 +23,9 @@ public class Main {
         options.addOption("gui", false, "Run Molvec in GUI mode. file and scale option may be set to preload file");
         options.addOption("scale", true, "scale of image to show in viewer (only valid if gui mode AND file are specified)");
 
-        options.addOption("file", true,"path of image file to process. Supported formats include png, jpeg, tiff");
+        options.addOption("f", "file", true,"path of image file to process. Supported formats include png, jpeg, tiff");
 
-        options.addOption("o",true, "path of output processed mol. Only valid when not using gui mode");
+        options.addOption("o","out",true, "path of output processed mol. Only valid when not using gui mode");
 
         CommandLineParser parser = new DefaultParser();
         try {
@@ -38,9 +38,9 @@ public class Main {
 
             if(commandLine.hasOption("gui")){
                 //file and scale
-                if(commandLine.hasOption("file")){
+                if(commandLine.hasOption("f")){
 
-                    String filepath = commandLine.getOptionValue("file");
+                    String filepath = commandLine.getOptionValue("f");
                     String scale= "1";
                     if(commandLine.hasOption("scale")){
                         scale = commandLine.getOptionValue("scale");
@@ -49,10 +49,10 @@ public class Main {
                 }else {
                     Viewer.main(new String[0]);
                 }
-            }else if(commandLine.hasOption("file")){
+            }else if(commandLine.hasOption("f")){
 
 
-                    String mol = Molvec.ocr(new File(commandLine.getOptionValue("file")));
+                    String mol = Molvec.ocr(new File(commandLine.getOptionValue("f")));
                     if(commandLine.hasOption("o")){
                         File outputFile = new File(commandLine.getOptionValue("o"));
                         File parent = outputFile.getParentFile();
