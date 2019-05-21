@@ -36,6 +36,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
@@ -61,7 +62,6 @@ import gov.nih.ncats.molvec.image.ImageUtil;
 import gov.nih.ncats.molvec.image.TiffTags;
 import gov.nih.ncats.molvec.image.binarization.AdaptiveThreshold;
 import gov.nih.ncats.molvec.image.binarization.ImageStats;
-import gov.nih.ncats.molvec.image.binarization.SigmaThreshold;
 import gov.nih.ncats.molvec.util.GeomUtil;
 import gov.nih.ncats.molvec.util.GeomUtil.LineDistanceCalculator;
 import gov.nih.ncats.molvec.util.GeomUtil.LineWrapper;
@@ -434,6 +434,8 @@ public class Bitmap implements Serializable, TiffTags {
         }
     }
 
+
+    //y+ is down
     public enum ChainCode {
         E (1, 0, '0'), // 0
             NE (1, -1, '1'), // 1
@@ -446,11 +448,16 @@ public class Bitmap implements Serializable, TiffTags {
 
         final int dx, dy;
         final char ch;
+        final double len;
+        final double rlen;
+        
 
         ChainCode (int dx, int dy, char ch) {
             this.dx = dx;
             this.dy = dy;
             this.ch = ch;
+            len = Math.sqrt(this.dx*this.dx + this.dy*this.dy);
+            rlen = 1/len;
         }
 
         public int dx () {
@@ -463,19 +470,56 @@ public class Bitmap implements Serializable, TiffTags {
 
         // angle (in radians) measured ccw
         public double angle () {
-            if (dy == 0 && dx == 0) return 0.;
-            if (dy == 1 && dx == 1) return Math.PI / 4;
-            if (dy == 1 && dx == 0) return Math.PI / 2;
-            if (dy == 1 && dx == -1) return 3 * Math.PI / 4;
-            if (dy == 0 && dx == -1) return Math.PI;
-            if (dy == -1 && dx == -1) return 3 * Math.PI / 2;
-            if (dy == -1 && dx == 0) return 5 * Math.PI / 4;
-            if (dy == -1 && dx == 1) return 7 * Math.PI / 4;
+        	
+        	//cardinal directions
+        	if (dy == 0 && dx == 0) return 0.; //not a line, shouldn't happen
+        	
+        	if (dy == 0 && dx == 1) return 0.; //0 degrees
+        	if (dy == 1 && dx == 0) return Math.PI / 2; // 90 degrees
+        	if (dy == 0 && dx == -1) return Math.PI; //180 degrees
+        	if (dy == -1 && dx == 0) return 3 * Math.PI / 2; //270 degrees
+            
+        	//diagonals
+        	if (dy == 1 && dx == 1) return Math.PI / 4; // 45 degrees
+            if (dy == 1 && dx == -1) return 3 * Math.PI / 4; //135 degrees
+            if (dy == -1 && dx == -1) return 5 * Math.PI / 4;  //225 degrees
+            if (dy == -1 && dx == 1) return 7 * Math.PI / 4;  //315 degrees
+            
             return -1.;
         }
+        
 
         public char ch () {
             return ch;
+        }
+        
+        public ChainCode inverse(){
+        	return ChainCode.values()[(this.ordinal()+4)%8];
+        }
+        
+        public double cosine(ChainCode cc){
+        	return (this.dx*cc.dx + this.dy*cc.dy)*(this.rlen*cc.rlen);
+        }
+        
+//        private static final int[] priority = new int[] {2,0,1,3,4,3,1,0};
+
+        //hard coded, probably bad
+//        private static final int[] priority = new int[] {0,7,6,5,4,3,2,1};
+        
+        
+        //private static final int[] priority = new int[] {7,0,1,9,9,9,5,6};
+        
+//        private static final int[] priority = new int[] {7,0,1,9,10,9,1,0};
+        
+        
+        //this is the || priority
+        private static final int[] priority = new int[] {0,1,2,3,4,3,2,1};
+        
+        public int priorityChange(ChainCode cc){
+        	//if(true)return priority[cc.ordinal()];
+        	int delta= this.ordinal();
+        	int ni=(cc.ordinal()-delta+8)%8;
+        	return priority[ni];
         }
     }
 
@@ -511,6 +555,12 @@ public class Bitmap implements Serializable, TiffTags {
             }
             return newPt;
         }
+        
+        public ChainCode peek(){
+        	if(codes.isEmpty())return ChainCode.E;
+        	return codes.get(codes.size()-1);
+        }
+        
 
         public boolean contains (double x, double y) {
             for (Point2D pt : coords) {
@@ -601,7 +651,7 @@ public class Bitmap implements Serializable, TiffTags {
             public int compareTo (AEV x) {
                 if (dist < x.dist) return -1;
                 if (dist > x.dist) return 1;
-                return 0;
+                return Integer.compare(this.k,x.k);
             }
         }
 
@@ -665,6 +715,7 @@ public class Bitmap implements Serializable, TiffTags {
             if (DEBUG) {
                 System.out.println ("## " + breaks.size () + " break points!");
             }
+            
 
             AEV min = new AEV (-1, Double.MAX_VALUE);
             for (int i = 0; i < breaks.size (); ++i) {
@@ -688,16 +739,24 @@ public class Bitmap implements Serializable, TiffTags {
 
             
             //This part can be optimized a little, as the 
-            //as it does a few unncessary recalculations
+            //as it does a few unnecessary recalculations
             while (min.k >= 0 && min.dist <= threshold) {
                 //logger.info("removing break "+min.k+" "+min.dist);
                 breaks.remove (min.k);
-
+                
+                int size = breaks.size();
+            	int nii=(min.k)%size;
+            	int pii=(min.k-1+size)%size;
+                
+            	//recalculate neighbor AEVs
+            	calcAEV (nii, breaks, cc, closed);
+            	calcAEV (pii, breaks, cc, closed);
+                
                 min.dist = Double.MAX_VALUE;
                 min.k = -1;
 
                 for (int i = 0; i < breaks.size (); ++i) {
-                    AEV b = calcAEV (i, breaks, cc, closed);
+                	AEV b = breaks.get(i);
                     if (min.k < 0 || b.dist < min.dist) {
                         min.dist = b.dist;
                         min.k = i;
@@ -711,21 +770,15 @@ public class Bitmap implements Serializable, TiffTags {
         AEV calcAEV (int i, List<AEV> breaks, Point2D[] cc, boolean closed) {
             int size = breaks.size ();
             AEV aev = breaks.get (i);
+            
+            int nii=(i+1)%size;
+            int pii=(i-1+size)%size;
+            
             Point2D pt = cc[aev.k];
             aev.dist = Double.MAX_VALUE;
-            if (closed && (i == 0 || (i + 1) == size)) {
-                if (i == 0) {
-                    Point2D pi = cc[breaks.get (size - 1).k];
-                    Point2D pj = cc[breaks.get (i + 1).k];
-                    aev.dist = sqDist (pt, pi, pj);
-                } else { // i+1 == breaks.size()
-                    Point2D pi = cc[breaks.get (i - 1).k];
-                    Point2D pj = cc[breaks.get (0).k];
-                    aev.dist = sqDist (pt, pi, pj);
-                }
-            } else if (i > 0 && (i + 1) < size) {
-                Point2D pi = cc[breaks.get (i - 1).k];
-                Point2D pj = cc[breaks.get (i + 1).k];
+            if ((i > 0 && (i + 1) < size) || closed) {
+                Point2D pi = cc[breaks.get (pii).k];
+                Point2D pj = cc[breaks.get (nii).k];
                 aev.dist = sqDist (pt, pi, pj);
             }
             return aev;
@@ -911,12 +964,12 @@ public class Bitmap implements Serializable, TiffTags {
         }
         
 //print histogram    
-        for(int i=0;i<is[0].histogram.length;i++){
-        	System.out.println(i + "\t" + is[0].histogram[i]);
-        }
-        System.out.println("Threshold:" + tPct);
-        System.out.println("Min Threshold:" + tPctMinSig);
-        System.out.println("Max Threshold:" + tPctMaxSig);
+//        for(int i=0;i<is[0].histogram.length;i++){
+//        	System.out.println(i + "\t" + is[0].histogram[i]);
+//        }
+//        System.out.println("Threshold:" + tPct);
+//        System.out.println("Min Threshold:" + tPctMinSig);
+//        System.out.println("Max Threshold:" + tPctMaxSig);
   
         //If there's a little uncertainty about where to draw the threshold line, try
         //the adaptive threshold, possibly
@@ -2549,6 +2602,7 @@ public class Bitmap implements Serializable, TiffTags {
         ChainCodeSequence seq = new ChainCodeSequence (x, y);
 
         do {
+        	ChainCode pcode = seq.peek();
             EnumSet<ChainCode> Nb = getNeighbors (bitmap, x, y);
 
             Point2D pt = null;
@@ -2558,20 +2612,36 @@ public class Bitmap implements Serializable, TiffTags {
             } else {
                 // multiple choice; pick best one based on the following
                 //  rule: select the yet-unseen one for which
-            	//  the change in direction OR number of neighbor neighbors is minimized
-            	// 
+            	//  the number of neighbor neighbors is minimized. 
+            	//  If there's a tie, chose the neighbor in the following order:
+            	//  E,SE,S,SW,W,NW,N,NE
                 ChainCode best = null;
                 EnumSet<ChainCode> bestNq = null;
-
+               
                 for (ChainCode c : Nb) {
                     int xp = x + c.dx (), yp = y + c.dy ();
                     if (!seq.contains (xp, yp)) {
                         EnumSet<ChainCode> Nq = getNeighbors (bitmap, xp, yp);
                         if (bestNq == null
-                            || (!Nq.isEmpty () && Nq.size () < bestNq.size ())
-                            // choose the least change in direction
-                            || (Nq.size () == bestNq.size ()
-                                && c.angle () < best.angle ())) {
+                            || (Nq.size () < bestNq.size ())
+                            // it's actually just choosing directions in the priority of:
+                            // E,SE,S,SW,W,NW,N,NE
+                            // So it prefers to go to the right and up rather than
+                            // to the left and down. Many heuristics were tweaked 
+                            // based on this implicit rule, so it won't be changed now
+                            // but could probably be better                            
+                            
+//                            || (Nq.size () == bestNq.size ()
+//                                && c.angle() < best.angle())
+                        	
+                        	
+//                    	    || (Nq.size () == bestNq.size ()
+//                                && c.cosine(pcode) > best.cosine(pcode))
+                    	    
+                    	    || (Nq.size () == bestNq.size ()
+                            && pcode.priorityChange(c) < pcode.priorityChange(best))
+                        	
+                        ){
                             best = c;
                             bestNq = Nq;
                         }

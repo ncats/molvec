@@ -1056,11 +1056,11 @@ public class GeomUtil {
         Point2D[] p2s=vertices(s2);
         
         for(Point2D p:p1s){
-        	if(s1.contains(p))return true;
+        	if(s2.contains(p))return true;
         	break;
         }
         for(Point2D p:p2s){
-        	if(s2.contains(p))return true;
+        	if(s1.contains(p))return true;
         	break;
         }
         return false;

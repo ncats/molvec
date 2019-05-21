@@ -970,7 +970,9 @@ public class RegressionTestIT {
 	
 	@Test
 	public void test1() throws FileNotFoundException{
-		
+		for(int i=3;i<=20;i++){
+			testSet("trec", Method.MOLVEC.adapt().suffix("_rescue test").scale(i/10.0));
+		}
 		
 //		testSet("uspto", Method.MOLVEC.adapt().rmse(true));
 		//All data sets stats
@@ -1007,15 +1009,15 @@ public class RegressionTestIT {
 //		}
 //		
 		
-		for(int j=1;j<20;j++){
-			double sig = j*5.0;
-			StructureImageExtractor.DEF_BINARIZATION = new RangeFractionThreshold(sig/100.0);
-			StructureImageExtractor.RESIZE_BINARIZATION = new RangeFractionThreshold(sig/100.0);
-			
-			for(int i=3;i<=10;i++){
-				testSet("trec", Method.MOLVEC.adapt().limit(100).suffix("_sig[" + sig + "]").scale(i/10.0));
-			}
-		}
+//		for(int j=1;j<20;j++){
+//			double sig = j*5.0;
+//			StructureImageExtractor.DEF_BINARIZATION = new RangeFractionThreshold(sig/100.0);
+//			StructureImageExtractor.RESIZE_BINARIZATION = new RangeFractionThreshold(sig/100.0);
+//			
+//			for(int i=3;i<=10;i++){
+//				testSet("trec", Method.MOLVEC.adapt().limit(100).suffix("_sig[" + sig + "]").scale(i/10.0));
+//			}
+//		}
 		
 //		testSet("usan", Method.MOLVEC.adapt());
 //		testSet("usan", Method.MOLVEC.adapt().scale(0.5));

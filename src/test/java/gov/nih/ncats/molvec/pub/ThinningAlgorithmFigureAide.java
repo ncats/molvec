@@ -44,6 +44,9 @@ public class ThinningAlgorithmFigureAide {
 	 */
 	
 	public static void main(String[] args) throws IOException{
+		
+		System.out.println((-1+5)%5);
+		if(true)return;
 		int c1=0;
 		
 		Bitmap bm = new Bitmap(3*8, 28*3);

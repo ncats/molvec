@@ -74,6 +74,7 @@ import gov.nih.ncats.molvec.algo.NearestNeighbors;
 import gov.nih.ncats.molvec.algo.StructureImageExtractor;
 import gov.nih.ncats.molvec.algo.Tuple;
 import gov.nih.ncats.molvec.image.binarization.RangeFractionThreshold;
+import gov.nih.ncats.molvec.image.binarization.SigmaThreshold;
 import gov.nih.ncats.molvec.util.ConnectionTable;
 import gov.nih.ncats.molvec.util.GeomUtil;
 
@@ -334,7 +335,7 @@ public class Viewer extends JPanel
     public void load (File file) throws Exception {
 //    	File f = File.createTempFile("tmpImgViewer", ".png");
 //    	file = stdResize(file,f,0.6);
-//    	StructureImageExtractor.DEF_BINARIZATION=new RangeFractionThreshold();
+//    	StructureImageExtractor.DEF_BINARIZATION=new SigmaThreshold(0.0);
         load (file, Math.min(sx, sy));
     }
 

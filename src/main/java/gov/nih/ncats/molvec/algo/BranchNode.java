@@ -898,6 +898,9 @@ class BranchNode{
 		if(s.contains("Ct")){
 			return interpretOCRStringAsAtom(s.replaceAll("C[tT]", "Cl"),tokenOnly);
 		}
+		if(s.equals("C)") || s.equals("c)")){
+			return interpretOCRStringAsAtom("Cl",tokenOnly);
+		}
 		if(s.contains("Htt")){
 			return interpretOCRStringAsAtom(s.replace("Htt", "H11"),tokenOnly);
 		}
