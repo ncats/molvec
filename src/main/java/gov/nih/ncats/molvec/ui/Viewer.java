@@ -68,6 +68,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import com.mortennobel.imagescaling.ResampleOp;
+
 import gov.nih.ncats.molvec.Bitmap;
 import gov.nih.ncats.molvec.algo.CentroidEuclideanMetric;
 import gov.nih.ncats.molvec.algo.NearestNeighbors;
@@ -333,8 +335,8 @@ public class Viewer extends JPanel
     }
 
     public void load (File file) throws Exception {
-//    	File f = File.createTempFile("tmpImgViewer", ".png");
-//    	file = stdResize(file,f,0.6);
+    	File f = File.createTempFile("tmpImgViewer", ".png");
+//    	file = stdResize(file,f,1.2);
 //    	StructureImageExtractor.DEF_BINARIZATION=new SigmaThreshold(0.0);
         load (file, Math.min(sx, sy));
     }
@@ -378,36 +380,45 @@ public class Viewer extends JPanel
 	private static File stdResize(File f, File imageFile, double scale) throws IOException{
 		
 		
+
 		RenderedImage ri = Bitmap.readToImage(f);
 		
 		int nwidth=(int) (ri.getWidth() *scale);
 		int nheight=(int) (ri.getHeight() *scale);
+
+		//	this is using a sinc filter
+		BufferedImage outputImage=null;
+		if(scale<0.95 || scale > 1.05){ // don't do sinc if near unity
+			ResampleOp resizeOp = new ResampleOp(nwidth, nheight);
+			outputImage = resizeOp.filter(convertRenderedImage(ri), null);
+		}else{
 		
-        // creates output image
-        BufferedImage outputImage = new BufferedImage(nwidth,
-                nheight,ColorModel.BITMASK);
- 
-        // scales the input image to the output image
-        Graphics2D g2d = outputImage.createGraphics();
-        
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-        	       RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-        g2d.scale(scale, scale);
-        g2d.drawImage(convertRenderedImage(ri), 0, 0,null);
-        g2d.dispose();
-        
-        for (int x = 0; x < outputImage.getWidth(); x++) {
-            for (int y = 0; y < outputImage.getHeight(); y++) {
-                int rgba = outputImage.getRGB(x, y);
-                Color col = new Color(rgba, true);
-                col = new Color(255 - col.getRed(),
-                                255 - col.getGreen(),
-                                255 - col.getBlue());
-                outputImage.setRGB(x, y, col.getRGB());
-            }
-        }
+	        // creates output image
+	        outputImage = new BufferedImage(nwidth,
+	                nheight,ColorModel.BITMASK);
+	 
+	        // scales the input image to the output image
+	        Graphics2D g2d = outputImage.createGraphics();
+	        
+	        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+	        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+	        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+	        	       RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+	        g2d.scale(scale, scale);
+	        g2d.drawImage(convertRenderedImage(ri), 0, 0,null);
+	        g2d.dispose();
+	        
+	        for (int x = 0; x < outputImage.getWidth(); x++) {
+	            for (int y = 0; y < outputImage.getHeight(); y++) {
+	                int rgba = outputImage.getRGB(x, y);
+	                Color col = new Color(rgba, true);
+	                col = new Color(255 - col.getRed(),
+	                                255 - col.getGreen(),
+	                                255 - col.getBlue());
+	                outputImage.setRGB(x, y, col.getRGB());
+	            }
+	        }
+		}
         
 
 		ImageIO.write(outputImage, "png", imageFile);

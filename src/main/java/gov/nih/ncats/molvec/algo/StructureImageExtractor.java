@@ -461,13 +461,23 @@ public class StructureImageExtractor {
 						}
 						
 						if(better){
-							bsplitMatches.stream().forEach(t->{
-								onFind.accept(t.k(), t.v());
-							});
-							toAddShapes.add(gshape1);
-							toAddShapes.add(gshape2);
-							toRemoveShapes.add(s);
-						}else{
+							String interp = bsplitMatches.stream()
+										 				 .map(bs->bs.v().get(0).k()+"")
+										 				 .collect(Collectors.joining());
+							BranchNode bntest=BranchNode.interpretOCRStringAsAtom2(interp);
+							if(bntest!=null && bntest.getSymbol().equals(ll.get(0).k()+"")){
+								better=false;
+							}else{
+								bsplitMatches.stream().forEach(t->{
+									onFind.accept(t.k(), t.v());
+								});
+								toAddShapes.add(gshape1);
+								toAddShapes.add(gshape2);
+								toRemoveShapes.add(s);
+							}
+						}
+						
+						if(!better){
 							onFind.accept(s, ll);
 						}
 						
@@ -698,6 +708,19 @@ public class StructureImageExtractor {
 					potential = potential.stream()
 							.map(Tuple.kmap(c->'O'))
 							.collect(Collectors.toList());
+				}
+			}
+			if(asciiCache['H']==1 && (asciiCache['a']==1 )){
+				if(best[0] != null && (best[0].equals('a'))){
+					//'a' characters are usually 'H' characters, provided H is above cutoff
+					if(potential.get(1).k().charValue()=='H'){
+						if(potential.get(1).v().doubleValue()>0.5){
+							Tuple<Character,Number> cc=potential.remove(0);
+							
+							potential.add(Tuple.of(cc.k(),0));
+						}
+					}
+					
 				}
 			}
 
@@ -5065,9 +5088,11 @@ public class StructureImageExtractor {
 		ctab.getNodes().stream()
 				    .filter(n->n.getSymbol().equals("H"))
 				    .filter(n->n.getValanceTotal()>2)
-				    .filter(n->!n.getEdges().stream().filter(e->e.getOrder()>1).anyMatch(e->{
+				    .filter(n->n.getEdges().stream().filter(e->e.getOrder()>1).anyMatch(e->{
 				    	//If the double bond is right above the current node, it's likely an erroneous carbon
-				    	return GeomUtil.cosTheta(e.getLine(), new Line2D.Double(0,0,0,1))>0.8;
+//				    	if(true)return true;
+				    	double costheta=GeomUtil.cosTheta(e.getLine(), new Line2D.Double(0,0,0,1));
+				    	return costheta>0.9;
 				    }))
 				    .forEach(n->{
 				    		n.setSymbol("C");
@@ -5391,6 +5416,12 @@ public class StructureImageExtractor {
 			    .filter(r->r.size()==5)
 			    .filter(r->r.getNodes().stream().allMatch(n->!n.isInvented()))
 			    .forEach(r->{
+			    	r.getNodes().forEach(n->{
+			    		 n.setInvented(true);
+		    	    	 ignoreNodes.add(n);	
+			    	}); 
+			    	
+	    	    	 
 			    	Shape fShape=r.getNodes()
 			    	 .stream()
 			    	 .map(rn->rn.getPoint())
@@ -5434,8 +5465,6 @@ public class StructureImageExtractor {
 				    	if(updates.size()==5){
 				    		updates.forEach(t->{
 				    	    	 t.k().setPoint(t.v());
-				    	    	 t.k().setInvented(true);
-				    	    	 ignoreNodes.add(t.k());
 				    	      });
 				    	}
 			    	}
@@ -5443,9 +5472,7 @@ public class StructureImageExtractor {
 				//fixes a few positions
 				ctab.simpleClean();
 				
-				ignoreNodes.forEach(n->{
-					n.setInvented(false);
-				});
+				
 				
 	
 	
@@ -5578,9 +5605,7 @@ public class StructureImageExtractor {
 					});
 				}
 				
-				ignoreNodes.forEach(n->{
-					n.setInvented(true);
-				});
+			
 				//Grid alignment stuff
 				
 				ctab.getNodes()

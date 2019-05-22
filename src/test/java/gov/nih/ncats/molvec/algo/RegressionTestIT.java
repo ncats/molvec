@@ -46,9 +46,16 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.plugins.jpeg.JPEGImageWriteParam;
+import javax.imageio.stream.FileImageOutputStream;
 
 import org.junit.Test;
+
+import com.mortennobel.imagescaling.ResampleOp;
 
 import gov.nih.ncats.chemkit.api.Atom;
 import gov.nih.ncats.chemkit.api.AtomCoordinates;
@@ -60,7 +67,6 @@ import gov.nih.ncats.chemkit.api.inchi.Inchi;
 import gov.nih.ncats.molvec.Bitmap;
 import gov.nih.ncats.molvec.Molvec;
 import gov.nih.ncats.molvec.algo.ShellCommandRunner.Monitor;
-import gov.nih.ncats.molvec.image.binarization.RangeFractionThreshold;
 import gov.nih.ncats.molvec.util.GeomUtil;
 
 public class RegressionTestIT {
@@ -219,7 +225,7 @@ public class RegressionTestIT {
 		
 		File imageFile = File.createTempFile(fname, ".png");
 		File molFile = File.createTempFile(fname, ".mol");
-		imageFile=stdResize(f, imageFile, 1);
+		imageFile=stdResize(f, imageFile, 1, Interpolation.NEAREST_NEIGHBOR);
 				
 		String tmpFileNameImage = imageFile.getAbsolutePath();
 		String tmpFileNameMol = molFile.getAbsolutePath();
@@ -573,10 +579,10 @@ public class RegressionTestIT {
 					            })
 					            .sum() ;
 			
-			System.out.println("Scale:" + s);
-			double b1 = c1.bonds().mapToDouble(b->b.getBondLength()).average().orElse(1);
-			double b2 = c2.bonds().mapToDouble(b->b.getBondLength()).average().orElse(1);
-			System.out.println("Scale2:" + b1/b2);
+//			System.out.println("Scale:" + s);
+//			double b1 = c1.bonds().mapToDouble(b->b.getBondLength()).average().orElse(1);
+//			double b2 = c2.bonds().mapToDouble(b->b.getBondLength()).average().orElse(1);
+//			System.out.println("Scale2:" + b1/b2);
 			
 		}else{
 			//scale c2 to c1:
@@ -662,40 +668,82 @@ public class RegressionTestIT {
 		  });
 		return c1;
 	}
-	private static File stdResize(File f, File imageFile, double scale) throws IOException{
+	private static File stdResize(File f, File imageFile, double scale, Interpolation terp) throws IOException{
 		
+
 		
+
+
 		RenderedImage ri = Bitmap.readToImage(f);
 		
 		int nwidth=(int) (ri.getWidth() *scale);
 		int nheight=(int) (ri.getHeight() *scale);
+
+		//	this is using a sinc filter
+		BufferedImage outputImage=null;
 		
-        // creates output image
-        BufferedImage outputImage = new BufferedImage(nwidth,
-                nheight,ColorModel.BITMASK);
- 
-        // scales the input image to the output image
-        Graphics2D g2d = outputImage.createGraphics();
+		if(Interpolation.SINC.equals(terp)){ 
+			ResampleOp resizeOp = new ResampleOp(nwidth, nheight);
+			outputImage = resizeOp.filter(convertRenderedImage(ri), null);
+			
+		}else{
+			
+	        // creates output image
+	        outputImage = new BufferedImage(nwidth,
+	                nheight,ColorModel.BITMASK);
+	 
+	        // scales the input image to the output image
+	        Graphics2D g2d = outputImage.createGraphics();
+	        
+	        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+	        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+	        
+	        if(Interpolation.BICUBIC.equals(terp)){
+	        	g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+	        	       RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+	        }else if(Interpolation.BILINEAR.equals(terp)){
+	        	g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+		        	       RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+	        }else if(Interpolation.NEAREST_NEIGHBOR.equals(terp)){
+	        	g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+		        	       RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+	        }
+	        g2d.scale(scale, scale);
+	        g2d.drawImage(convertRenderedImage(ri), 0, 0,null);
+	        g2d.dispose();
+	        
+	        for (int x = 0; x < outputImage.getWidth(); x++) {
+	            for (int y = 0; y < outputImage.getHeight(); y++) {
+	                int rgba = outputImage.getRGB(x, y);
+	                Color col = new Color(rgba, true);
+	                col = new Color(255 - col.getRed(),
+	                                255 - col.getGreen(),
+	                                255 - col.getBlue());
+	                outputImage.setRGB(x, y, col.getRGB());
+	            }
+	        }
+		}
         
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-        	       RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-        g2d.scale(scale, scale);
-        g2d.drawImage(convertRenderedImage(ri), 0, 0,null);
-        g2d.dispose();
-        
-        for (int x = 0; x < outputImage.getWidth(); x++) {
-            for (int y = 0; y < outputImage.getHeight(); y++) {
-                int rgba = outputImage.getRGB(x, y);
-                Color col = new Color(rgba, true);
-                col = new Color(255 - col.getRed(),
-                                255 - col.getGreen(),
-                                255 - col.getBlue());
-                outputImage.setRGB(x, y, col.getRGB());
-            }
-        }
-        
+//		if(true){
+//			JPEGImageWriteParam jpegParams = new JPEGImageWriteParam(null);
+//			jpegParams.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+//			jpegParams.setCompressionQuality(.6f);
+//			final ImageWriter writer = ImageIO.getImageWritersByFormatName("jpg").next();
+//			// specifies where the jpg image has to be written
+//			
+//			File tfile = new File(imageFile.getAbsolutePath() + ".jpg");
+//			
+//			
+//			try(FileImageOutputStream fos = new FileImageOutputStream(
+//					tfile)){
+//				writer.setOutput(fos);
+//				writer.write(null, new IIOImage(outputImage, null, null), jpegParams);
+//				return tfile;
+//			}
+//			
+//			
+//			
+//		}
 
 		ImageIO.write(outputImage, "png", imageFile);
 		return imageFile;
@@ -970,10 +1018,25 @@ public class RegressionTestIT {
 	
 	@Test
 	public void test1() throws FileNotFoundException{
+		
+		//testSet("trec", Method.MOLVEC.adapt().suffix("jpg").scale(1).interpolation(Interpolation.BICUBIC).limit(2));
+		
+//		
 		for(int i=3;i<=20;i++){
-			testSet("trec", Method.MOLVEC.adapt().suffix("_rescue test").scale(i/10.0));
+			testSet("trec", Method.IMAGO.adapt().suffix("_bilinear").interpolation(Interpolation.BILINEAR).scale(i/10.0));
 		}
 		
+		for(int i=17;i<=20;i++){
+			testSet("trec", Method.OSRA.adapt().suffix("_sinc").interpolation(Interpolation.SINC).scale(i/10.0));
+		}
+		
+//		for(int i=3;i<=20;i++){
+//			testSet("trec", Method.IMAGO.adapt().suffix("_sinc").scale(i/10.0));
+//		}
+//		for(int i=3;i<=20;i++){
+//			testSet("trec", Method.OSRA.adapt().suffix("_sinc").scale(i/10.0));
+//		}
+//		
 //		testSet("uspto", Method.MOLVEC.adapt().rmse(true));
 		//All data sets stats
 		
@@ -1080,8 +1143,16 @@ public class RegressionTestIT {
 		
 	}
 	
+	public static enum Interpolation{
+		BICUBIC,
+		BILINEAR,
+		SINC,
+		NEAREST_NEIGHBOR;
+	}
+	
 	public static class MethodAdapted{
 		public Method method;
+		Interpolation terp = Interpolation.BICUBIC;
 		double scale = 1;		
 		long max = Long.MAX_VALUE;
 		boolean RMSE = false;
@@ -1097,6 +1168,12 @@ public class RegressionTestIT {
 			this.scale=s;
 			return this;
 		}
+		
+		public MethodAdapted interpolation(Interpolation terp){
+			this.terp=terp;
+			return this;
+		}
+		
 		public MethodAdapted suffix(String suf){
 			this.suffix=suf;
 			return this;
@@ -1120,8 +1197,8 @@ public class RegressionTestIT {
 		}
 		
 		public Chemical getChem(File f) throws Exception{
-			File imageFile = File.createTempFile("tmpStr" + UUID.randomUUID().toString(), ".png");
-			imageFile=stdResize(f, imageFile, scale);
+			File imageFile = File.createTempFile("tmpStr" + UUID.randomUUID().toString() +"_scale_" +  scale + "x" , ".png");
+			imageFile=stdResize(f, imageFile, scale, terp);
 			return method.getChem(imageFile);
 		}
 		

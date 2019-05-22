@@ -394,8 +394,14 @@ class BranchNode{
 		if(s.contains("1t")){
 			return interpretOCRStringAsAtom(s.replace("1t", "H"));
 		}
+		if(s.contains("t1")){
+			return interpretOCRStringAsAtom(s.replace("t1", "H"));
+		}
 		if(s.contains("I1")){
 			return interpretOCRStringAsAtom(s.replace("I1", "H"));
+		}
+		if(s.equals("11")){
+			return interpretOCRStringAsAtom("H");
 		}
 		
 		
