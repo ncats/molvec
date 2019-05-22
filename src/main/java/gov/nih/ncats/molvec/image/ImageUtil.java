@@ -1,5 +1,7 @@
 package gov.nih.ncats.molvec.image;
 
+import com.twelvemonkeys.imageio.stream.ByteArrayImageInputStream;
+
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
@@ -7,10 +9,7 @@ import java.awt.image.ColorModel;
 import java.awt.image.IndexColorModel;
 import java.awt.image.Raster;
 import java.awt.image.RescaleOp;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.PushbackInputStream;
+import java.io.*;
 import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
@@ -117,8 +116,7 @@ public class ImageUtil implements TiffTags {
     }
 
     public static BufferedImage grayscale (byte[] file) throws IOException {
-
-        return decode(ImageIO.read(new ByteArrayInputStream(file)));
+        return decode(ImageIO.read(new ByteArrayImageInputStream(file)));
     }
     public static BufferedImage grayscale (File file) throws IOException {
 
