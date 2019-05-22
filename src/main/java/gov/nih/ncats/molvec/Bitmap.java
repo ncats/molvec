@@ -46,14 +46,7 @@ import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
 
-import com.sun.media.jai.codec.ByteArraySeekableStream;
-import com.sun.media.jai.codec.ImageCodec;
-import com.sun.media.jai.codec.ImageDecoder;
-import com.sun.media.jai.codec.ImageEncoder;
-import com.sun.media.jai.codec.TIFFDecodeParam;
-import com.sun.media.jai.codec.TIFFDirectory;
-import com.sun.media.jai.codec.TIFFEncodeParam;
-import com.sun.media.jai.codec.TIFFField;
+
 
 import gov.nih.ncats.molvec.algo.Tuple;
 import gov.nih.ncats.molvec.image.ImageUtil;
@@ -879,21 +872,21 @@ public class Bitmap implements Serializable, TiffTags {
                 ("Can't handle sample with multiple channels");
         }
 
-        
+
         ImageStats[] is = new ImageStats[]{null};
-        
-        
+
+
         Bitmap bm= new SigmaThreshold (sigma).binarize(raster, stat->{
         	is[0]=stat;
         });
-        
 
-        
+
+
 
         double tPct=100*(is[0].threshold-is[0].min)/(is[0].max-is[0].min);
         double tPctMinSig=100*((is[0].threshold-is[0].stdev)-is[0].min)/(is[0].max-is[0].min);
         double tPctMaxSig=100*((is[0].threshold+is[0].stdev)-is[0].min)/(is[0].max-is[0].min);
-        
+
         double count = 0;
         double countOn = 0;
         for(int i=(int)Math.max(1, tPctMinSig);i<=Math.min(tPctMaxSig, 100);i++){
@@ -902,27 +895,27 @@ public class Bitmap implements Serializable, TiffTags {
         for(int i=(int)Math.max(1, tPct);i<=100;i++){
         	countOn+=is[0].histogram[i];
         }
-        
-//print histogram    
+
+//print histogram
 //      for(int i=0;i<is[0].histogram.length;i++){
 //  		System.out.println(i + "\t" + is[0].histogram[i]);
 //  	}
 //  	System.out.println("Threshold:" + tPct);
 //  	System.out.println("Min Threshold:" + tPctMinSig);
 //  	System.out.println("Max Threshold:" + tPctMaxSig);
-//  
+//
         //If there's a little uncertainty about where to draw the threshold line, try
         //the adaptive threshold, possibly
         if(count> countOn*0.1 || count> (is[0].count-countOn)*0.1){
 
 //        	System.out.println("testing adaptive");
             List<Shape> polys2= bm.connectedComponents(Bitmap.Bbox.DoublePolygon);
-            
+
             if(polys2.size()<4000){
-            
+
     	        Bitmap bm1= new AdaptiveThreshold().binarize(raster);
     	        List<Shape> polys1= bm1.connectedComponents(Bitmap.Bbox.DoublePolygon);
-    	        
+
     	        if(polys1.size()<4000){
     	            long sum1=polys1.stream()
     		              .mapToLong(s->polys1.stream().filter(s2->GeomUtil.contains(s, s2)).count())
@@ -930,7 +923,7 @@ public class Bitmap implements Serializable, TiffTags {
     		        long sum2=polys2.stream()
     		                .mapToLong(s->polys2.stream().filter(s2->GeomUtil.contains(s, s2)).count())
     		                .sum();
-//    		        //if there are at least 3 more shapes inside other shapes, it's 
+//    		        //if there are at least 3 more shapes inside other shapes, it's
 //    		        //probably a thresholding issue that should use the one with more shapes
 //    		        //The logic here is that aromatic double bonds are quite common, and if
 //    		        //the thresholding washes them out, then you'd expect to see about 3 or more shapes
@@ -943,197 +936,26 @@ public class Bitmap implements Serializable, TiffTags {
     	        //System.out.println("time:" + (System.currentTimeMillis()-tstart));
             }
         }
-        
-        
-        
+
+
+
         
         return bm;
         
     }
 
 
-    public static Bitmap readtif (String file) throws IOException {
-        return readtif (new FileInputStream (file));
-    }
+	public static RenderedImage readToImage(File file) throws IOException{
 
-    public static Bitmap readtif (File file) throws IOException {
-        return readtif (new FileInputStream (file));
-    }
+			return ImageUtil.grayscale(file);
 
-    public static Bitmap readtif (InputStream is) throws IOException {
-        ImageDecoder decoder = ImageCodec.createImageDecoder
-            ("TIFF", is, new TIFFDecodeParam ());
+	}
+	public static RenderedImage readToImage(byte[] file) throws IOException{
 
-        TIFFDirectory tif = new TIFFDirectory
-            (decoder.getInputStream (), 0);
-        TIFFField[] fields = tif.getFields ();
+			return ImageUtil.grayscale(file);
 
-        String unit = "";
-        double xres = 0., yres = 0.;
-        int rows = -1, photometric = -1, bpp = -1;
-        for (int j = 0; j < fields.length; ++j) {
-            TIFFField f = fields[j];
-            int tag = f.getTag ();
-            switch (tag) {
-            case TAG_RESOLUTIONUNIT: {
-                int u = f.getAsInt (0);
-                if (u == RESOLUTIONUNIT_NONE) {
-                } else if (u == RESOLUTIONUNIT_INCH) {
-                    unit = "in";
-                } else if (u == RESOLUTIONUNIT_CENT) {
-                    unit = "cm";
-                }
-            }
-                break;
+	}
 
-            case TAG_XRESOLUTION:
-                xres = f.getAsFloat (0);
-                break;
-
-            case TAG_YRESOLUTION:
-                yres = f.getAsFloat (0);
-                break;
-
-            case TAG_ROWSPERSTRIP:
-                //rows = f.getAsInt(0);
-                break;
-
-            case TAG_PHOTOMETRIC:
-                photometric = f.getAsInt (0);
-                break;
-
-            case TAG_BITSPERSAMPLE:
-                bpp = f.getAsInt (0);
-                break;
-                /*
-                  case TAG_IMAGEWIDTH:
-                  width = f.getAsFloat(0);
-                  break;
-
-                  case TAG_IMAGELENGTH:
-                  height = f.getAsFloat(0);
-                  break;
-                */
-            }
-        }
-
-        RenderedImage decodedImage = decoder.decodeAsRenderedImage ();
-        Raster raster = decodedImage.getData ();
-
-        logger.info ("TIFF image: bpp=" + bpp
-                     + " channels=" + raster.getNumBands ());
-        if (bpp != 1) {
-            throw new IllegalArgumentException ("BitsPerSample != 1");
-        }
-
-        Bitmap bm = new Bitmap (raster.getWidth (), raster.getHeight ());
-        for (int y = 0; y < bm.height; ++y) {
-            int band = bm.scanline * y;
-            for (int x = 0; x < bm.width; ++x) {
-                int pel = raster.getSample (x, y, 0);
-                if (pel == 1) {
-                    bm.data[band + x / 8] |= MASK[x % 8];
-                }
-            }
-        }
-        
-        
-        if (photometric == PHOTOMETRIC_BLACKISZERO) {
-        	
-            // flip
-            /*
-              for (int i = 0; i < bm.data.length; ++i) {
-              bm.data[i] = (byte) (~bm.data[i] & 0xff);
-              }
-            */
-        }
-        
-        
-
-        return bm;
-    }
-    
-    public static RenderedImage readtiftoImage (InputStream is) throws IOException {
-        ImageDecoder decoder = ImageCodec.createImageDecoder
-            ("TIFF", is, new TIFFDecodeParam ());
-
-        TIFFDirectory tif = new TIFFDirectory
-            (decoder.getInputStream (), 0);
-        TIFFField[] fields = tif.getFields ();
-
-        String unit = "";
-        double xres = 0., yres = 0.;
-        int rows = -1, photometric = -1, bpp = -1;
-        for (int j = 0; j < fields.length; ++j) {
-            TIFFField f = fields[j];
-            int tag = f.getTag ();
-            switch (tag) {
-            case TAG_RESOLUTIONUNIT: {
-                int u = f.getAsInt (0);
-                if (u == RESOLUTIONUNIT_NONE) {
-                } else if (u == RESOLUTIONUNIT_INCH) {
-                    unit = "in";
-                } else if (u == RESOLUTIONUNIT_CENT) {
-                    unit = "cm";
-                }
-            }
-                break;
-
-            case TAG_XRESOLUTION:
-                xres = f.getAsFloat (0);
-                break;
-
-            case TAG_YRESOLUTION:
-                yres = f.getAsFloat (0);
-                break;
-
-            case TAG_ROWSPERSTRIP:
-                //rows = f.getAsInt(0);
-                break;
-
-            case TAG_PHOTOMETRIC:
-                photometric = f.getAsInt (0);
-                break;
-
-            case TAG_BITSPERSAMPLE:
-                bpp = f.getAsInt (0);
-                break;
-                /*
-                  case TAG_IMAGEWIDTH:
-                  width = f.getAsFloat(0);
-                  break;
-
-                  case TAG_IMAGELENGTH:
-                  height = f.getAsFloat(0);
-                  break;
-                */
-            }
-        }
-
-        RenderedImage decodedImage = decoder.decodeAsRenderedImage ();
-        return decodedImage;
-    }
-    
-    
-    public static RenderedImage readToImage(File file) throws IOException{
-    	 try {
-    		 InputStream is = new FileInputStream(file);
-             return readtiftoImage (is);
-         }
-         catch (Exception ex) {
-             return ImageUtil.grayscale(file);
-         }
-    }
-    public static RenderedImage readToImage(byte[] file) throws IOException{
-   	 try {
-   		 InputStream is = new ByteArraySeekableStream(file);
-            return readtiftoImage (is);
-        }
-        catch (Exception ex) {
-            return ImageUtil.grayscale(file);
-        }
-   }
-    
     
     public Bitmap clean(){
     	double pon=fractionPixelsOn();
@@ -1172,23 +994,16 @@ public class Bitmap implements Serializable, TiffTags {
     }
 
     public static Bitmap read (byte[] file, double sigma) throws IOException {
-    	   try {
-               return readtif (new ByteArraySeekableStream(file));
-           }
-           catch (Exception ex) {
+
                return createBitmap (ImageUtil.grayscale(file).getData(),sigma);
-           }
+
     }
     public static Bitmap read (byte[] file) throws IOException {
     	return read(file,1.2);
     }
     public static Bitmap read (File file, double sigma) throws IOException {
-        try {
-            return readtif (file);
-        }
-        catch (Exception ex) {
             return createBitmap (ImageUtil.grayscale(file).getData(), sigma);
-        }
+
     }
     
     public static Bitmap read (BufferedImage bi, double sigma) {
@@ -1198,21 +1013,7 @@ public class Bitmap implements Serializable, TiffTags {
     
 
 
-    public void writetif (String file) throws IOException {
-        writetif (new FileOutputStream (file));
-    }
 
-    public void writetif (File file) throws IOException {
-        writetif (new FileOutputStream (file));
-    }
-
-    public void writetif (OutputStream os) throws IOException {
-        TIFFEncodeParam param = new TIFFEncodeParam ();
-        param.setCompression (TIFFEncodeParam.COMPRESSION_GROUP4);
-        ImageEncoder encoder = ImageCodec.createImageEncoder
-            ("TIFF", os, param);
-        encoder.encode (createBufferedImage ());
-    }
 
     // create an empty image
     public Bitmap (Bitmap copy) {
@@ -1728,10 +1529,10 @@ public class Bitmap implements Serializable, TiffTags {
     public List<Shape> connectedComponents () {
         return connectedComponents (Bbox.Rectangular);
     }
-    
+
     private Map<Bbox,List<Shape>> _cacheShapes = new HashMap<>();
-    
-    
+
+
 
     public List<Shape> connectedComponents (Bbox shape) {
     	return _cacheShapes.computeIfAbsent(shape, (ss)->{
@@ -1858,9 +1659,9 @@ public class Bitmap implements Serializable, TiffTags {
             eqvtab = null;
             labels = null;
 
-            return comps;	
+            return comps;
     	});
-        
+
     }
 
 
@@ -2811,108 +2612,17 @@ public class Bitmap implements Serializable, TiffTags {
         return segments;
     }
 
-    public static void main (String[] argv) throws Exception {
-        Bitmap bm = new Bitmap (16, 16);
-        java.util.Random rand = new java.util.Random ();
-        int n = 0;
-        for (int y = 0; y < bm.height (); ++y) {
-            for (int x = 0; x < bm.width (); ++x) {
-                boolean on = rand.nextDouble () > .5;
-                if (on) {
-                    //System.out.println("pixel on at "+x+" "+y);
-                    ++n;
-                }
-                bm.set (x, y, on);
-            }
-        }
-
-       
-
-        if (argv.length == 0) {
-            System.err.println ("Usage: Bitmap FILE.tif");
-            System.exit (1);
-        }
-
-        Bitmap tif = readtif (new File (argv[0]));
-        Bitmap ske = tif.skeleton ();
-        //tif.write("png", new File ("bitmap.png"));
-        tif.dump (System.out);
-        /*
-          List<Shape> cc = tif.connectedComponents();
-          for (Shape s : cc) {
-          System.out.println("crop: "+s.getBounds());
-          Bitmap c = tif.crop(s);
-          c.dump(System.out);
-          }
-        */
-        System.out.println ("Image " + tif.width () + "x" + tif.height ());
-
-        char[][] ascii = new char[tif.height ()][tif.width ()];
-        for (int y = 0; y < tif.height (); ++y) {
-            for (int x = 0; x < tif.width (); ++x) {
-                ascii[y][x] = tif.get (x, y) ? '*' : '.';
-            }
-        }
-
-        List<ChainCodeSequence> seqs = tif.chainCodes ();
-        System.out.println ("Num chain codes: " + seqs.size ());
-        for (ChainCodeSequence s : seqs) {
-            int x = s.getStartX (), y = s.getStartY ();
-            for (ChainCode c : s.getSequence ()) {
-                ascii[y][x] = c.ch ();
-                x += c.dx ();
-                y += c.dy ();
-            }
-            ascii[y][x] = '#'; // mark the end of this chain code
-        }
-
-        for (int y = 0; y < tif.height (); ++y) {
-            for (int x = 0; x < tif.width (); ++x)
-                System.out.print (ascii[y][x]);
-            System.out.println ();
-        }
-
-        List<Point2D> dps = tif.dominantPoints ();
-        System.out.println ("** " + dps.size () + " dominant points");
-        for (int i = 0; i < dps.size (); ++i) {
-            Point2D pt = dps.get (i);
-            System.out.println (" ++ " + (i + 1) + ": " + pt);
-            ascii[(int) pt.getY ()][(int) pt.getX ()] = '@';
-        }
-
-
-        for (int y = 0; y < tif.height (); ++y) {
-            for (int x = 0; x < tif.width (); ++x)
-                System.out.print (ascii[y][x]);
-            System.out.println ();
-        }
-        //tif.segments(10, 2);
-    }
-
-    public static class Skeleton {
-        public static void main (String[] argv) throws Exception {
-            if (argv.length < 2) {
-                System.err.println ("Usage: Bitmap$Skeleton INTIF OUTTIF");
-                System.exit (1);
-            }
-
-            Bitmap bm = Bitmap.readtif (new File (argv[0]));
-            bm.skeleton ().writetif (new File (argv[1]));
-        }
-    }
-
-
 	public Bitmap paste(Bitmap bm2, Shape ss) {
 
 		Rectangle2D bounds = ss.getBounds2D();
-		
-		
+
+
 		int minX = (int) Math.max(bounds.getMinX(), 0);
 		int minY = (int) Math.max(bounds.getMinY(), 0);
-		
+
 		int maxX = (int) Math.min(bounds.getMaxX(), this.width());
 		int maxY = (int) Math.min(bounds.getMaxY(), this.height());
-		
+
 		for(int x=minX;x<=maxX;x++){
 			for(int y=minY;y<=maxY;y++){
 				if(ss.contains(x, y)){
@@ -2920,9 +2630,10 @@ public class Bitmap implements Serializable, TiffTags {
 				}
 			}
 		}
-		
-			
+
+
 		return this;
-		
+
 	}
+
 }
