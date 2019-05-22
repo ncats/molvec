@@ -4857,20 +4857,7 @@ public class MoleculeTest {
 		//44 -- 
 		
 		
-		PrintStream old = System.out;
-		System.setOut(new PrintStream(new OutputStream(){
 
-			@Override
-			public void write(int arg0) throws IOException {
-				try{
-					throw new RuntimeException("Got:" + arg0);
-				}catch(Exception e){
-					e.printStackTrace();
-				}
-				
-			}
-			
-		}));
 		
 		return list;
 	}
