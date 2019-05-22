@@ -22,20 +22,32 @@ questions and/or problems to tyler.peryea@nih.gov.
 ##Example Usage
 
     File image = ...
-    Chemical chemical = Molvec.ocr(image);
-    
-    System.out.println( chemical.toMol() );
+    String mol = Molvec.ocr(image);
     
     
 ##Async Support
 
   New in 0.8 MolVec supports asynchronous calls
   
-    CompleteableFuture<Chemical> future = Molvec.ocrAsync( image);
-    Chemical chem = future.get(10, TimeUnit.SECONDS);
+    CompleteableFuture<String> future = Molvec.ocrAsync( image);
+    String mol = future.get(5, TimeUnit.SECONDS);
   
-
-##UI
+##Commandline interface
+  The Molvec jar has a runnable Main class with the following options
+  
+    usage: molvec [ -f <path> | -gui]
+     -f,--file <arg>   path of image file to process. Supported formats
+                       include png, jpeg, tiff.  This option is required if
+                       not using -gui
+     -gui              Run Molvec in GUI mode. file and scale option may be
+                       set to preload file
+     -h,--help         print usage text
+     -o,--out <arg>    path of output processed mol. Only valid when not using
+                       gui mode. If not specified output is sent to STDOUT
+     -scale <arg>      scale of image to show in viewer (only valid if gui
+                       mode AND file are specified)
+                       
+###GUI
   Molvec Comes with a Swing Viewer you can use to step
   through each step of the structure recognition process
 
