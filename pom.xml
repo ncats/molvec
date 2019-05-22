@@ -66,6 +66,12 @@
         <version>0.9.2</version>
         <scope>test</scope>
 </dependency>
+<dependency>
+    <groupId>com.mortennobel</groupId>
+    <artifactId>java-image-scaling</artifactId>
+    <version>0.8.6</version>
+<scope>test</scope>
+</dependency>
 
 </dependencies>
 

@@ -678,11 +678,10 @@ public class RegressionTestIT {
 		
 		int nwidth=(int) (ri.getWidth() *scale);
 		int nheight=(int) (ri.getHeight() *scale);
-
-		//	this is using a sinc filter
 		BufferedImage outputImage=null;
 		
-		if(Interpolation.SINC.equals(terp)){ 
+		if(Interpolation.SINC.equals(terp)){
+			
 			ResampleOp resizeOp = new ResampleOp(nwidth, nheight);
 			outputImage = resizeOp.filter(convertRenderedImage(ri), null);
 			
