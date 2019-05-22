@@ -1,11 +1,19 @@
 package gov.nih.ncats.molvec.image;
 
-import java.io.*;
-import java.awt.image.*;
-
-import javax.imageio.*;
-import java.util.Map;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.IndexColorModel;
+import java.awt.image.Raster;
+import java.awt.image.RescaleOp;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.PushbackInputStream;
 import java.util.logging.Logger;
+
+import javax.imageio.ImageIO;
 
 
 
@@ -14,7 +22,42 @@ public class ImageUtil implements TiffTags {
 	(ImageUtil.class.getName());
 
 
+    private static BufferedImage toRGBColorModel(BufferedImage bi2){
+		
+		int nwidth=(int) (bi2.getWidth());
+		int nheight=(int) (bi2.getHeight());
+		
+        // creates output image
+        BufferedImage outputImage = new BufferedImage(nwidth,
+                nheight,ColorModel.BITMASK);
+ 
+        // scales the input image to the output image
+        Graphics2D g2d = outputImage.createGraphics();
+        
+        g2d.drawImage(bi2, 0, 0, nwidth, nheight, null);
+        g2d.dispose();
+        
+        for (int x = 0; x < outputImage.getWidth(); x++) {
+            for (int y = 0; y < outputImage.getHeight(); y++) {
+                int rgba = outputImage.getRGB(x, y);
+                Color col = new Color(rgba, true);
+                col = new Color(255 - col.getRed(),
+                                255 - col.getGreen(),
+                                255 - col.getBlue());
+                outputImage.setRGB(x, y, col.getRGB());
+            }
+        }
+        
+
+		
+		return outputImage;
+	}
+
     public static BufferedImage decode (BufferedImage bi) {
+    	
+    	if(bi.getColorModel() instanceof IndexColorModel){
+    		bi=toRGBColorModel(bi);
+    	}
         Raster raster = bi.getData();
 
         int bands=raster.getNumBands();
