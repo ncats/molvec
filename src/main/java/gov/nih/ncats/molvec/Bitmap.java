@@ -957,7 +957,7 @@ public class Bitmap implements Serializable, TiffTags {
         //the adaptive threshold, possibly
         if(count> countOn*0.1 || count> (is[0].count-countOn)*0.1){
 
-//        	System.out.println("testing adaptive");
+        	System.out.println("testing adaptive");
             List<Shape> polys2= bm.connectedComponents(Bitmap.Bbox.DoublePolygon);
 
             if(polys2.size()<4000){
@@ -978,7 +978,7 @@ public class Bitmap implements Serializable, TiffTags {
 //    		        //the thresholding washes them out, then you'd expect to see about 3 or more shapes
 //    		        //inside other shapes with good thresholding than with bad thresholding
     		        if(sum1>=sum2+3){
-//    		        	System.out.println("Using adaptive");
+    		        	System.out.println("Using adaptive");
     		        	return bm1;
     		        }
     	        }
@@ -1049,6 +1049,9 @@ public class Bitmap implements Serializable, TiffTags {
 
     }
     public static Bitmap read (byte[] file) throws IOException {
+    	return read(file,StructureImageExtractor.DEF_BINARIZATION);
+    }
+    public static Bitmap read (File file) throws IOException {
     	return read(file,StructureImageExtractor.DEF_BINARIZATION);
     }
     public static Bitmap read (File file, Binarization bin) throws IOException {

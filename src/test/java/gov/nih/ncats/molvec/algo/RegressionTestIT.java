@@ -64,9 +64,9 @@ import gov.nih.ncats.chemkit.api.Bond.Stereo;
 import gov.nih.ncats.chemkit.api.Chemical;
 import gov.nih.ncats.chemkit.api.ChemicalBuilder;
 import gov.nih.ncats.chemkit.api.inchi.Inchi;
-import gov.nih.ncats.molvec.Bitmap;
 import gov.nih.ncats.molvec.Molvec;
 import gov.nih.ncats.molvec.algo.ShellCommandRunner.Monitor;
+import gov.nih.ncats.molvec.image.ImageUtil;
 import gov.nih.ncats.molvec.util.GeomUtil;
 
 public class RegressionTestIT {
@@ -225,7 +225,7 @@ public class RegressionTestIT {
 		
 		File imageFile = File.createTempFile(fname, ".png");
 		File molFile = File.createTempFile(fname, ".mol");
-		imageFile=stdResize(f, imageFile, 1, Interpolation.NEAREST_NEIGHBOR);
+		imageFile=stdResize(f, imageFile, 1, Interpolation.NEAREST_NEIGHBOR,1);
 				
 		String tmpFileNameImage = imageFile.getAbsolutePath();
 		String tmpFileNameMol = molFile.getAbsolutePath();
@@ -668,13 +668,13 @@ public class RegressionTestIT {
 		  });
 		return c1;
 	}
-	private static File stdResize(File f, File imageFile, double scale, Interpolation terp) throws IOException{
+	private static File stdResize(File f, File imageFile, double scale, Interpolation terp, double quality) throws IOException{
 		
 
 		
 
 
-		RenderedImage ri = Bitmap.readToImage(f);
+		RenderedImage ri = ImageUtil.decode(f);
 		
 		int nwidth=(int) (ri.getWidth() *scale);
 		int nheight=(int) (ri.getHeight() *scale);
@@ -689,7 +689,7 @@ public class RegressionTestIT {
 			
 	        // creates output image
 	        outputImage = new BufferedImage(nwidth,
-	                nheight,ColorModel.BITMASK);
+	                nheight,BufferedImage.TYPE_3BYTE_BGR);
 	 
 	        // scales the input image to the output image
 	        Graphics2D g2d = outputImage.createGraphics();
@@ -710,41 +710,41 @@ public class RegressionTestIT {
 	        g2d.scale(scale, scale);
 	        g2d.drawImage(convertRenderedImage(ri), 0, 0,null);
 	        g2d.dispose();
-	        
+
 	        for (int x = 0; x < outputImage.getWidth(); x++) {
 	            for (int y = 0; y < outputImage.getHeight(); y++) {
 	                int rgba = outputImage.getRGB(x, y);
-	                Color col = new Color(rgba, true);
-	                col = new Color(255 - col.getRed(),
-	                                255 - col.getGreen(),
-	                                255 - col.getBlue());
+	                Color col = new Color(rgba, false);
+	                col = new Color(col.getRed(),
+	                		col.getRed(),
+	                		col.getRed());
 	                outputImage.setRGB(x, y, col.getRGB());
+	                
 	            }
 	        }
 		}
-        
-//		if(true){
-//			JPEGImageWriteParam jpegParams = new JPEGImageWriteParam(null);
-//			jpegParams.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-//			jpegParams.setCompressionQuality(.6f);
-//			final ImageWriter writer = ImageIO.getImageWritersByFormatName("jpg").next();
-//			// specifies where the jpg image has to be written
-//			
-//			File tfile = new File(imageFile.getAbsolutePath() + ".jpg");
-//			
-//			
-//			try(FileImageOutputStream fos = new FileImageOutputStream(
-//					tfile)){
-//				writer.setOutput(fos);
-//				writer.write(null, new IIOImage(outputImage, null, null), jpegParams);
-//				return tfile;
-//			}
-//			
-//			
-//			
-//		}
-
+  
+		if(quality<1 && quality>0){
+			JPEGImageWriteParam jpegParams = new JPEGImageWriteParam(null);
+			jpegParams.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+			jpegParams.setCompressionQuality(.3f);
+			
+			final ImageWriter writer = ImageIO.getImageWritersByFormatName("jpg").next();
+			// specifies where the jpg image has to be written
+			
+			File tfile = new File(imageFile.getAbsolutePath() + ".jpg");
+			
+			
+			try(FileImageOutputStream fos = new FileImageOutputStream(
+					tfile)){
+				writer.setOutput(fos);
+				writer.write(null, new IIOImage(outputImage, null, null), jpegParams);
+				return tfile;
+			}
+		}
+		
 		ImageIO.write(outputImage, "png", imageFile);
+		
 		return imageFile;
 	}
 	public static BufferedImage convertRenderedImage(RenderedImage img) {
@@ -1018,16 +1018,16 @@ public class RegressionTestIT {
 	@Test
 	public void test1() throws FileNotFoundException{
 		
-		//testSet("trec", Method.MOLVEC.adapt().suffix("jpg").scale(1).interpolation(Interpolation.BICUBIC).limit(2));
+		testSet("trec", Method.MOLVEC.adapt().suffix("jpg_lim").limit(20).quality(.1));
 		
 //		
-		for(int i=3;i<=20;i++){
-			testSet("trec", Method.IMAGO.adapt().suffix("_bilinear").interpolation(Interpolation.BILINEAR).scale(i/10.0));
-		}
-		
-		for(int i=17;i<=20;i++){
-			testSet("trec", Method.OSRA.adapt().suffix("_sinc").interpolation(Interpolation.SINC).scale(i/10.0));
-		}
+//		for(int i=3;i<=20;i++){
+//			testSet("trec", Method.IMAGO.adapt().suffix("_bilinear").interpolation(Interpolation.BILINEAR).scale(i/10.0));
+//		}
+//		
+//		for(int i=17;i<=20;i++){
+//			testSet("trec", Method.OSRA.adapt().suffix("_sinc").interpolation(Interpolation.SINC).scale(i/10.0));
+//		}
 		
 //		for(int i=3;i<=20;i++){
 //			testSet("trec", Method.IMAGO.adapt().suffix("_sinc").scale(i/10.0));
@@ -1149,10 +1149,12 @@ public class RegressionTestIT {
 		NEAREST_NEIGHBOR;
 	}
 	
+	
 	public static class MethodAdapted{
 		public Method method;
 		Interpolation terp = Interpolation.BICUBIC;
-		double scale = 1;		
+		double scale = 1;
+		double quality = 1;
 		long max = Long.MAX_VALUE;
 		boolean RMSE = false;
 		String suffix =""; 
@@ -1163,6 +1165,10 @@ public class RegressionTestIT {
 			this.method=m;
 		}
 		
+		public MethodAdapted quality(double q){
+			this.quality=q;
+			return this;
+		}
 		public MethodAdapted scale(double s){
 			this.scale=s;
 			return this;
@@ -1197,7 +1203,7 @@ public class RegressionTestIT {
 		
 		public Chemical getChem(File f) throws Exception{
 			File imageFile = File.createTempFile("tmpStr" + UUID.randomUUID().toString() +"_scale_" +  scale + "x" , ".png");
-			imageFile=stdResize(f, imageFile, scale, terp);
+			imageFile=stdResize(f, imageFile, scale, terp, this.quality);
 			return method.getChem(imageFile);
 		}
 		
