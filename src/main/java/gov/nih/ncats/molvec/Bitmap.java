@@ -17,10 +17,7 @@ import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
 import java.awt.image.WritableRaster;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
@@ -36,7 +33,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
@@ -54,6 +50,7 @@ import gov.nih.ncats.molvec.image.ImageUtil;
 import gov.nih.ncats.molvec.image.TiffTags;
 import gov.nih.ncats.molvec.image.binarization.AdaptiveThreshold;
 import gov.nih.ncats.molvec.image.binarization.ImageStats;
+import gov.nih.ncats.molvec.image.binarization.LeastPopulatedThreshold;
 import gov.nih.ncats.molvec.util.GeomUtil;
 import gov.nih.ncats.molvec.util.GeomUtil.LineDistanceCalculator;
 import gov.nih.ncats.molvec.util.GeomUtil.LineWrapper;
@@ -933,10 +930,13 @@ public class Bitmap implements Serializable, TiffTags {
 
         ImageStats[] is = new ImageStats[]{null};
         
-        Bitmap bm= bb.binarize(raster, stat->{
+        
+        
+        
+        
+    	Bitmap bm= bb.binarize(raster, stat->{
         	is[0]=stat;
         });
-
 
 
 
@@ -944,6 +944,8 @@ public class Bitmap implements Serializable, TiffTags {
         double tPctMinSig=100*((is[0].threshold-is[0].stdev)-is[0].min)/(is[0].max-is[0].min);
         double tPctMaxSig=100*((is[0].threshold+is[0].stdev)-is[0].min)/(is[0].max-is[0].min);
 
+        
+        
         double count = 0;
         double countOn = 0;
         for(int i=(int)Math.max(1, tPctMinSig);i<=Math.min(tPctMaxSig, 100);i++){
@@ -2694,8 +2696,8 @@ public class Bitmap implements Serializable, TiffTags {
 		int maxX = (int) Math.min(bounds.getMaxX(), this.width());
 		int maxY = (int) Math.min(bounds.getMaxY(), this.height());
 
-		for(int x=minX;x<=maxX;x++){
-			for(int y=minY;y<=maxY;y++){
+		for(int x=minX;x<maxX;x++){
+			for(int y=minY;y<maxY;y++){
 				if(ss.contains(x, y)){
 					this.set(x, y, bm2.get(x, y));
 				}

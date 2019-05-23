@@ -9,4 +9,7 @@ public class ImageStats {
 	public int[] histogram;
 	public double count;
 
+	public double getPercentageThreshold(){
+		return 100*(threshold-min)/(max-min);
+	}
 }

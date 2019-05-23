@@ -46,6 +46,8 @@ import gov.nih.ncats.molvec.Bitmap;
 import gov.nih.ncats.molvec.Bitmap.WedgeInfo;
 import gov.nih.ncats.molvec.CachedSupplier;
 import gov.nih.ncats.molvec.image.Binarization;
+import gov.nih.ncats.molvec.image.binarization.AdaptiveThreshold;
+import gov.nih.ncats.molvec.image.binarization.LeastPopulatedThreshold;
 import gov.nih.ncats.molvec.image.binarization.SigmaThreshold;
 import gov.nih.ncats.molvec.ui.FontBasedRasterCosineSCOCR;
 import gov.nih.ncats.molvec.ui.SCOCR;
@@ -207,9 +209,38 @@ public class StructureImageExtractor {
 	private static double THRESH_STDEV_RESIZE = 1.9;
 	private static double TOO_WASHED_STDEV = -1.0;
 
-	public static Binarization DEF_BINARIZATION = new SigmaThreshold(THRESH_STDEV);
+	//By default, find the least populated section of the histogram with a 10 percent window, and use that as the threshold
+	//however, fallback to sigma-based threshold if the best threshold is near the extremes or has significant uncertainty
+	public static Binarization DEF_BINARIZATION = new LeastPopulatedThreshold(10).fallback(new SigmaThreshold(THRESH_STDEV), (is)->{
+//		if(true)return true;
+		double ptc=is.getPercentageThreshold();
+		if((ptc>80) || (ptc < 20)){
+			return true; //edge effect
+		}
+
+        double tPctMinSig=100*((is.threshold-is.stdev)-is.min)/(is.max-is.min);
+        double tPctMaxSig=100*((is.threshold+is.stdev)-is.min)/(is.max-is.min);
+		
+        double count = 0;
+        double countOn = 0;
+        for(int i=(int)Math.max(1, tPctMinSig);i<=Math.min(tPctMaxSig, 100);i++){
+        	count+=is.histogram[i];
+        }
+        for(int i=(int)Math.max(1, ptc);i<=100;i++){
+        	countOn+=is.histogram[i];
+        }
+
+        //If there's a little uncertainty about where to draw the threshold line
+        //fallback
+        if(count> countOn*0.1 || count> (is.count-countOn)*0.1){
+            return true;
+        }
+        return false;
+	});
 	public static Binarization RESIZE_BINARIZATION = new SigmaThreshold(THRESH_STDEV_RESIZE);
 	public static Binarization TOO_WASHED_BINARIZATION = new SigmaThreshold(TOO_WASHED_STDEV);
+	
+	
 	
 	
 	
@@ -1208,8 +1239,11 @@ public class StructureImageExtractor {
 		        .filter(p->!likelyOCRAll.contains(p))
 		        .map(s->Tuple.of(s,GeomUtil.getCircleLikeScore(s)))
 		        .filter(t->t.v()>0.9)
+		        .peek(t->System.out.println("Cscore:" + t.v()))
 		        .map(t->t.k())
 		        .map(s->GeomUtil.growShape(s, 2))
+		        
+		        .peek(s->realRescueOCRCandidates.add(s))
 		        .collect(Collectors.toList());
 		
 		
@@ -5231,7 +5265,11 @@ public class StructureImageExtractor {
 		  		int so=n.getEdges().stream().mapToInt(e->e.getOrder()).sum();
 	    		if(so==o){
 		    		Point2D p=n.getPoint();
-		    		Shape neg=mightBeNegative.stream().filter(s->!already.contains(s)).filter(s->GeomUtil.distanceTo(s, p)<ctab.getAverageBondLength()*0.7).findAny().orElse(null);
+		    		Shape neg=mightBeNegative.stream().filter(s->!already.contains(s))
+		    				.filter(s->GeomUtil.distanceTo(s, p)<ctab.getAverageBondLength()*0.7)
+		    				.filter(s->GeomUtil.findCenterOfShape(s).getY()< n.getPoint().getY())
+		    				.findAny()
+		    				.orElse(null);
 		    		
 		    		if(neg!=null){
 		    			Point2D ncenter=GeomUtil.findCenterOfShape(neg);	
@@ -5675,7 +5713,7 @@ public class StructureImageExtractor {
 		    .filter(n->!n.getEdges().stream().anyMatch(d->d.getDashed()))
 		    .forEach(n->{
 		    	Shape s= GeomUtil.shapeFromVertices(GeomUtil.makeNPolyCenteredAt(n.getPoint(), 16, radOCR));
-		    	realRescueOCRCandidates.add(s);
+//		    	realRescueOCRCandidates.add(s);
 		    	Shape mm = polygons.stream()
 		    	        .filter(p->GeomUtil.contains(s, p))
 		    	        .flatMap(p->Arrays.stream(GeomUtil.vertices(p)))
@@ -5693,7 +5731,7 @@ public class StructureImageExtractor {
 		    						});
 		    		
 		    		if(!already){
-		    			realRescueOCRCandidates.add(mm);
+//		    			realRescueOCRCandidates.add(mm);
 		    			processOCRShape(socr[0],mm,bitmap,thin,(sn,potential)->{
 		    				String st=potential.get(0).k().toString();
 //		    				System.out.println("Maybe it's:" + st);

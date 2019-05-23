@@ -469,16 +469,50 @@ public class GeomUtil {
     }
     
     /**
-     * Find the center of mass of a shape. This is not a 100% validated method, but works by doing a weighted average of each vertex
-     * in a shape, where the vertex is weighted proportionally to the length of lines that connect to it. This seems to work well
-     * for convex hulls, but has not been evaluated for non-convex shapes.
+     * Find the center of mass (centroid) of a shape. This is done by using the triangle area method:
+     * <pre>
+     * X = SUM[(Xi + Xi+1) * (Xi * Yi+1 - Xi+1 * Yi)] / (6 * A)
+	 * Y = SUM[(Yi + Yi+1) * (Xi * Yi+1 - Xi+1 * Yi)] / (6 * A)
+	 * </pre>
+	 * 
+	 * Where A is the signed area of the polygon. For shapes with near zero area, the center of the bounding box is returned instead.
+	 * 
      * @param s1
      * @return
      */
     public static Point2D centerOfMass(Shape s1){
-    	return centerOfMass(Arrays.asList(GeomUtil.lines(s1)));
+    	
+    	Point2D[] vts = vertices(s1);
+    	
+    	double sarea = GeomUtil.signedArea(s1);
+    	if(Math.abs(sarea)<ZERO_DISTANCE_TOLERANCE){
+    		return findCenterOfShape(s1);
+    	}
+    	
+    	double sumX=0;
+    	double sumY=0;
+    	double rArea = 1/(6*GeomUtil.signedArea(s1));
+    	
+    	for(int i=0;i<vts.length;i++){
+    		Point2D p1=vts[i];
+			Point2D p2=vts[(i+1+vts.length)%vts.length];
+			
+    		double w=(p1.getX()*p2.getY()-p2.getX()*p1.getY());
+    		sumX+= (p1.getX()+p2.getX())*w;
+    		sumY+= (p1.getY()+p2.getY())*w;    		
+    	}
+    	
+    	
+    	
+    	
+    	return new Point2D.Double(sumX*rArea, sumY*rArea);
     }
     
+    /**
+     * Finds the center point of a set of lines, weighted by the line lengths
+     * @param lines
+     * @return
+     */
     public static Point2D centerOfMass(List<Line2D> lines){
     	double sumLength = lines.stream().mapToDouble(l->length(l)).sum()*2;
     	
@@ -2360,6 +2394,10 @@ public class GeomUtil {
 			return ((Rectangle2D)s).getWidth()*((Rectangle2D)s).getHeight();
 		}
 		return Math.abs(areaVerticesCW(vertices(s)));
+	}
+	
+	public static double signedArea(Shape s){
+		return areaVerticesCW(vertices(s));
 	}
 	
 	
