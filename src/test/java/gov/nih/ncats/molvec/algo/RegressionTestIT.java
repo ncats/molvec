@@ -1018,12 +1018,34 @@ public class RegressionTestIT {
 	@Test
 	public void test1() throws FileNotFoundException{
 		
-		testSet("trec", Method.MOLVEC.adapt().suffix("jpg_lim").limit(20).quality(.1));
-		
 //		
-//		for(int i=3;i<=20;i++){
-//			testSet("trec", Method.IMAGO.adapt().suffix("_bilinear").interpolation(Interpolation.BILINEAR).scale(i/10.0));
-//		}
+		
+		for(int i=1;i<=10;i++){
+			double q=i/10.0;
+			testSet("trec", Method.MOLVEC.adapt().suffix("_jpg[" + q+ "]").quality(q));
+		}
+		
+		for(int i=3;i<=20;i++){
+			testSet("trec", Method.MOLVEC.adapt().suffix("bilinear").interpolation(Interpolation.BILINEAR).scale(i/10.0));
+		}
+		for(int i=3;i<=20;i++){
+			testSet("trec", Method.MOLVEC.adapt().suffix("bicubic").interpolation(Interpolation.BICUBIC).scale(i/10.0));
+		}
+		for(int i=3;i<=20;i++){
+			testSet("trec", Method.MOLVEC.adapt().suffix("sinc").interpolation(Interpolation.SINC).scale(i/10.0));
+		}
+		
+		
+		for(int i=1;i<=10;i++){
+			double q=i/10.0;
+			testSet("trec", Method.IMAGO.adapt().suffix("_jpg[" + q+ "]").quality(i/10.0));
+		}
+		for(int i=1;i<=10;i++){
+			double q=i/10.0;
+			testSet("trec", Method.OSRA.adapt().suffix("_jpg[" + q+ "]").quality(i/10.0));
+		}
+		
+		
 //		
 //		for(int i=17;i<=20;i++){
 //			testSet("trec", Method.OSRA.adapt().suffix("_sinc").interpolation(Interpolation.SINC).scale(i/10.0));

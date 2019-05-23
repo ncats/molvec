@@ -102,6 +102,8 @@ public class LeastPopulatedThreshold implements Binarization {
         
         threshold = stats.min + (stats.max-stats.min)*(mini-window*0.5)/100.0;
         stats.threshold=threshold;
+        
+        
         System.out.println("Threshold Num:" + mini);
         System.out.println("Threshold:" + threshold);
         
