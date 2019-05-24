@@ -1203,10 +1203,10 @@ public class GeomUtil {
     	if(s.contains(pt)){
     		return 0;
     	}
-    	return Arrays.stream(lines(s))
-    	      .mapToDouble(l->l.ptSegDist(pt))
+    	return Math.sqrt(Arrays.stream(lines(s))
+    	      .mapToDouble(l->l.ptSegDistSq(pt))
     	      .min()
-    	      .getAsDouble();
+    	      .getAsDouble());
     }
     
     public static Point2D findCenterOfShape(Shape s){

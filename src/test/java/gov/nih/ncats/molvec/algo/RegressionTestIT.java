@@ -1090,7 +1090,7 @@ public class RegressionTestIT {
 	public void test1() throws FileNotFoundException{
 		
 //		
-		testSet("trec", Method.IMAGO.adapt().limit(10));
+		testSet("trec", Method.MOLVEC.adapt());
 		
 		
 		//*********************		
@@ -1139,8 +1139,6 @@ public class RegressionTestIT {
 		
 		
 		
-		testSet("uspto", Method.MOLVEC.adapt());
-		testSet("usan", Method.MOLVEC.adapt());
 		
 //		testSet("maybridge", Method.MOLVEC.adapt());
 //		testSet("testSet1", Method.MOLVEC.adapt());

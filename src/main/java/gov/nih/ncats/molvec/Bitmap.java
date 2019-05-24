@@ -808,10 +808,8 @@ public class Bitmap implements Serializable, TiffTags {
     private int scanline;
     private SampleModel sampleModel;
     
-    private Map<Integer, Integer> scanlineCache = new ConcurrentHashMap<>();
-    
     private int getScanlineFor(int y){
-    	return scanlineCache.computeIfAbsent(y, k->scanline*k);
+    	return scanline*y;
     }
     
     private static byte[] sqrtCache = CachedSupplier.of(()->{
@@ -850,7 +848,7 @@ public class Bitmap implements Serializable, TiffTags {
              }
         }
     	
-    	BiFunction<Integer,Integer,Integer> translate = (x,y)->y*nscan + x;
+//    	BiFunction<Integer,Integer,Integer> translate = (x,y)->y*nscan + x;
     	
     	int[] dx = new int[]{-1, 0, 1,-1,1,-1,0,1};
     	int[] dy = new int[]{-1,-1,-1, 0,0, 1,1,1};
@@ -874,7 +872,7 @@ public class Bitmap implements Serializable, TiffTags {
 	          				 int nx = dx[i]+x;
 	          				 int ny = dy[i]+y;
 	          				 if(nx<this.width && nx>=0 && ny<this.height && ny>=0){
-	          					int nloc=translate.apply(nx, ny);
+	          					int nloc=ny*nscan + nx;
 	          					double bdx=distanceX[nloc]*1.0 + Math.abs(dx[i]);
 	          					double bdy=distanceY[nloc]*1.0 + Math.abs(dy[i]);
 	          					
