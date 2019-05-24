@@ -2,7 +2,6 @@ package gov.nih.ncats.molvec;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.PrintStream;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
@@ -19,7 +18,7 @@ public class Molvec {
 
 	public static String ocr(byte[] image) throws Exception{
 		StructureImageExtractor sie = new StructureImageExtractor(image);
-		return sie.getCtab().toMol();
+			return sie.getCtab().toMol();
 
 	}
 	public static String ocr(BufferedImage image) throws Exception{

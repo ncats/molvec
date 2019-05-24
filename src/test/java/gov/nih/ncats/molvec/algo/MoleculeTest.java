@@ -39,8 +39,11 @@ public class MoleculeTest {
 //	static File writeToFolder = new File("testResults");
 
 	static File writeToFolder = null;
+	private static boolean oldUseCache;
 	@BeforeClass
-	public static void emptyFolder(){
+	public static void overrideImageIOCacheAndEmptyFolderIfNeeded(){
+		oldUseCache = ImageIO.getUseCache();
+//		ImageIO.setUseCache(false);
 		if(writeToFolder !=null){
 			File[] fs= writeToFolder.listFiles();
 			if(fs !=null){
@@ -48,6 +51,13 @@ public class MoleculeTest {
 					f.delete();
 				}
 			}
+		}
+	}
+
+	@AfterClass
+	public static void restoreImageIOCacheIfNeeded(){
+		if(oldUseCache){
+			ImageIO.setUseCache(false);
 		}
 	}
 	@Rule
@@ -105,21 +115,22 @@ public class MoleculeTest {
 		File f=getFile(spec.filePath);
 
 
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		ByteArrayOutputStream out = new ByteArrayOutputStream((int) f.length());
+//		long start = System.currentTimeMillis();
 		try(InputStream in = new BufferedInputStream(new FileInputStream(f))){
-			byte[] buf = new byte[1024];
-
-			int bytesRead=0;
+			int bytesRead;
+			byte[] buf = new byte[8096];
 			while( (bytesRead = in.read(buf)) > 0){
 				out.write(buf, 0, bytesRead);
 			}
 		}
-		String s = new StructureImageExtractor(out.toByteArray()).getCtab().toMol();
+//		long startStruc = System.currentTimeMillis();
+		String s = Molvec.ocr(out.toByteArray());
 
-		StructureImageExtractor sie = new StructureImageExtractor(out.toByteArray());
+//		long endStruc = System.currentTimeMillis();
 
-		Chemical c = Chemical.parseMol(sie.getCtab().toMol()).toBuilder().aromatize(false).build();
-
+		Chemical c = Chemical.parseMol(s).toBuilder().aromatize(false).build();
+		long endChem = System.currentTimeMillis();
 		if(writeToFolder !=null){
 			writeToFolder.mkdirs();
 			File molvec = new File(writeToFolder, f.getName()+".molvec.png");
@@ -128,6 +139,13 @@ public class MoleculeTest {
 			ImageIO.write(img, "png", molvec);
 			Files.copy(f.toPath(), new File(writeToFolder, f.getName()+".expected.png").toPath());
 		}
+
+//		System.out.println("mol -> array =" + (startStruc - start));
+//		System.out.println("molvec byte array call =" + (endStruc - startStruc));
+//
+//		System.out.println("chemkit convert =" + (endChem - endStruc));
+
+
 		spec.assertionConsumer.accept(c);
 	}
 
