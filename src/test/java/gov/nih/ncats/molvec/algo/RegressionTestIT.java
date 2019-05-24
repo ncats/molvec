@@ -1015,6 +1015,77 @@ public class RegressionTestIT {
 	}
 	
 	
+	public void doAllIdentityDataSetTests(MethodAdapted adapted) throws FileNotFoundException{
+		testSet("uspto", adapted);
+		testSet("usan", adapted);
+		testSet("testSet1", adapted);
+		testSet("maybridge", adapted);
+		testSet("trec", adapted);		
+	}
+	
+	
+	public void doAllCompressionQualityDataSetTests(MethodAdapted adapted) throws FileNotFoundException{
+		for(int i=1;i<=10;i++){
+			double q=i/10.0;
+			adapted= adapted.suffix("_jpg[" + q + "]")
+						    .quality(q);
+			testSet("uspto", adapted);
+			testSet("usan", adapted);
+			testSet("testSet1", adapted);
+			testSet("maybridge", adapted);
+			testSet("trec", adapted);
+		}		
+	}
+	
+	public void doAllBicubicScaleQualityDataSetTests(MethodAdapted adapted) throws FileNotFoundException{
+		for(int i=3;i<=20;i++){
+			adapted= adapted.suffix("bicubic")
+							.interpolation(Interpolation.BICUBIC)
+							.scale(i/10.0);
+			testSet("uspto", adapted);
+			testSet("usan", adapted);
+			testSet("testSet1", adapted);
+			testSet("maybridge", adapted);
+			testSet("trec", adapted);
+		}
+	}
+	
+	public void doAllBilinearScaleQualityDataSetTests(MethodAdapted adapted) throws FileNotFoundException{
+		for(int i=3;i<=20;i++){
+			adapted= adapted.suffix("bilinear")
+							.interpolation(Interpolation.BILINEAR)
+							.scale(i/10.0);
+			testSet("uspto", adapted);
+			testSet("usan", adapted);
+			testSet("testSet1", adapted);
+			testSet("maybridge", adapted);
+			testSet("trec", adapted);
+		}
+	}
+	
+	public void doAllSincScaleQualityDataSetTests(MethodAdapted adapted) throws FileNotFoundException{
+		for(int i=3;i<=20;i++){
+			adapted= adapted.suffix("sinc")
+							.interpolation(Interpolation.SINC)
+							.scale(i/10.0);
+			testSet("uspto", adapted);
+			testSet("usan", adapted);
+			testSet("testSet1", adapted);
+			testSet("maybridge", adapted);
+			testSet("trec", adapted);
+		}
+	}
+	
+	
+	public void doAllRMSEDataSetTests(MethodAdapted adapted) throws FileNotFoundException{
+			adapted= adapted.rmse(true);
+			testSet("uspto", adapted);
+			testSet("trec", adapted);		
+	}
+	
+	
+	
+	
 	@Test
 	public void test1() throws FileNotFoundException{
 		
