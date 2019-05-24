@@ -173,7 +173,7 @@ public class RegressionTestIT {
 		AtomicBoolean done=new AtomicBoolean(false);
 		
 		Monitor m=(new ShellCommandRunner.Builder()).activeDir("./")
-	               .command("osra", "-f sdf", f.getAbsolutePath())
+	               .command("./testBin/osra", "-f sdf", f.getAbsolutePath())
 	               .build()
 	               .run();
 		m.onError(l->{
@@ -235,7 +235,7 @@ public class RegressionTestIT {
 		//if(true)return new ChemicalBuilder().build();
 		
 		Monitor m=(new ShellCommandRunner.Builder())
-	               .command("./imago_console", tmpFileNameImage, "-o", tmpFileNameMol)
+	               .command("./testBin/imago_console", tmpFileNameImage, "-o", tmpFileNameMol)
 	               .build()
 	               .run();
 		m.onError(l->{
@@ -1090,7 +1090,7 @@ public class RegressionTestIT {
 	public void test1() throws FileNotFoundException{
 		
 //		
-		
+		testSet("trec", Method.IMAGO.adapt().limit(10));
 		
 		
 		//*********************		

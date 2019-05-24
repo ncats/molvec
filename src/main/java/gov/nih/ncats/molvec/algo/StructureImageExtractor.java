@@ -613,32 +613,46 @@ public class StructureImageExtractor {
 		polygons.addAll(toAddShapes);
 	}
 
-	private void processOCRShape(SCOCR socr, Shape s, Bitmap bitmap, Bitmap thin,BiConsumer<Shape,List<Tuple<Character,Number>>> onFind){
+	private void processOCRShape(SCOCR socr, Shape inputShape, Bitmap bitmap, Bitmap thin,BiConsumer<Shape,List<Tuple<Character,Number>>> onFind){
 		//this is a critical section that is called thousands of times
 		//so some work as been put in to optimize it
 		//shaving off a few ms really adds up!
+		Shape sTest=inputShape;
 
-		if(s.getBounds2D().getWidth()>0 && s.getBounds2D().getHeight()>0){
+		if(sTest.getBounds2D().getWidth()>0 && sTest.getBounds2D().getHeight()>0){
 			
 			
-			double areareal=GeomUtil.area(s);
-			//we compute this a couple of times in the if statements below so cache it.
-			CachedSupplier<Double> areaRealDivByAreaBox = CachedSupplier.of(() ->areareal/ GeomUtil.area(s.getBounds2D()));
+			
+			double areareal=GeomUtil.area(inputShape);
+			
 
 			if(areareal<=5)return;
+			
+//			if(areareal > 20*20*6){ //quite big
+//				bitmap = bitmap.half();
+//				thin=thin.half();
+//				AffineTransform scaleDown = new AffineTransform();
+//				scaleDown.scale(0.5, 0.5);
+//				sTest=scaleDown.createTransformedShape(sTest);
+//				
+//			}
+			
+			//we compute this a couple of times in the if statements below so cache it.
+			CachedSupplier<Double> areaRealDivByAreaBox = CachedSupplier.of(() ->areareal/ GeomUtil.area(inputShape.getBounds2D()));
+			
 			//we only really care about the "best" character and never update that value
 			//even after filtering...
 			//the rest of the time char lookups just look for contains without worrying about order
 			Character[] best =new Character[1]; //this is done to set it in a lambda
 			char[] asciiCache = new char[128]; // we only check against ASCII values
 
-			Bitmap cropped = bitmap.getLazyCrop(s);
+			Bitmap cropped = bitmap.getLazyCrop(sTest);
 			
 			if(cropped.fractionPixelsOn()>0.9){
-				if(s.getBounds2D().getWidth()>s.getBounds2D().getHeight()){
-					onFind.accept(s, Stream.of('-','-','-','-').map(c->Tuple.of(c, (Number)0.8)).collect(Collectors.toList()));
+				if(sTest.getBounds2D().getWidth()>sTest.getBounds2D().getHeight()){
+					onFind.accept(inputShape, Stream.of('-','-','-','-').map(c->Tuple.of(c, (Number)0.8)).collect(Collectors.toList()));
 				}else{
-					onFind.accept(s, Stream.of('I','l','t','i').map(c->Tuple.of(c, (Number)0.8)).collect(Collectors.toList()));
+					onFind.accept(inputShape, Stream.of('I','l','t','i').map(c->Tuple.of(c, (Number)0.8)).collect(Collectors.toList()));
 				}
 				return;
 				
@@ -646,7 +660,7 @@ public class StructureImageExtractor {
 			
 			List<Tuple<Character,Number>> potential = socr.getNBestMatches(4,
 					cropped,
-					thin.getLazyCrop(s))
+					thin.getLazyCrop(sTest))
 					.stream()
 					.map(Tuple::of)
 					.map(t->adjustConfidence(t))
@@ -678,7 +692,7 @@ public class StructureImageExtractor {
 					}
 				}
 				if(!alreadyFiltered){
-					Rectangle2D rbox = s.getBounds2D();
+					Rectangle2D rbox = inputShape.getBounds2D();
 					//probably not an N or S
 					if(rbox.getWidth()>rbox.getHeight()*1.3){
 						potential = potential.stream()
@@ -723,7 +737,7 @@ public class StructureImageExtractor {
 			}
 
 			if(Character.valueOf('L').equals(best[0])){
-				Rectangle2D rbox = s.getBounds2D();
+				Rectangle2D rbox = inputShape.getBounds2D();
 				if(rbox.getWidth()>rbox.getHeight()*0.6){
 					//Too wide for an L, but since it's the highest confidence, it's
 					//probably just part of a bond system. 
@@ -792,7 +806,7 @@ public class StructureImageExtractor {
 //						.collect(Collectors.toList());
 //			}
 
-			onFind.accept(s, potential);
+			onFind.accept(inputShape, potential);
 		}
 	}
 	
@@ -924,7 +938,12 @@ public class StructureImageExtractor {
 					.filter(Objects::nonNull) //sometimes get NPEs here not sure why or how
 					.average()
 					.orElse(0);
+			double averageAreaOCRFinal = averageHeightOCRFinal*averageWidthOCRFinal;
+			double averageAreaOCRFinalCutoff = averageAreaOCRFinal*0.4;
 			
+			
+			double averageWidthOCRFinalCutoff = averageWidthOCRFinal*0.8;
+			double averageHeightOCRFinalCutoff = averageHeightOCRFinal*0.8;
 			
 		
 			//this is a spotty attempt at final rescue, not particularly good
@@ -936,8 +955,8 @@ public class StructureImageExtractor {
 			
 			//Determines the expected average "full path length" of line segments inside of an OCR shape
 			double ldensityCutoff=likelyOCRAll.stream()
-			        .filter(p->p.getBounds2D().getWidth()>averageWidthOCRFinal*0.8)
-			        .filter(p->p.getBounds2D().getHeight()>averageHeightOCRFinal*0.8)
+			        .filter(p->p.getBounds2D().getWidth()>averageWidthOCRFinalCutoff)
+			        .filter(p->p.getBounds2D().getHeight()>averageHeightOCRFinalCutoff)
 			        .map(p->Tuple.of(p,GeomUtil.centerOfMass(p)))
 			        .map(t->t.k())
 			        .map(s->Tuple.of(Tuple.of(s,GeomUtil.growShape(s, 2)), centerPoints))
@@ -960,9 +979,9 @@ public class StructureImageExtractor {
 					//Step 1. find all sufficiently large non-OCR'ed polygons and retrieve the line segments roughly
 					//inside the polygon
 			
-			        .filter(p->p.getBounds2D().getWidth()>averageWidthOCRFinal*0.8)
-			        .filter(p->p.getBounds2D().getHeight()>averageHeightOCRFinal*0.8)
-			        .filter(p->GeomUtil.area(p.getBounds2D())>averageHeightOCRFinal*averageWidthOCRFinal)
+			        .filter(p->p.getBounds2D().getWidth()>averageWidthOCRFinalCutoff)
+			        .filter(p->p.getBounds2D().getHeight()>averageHeightOCRFinalCutoff)
+			        .filter(p->GeomUtil.area(p.getBounds2D())>averageAreaOCRFinal)
 			        .map(p->Tuple.of(p,GeomUtil.centerOfMass(p)))
 			        .filter(t-> !likelyOCRAll.stream().filter(oc->oc.contains(t.v())).findFirst().isPresent())
 			        .map(t->t.k())
@@ -988,16 +1007,20 @@ public class StructureImageExtractor {
 					        		return t1.k().v().distance(t1.v().v())<averageHeightOCRFinal*1.2;
 					        	}).stream();    	
 			        })
-			        //Step 3. Filter out all groups of line segemtents whose convex hull is less than 40% of the expected
+			        //Step 3. Filter out all segment collections with less than 3 members
+			        
+			        .filter(t->t.size()>3)
+			        .map(t->t.stream().map(t1->t1.k()).collect(Collectors.toList()))
+			        //Step 4. Filter out all groups of line segemtents whose convex hull is less than 40% of the expected
 			        //area for OCR
 			        .filter(lpts->GeomUtil.area(lpts.stream()
-		        			                        .flatMap(lt->Stream.of(lt.k().getP1(),lt.k().getP2()))
+		        			                        .flatMap(lt->Stream.of(lt.getP1(),lt.getP2()))
 		        			                        .collect(GeomUtil.convexHull()))
-			        				> averageHeightOCRFinal*averageWidthOCRFinal*0.4
+			        				> averageAreaOCRFinalCutoff
 			        )
-			        //Step 4. Filter out all segment collections with less than 3 members
-			        .map(t->t.stream().map(t1->t1.k()).collect(Collectors.toList()))
-			        .filter(t->t.size()>3)
+			        
+			        
+			        
 			        
 			        //Step 5. Create a bounding box object, filtering out all instances with line density less than the expected
 			        //density for OCR shapes, and resizing the expected dimensions to be those of the
@@ -5779,22 +5802,23 @@ public class StructureImageExtractor {
 		    	        .filter(p->GeomUtil.contains(s, p))
 		    	        .flatMap(p->Arrays.stream(GeomUtil.vertices(p)))
 		    	        .collect(GeomUtil.convexHull());
-//		    	realRescueOCRCandidates.add(mm);
-		    	if(GeomUtil.area(mm.getBounds2D())>expectedOCRarea*0.7 && mm.contains(n.getPoint())){
-		    	
+		    	if(GeomUtil.area(mm.getBounds2D())>expectedOCRarea*0.7 && mm.contains(n.getPoint()) && GeomUtil.area(mm.getBounds2D())<expectedOCRarea*2){
+		    		double mmarea = 1/GeomUtil.area(mm);
+		    		
 		    		boolean already =
 		    				likelyOCRNonBond.stream()
 		    						.map(ss->GeomUtil.getIntersectionShape(mm, ss))
 		    						.filter(ss->ss.isPresent())
 		    						.map(ss->ss.get())
 		    						.anyMatch(ss->{
-		    							double areaRatio = GeomUtil.area(ss)/GeomUtil.area(mm);
+		    							double areaRatio = GeomUtil.area(ss)*mmarea;
 		    							return areaRatio > 0.7 && areaRatio < 1/0.7;
 		    						});
 		    		
 		    		
 		    		if(!already){
-		    			
+
+				    	realRescueOCRCandidates.add(mm);
 		    			processOCRShape(socr[0],mm,bitmap,thin,(sn,potential)->{
 		    				String st=potential.get(0).k().toString();
 //		    				System.out.println("Maybe it's:" + st);

@@ -190,6 +190,7 @@ public class Bitmap implements Serializable, TiffTags {
     	public double fractionPixelsOn(){
     		return onXYs.get().size()/((double)(width()*height()));
     	}
+    	    	
     }
     
     
@@ -2708,6 +2709,28 @@ public class Bitmap implements Serializable, TiffTags {
 
 		return this;
 
+	}
+
+
+	private CachedSupplier<Bitmap> _halfer=CachedSupplier.of(()->_half());
+	
+	
+	private Bitmap _half() {
+
+		Bitmap bm2 = new Bitmap(width/2,height/2);
+		
+		for(int x=0;x<bm2.width;x++){
+			for(int y=0;y<bm2.height;y++){
+				bm2.set(x, y, this.get(x*2, y*2));
+			}
+		}
+		
+		
+		return bm2;
+	}
+	
+	public Bitmap half(){
+		return _halfer.get();
 	}
 
 }
