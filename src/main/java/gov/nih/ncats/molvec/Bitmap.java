@@ -939,55 +939,56 @@ public class Bitmap implements Serializable, TiffTags {
         });
 
 
-
-        double tPct=100*(is[0].threshold-is[0].min)/(is[0].max-is[0].min);
-        double tPctMinSig=100*((is[0].threshold-is[0].stdev)-is[0].min)/(is[0].max-is[0].min);
-        double tPctMaxSig=100*((is[0].threshold+is[0].stdev)-is[0].min)/(is[0].max-is[0].min);
-
-        
-        
-        double count = 0;
-        double countOn = 0;
-        for(int i=(int)Math.max(1, tPctMinSig);i<=Math.min(tPctMaxSig, 100);i++){
-        	count+=is[0].histogram[i];
-        }
-        for(int i=(int)Math.max(1, tPct);i<=100;i++){
-        	countOn+=is[0].histogram[i];
-        }
-
-        //If there's a little uncertainty about where to draw the threshold line, try
-        //the adaptive threshold, possibly
-        if(count> countOn*0.1 || count> (is[0].count-countOn)*0.1){
-
-        	System.out.println("testing adaptive");
-            List<Shape> polys2= bm.connectedComponents(Bitmap.Bbox.DoublePolygon);
-
-            if(polys2.size()<4000){
-
-    	        Bitmap bm1= new AdaptiveThreshold().binarize(raster);
-    	        List<Shape> polys1= bm1.connectedComponents(Bitmap.Bbox.DoublePolygon);
-
-    	        if(polys1.size()<4000){
-    	            long sum1=polys1.stream()
-    		              .mapToLong(s->polys1.stream().filter(s2->GeomUtil.contains(s, s2)).count())
-    		              .sum();
-    		        long sum2=polys2.stream()
-    		                .mapToLong(s->polys2.stream().filter(s2->GeomUtil.contains(s, s2)).count())
-    		                .sum();
-//    		        //if there are at least 3 more shapes inside other shapes, it's
-//    		        //probably a thresholding issue that should use the one with more shapes
-//    		        //The logic here is that aromatic double bonds are quite common, and if
-//    		        //the thresholding washes them out, then you'd expect to see about 3 or more shapes
-//    		        //inside other shapes with good thresholding than with bad thresholding
-    		        if(sum1>=sum2+3){
-    		        	System.out.println("Using adaptive");
-    		        	return bm1;
-    		        }
-    	        }
-    	        //System.out.println("time:" + (System.currentTimeMillis()-tstart));
-            }
-        }
-
+    	if(is[0]!=null){
+	        double tPct=100*(is[0].threshold-is[0].min)/(is[0].max-is[0].min);
+	        double tPctMinSig=100*((is[0].threshold-is[0].stdev)-is[0].min)/(is[0].max-is[0].min);
+	        double tPctMaxSig=100*((is[0].threshold+is[0].stdev)-is[0].min)/(is[0].max-is[0].min);
+	
+	        
+	        
+	        
+	        double count = 0;
+	        double countOn = 0;
+	        for(int i=(int)Math.max(1, tPctMinSig);i<=Math.min(tPctMaxSig, 100);i++){
+	        	count+=is[0].histogram[i];
+	        }
+	        for(int i=(int)Math.max(1, tPct);i<=100;i++){
+	        	countOn+=is[0].histogram[i];
+	        }
+	
+	        //If there's a little uncertainty about where to draw the threshold line, try
+	        //the adaptive threshold, possibly
+	        if(count> countOn*0.1 || count> (is[0].count-countOn)*0.1){
+	
+	        	System.out.println("testing adaptive");
+	            List<Shape> polys2= bm.connectedComponents(Bitmap.Bbox.DoublePolygon);
+	
+	            if(polys2.size()<4000){
+	
+	    	        Bitmap bm1= new AdaptiveThreshold().binarize(raster);
+	    	        List<Shape> polys1= bm1.connectedComponents(Bitmap.Bbox.DoublePolygon);
+	
+	    	        if(polys1.size()<4000){
+	    	            long sum1=polys1.stream()
+	    		              .mapToLong(s->polys1.stream().filter(s2->GeomUtil.contains(s, s2)).count())
+	    		              .sum();
+	    		        long sum2=polys2.stream()
+	    		                .mapToLong(s->polys2.stream().filter(s2->GeomUtil.contains(s, s2)).count())
+	    		                .sum();
+	//    		        //if there are at least 3 more shapes inside other shapes, it's
+	//    		        //probably a thresholding issue that should use the one with more shapes
+	//    		        //The logic here is that aromatic double bonds are quite common, and if
+	//    		        //the thresholding washes them out, then you'd expect to see about 3 or more shapes
+	//    		        //inside other shapes with good thresholding than with bad thresholding
+	    		        if(sum1>=sum2+3){
+	    		        	System.out.println("Using adaptive");
+	    		        	return bm1;
+	    		        }
+	    	        }
+	    	        //System.out.println("time:" + (System.currentTimeMillis()-tstart));
+	            }
+	        }
+    	}
 
 
         

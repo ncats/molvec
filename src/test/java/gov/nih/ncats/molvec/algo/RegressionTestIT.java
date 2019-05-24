@@ -727,7 +727,7 @@ public class RegressionTestIT {
 		if(quality<1 && quality>0){
 			JPEGImageWriteParam jpegParams = new JPEGImageWriteParam(null);
 			jpegParams.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-			jpegParams.setCompressionQuality(.3f);
+			jpegParams.setCompressionQuality((float) quality);
 			
 			final ImageWriter writer = ImageIO.getImageWritersByFormatName("jpg").next();
 			// specifies where the jpg image has to be written
@@ -1020,30 +1020,67 @@ public class RegressionTestIT {
 		
 //		
 		
-		for(int i=1;i<=10;i++){
-			double q=i/10.0;
-			testSet("trec", Method.MOLVEC.adapt().suffix("_jpg[" + q+ "]").quality(q));
-		}
-		
-		for(int i=3;i<=20;i++){
-			testSet("trec", Method.MOLVEC.adapt().suffix("bilinear").interpolation(Interpolation.BILINEAR).scale(i/10.0));
-		}
-		for(int i=3;i<=20;i++){
-			testSet("trec", Method.MOLVEC.adapt().suffix("bicubic").interpolation(Interpolation.BICUBIC).scale(i/10.0));
-		}
-		for(int i=3;i<=20;i++){
-			testSet("trec", Method.MOLVEC.adapt().suffix("sinc").interpolation(Interpolation.SINC).scale(i/10.0));
-		}
 		
 		
-		for(int i=1;i<=10;i++){
-			double q=i/10.0;
-			testSet("trec", Method.IMAGO.adapt().suffix("_jpg[" + q+ "]").quality(i/10.0));
-		}
-		for(int i=1;i<=10;i++){
-			double q=i/10.0;
-			testSet("trec", Method.OSRA.adapt().suffix("_jpg[" + q+ "]").quality(i/10.0));
-		}
+		//*********************		
+		//      Full quality analysis molvec
+		//*********************		
+//		for(int i=1;i<=10;i++){
+//			double q=i/10.0;
+//			testSet("trec", Method.MOLVEC.adapt().suffix("_jpg[" + q+ "]").quality(q));
+//		}		
+		//*********************
+
+//		
+//		for(int i=1;i<=10;i++){
+//			double q=i/10.0;
+//			testSet("trec", Method.IMAGO.adapt().suffix("_jpg[" + q+ "]").quality(i/10.0));
+//		}
+//		for(int i=1;i<=10;i++){
+//			double q=i/10.0;
+//			testSet("trec", Method.OSRA.adapt().suffix("_jpg[" + q+ "]").quality(i/10.0));
+//		}
+		
+		
+		//Full rescale for Molvec
+//		for(int i=3;i<=20;i++){
+//			testSet("trec", Method.MOLVEC.adapt().suffix("bicubicLim").interpolation(Interpolation.BICUBIC).scale(i/10.0));
+//		}
+//		for(int i=3;i<=20;i++){
+//			testSet("trec", Method.MOLVEC.adapt().suffix("sincLim").interpolation(Interpolation.SINC).scale(i/10.0));
+//		}
+//		for(int i=3;i<=20;i++){
+//			testSet("trec", Method.MOLVEC.adapt().suffix("bilinearLim").interpolation(Interpolation.BILINEAR).scale(i/10.0));
+//		}
+		
+		
+		
+//		for(int i=3;i<=20;i++){
+//			testSet("uspto", Method.MOLVEC.adapt().suffix("bicubicLim").limit(100).interpolation(Interpolation.BICUBIC).scale(i/10.0));
+//		}
+//		for(int i=3;i<=20;i++){
+//			testSet("uspto", Method.MOLVEC.adapt().suffix("sincLim").limit(100).interpolation(Interpolation.SINC).scale(i/10.0));
+//		}
+//		for(int i=3;i<=20;i++){
+//			testSet("uspto", Method.MOLVEC.adapt().suffix("bilinearLim").limit(100).interpolation(Interpolation.BILINEAR).scale(i/10.0));
+//		}
+		
+		
+		
+		
+		testSet("uspto", Method.MOLVEC.adapt());
+		testSet("usan", Method.MOLVEC.adapt());
+		
+//		testSet("maybridge", Method.MOLVEC.adapt());
+//		testSet("testSet1", Method.MOLVEC.adapt());
+		
+//		for(int i=20;i<=20;i++){
+//			testSet("trec", Method.MOLVEC.adapt().suffix("bilinearLim2").interpolation(Interpolation.BILINEAR).scale(i/10.0));
+//		}
+		
+		
+		
+//		
 		
 		
 //		

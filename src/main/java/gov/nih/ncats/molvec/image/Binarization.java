@@ -24,7 +24,8 @@ public interface Binarization {
 				
 				if(is[0]!=null){
 					if(fallif.test(is[0])){
-						return bb.binarize(raster, cc);
+						cc.accept(is[0]);
+						return bb.binarize(raster);
 					}else{
 						cc.accept(is[0]);
 					}

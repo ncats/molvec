@@ -385,6 +385,13 @@ class BranchNode{
 
 	private static BranchNode interpretOCRStringAsAtom(String s, boolean tokenOnly){
 		
+		if(s.equals("1O")){
+			return interpretOCRStringAsAtom("N");
+		}
+		
+		if(s.equals("1")){
+			return interpretOCRStringAsAtom("I");
+		}
 		if(s.contains("()")){
 			return interpretOCRStringAsAtom(s.replace("()", "O"));
 		}
@@ -399,6 +406,9 @@ class BranchNode{
 		}
 		if(s.contains("I1")){
 			return interpretOCRStringAsAtom(s.replace("I1", "H"));
+		}
+		if(s.equals("t4")){
+			return interpretOCRStringAsAtom("H");
 		}
 		if(s.equals("11")){
 			return interpretOCRStringAsAtom("H");
@@ -879,7 +889,7 @@ class BranchNode{
 			return nn1;
 		}else if(s.equals("Sl") || s.equals("SI")){
 			return new BranchNode("Si");
-		}else if(s.equals("Sr") || s.equals("sr")|| s.equals("8r")){
+		}else if(s.equals("Sr") || s.equals("sr")|| s.equals("8r") || s.equals("BT")){
 			return new BranchNode("Br");
 		}
 		

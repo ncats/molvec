@@ -5,7 +5,11 @@ import java.util.Arrays;
 
 import gov.nih.ncats.molvec.Bitmap;
 import gov.nih.ncats.molvec.image.Binarization;
-
+/**
+ * Implementation of Sauvola threshold. 
+ * @author tyler
+ *
+ */
 public class SauvolaThreshold implements Binarization{
 
     public static final double DEFAULT_MIN_THRESHOLD_RATIO = 0.1;
@@ -14,12 +18,24 @@ public class SauvolaThreshold implements Binarization{
 	double k=-0.9;
 	double r=128;
 	
+	public SauvolaThreshold(int rad, double k, double r){
+		this.rad=rad;
+		this.k=k;
+		this.r=r;
+		
+	}
+	
+	public SauvolaThreshold(){
+		
+	}
 	
 	@Override
+	//TODO: update to use integral images
 	public Bitmap binarize(Raster inRaster) {
 		
 		Bitmap bm = new Bitmap (inRaster.getWidth (), inRaster.getHeight ());
 		double max = -1, min = Double.MAX_VALUE;
+		double tmean=0;
         for (int y = 0; y < bm.height(); ++y) {
             for (int x = 0; x < bm.width(); ++x) {
                 double pel = inRaster.getSampleDouble (x, y, 0);
@@ -27,7 +43,15 @@ public class SauvolaThreshold implements Binarization{
                     min = pel;
                 if (pel > max)
                     max = pel;
+                tmean+=pel;
             }
+        }
+        tmean=tmean/(inRaster.getWidth()*inRaster.getHeight());
+        double ek =k;
+        		
+        		
+        if(tmean-min > max-tmean){
+        	ek=ek*-1;
         }
         
         double t1=min+(max-min)*DEFAULT_MIN_THRESHOLD_RATIO;
@@ -57,7 +81,7 @@ public class SauvolaThreshold implements Binarization{
 	            	double mean = Arrays.stream(vals).limit(tot).average().orElse(0);
 	            	double var = Arrays.stream(vals).limit(tot).map(d->mean-d).map(d->d*d).average().orElse(0);
 	            	
-	            	isOn = pix > mean * (1 + k * (Math.sqrt(var)/r-1.0));
+	            	isOn = pix > mean * (1 + ek * (Math.sqrt(var)/r-1.0));
             	}
             	
             	bm.set (x, y, isOn);

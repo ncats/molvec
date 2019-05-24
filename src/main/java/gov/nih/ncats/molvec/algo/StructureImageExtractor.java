@@ -18,7 +18,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -46,8 +45,8 @@ import gov.nih.ncats.molvec.Bitmap;
 import gov.nih.ncats.molvec.Bitmap.WedgeInfo;
 import gov.nih.ncats.molvec.CachedSupplier;
 import gov.nih.ncats.molvec.image.Binarization;
-import gov.nih.ncats.molvec.image.binarization.AdaptiveThreshold;
 import gov.nih.ncats.molvec.image.binarization.LeastPopulatedThreshold;
+import gov.nih.ncats.molvec.image.binarization.SauvolaThreshold;
 import gov.nih.ncats.molvec.image.binarization.SigmaThreshold;
 import gov.nih.ncats.molvec.ui.FontBasedRasterCosineSCOCR;
 import gov.nih.ncats.molvec.ui.SCOCR;
@@ -208,35 +207,55 @@ public class StructureImageExtractor {
 	public static double THRESH_STDEV = 1.2;
 	private static double THRESH_STDEV_RESIZE = 1.9;
 	private static double TOO_WASHED_STDEV = -1.0;
-
-	//By default, find the least populated section of the histogram with a 10 percent window, and use that as the threshold
-	//however, fallback to sigma-based threshold if the best threshold is near the extremes or has significant uncertainty
+	
+//	public static Binarization DEF_BINARIZATION = new SauvolaThreshold();
+//	
+//
+//	//By default, find the least populated section of the histogram with a 10 percent window, and use that as the threshold
+//	//however, fallback to sigma-based threshold if the best threshold is near the extremes or has significant uncertainty
 	public static Binarization DEF_BINARIZATION = new LeastPopulatedThreshold(10).fallback(new SigmaThreshold(THRESH_STDEV), (is)->{
 //		if(true)return true;
 		double ptc=is.getPercentageThreshold();
 		if((ptc>80) || (ptc < 20)){
+			System.out.println("edge effect");
 			return true; //edge effect
 		}
 
-        double tPctMinSig=100*((is.threshold-is.stdev)-is.min)/(is.max-is.min);
-        double tPctMaxSig=100*((is.threshold+is.stdev)-is.min)/(is.max-is.min);
 		
         double count = 0;
         double countOn = 0;
-        for(int i=(int)Math.max(1, tPctMinSig);i<=Math.min(tPctMaxSig, 100);i++){
+        for(int i=(int)Math.max(1, is.getPercentageThreshold()-10);i<=Math.min(is.getPercentageThreshold()+10, 100);i++){
         	count+=is.histogram[i];
         }
         for(int i=(int)Math.max(1, ptc);i<=100;i++){
         	countOn+=is.histogram[i];
         }
+        
+        
+        
+        //In general, if both sides of the histogram are roughly monotonic, this is probably a good threshold
+        //If they're not, then there's probably a better method
+        double correl1=GeomUtil.rankedCorrel(Arrays.copyOfRange(is.histogram, 0, (int)is.getPercentageThreshold()));
+        double correl2=GeomUtil.rankedCorrel(Arrays.copyOfRange(is.histogram, (int)is.getPercentageThreshold(), 100));
+        
+        System.out.println("Correl1:" + correl1);
+        System.out.println("Correl2:" + correl2);
+        
+        
+        if(correl1>-.5 && correl2 <.5){
+        	System.out.println("too unsmooth");
+            return true;
+        }
 
         //If there's a little uncertainty about where to draw the threshold line
         //fallback
-        if(count> countOn*0.1 || count> (is.count-countOn)*0.1){
+        if(count> countOn*0.12 || count> (is.count-countOn)*0.12){
+        	System.out.println("too uncertain");
             return true;
         }
         return false;
 	});
+	
 	public static Binarization RESIZE_BINARIZATION = new SigmaThreshold(THRESH_STDEV_RESIZE);
 	public static Binarization TOO_WASHED_BINARIZATION = new SigmaThreshold(TOO_WASHED_STDEV);
 	
@@ -291,7 +310,12 @@ public class StructureImageExtractor {
 			File bi= stdResize(raster,3);
 			load(bitmap = Bitmap.read(bi,RESIZE_BINARIZATION).clean(),false);
 		}catch(ImageTooSpottyException e){
-			load(Bitmap.createBitmap(raster,TOO_WASHED_BINARIZATION).clean(), false);
+			try{
+				load(Bitmap.createBitmap(raster,TOO_WASHED_BINARIZATION).clean(), false);
+			}catch(ImageTooSmallException ex){
+				File bi= stdResize(raster,3);
+				load(bitmap = Bitmap.read(bi,RESIZE_BINARIZATION).clean(),false);
+			}
 		}
 		
 		
@@ -784,7 +808,12 @@ public class StructureImageExtractor {
 			File bi= stdResize(file,3);
 			load(bitmap = Bitmap.read(bi,RESIZE_BINARIZATION).clean(), false);
 		}catch( ImageTooSpottyException e){
-			load(bitmap = Bitmap.read(file,TOO_WASHED_BINARIZATION).clean(), false);
+			try{
+				load(Bitmap.read(file,TOO_WASHED_BINARIZATION).clean(), false);
+			}catch(ImageTooSmallException ex){
+				File bi= stdResize(file,3);
+				load(bitmap = Bitmap.read(file,RESIZE_BINARIZATION).clean(),false);
+			}
 		}
 
 	}
@@ -795,7 +824,13 @@ public class StructureImageExtractor {
 			File bi= stdResize(file,3);
 			load(bitmap = Bitmap.read(bi,RESIZE_BINARIZATION).clean(),false);
 		}catch( ImageTooSpottyException e){
-			load(bitmap = Bitmap.read(file,TOO_WASHED_BINARIZATION).clean(), false);
+			e.printStackTrace();
+			try{
+				load(Bitmap.read(file,TOO_WASHED_BINARIZATION).clean(), false);
+			}catch(ImageTooSmallException ex){
+				File bi= stdResize(file,3);
+				load(bitmap = Bitmap.read(bi,RESIZE_BINARIZATION).clean(),false);
+			}
 		}
 
 	}
@@ -898,6 +933,8 @@ public class StructureImageExtractor {
 															.map(l->Tuple.of(l.centerPoint(),l.getLine()))
 															.collect(Collectors.toList());
 			
+			
+			//Determines the expected average "full path length" of line segments inside of an OCR shape
 			double ldensityCutoff=likelyOCRAll.stream()
 			        .filter(p->p.getBounds2D().getWidth()>averageWidthOCRFinal*0.8)
 			        .filter(p->p.getBounds2D().getHeight()>averageHeightOCRFinal*0.8)
@@ -920,6 +957,9 @@ public class StructureImageExtractor {
 			List<BoundingBox> rescueShapes1 = new ArrayList<>();
 			
 			polygons.stream()
+					//Step 1. find all sufficiently large non-OCR'ed polygons and retrieve the line segments roughly
+					//inside the polygon
+			
 			        .filter(p->p.getBounds2D().getWidth()>averageWidthOCRFinal*0.8)
 			        .filter(p->p.getBounds2D().getHeight()>averageHeightOCRFinal*0.8)
 			        .filter(p->GeomUtil.area(p.getBounds2D())>averageHeightOCRFinal*averageWidthOCRFinal)
@@ -934,24 +974,34 @@ public class StructureImageExtractor {
 			        		))
 			        .map(t->t.v())
 			        
+			        //Step 2. for each set of line segments, cluster those segements together when the distance
+			        //to their centerpoints is less than the expected height cutoff for OCR characters. Height is used 
+			        //instead of width because it tends to be the longer dimension
 			        .flatMap(t->{
-			        	List<Tuple<Line2D,Point2D>> mlist= t.stream().map(t1->Tuple.of(t1, GeomUtil.findCenterOfShape(t1))).collect(Collectors.toList());
+			        	List<Tuple<Line2D,Point2D>> mlist= t.stream()
+										        			.map(t1->Tuple.of(t1, GeomUtil.findCenterOfShape(t1)))
+										        			.collect(Collectors.toList());
 			        	
 			        	
 			        	
 			        	return GeomUtil.groupThings(mlist, t1->{
 					        		return t1.k().v().distance(t1.v().v())<averageHeightOCRFinal*1.2;
-					        	})
-					        	.stream()
-					        	.filter(lpts->GeomUtil.area(lpts.stream()
-					        			                        .flatMap(lt->Stream.of(lt.k().getP1(),lt.k().getP2()))
-					        			                        .collect(GeomUtil.convexHull()))>averageHeightOCRFinal*averageWidthOCRFinal*0.4
-					        			);
-			        	
-					        	
+					        	}).stream();    	
 			        })
+			        //Step 3. Filter out all groups of line segemtents whose convex hull is less than 40% of the expected
+			        //area for OCR
+			        .filter(lpts->GeomUtil.area(lpts.stream()
+		        			                        .flatMap(lt->Stream.of(lt.k().getP1(),lt.k().getP2()))
+		        			                        .collect(GeomUtil.convexHull()))
+			        				> averageHeightOCRFinal*averageWidthOCRFinal*0.4
+			        )
+			        //Step 4. Filter out all segment collections with less than 3 members
 			        .map(t->t.stream().map(t1->t1.k()).collect(Collectors.toList()))
 			        .filter(t->t.size()>3)
+			        
+			        //Step 5. Create a bounding box object, filtering out all instances with line density less than the expected
+			        //density for OCR shapes, and resizing the expected dimensions to be those of the
+			        //average OCR shape
 			        .forEach(t->{
 			        	List<BoundingBox> bblist=GeomUtil.getBoundingBoxesContaining(averageWidthOCRFinal*1.1, averageHeightOCRFinal*1.1, t, averageWidthOCRFinal);
 			        	bblist.stream()
@@ -965,9 +1015,10 @@ public class StructureImageExtractor {
 				        		}
 				        	});
 			        });
-			
+			//Step 6. For each candidate bounding box, compute similarity to OCR library 
+			//
 			rescueShapes1.forEach(bb->{
-
+//				cons.accept(bb.getCenteredConvexRect(), null);
 				boolean[] got = new boolean[]{false};
 
 				if(!got[0]){
@@ -1277,6 +1328,10 @@ public class StructureImageExtractor {
 		
 		if(PRE_RESCUE_OCR){
 			rescueOCR(lines,polygons,likelyOCR,socr[0],(s,potential)->{
+				if(potential==null){
+					realRescueOCRCandidates.add(s);
+					return;
+				}
 				String ss = potential.get(0).k().toString();
 				if(ss.equalsIgnoreCase("C") || ss.equalsIgnoreCase("P") || ss.equalsIgnoreCase("S")){
 					return;
@@ -1403,15 +1458,20 @@ public class StructureImageExtractor {
 					return true;
 				}
 				
-				boolean anyOutside=GeomUtil.getLinesNotInside(l, Arrays.asList(shape1.get().k(),shape2.get().k()))
-				        .stream()
-				        .filter(Objects::nonNull)
-				        .filter(GeomUtil.longerThan(1))
-				        .findAny()
-				        .isPresent();
-				if(!anyOutside)return true;
+//				Point2D centerP = LineWrapper.of(l).centerPoint();
+//				
+//				
+//				boolean anyOutside=GeomUtil.getLinesNotInside(l, Arrays.asList(shape1.get().k(),shape2.get().k()))
+//				        .stream()
+//				        .filter(Objects::nonNull)
+//				        .filter(GeomUtil.longerThan(1))
+//				        .findAny()
+//				        .isPresent();
+//				if(anyOutside){
+//					return true;
+//				}
 				
-				return false;
+				return true;
 			};
 
 			Predicate<Line2D> tryToMerge = isInOCRShape.negate().and((l)->{
@@ -2504,7 +2564,7 @@ public class StructureImageExtractor {
 			        	if(t.v()!=null){
 			        		return t.v().length()<ctab.getAverageBondLength()*0.5;
 			        	}
-			        	realRescueOCRCandidates.add(t.k());
+//			        	realRescueOCRCandidates.add(t.k());
 			        	return true;
 			        })
 			        .map(t->t.k())
@@ -3804,7 +3864,7 @@ public class StructureImageExtractor {
 					    	      .map(t->t.k())
 					    	      .collect(Collectors.toList());
 					    	if(nnodes.size()==5){
-					    		realRescueOCRCandidates.add(nnshape);
+//					    		realRescueOCRCandidates.add(nnshape);
 					    		
 					    		Node[] nodes = nnodes.stream().toArray(s->new Node[s]);
 					    		
@@ -4616,7 +4676,7 @@ public class StructureImageExtractor {
 										if(forN1.size()==1 && forN2.size()==1){
 											//probably reset the nodes now
 											//realRescueOCRCandidates.add(GeomUtil.growShapeNPoly(bshape,2,12));
-											realRescueOCRCandidates.add(splitLine.getLine());
+//											realRescueOCRCandidates.add(splitLine.getLine());
 											Node n1=forN1.get(0);	
 											Node n2=forN2.get(0);
 											
@@ -5697,7 +5757,8 @@ public class StructureImageExtractor {
 			if(DEBUG)logState(56,"minor adjustments to layout for rings and terminal groups");
 		}
 		
-		
+//		ctab.mergeNodesCloserThan(1);
+//		ctab.standardCleanEdges();
 	//finally, it's worth a review of the skeleton to see if anything was missed
 		
 		double expectedOCRarea = likelyOCRNonBond.stream()
@@ -5710,7 +5771,7 @@ public class StructureImageExtractor {
 		    .stream()
 		    .filter(n->!n.isInvented())
 		    .filter(n->n.getSymbol().equals("C"))
-		    .filter(n->!n.getEdges().stream().anyMatch(d->d.getDashed()))
+		    .filter(n->!n.getEdges().stream().anyMatch(d->d.getOrder()==1 && d.getDashed()))
 		    .forEach(n->{
 		    	Shape s= GeomUtil.shapeFromVertices(GeomUtil.makeNPolyCenteredAt(n.getPoint(), 16, radOCR));
 //		    	realRescueOCRCandidates.add(s);
@@ -5718,27 +5779,29 @@ public class StructureImageExtractor {
 		    	        .filter(p->GeomUtil.contains(s, p))
 		    	        .flatMap(p->Arrays.stream(GeomUtil.vertices(p)))
 		    	        .collect(GeomUtil.convexHull());
-		    	
+//		    	realRescueOCRCandidates.add(mm);
 		    	if(GeomUtil.area(mm.getBounds2D())>expectedOCRarea*0.7 && mm.contains(n.getPoint())){
 		    	
-		    		boolean already = likelyOCRNonBond.stream()
+		    		boolean already =
+		    				likelyOCRNonBond.stream()
 		    						.map(ss->GeomUtil.getIntersectionShape(mm, ss))
 		    						.filter(ss->ss.isPresent())
 		    						.map(ss->ss.get())
 		    						.anyMatch(ss->{
 		    							double areaRatio = GeomUtil.area(ss)/GeomUtil.area(mm);
-		    							return areaRatio > 0.6 && areaRatio < 1/0.6;
+		    							return areaRatio > 0.7 && areaRatio < 1/0.7;
 		    						});
 		    		
+		    		
 		    		if(!already){
-//		    			realRescueOCRCandidates.add(mm);
+		    			
 		    			processOCRShape(socr[0],mm,bitmap,thin,(sn,potential)->{
 		    				String st=potential.get(0).k().toString();
 //		    				System.out.println("Maybe it's:" + st);
 							if(potential.get(0).v().doubleValue()>OCRcutoffCosineRescue){
 								
 								BranchNode bn1= BranchNode.interpretOCRStringAsAtom2(st);
-								if(bn1!=null){
+								if(bn1!=null && !bn1.hasChildren() && bn1.isRealNode()){
 									n.setSymbol(bn1.getSymbol());
 								}
 							}	
