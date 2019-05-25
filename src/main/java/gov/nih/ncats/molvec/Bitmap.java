@@ -66,6 +66,117 @@ public class Bitmap implements Serializable, TiffTags {
     private static final double EPS = 0.000001;
     public static final double DEFAULT_AEV_THRESHOLD = 1.5;
 
+    
+    
+    
+    public static class Grid{
+    	private static final int MIN_WIDTH=32;
+    	int x;
+    	int y;
+    	int wid;
+    	int swid;
+    	int count=0;
+    	
+    	boolean giveChildren=true;
+    	
+    	// 0 1
+    	// 2 3
+    
+    	Grid[] children = new Grid[4];
+    	
+    	public Grid(int x, int y, int wid){
+    		this.x=x;
+    		this.y=y;
+    		this.wid=wid;
+    		this.swid=wid/2;
+    		
+    		if(wid<MIN_WIDTH){
+    			giveChildren=false;
+    		}
+    	}
+    	
+    	public Grid add(int x1, int y1, int c){
+    		count+=c;
+    		if(giveChildren){
+    			int idx = getIndex(x1,y1);
+    			Grid gg=children[idx];
+    			if(gg==null){
+    				gg= new Grid(x+(idx/2)*swid,y+(idx%2)*swid,swid);
+    				children[idx]=gg;
+    			}
+    			gg.add(x1, y1,c);    			
+    		}
+    		return this;
+    	}
+    	public Grid add(int x1, int y1){
+    		return add(x1,y1,1);
+    	}
+    	
+    	public Grid remove(int x1, int y1){
+    		return add(x1,y1,-1);
+    	}
+    	
+    	public int getIndex(int x1, int y1){
+    		int idx=0;
+    		if(x1>=x+swid)idx+=2;
+    		if(y1>=y+swid)idx+=1;
+    		return idx;
+    	}
+    	
+    	public List<Grid> getLeafGrids(int c){
+    		List<Grid> all = new ArrayList<Grid>();
+    		addGridsAbove(c,all);
+    		return all;
+    		
+    	}
+    	
+    	public boolean addGridsAbove(int c, List<Grid> gridList){
+    		if(count>c){
+    			boolean added=false;
+    			for(int i=0;i<4;i++){
+    				Grid child = children[i];
+    				if(child!=null){
+    					added=child.addGridsAbove(c,gridList);
+    				}
+    			}
+    			if(!added){
+    				gridList.add(this);
+    			}
+    			return true;
+    		}    		
+    		return false;
+    	}
+    	
+    	public Grid invert(){
+    		int tot = wid*wid;
+    		count = tot -count;
+    		for(int i=0;i<4;i++){
+				Grid child = children[i];
+				if(child!=null){
+					child.invert();
+				}else if(this.giveChildren){
+					children[i]=new Grid(x+(i>>1)*swid,y+(i%2)*swid,swid);
+					children[i].invert();
+				}
+			}
+    		return this;
+    	}
+    	
+    	public Grid clone(){
+    		Grid gclone = new Grid(x,y,wid);
+    		gclone.count=this.count;
+    		for(int i=0;i<4;i++){
+				Grid child = children[i];
+				if(child!=null){
+					gclone.children[i]=child.clone();
+				}
+			}
+    		return gclone;
+    	}
+    }
+    
+    private Grid onGrid=null;
+    
     private static final boolean DEBUG;
     static {
         boolean debug = false;
@@ -1041,6 +1152,8 @@ public class Bitmap implements Serializable, TiffTags {
     	for (int i = 0; i < clone.data.length; ++i) {
     		 clone.data[i] = (byte) (~clone.data[i] & 0xff);
         }
+    	clone.onGrid.invert();
+    	
     	return clone;
     }
 
@@ -1074,6 +1187,8 @@ public class Bitmap implements Serializable, TiffTags {
     public Bitmap (Bitmap copy) {
         this (copy.width, copy.height);
         System.arraycopy (copy.data, 0, this.data, 0, this.data.length);
+        this.onGrid=copy.onGrid.clone();
+    	
     }
 
     public Bitmap (int width, int height) {
@@ -1118,7 +1233,29 @@ public class Bitmap implements Serializable, TiffTags {
     }
 
     public void set (int x, int y, boolean on) {
+    	if(onGrid==null){
+    		int pow2wid=Integer.highestOneBit(width);
+    		int pow2hit=Integer.highestOneBit(height);
+    		int twid = Math.max(pow2wid, pow2hit);
+    		if(twid<width || twid<height){
+    			twid=twid*2;
+    		}
+    		
+    		onGrid = new Grid(0,0,twid);
+    	}
+    	
+    	
+    	
         int loc = getScanlineFor(y) + x / 8;
+        boolean wasOn = ((data[loc] & MASK[x % 8]) !=0);
+        if(on!=wasOn){
+	        if(on){
+	    		onGrid.add(x, y,1);
+	    	}else{
+	    		onGrid.add(x, y,-1);
+	    	}
+        }
+        
         if (on) {
             data[loc] |= MASK[x % 8];
         } else {
@@ -1180,6 +1317,109 @@ public class Bitmap implements Serializable, TiffTags {
         if (p7 (x, y) == 1) ++nb;
         return nb;
     }
+    
+    public int neighbor8Index(int x, int y){
+    	int nb = 0;
+        if (p0 (x, y) == 1) nb|=1;
+        if (p1 (x, y) == 1) nb|=2;
+        if (p2 (x, y) == 1) nb|=4;
+        if (p3 (x, y) == 1) nb|=8;
+        if (p4 (x, y) == 1) nb|=16;
+        if (p5 (x, y) == 1) nb|=32;
+        if (p6 (x, y) == 1) nb|=64;
+        if (p7 (x, y) == 1) nb|=128;
+        return nb;
+    }
+
+    public boolean shouldThin(int nindex, int parity){
+    	if(parity==0){
+    		return thinCache1[nindex];
+    	}else{
+    		return thinCache2[nindex];
+    	}
+    }
+    
+    
+    
+    
+    private static final boolean[] thinCache1 = new boolean[256];
+    private static final boolean[] thinCache2 = new boolean[256];
+    
+    static{
+    	 for(int i=0;i<256;i++){
+    		 thinCache1[i] =rule1(i);
+    		 thinCache2[i] =rule2(i);
+    	 }
+    }
+    
+    
+   	
+	private static boolean rule1(int b){
+		int tot = Integer.bitCount(b);
+		if(tot>=2 && tot<=6){
+			boolean[] on = new boolean[8];
+			for(int i=0;i<8;i++){
+				on[i] = ((b & (1<<i))!=0)?true:false;
+			}
+			boolean ex1 = !on[0] && !on[1] && !on[2] && !on[5] && on[4] && on[6];
+			boolean ex2 = !on[2] && !on[3] && !on[4] && !on[7] && on[6] && on[0];
+			
+			
+			
+			if(countTransition(b)==1 || ex1 || ex2){				
+				
+				return ((!on[2] || !on[0] || !on[6])) && ((!on[4] || !on[0] || !on[6]));
+				
+			}
+		}
+		return false;
+		
+	}
+	
+	private static boolean rule2(int b){
+		int tot = Integer.bitCount(b);
+		if(tot>=2 && tot<=6){
+			boolean[] on = new boolean[8];
+			for(int i=0;i<8;i++){
+				on[i] = ((b & (1<<i))!=0)?true:false;
+			}
+		     
+//          if (nb > 1 && nb < 7 
+//              && (ap == 1 || ((1-parity)*cp + parity*dp) == 1)) {
+//              int ep = (thin.p2(x, y) + thin.p4(x, y))
+//                  *thin.p0(x, y) * thin.p6(x, y);
+//              int fp = (thin.p6(x, y) + thin.p0(x, y))
+//                  *thin.p4(x, y) * thin.p2(x, y);
+			boolean ex1 = !on[1] && !on[4] && !on[5] && !on[6] && on[0] && on[2];
+			boolean ex2 = !on[0] && !on[3] && !on[6] && !on[7] && on[2] && on[4];
+			
+			
+			
+			if(countTransition(b)==1 || ex1 || ex2){				
+				return ((!on[2] || !on[4] || !on[6])) && ((!on[4] || !on[0] || !on[2]));
+			}
+		}
+		return false;
+		
+	}
+	
+	public static int countTransition(int b){
+		int tc = 0;
+		int[] on = new int[8];
+		for(int i=0;i<8;i++){
+			on[i] = ((b & (1<<i))!=0)?1:0;
+		}
+		
+		for(int i=0;i<8;i++){
+			if(on[(i+1)%8] >on[i]){
+				tc++;
+			}
+		}
+		return tc;
+		
+	}
+    
+    
 
     /*
      * number of 8-neighbor pixels that transition from off to on
@@ -1477,55 +1717,94 @@ public class Bitmap implements Serializable, TiffTags {
         int parity = 1;
         boolean changed;
         
+        Grid gg = thin.onGrid;
+        List<Grid> lookGrids = gg.getLeafGrids(0);
         do {
+        	
             changed = false;
             parity = 1 - parity;
-
-            for (int y = 0; y < height; ++y)
-                for (int x = 0; x < width; ++x) {
-                    if (thin.isOn(x, y)) {
-                        int nb = thin.neighbor8(x, y);
-                        int ap = thin.transition8(x, y);
-                        int cp = ((thin.p0(x, y) == 0 
-                                   && thin.p1(x, y) == 0
-                                   && thin.p2(x, y) == 0
-                                   && thin.p5(x, y) == 0
-                                   && thin.p4(x, y) == 1
-                                   && thin.p6(x, y) == 1)
-                                  || (thin.p2(x, y) == 0
-                                      && thin.p3(x, y) == 0 
-                                      && thin.p4(x, y) == 0
-                                      && thin.p7(x, y) == 0
-                                      && thin.p6(x, y) == 1
-                                      && thin.p0(x, y) == 1)) ? 1 : 0; 
-                        int dp = ((thin.p1(x, y) == 0 
-                                   && thin.p4(x, y) == 0
-                                   && thin.p5(x, y) == 0
-                                   && thin.p6(x, y) == 0
-                                   && thin.p0(x, y) == 1
-                                   && thin.p2(x, y) == 1)
-                                  || (thin.p0(x, y) == 0 
-                                      && thin.p3(x, y) == 0
-                                      && thin.p6(x, y) == 0
-                                      && thin.p7(x, y) == 0
-                                      && thin.p2(x, y) == 1 
-                                      && thin.p4(x, y) == 1)) ? 1 : 0;
-                        if (nb > 1 && nb < 7 
-                            && (ap == 1 || ((1-parity)*cp + parity*dp) == 1)) {
-                            int ep = (thin.p2(x, y) + thin.p4(x, y))
-                                *thin.p0(x, y) * thin.p6(x, y);
-                            int fp = (thin.p6(x, y) + thin.p0(x, y))
-                                *thin.p4(x, y) * thin.p2(x, y);
-                            if ((parity == 0 && ep == 0) 
-                                || (parity == 1 && fp == 0)) {
-                                // delete this pixel
-                                copy[getScanlineFor(y) + x / 8] &= ~MASK[x % 8];
+            
+            for(int i=0;i<lookGrids.size();i++){
+            	Grid tgrid = lookGrids.get(i);
+            	
+            	int widy = Math.min(tgrid.y+tgrid.wid, height);
+            	int widx = Math.min(tgrid.x+tgrid.wid, width);
+            	
+	            for (int y = tgrid.y; y < widy; ++y){
+	                for (int x = tgrid.x; x < widx; ++x) {
+	                    if (thin.isOn(x, y)) {
+	                    	
+	                    	int ni = thin.neighbor8Index(x, y);
+	                    	
+	                    	boolean should = thin.shouldThin(ni, parity);
+//	                    	boolean rshould = false;
+//	                    	
+//	                    	
+//	                        int nb = thin.neighbor8(x, y);
+//	                        int ap = thin.transition8(x, y);
+//	                        
+//	                        
+//	                        //?..
+//	                        //X .
+//	                        //.X?
+//	                        
+//	                        //.X?
+//	                        //X .
+//	                        //?X.
+//	                        
+//	                        int cp = ((thin.p0(x, y) == 0 
+//	                                   && thin.p1(x, y) == 0
+//	                                   && thin.p2(x, y) == 0
+//	                                   && thin.p5(x, y) == 0
+//	                                   && thin.p4(x, y) == 1
+//	                                   && thin.p6(x, y) == 1)
+//	                                  || (thin.p2(x, y) == 0
+//	                                      && thin.p3(x, y) == 0 
+//	                                      && thin.p4(x, y) == 0
+//	                                      && thin.p7(x, y) == 0
+//	                                      && thin.p6(x, y) == 1
+//	                                      && thin.p0(x, y) == 1)) ? 1 : 0; 
+//	                        int dp = ((thin.p1(x, y) == 0 
+//	                                   && thin.p4(x, y) == 0
+//	                                   && thin.p5(x, y) == 0
+//	                                   && thin.p6(x, y) == 0
+//	                                   && thin.p0(x, y) == 1
+//	                                   && thin.p2(x, y) == 1)
+//	                                  || (thin.p0(x, y) == 0 
+//	                                      && thin.p3(x, y) == 0
+//	                                      && thin.p6(x, y) == 0
+//	                                      && thin.p7(x, y) == 0
+//	                                      && thin.p2(x, y) == 1 
+//	                                      && thin.p4(x, y) == 1)) ? 1 : 0;
+//	                        if (nb > 1 && nb < 7 
+//	                            && (ap == 1 || ((1-parity)*cp + parity*dp) == 1)) {
+//	                            int ep = (thin.p2(x, y) + thin.p4(x, y))
+//	                                *thin.p0(x, y) * thin.p6(x, y);
+//	                            int fp = (thin.p6(x, y) + thin.p0(x, y))
+//	                                *thin.p4(x, y) * thin.p2(x, y);
+//	                            if ((parity == 0 && ep == 0) 
+//	                                || (parity == 1 && fp == 0)) {
+//	                                // delete this pixel
+//	                                
+//	                                rshould=true;
+//	                            }
+//	                        }
+//	                        if(should!=rshould){
+////	                        	System.out.println(ni + ":" + rshould);
+//	                        }
+//	                        
+	                        if(should){
+	                        	copy[getScanlineFor(y) + x / 8] &= ~MASK[x % 8];
+                                //gg.remove(x, y);
                                 changed = true;
-                            }
-                        }
-                    } // if pixel is on
-                } // endfor each pixel
-
+	                        }
+	                        
+	                        
+	                        
+	                    } // if pixel is on
+	                } // endfor each pixel
+	            }
+        	}
             // update the image
             if (changed) {
                 System.arraycopy (copy, 0, thin.data, 0, copy.length);
