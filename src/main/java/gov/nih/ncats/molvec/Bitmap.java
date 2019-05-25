@@ -27,13 +27,14 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -50,7 +51,6 @@ import gov.nih.ncats.molvec.image.ImageUtil;
 import gov.nih.ncats.molvec.image.TiffTags;
 import gov.nih.ncats.molvec.image.binarization.AdaptiveThreshold;
 import gov.nih.ncats.molvec.image.binarization.ImageStats;
-import gov.nih.ncats.molvec.image.binarization.LeastPopulatedThreshold;
 import gov.nih.ncats.molvec.util.GeomUtil;
 import gov.nih.ncats.molvec.util.GeomUtil.LineDistanceCalculator;
 import gov.nih.ncats.molvec.util.GeomUtil.LineWrapper;
@@ -136,7 +136,7 @@ public class Bitmap implements Serializable, TiffTags {
     			for(int i=0;i<4;i++){
     				Grid child = children[i];
     				if(child!=null){
-    					added=child.addGridsAbove(c,gridList);
+    					added=child.addGridsAbove(c,gridList) || added;
     				}
     			}
     			if(!added){
@@ -155,7 +155,7 @@ public class Bitmap implements Serializable, TiffTags {
 				if(child!=null){
 					child.invert();
 				}else if(this.giveChildren){
-					children[i]=new Grid(x+(i>>1)*swid,y+(i%2)*swid,swid);
+					children[i]=new Grid(x+(i/2)*swid,y+(i%2)*swid,swid);
 					children[i].invert();
 				}
 			}
@@ -938,26 +938,31 @@ public class Bitmap implements Serializable, TiffTags {
     	byte[] distanceY=new byte[data.length*8];
     	
     	
+    	
     	//TODO may want to fiddle with this number/algorithm
     	int growUntil = 2;
     	
     	
     	int nscan=scanline*8;
 
+    	Arrays.fill(distanceX, Byte.MAX_VALUE);
+    	Arrays.fill(distanceY, Byte.MAX_VALUE);
     	
     	for (int y = 0; y < this.height; ++y) {
              for (int x = 0; x < this.width; ++x) {
             	 int loc = y * nscan + x;
-            	 if(get(x,y)){
+            	 if(isOn(x,y)){
             		 distanceX[loc] =0;
             		 distanceY[loc] =0;
-            	 }else{
             		 
-            		 distanceX[loc] =Byte.MAX_VALUE;
-            		 distanceY[loc] =Byte.MAX_VALUE;
             	 }
              }
         }
+    	
+//    	printGridDifference();
+    	
+    	
+    	
     	
 //    	BiFunction<Integer,Integer,Integer> translate = (x,y)->y*nscan + x;
     	
@@ -965,6 +970,8 @@ public class Bitmap implements Serializable, TiffTags {
     	int[] dy = new int[]{-1,-1,-1, 0,0, 1,1,1};
     	
     	boolean changedSomething=true;
+    	
+    	
     	for (int r = 0; changedSomething && r<growUntil;r++){
     		changedSomething=false;
 	    	for (int y = 0; y < this.height; ++y) {
@@ -984,8 +991,8 @@ public class Bitmap implements Serializable, TiffTags {
 	          				 int ny = dy[i]+y;
 	          				 if(nx<this.width && nx>=0 && ny<this.height && ny>=0){
 	          					int nloc=ny*nscan + nx;
-	          					double bdx=distanceX[nloc]*1.0 + Math.abs(dx[i]);
-	          					double bdy=distanceY[nloc]*1.0 + Math.abs(dy[i]);
+	          					double bdx=distanceX[nloc] + Math.abs(dx[i]);
+	          					double bdy=distanceY[nloc] + Math.abs(dy[i]);
 	          					
 	          					double d = bdx*bdx+bdy*bdy;
 	          					if(d<minsqdist){
@@ -1720,8 +1727,7 @@ public class Bitmap implements Serializable, TiffTags {
         Grid gg = thin.onGrid;
         List<Grid> lookGrids = gg.getLeafGrids(0);
         do {
-        	
-            changed = false;
+        	changed = false;
             parity = 1 - parity;
             
             for(int i=0;i<lookGrids.size();i++){
@@ -1737,65 +1743,9 @@ public class Bitmap implements Serializable, TiffTags {
 	                    	int ni = thin.neighbor8Index(x, y);
 	                    	
 	                    	boolean should = thin.shouldThin(ni, parity);
-//	                    	boolean rshould = false;
-//	                    	
-//	                    	
-//	                        int nb = thin.neighbor8(x, y);
-//	                        int ap = thin.transition8(x, y);
-//	                        
-//	                        
-//	                        //?..
-//	                        //X .
-//	                        //.X?
-//	                        
-//	                        //.X?
-//	                        //X .
-//	                        //?X.
-//	                        
-//	                        int cp = ((thin.p0(x, y) == 0 
-//	                                   && thin.p1(x, y) == 0
-//	                                   && thin.p2(x, y) == 0
-//	                                   && thin.p5(x, y) == 0
-//	                                   && thin.p4(x, y) == 1
-//	                                   && thin.p6(x, y) == 1)
-//	                                  || (thin.p2(x, y) == 0
-//	                                      && thin.p3(x, y) == 0 
-//	                                      && thin.p4(x, y) == 0
-//	                                      && thin.p7(x, y) == 0
-//	                                      && thin.p6(x, y) == 1
-//	                                      && thin.p0(x, y) == 1)) ? 1 : 0; 
-//	                        int dp = ((thin.p1(x, y) == 0 
-//	                                   && thin.p4(x, y) == 0
-//	                                   && thin.p5(x, y) == 0
-//	                                   && thin.p6(x, y) == 0
-//	                                   && thin.p0(x, y) == 1
-//	                                   && thin.p2(x, y) == 1)
-//	                                  || (thin.p0(x, y) == 0 
-//	                                      && thin.p3(x, y) == 0
-//	                                      && thin.p6(x, y) == 0
-//	                                      && thin.p7(x, y) == 0
-//	                                      && thin.p2(x, y) == 1 
-//	                                      && thin.p4(x, y) == 1)) ? 1 : 0;
-//	                        if (nb > 1 && nb < 7 
-//	                            && (ap == 1 || ((1-parity)*cp + parity*dp) == 1)) {
-//	                            int ep = (thin.p2(x, y) + thin.p4(x, y))
-//	                                *thin.p0(x, y) * thin.p6(x, y);
-//	                            int fp = (thin.p6(x, y) + thin.p0(x, y))
-//	                                *thin.p4(x, y) * thin.p2(x, y);
-//	                            if ((parity == 0 && ep == 0) 
-//	                                || (parity == 1 && fp == 0)) {
-//	                                // delete this pixel
-//	                                
-//	                                rshould=true;
-//	                            }
-//	                        }
-//	                        if(should!=rshould){
-////	                        	System.out.println(ni + ":" + rshould);
-//	                        }
-//	                        
 	                        if(should){
 	                        	copy[getScanlineFor(y) + x / 8] &= ~MASK[x % 8];
-                                //gg.remove(x, y);
+                                gg.remove(x, y);
                                 changed = true;
 	                        }
 	                        
@@ -1815,6 +1765,50 @@ public class Bitmap implements Serializable, TiffTags {
 
         return thin;
     }
+    
+    
+    private void printGridDifference(){
+    	Grid gg = onGrid;
+        List<Grid> lookGrids = gg.getLeafGrids(0);
+        int countOn1 = 0;
+        int countOn2 = 0;
+        
+        Set<String> seen = new HashSet<String>();
+        
+        for(int i=0;i<lookGrids.size();i++){
+            	Grid tgrid = lookGrids.get(i);
+            	
+            	int widy = Math.min(tgrid.y+tgrid.wid, height);
+            	int widx = Math.min(tgrid.x+tgrid.wid, width);
+//            	System.out.println("GRID FROM:<" + tgrid.x + ", " + widx + "> to <" +tgrid.y + ", " + widy + ">");
+            	
+	            for (int y = tgrid.y; y < widy; ++y){
+	                for (int x = tgrid.x; x < widx; ++x) {
+	                	if (isOn(x, y)) {
+	                		countOn1++;
+	                		if(!seen.contains(x + "_" + y)){
+	                			seen.add(x+"_" + y);
+	                		}else{
+	                			System.out.println("WAIT! ALREADY SAW THAT!" + x + "_" + y);
+	                		}
+	                    } // if pixel is on
+	                } // endfor each pixel
+	            }
+        }
+        System.out.println("==================");
+        for (int y = 0; y < height; ++y){
+            for (int x = 0; x < width; ++x) {
+            	if (isOn(x, y)) {
+            		countOn2++;
+                } // if pixel is on
+            } // endfor each pixel
+        }
+        
+        System.out.println("From grid:" + countOn1 + " vs " + countOn2);
+        
+         
+    }
+    
 
     void union (short[] eqvtab, short cls1, short cls2) {
         short i = cls1, j = cls2, k;
@@ -1880,7 +1874,7 @@ public class Bitmap implements Serializable, TiffTags {
             for (int y = 0; y < height; ++y) {
                 for (int x = 0; x < width; ++x) {
                     /* check to see if we have a black pixel */
-                    if (!get (x, y))
+                    if (!isOn (x, y))
                         /* do nothing */ ;
                     /* boundary conditions */
                     else if (y == 0 && x == 0) {
