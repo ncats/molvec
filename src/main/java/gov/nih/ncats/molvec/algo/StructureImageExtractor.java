@@ -432,13 +432,15 @@ public class StructureImageExtractor {
 		List<ShapeWrapper> toAddShapes = Collections.synchronizedList(new ArrayList<>());
 		List<ShapeWrapper> toRemoveShapes = Collections.synchronizedList(new ArrayList<>());
 
-		polygons
-//				.parallelStream()
-				.stream()
-//		.collect(Collectors.toList())
-//		.stream()
+		Stream<ShapeWrapper> stream;
 		
-//		.parallel()
+		if(polygons.size()>100){
+			stream = polygons.parallelStream();
+		}else{
+			stream = polygons.stream();
+		}
+		
+		stream
 		.forEach(s->{
 			if (Thread.interrupted())  // Clears interrupted status!
 				interupt[0]=true;

@@ -1016,11 +1016,14 @@ public class RegressionTestIT {
 	
 	
 	public void doAllIdentityDataSetTests(MethodAdapted adapted) throws FileNotFoundException{
+		testSet("trec", adapted);
+		testSet("maybridge", adapted);
+		testSet("testSet1", adapted);
 		testSet("uspto", adapted);
 		testSet("usan", adapted);
-		testSet("testSet1", adapted);
-		testSet("maybridge", adapted);
-		testSet("trec", adapted);		
+		
+		
+			
 	}
 	
 	

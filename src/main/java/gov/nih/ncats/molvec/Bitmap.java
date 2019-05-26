@@ -1614,124 +1614,8 @@ public class Bitmap implements Serializable, TiffTags {
         return total;
     }
 
-    /* Thinning algorithm based on Nagendraprasad, Wang, and Gupta.  The 
-       following description is based on 
-       Gonzalez and Woods, Digital Image Processing, Addison Wesley, 1992.
-       
-       The algorithm is as follows:  First, all contour pixels are identified: 
-       a pixel is a contour pixel if it's a foreground pixel and one of its 
-       8-connected neighbors is a background pixel.  Then for each contour 
-       pixel, the following two steps are iteratively applied to the image 
-       until no change occurs, in which case we're done.
-       
-       Step 1:  All contour pixels satisfying the following conditions are
-       marked for deletion.
-       
-       (a) 2 <= N(p1) <= 6
-       (b) S(p1) = 1
-       (c) p2 * p4 * p6 = 0
-       (d) p4 * p6 * p8 = 0
-       
-       where N(p1) is the number of 8-connected foreground pixels around p1.  
-       S(p1) is the number of 0-1 transitions from p2, p3, p4, ..., p8, p9, p2
-       according to the following labeling scheme.
-       p9  p2  p3
-       p8  p1  p4
-       p7  p6  p5
-       After all contour pixels have been processed, those that were marked for
-       deletion are deleted from the image.  Next, step 2 is applied to the 
-       image.
-       
-       Step 2:  This step is almost identical to step 1.  The only difference 
-       here is that conditions (c) and (d) are changed to
-       
-       (c') p2 * p4 * p8 = 0
-       (d') p2 * p6 * p8 = 0
-       
-       respectively.  Both steps 1 and 2 are repeated until there is no change
-       in the image. */
-    public Bitmap skeleton () {
-        int N, S;
-        boolean changed;
-
-        Bitmap thin = new Bitmap (this);
-        byte[] copy = new byte[this.data.length];
-        System.arraycopy (this.data, 0, copy, 0, this.data.length);
-
-        int[] p = new int[10];
-        boolean flag, step = false;
-        while (true) {
-            changed = false;
-
-            for (int y = 0; y < height; ++y)
-                for (int x = 0; x < width; ++x) {
-                    /* only process contour pixels */
-                    if (thin.get (x, y)
-                        && ((x == 0 || y == 0      /* boundary */
-                             || (y + 1) == height || (x + 1) == width)
-                            /* checking 8-neighbor of white pixel */
-                            || !thin.get(x - 1, y) || !thin.get(x + 1, y)
-                            || !thin.get(x, y - 1) || !thin.get(x, y + 1)
-                            || !thin.get(x - 1, y - 1) 
-                            || !thin.get(x + 1, y - 1)
-                            || !thin.get(x - 1, y + 1) 
-                            || !thin.get(x + 1, y + 1))) {
-                        /* count the number of pixels in the mask */
-                        p[2] = p[3] = p[4] = p[5] =
-                            p[6] = p[7] = p[8] = p[9] = 0;
-                        N = 0;
-                        if (x > 0) {
-                            N += p[8] = thin.get(x - 1, y) ? 1 : 0;
-                            N += p[9] = thin.get(x - 1, y - 1) ? 1 : 0;
-                            N += p[7] = thin.get(x - 1, y + 1) ? 1 : 0;
-                        }
-                        if (x + 1 < width) {
-                            N += p[4] = thin.get(x + 1, y) ? 1 : 0;
-                            N += p[3] = thin.get(x + 1, y - 1) ? 1 : 0;
-                            N += p[5] = thin.get(x + 1, y + 1) ? 1 : 0;
-                        }
-                        N += p[2] = thin.get(x, y - 1) ? 1 : 0;
-                        N += p[6] = thin.get(x, y + 1) ? 1 : 0;
-
-                        /* count the number of 0-1 transition */
-                        S = p[3] - p[2] == 1 ? 1 : 0;
-                        S += p[4] - p[3] == 1 ? 1 : 0;
-                        S += p[5] - p[4] == 1 ? 1 : 0;
-                        S += p[6] - p[5] == 1 ? 1 : 0;
-                        S += p[7] - p[6] == 1 ? 1 : 0;
-                        S += p[8] - p[7] == 1 ? 1 : 0;
-                        S += p[9] - p[8] == 1 ? 1 : 0;
-                        S += p[2] - p[9] == 1 ? 1 : 0;
-
-                        /* step 1 or step 2 and does the proper connectivity
-                           checking */
-                        flag = step
-                            ? ((p[2] & p[4] & p[8]) == 0) 
-                            && ((p[2] & p[6] & p[8]) == 0)
-                            : ((p[2] & p[4] & p[6]) == 0) 
-                            && ((p[4] & p[6] & p[8]) == 0);
-
-                        if ((N >= 2 && N <= 6) && S == 1 && flag) {
-                            /* flag this pixel to be deleted */
-                            copy[getScanlineFor(y) + x / 8] &= ~MASK[x % 8];
-                            changed = true;
-                        }
-                    } /* endif boundary pixel */
-                } /* endfor x */
-
-            /* check if there is any change; if there isn't we're done */
-            if (!changed)
-                break;
-            /* copy the image back */
-            System.arraycopy (copy, 0, thin.data, 0, copy.length);
-            step = !step; // toggle the step
-        } /* endwhile (1) */
-
-        return thin;
-    }
-
     /**
-     * This version is a slight improvement to the NWG algorithm above. 
+     * This version is a slight improvement to the NWG algorithm. 
      * It's based on the following paper:
      * R. Carrsco, M. Forcada, A note on the Nagendraprasad-Wang-Gupta
      * thinning algorithm, Pattern Recognition Letters, 16, 539-541, 1995.
@@ -1787,49 +1671,6 @@ public class Bitmap implements Serializable, TiffTags {
     }
     
     
-    private void printGridDifference(){
-    	Grid gg = onGrid;
-        List<Grid> lookGrids = gg.getLeafGrids(0);
-        int countOn1 = 0;
-        int countOn2 = 0;
-        
-        Set<String> seen = new HashSet<String>();
-        
-        for(int i=0;i<lookGrids.size();i++){
-            	Grid tgrid = lookGrids.get(i);
-            	
-            	int widy = Math.min(tgrid.y+tgrid.wid, height);
-            	int widx = Math.min(tgrid.x+tgrid.wid, width);
-//            	System.out.println("GRID FROM:<" + tgrid.x + ", " + widx + "> to <" +tgrid.y + ", " + widy + ">");
-            	
-	            for (int y = tgrid.y; y < widy; ++y){
-	                for (int x = tgrid.x; x < widx; ++x) {
-	                	if (isOn(x, y)) {
-	                		countOn1++;
-	                		if(!seen.contains(x + "_" + y)){
-	                			seen.add(x+"_" + y);
-	                		}else{
-	                			System.out.println("WAIT! ALREADY SAW THAT!" + x + "_" + y);
-	                		}
-	                    } // if pixel is on
-	                } // endfor each pixel
-	            }
-        }
-        System.out.println("==================");
-        for (int y = 0; y < height; ++y){
-            for (int x = 0; x < width; ++x) {
-            	if (isOn(x, y)) {
-            		countOn2++;
-                } // if pixel is on
-            } // endfor each pixel
-        }
-        
-        System.out.println("From grid:" + countOn1 + " vs " + countOn2);
-        
-         
-    }
-    
-
     void union (short[] eqvtab, short cls1, short cls2) {
         short i = cls1, j = cls2, k;
         //logger.info("union "+cls1+" "+cls2);
@@ -2599,15 +2440,18 @@ public class Bitmap implements Serializable, TiffTags {
     	     .sorted()
     	     .collect(Collectors.toList());
     	
-    	List<Point2D> allPoints=lines.stream()
-       	     .flatMap(l->l.streamPoints())
-       	     .collect(Collectors.toList());
+    	//The commented section looks for intersections to help in heuristics. This doesn't
+    	//seem to be necessary anymore, so it and the filter have been commented out.
     	
-    	List<Point2D> dontmerge=GeomUtil.groupPointsCloserThan(allPoints,maxDistanceToConsiderSamePoint)
-    	        .stream()
-    	        .filter(pL->pL.size()>2)
-    	        .flatMap(l->l.stream())
-    	        .collect(Collectors.toList());
+//    	List<Point2D> allPoints=lines.stream()
+//       	     .flatMap(l->l.streamPoints())
+//       	     .collect(Collectors.toList());
+    	
+//    	List<Point2D> dontmerge=GeomUtil.groupPointsCloserThan(allPoints,maxDistanceToConsiderSamePoint)
+//    	        .stream()
+//    	        .filter(pL->pL.size()>2)
+//    	        .flatMap(l->l.stream())
+//    	        .collect(Collectors.toList());
     	
     	
     	
@@ -2653,17 +2497,17 @@ public class Bitmap implements Serializable, TiffTags {
 			        	 }
 			        	 return true;
 			         })
-			         .filter(t->{
-			        	 	Point2D[] closest=t.k().closestPoints();
-							
-							boolean partOfTriple=dontmerge.stream()
-							         .flatMap(p->Stream.of(p.distance(closest[0]),p.distance(closest[1])))
-							         .filter(d->(d<maxDistanceToConsiderSamePoint))
-							         .findAny()
-							         .isPresent();
-							if(partOfTriple)return false;
-							return true;
-			         })
+//			         .filter(t->{
+//			        	 	Point2D[] closest=t.k().closestPoints();
+//							
+//							boolean partOfTriple=dontmerge.stream()
+//							         .flatMap(p->Stream.of(p.distance(closest[0]),p.distance(closest[1])))
+//							         .filter(d->(d<maxDistanceToConsiderSamePoint))
+//							         .findAny()
+//							         .isPresent();
+//							if(partOfTriple)return false;
+//							return true;
+//			         })
 			         .filter(t->{
 			        	 	int j=t.v();
 			        	 	LineDistanceCalculator ldc = t.k();
