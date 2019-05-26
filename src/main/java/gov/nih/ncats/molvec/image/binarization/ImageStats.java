@@ -7,6 +7,7 @@ public class ImageStats {
 	public double mean;
 	public double threshold;
 	public int[] histogram;
+	public int[] histogramRaw;
 	public double count;
 
 	public double getPercentageThreshold(){

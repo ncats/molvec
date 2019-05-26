@@ -70,7 +70,7 @@ public class Bitmap implements Serializable, TiffTags {
     
     
     public static class Grid{
-    	private static final int MIN_WIDTH=32;
+    	private static final int MIN_WIDTH=8;
     	int x;
     	int y;
     	int wid;
@@ -146,6 +146,13 @@ public class Bitmap implements Serializable, TiffTags {
     		}    		
     		return false;
     	}
+    	
+    	public Rectangle2D getBounds(){
+    		return new Rectangle2D.Double(x,y, wid, wid);
+    	}
+    	
+    	
+    	
     	
     	public Grid invert(){
     		int tot = wid*wid;
@@ -499,13 +506,14 @@ public class Bitmap implements Serializable, TiffTags {
 
     
     public List<int[]> findHollowPoints(){
-    	return IntStream.range(0, width)
-    			.mapToObj(i->IntStream.range(0, height).mapToObj(j->new int[]{i,j}))
+    	return IntStream.range(1, width-1)
+    			.mapToObj(i->IntStream.range(1, height-1).mapToObj(j->new int[]{i,j}))
     			.flatMap(t->t)
-    	    .filter(xy->this.get(xy[0]-1, xy[1]) &&
-    	    		    this.get(xy[0], xy[1]-1) &&
-    	    		    this.get(xy[0]+1, xy[1]) &&
-    	    		    this.get(xy[0], xy[1]+1)
+    	    .filter(xy->this.isOn(xy[0]-1, xy[1]) &&
+    	    		    this.isOn(xy[0], xy[1]-1) &&
+    	    		    this.isOn(xy[0]+1, xy[1]) &&
+    	    		    this.isOn(xy[0], xy[1]+1) &&
+    	    		    !this.isOn(xy[0], xy[1]) 
     	    		)
     	    .collect(Collectors.toList());
     }
@@ -1051,7 +1059,7 @@ public class Bitmap implements Serializable, TiffTags {
         
         
         
-    	Bitmap bm= bb.binarize(raster, stat->{
+    	Bitmap bm= bb.binarize(raster, null, stat->{
         	is[0]=stat;
         });
 
@@ -1082,7 +1090,7 @@ public class Bitmap implements Serializable, TiffTags {
 	
 	            if(polys2.size()<4000){
 	
-	    	        Bitmap bm1= new AdaptiveThreshold().binarize(raster);
+	    	        Bitmap bm1= new AdaptiveThreshold().binarize(raster, is[0],(ist)->{});
 	    	        List<Shape> polys1= bm1.connectedComponents(Bitmap.Bbox.DoublePolygon);
 	
 	    	        if(polys1.size()<4000){
@@ -1500,18 +1508,30 @@ public class Bitmap implements Serializable, TiffTags {
     
     
     private CachedSupplier<List<int[]>> onInts = CachedSupplier.of(()->{
-    	List<int[]> on = new ArrayList<>();
-    	for(int i=0;i<this.width();i++){
-    		for(int j=0;j<this.height();j++){
-    			if(this.get(i, j)){
-    				on.add(new int[]{i,j});
-    			}
-    		}
-    	}
+    	List<int[]> on = new ArrayList<>(onGrid.count);
+        
+    	
+    	
+        List<Grid> lookGrids = onGrid.getLeafGrids(0);
+        for(int i=0;i<lookGrids.size();i++){
+               	Grid tgrid = lookGrids.get(i);
+               	int widy = Math.min(tgrid.y+tgrid.wid, height);
+               	int widx = Math.min(tgrid.x+tgrid.wid, width);
+               	
+   	            for (int y = tgrid.y; y < widy; ++y){
+   	                for (int x = tgrid.x; x < widx; ++x) {
+   	                		if(this.isOn(x, y)){
+   	                			on.add(new int[]{x,y});
+   	                		}
+   	                }
+   	            }
+        }
+        on.sort(Comparator.comparing(xy->xy[1]*width+xy[0]));
     	return on;
     });
     
     public Stream<int[]> getXYOnPoints(){
+    	
     	return onInts.get().stream();
     }
 
@@ -1864,87 +1884,159 @@ public class Bitmap implements Serializable, TiffTags {
 
     public List<Shape> connectedComponents (Bbox shape) {
     	return _cacheShapes.computeIfAbsent(shape, (ss)->{
-    		short label = 0; // current label
-            short[][] labels = new short[height][width + 1];
+    		short[] label = new short[]{0}; // current label
+            final short[][] labels = new short[height][width + 1];
 
             // equivalence class
-            short[] eqvtab = new short[500]; // some initial default
+            short[][] eqvtab = new short[1][]; 
             short[] L = new short[4];
+            
+            eqvtab[0] = new short[500]; //some initial default
 
-            for (int y = 0; y < height; ++y) {
-                for (int x = 0; x < width; ++x) {
-                    /* check to see if we have a black pixel */
-                    if (!isOn (x, y))
-                        /* do nothing */ ;
-                    /* boundary conditions */
-                    else if (y == 0 && x == 0) {
-                        labels[y][x] = ++label;
-                    } else if (y == 0) {
-                        short label1 = labels[y][x - 1];
-                        if (label1 == 0) {
-                            label1 = ++label;
-                        }
-                        labels[y][x] = label1;
-                    } else if (x == 0) {
-                        int label1 = labels[y - 1][x];
-                        int label2 = labels[y - 1][x + 1];
-                        if (label1 != 0 && label2 != 0)
-                            label1 = Math.min (label1, label2);
-                        else if (label1 == 0 && label2 == 0) {
-                            label1 = ++label;
-                        } else
-                            label1 = Math.max (label1, label2);
-                        labels[y][x] = (short) label1;
+            List<int[]> xys = onInts.get();
+            
+            for(int p=0;p<xys.size();p++){
+            	int[] xy = xys.get(p);
+            	int x = xy[0];
+            	int y = xy[1];
+            	if (y == 0 && x == 0) {
+                    labels[y][x] = ++label[0];
+                } else if (y == 0) {
+                    short label1 = labels[y][x - 1];
+                    if (label1 == 0) {
+                        label1 = ++label[0];
                     }
-                    /* assign new label */
-                    else if (labels[y][x - 1] == 0
-                             && labels[y - 1][x] == 0
-                             && labels[y - 1][x - 1] == 0
-                             && labels[y - 1][x + 1] == 0) {
-                        labels[y][x] = ++label;
-                    } else {
-                        L[0] = labels[y - 1][x - 1];
-                        L[1] = labels[y - 1][x];
-                        L[2] = labels[y - 1][x + 1];
-                        L[3] = labels[y][x - 1];
+                    labels[y][x] = label1;
+                } else if (x == 0) {
+                    int label1 = labels[y - 1][x];
+                    int label2 = labels[y - 1][x + 1];
+                    if (label1 != 0 && label2 != 0)
+                        label1 = Math.min (label1, label2);
+                    else if (label1 == 0 && label2 == 0) {
+                        label1 = ++label[0];
+                    } else
+                        label1 = Math.max (label1, label2);
+                    labels[y][x] = (short) label1;
+                }
+                /* assign new label */
+                else if (labels[y][x - 1] == 0
+                         && labels[y - 1][x] == 0
+                         && labels[y - 1][x - 1] == 0
+                         && labels[y - 1][x + 1] == 0) {
+                    labels[y][x] = ++label[0];
+                } else {
+                    L[0] = labels[y - 1][x - 1];
+                    L[1] = labels[y - 1][x];
+                    L[2] = labels[y - 1][x + 1];
+                    L[3] = labels[y][x - 1];
 
-                        Arrays.sort (L);
+                    Arrays.sort (L);
 
-                        /* skip all non-labeled pixels */
-                        int n;
-                        for (n = 0; n < 4 && L[n] == 0; ++n)
-                            ;
-                        /* n should not be 4 */
-                        if (n == 4) {
-                            throw new IllegalStateException ("n == 4");
-                        }
-
-                        labels[y][x] = L[n];
-                        /* now enumerate from n to 4 - 1 */
-                        for (int i = n; i < 4; ++i)
-                            for (int j = i + 1; j < 4; ++j)
-                                /* update equivalence table */
-                                union (eqvtab, L[i], L[j]);
+                    /* skip all non-labeled pixels */
+                    int n;
+                    for (n = 0; n < 4 && L[n] == 0; ++n)
+                        ;
+                    /* n should not be 4 */
+                    if (n == 4) {
+                        throw new IllegalStateException ("n == 4");
                     }
 
-                    if (label == Short.MAX_VALUE) {
-                        logger.log (Level.SEVERE, "Max number of labels reached: "
-                                    + label + "; truncating search!");
-                        break;
-                    }
-                    // ensure there's enough space in the eqvtab
-                    else if (label >= eqvtab.length) {
-                        short[] newtab = new short[label + 100];
-                        System.arraycopy (eqvtab, 0, newtab, 0, eqvtab.length);
-                        eqvtab = newtab;
-                    }
+                    labels[y][x] = L[n];
+                    /* now enumerate from n to 4 - 1 */
+                    for (int i = n; i < 4; ++i)
+                        for (int j = i + 1; j < 4; ++j)
+                            /* update equivalence table */
+                            union (eqvtab[0], L[i], L[j]);
+                }
+
+                if (label[0] == Short.MAX_VALUE) {
+                    logger.log (Level.SEVERE, "Max number of labels reached: "
+                                + label + "; truncating search!");
+                    break;
+                }
+                // ensure there's enough space in the eqvtab
+                else if (label[0] >= eqvtab[0].length) {
+                    short[] newtab = new short[label[0] + 100];
+                    System.arraycopy (eqvtab[0], 0, newtab, 0, eqvtab[0].length);
+                    eqvtab[0] = newtab;
                 }
             }
+            
+//            
+//            for (int y = 0; y < height; ++y) {
+//                for (int x = 0; x < width; ++x) {
+//                    /* check to see if we have a black pixel */
+//                    if (!isOn (x, y))
+//                        /* do nothing */ ;
+//                    /* boundary conditions */
+//                    else if (y == 0 && x == 0) {
+//                        labels[y][x] = ++label[0];
+//                    } else if (y == 0) {
+//                        short label1 = labels[y][x - 1];
+//                        if (label1 == 0) {
+//                            label1 = ++label[0];
+//                        }
+//                        labels[y][x] = label1;
+//                    } else if (x == 0) {
+//                        int label1 = labels[y - 1][x];
+//                        int label2 = labels[y - 1][x + 1];
+//                        if (label1 != 0 && label2 != 0)
+//                            label1 = Math.min (label1, label2);
+//                        else if (label1 == 0 && label2 == 0) {
+//                            label1 = ++label[0];
+//                        } else
+//                            label1 = Math.max (label1, label2);
+//                        labels[y][x] = (short) label1;
+//                    }
+//                    /* assign new label */
+//                    else if (labels[y][x - 1] == 0
+//                             && labels[y - 1][x] == 0
+//                             && labels[y - 1][x - 1] == 0
+//                             && labels[y - 1][x + 1] == 0) {
+//                        labels[y][x] = ++label[0];
+//                    } else {
+//                        L[0] = labels[y - 1][x - 1];
+//                        L[1] = labels[y - 1][x];
+//                        L[2] = labels[y - 1][x + 1];
+//                        L[3] = labels[y][x - 1];
+//
+//                        Arrays.sort (L);
+//
+//                        /* skip all non-labeled pixels */
+//                        int n;
+//                        for (n = 0; n < 4 && L[n] == 0; ++n)
+//                            ;
+//                        /* n should not be 4 */
+//                        if (n == 4) {
+//                            throw new IllegalStateException ("n == 4");
+//                        }
+//
+//                        labels[y][x] = L[n];
+//                        /* now enumerate from n to 4 - 1 */
+//                        for (int i = n; i < 4; ++i)
+//                            for (int j = i + 1; j < 4; ++j)
+//                                /* update equivalence table */
+//                                union (eqvtab[0], L[i], L[j]);
+//                    }
+//
+//                    if (label[0] == Short.MAX_VALUE) {
+//                        logger.log (Level.SEVERE, "Max number of labels reached: "
+//                                    + label + "; truncating search!");
+//                        break;
+//                    }
+//                    // ensure there's enough space in the eqvtab
+//                    else if (label[0] >= eqvtab[0].length) {
+//                        short[] newtab = new short[label[0] + 100];
+//                        System.arraycopy (eqvtab[0], 0, newtab, 0, eqvtab[0].length);
+//                        eqvtab[0] = newtab;
+//                    }
+//                }
+//            }
 
             if (DEBUG) {
                 System.err.print ("eqvtab:");
-                for (int i = 1; i <= label; ++i) {
-                    System.err.print (" " + i + ":" + eqvtab[i]);
+                for (int i = 1; i <= label[0]; ++i) {
+                    System.err.print (" " + i + ":" + eqvtab[0][i]);
                 }
                 System.err.println ();
                 System.err.println ("label: " + label);
@@ -1963,15 +2055,15 @@ public class Bitmap implements Serializable, TiffTags {
             List<Shape> comps;
             switch (shape) {
             case Polygon:
-                comps = connectedComponentPolygonShapes (eqvtab, labels);
+                comps = connectedComponentPolygonShapes (eqvtab[0], labels);
                 break;
             case DoublePolygon:
-                comps = connectedComponentDoublePrecisionPolygonShapes (eqvtab, labels);
+                comps = connectedComponentDoublePrecisionPolygonShapes (eqvtab[0], labels);
                 break;
 
             case Rectangular:
             default:
-                comps = connectedComponentRectangularShapes (eqvtab, labels);
+                comps = connectedComponentRectangularShapes (eqvtab[0], labels);
             }
 
             if (DEBUG) {
@@ -1984,8 +2076,8 @@ public class Bitmap implements Serializable, TiffTags {
                     System.err.println ();
                 }
             }
-            eqvtab = null;
-            labels = null;
+//            eqvtab = null;
+//            labels = null;
 
             return comps;
     	});

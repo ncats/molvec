@@ -1,6 +1,8 @@
 package gov.nih.ncats.molvec.image.binarization;
 
 import java.awt.image.Raster;
+import java.util.function.Consumer;
+
 import gov.nih.ncats.molvec.Bitmap;
 import gov.nih.ncats.molvec.image.Binarization;
 
@@ -54,98 +56,7 @@ public class AdaptiveThreshold implements Binarization {
         
     }
 
-    public  Bitmap binarize (Raster inRaster) {
-    	
-    	
-        Bitmap bm = new Bitmap (inRaster.getWidth (), inRaster.getHeight ());
-        wsize = (Math.min(wsize * 2 + 2,bm.height())-2)/2;
-        wsize = (Math.min(wsize * 2 + 2,bm.width())-2)/2;
-        
-        int[] yMap = new int[bm.height()];
-        double[][] intLines = new double[wsize * 2 + 2][bm.width()];
-        double[][] intSquareLines = new double[wsize * 2 + 2][bm.width()];
-        
-
-        // make Integral-Image for quick averaging
-        for (int y = 0; y < wsize * 2 + 2; ++y) {
-            yMap[y] = y;
-            addIntLines (inRaster, yMap, intLines, 
-                         intSquareLines, bm.width(), y);
-        }
-
-        double min = Double.POSITIVE_INFINITY;
-        double max = Double.NEGATIVE_INFINITY;
-        for (int y = 0; y < bm.height(); ++y) {
-        	for (int x = 0; x < bm.width(); ++x) {
-        		double pel = inRaster.getSampleDouble (x, y, 0);
-        		if(pel>max){
-        			max=pel;
-        		}
-        		if(pel<min){
-        			min=pel;
-        		}
-        	}
-        }
-        double range = max-min;
-        
-        
-        
-        for (int y = 0; y < bm.height(); ++y) {
-            int y1 = Math.max (y - wsize, 0);
-            int y2 = Math.min (y + wsize, bm.height() - 1);
-            int boxHeight = (y2 - y1 + 1);
-            double[] topIntLine = null;
-            double[] topSquareIntLine = null;
-            double[] bottomIntLine = null;
-            double[] bottomSquareIntLine = null;
-
-            if (y1 >= 2) {
-                if (boxHeight >= wsize * 2 + 1) {
-                    yMap[y2] = yMap[y1 - 2];
-                    addIntLines (inRaster, yMap, intLines, intSquareLines,
-                                 bm.width(), y2);
-                }
-            }
-            if (y1 > 0) {
-                topIntLine = intLines[yMap[y1 - 1]];
-                topSquareIntLine = intSquareLines[yMap[y1 - 1]];
-            }
-            bottomIntLine = intLines[yMap[y2]];
-            bottomSquareIntLine = intSquareLines[yMap[y2]];
-
-            for (int x = 0; x < bm.width(); ++x) {
-                // box to average over:
-                int x1 = Math.max (x - wsize, 0);
-                int x2 = Math.min (x + wsize, bm.width() - 1);
-                int count = (x2 - x1 + 1) * boxHeight;
-                double sum = bottomIntLine[x2];
-                double sumSquare = bottomSquareIntLine[x2];
-                if (y1 > 0) {
-                    sum += -topIntLine[x2];
-                    sumSquare += -topSquareIntLine[x2];
-                }
-                if (x1 > 0) {
-                    sum += -bottomIntLine[x1 - 1];
-                    sumSquare += -bottomSquareIntLine[x1 - 1];
-                }
-                if (y1 > 0 && x1 > 0) {
-                    sum += topIntLine[x1 - 1];
-                    sumSquare += topSquareIntLine[x1 - 1];
-                }
-
-                double mean = sum / ((double) count);
-                double stdDEV = Math.sqrt 
-                    (Math.abs (sumSquare / ((double) count)
-                                                     - mean * mean));
-                double threshold = Math.min (mean + stdDEV * sigma, min + range*absMax);
-                threshold = Math.max(threshold, min+range*absMin);
-                double pel = inRaster.getSampleDouble (x, y, 0);
-                bm.set (x, y, pel > threshold);
-            }
-        }
-
-        return bm;
-    }
+   
 
     private static void addIntLines (Raster inRaster, int[] yMap,
                                      double[][] intLines,
@@ -176,4 +87,88 @@ public class AdaptiveThreshold implements Binarization {
             }
         }
     }
+
+	@Override
+	public Bitmap binarize(Raster inRaster, ImageStats stats, Consumer<ImageStats> cons) {
+
+		if(stats==null)stats = Binarization.computeImageStats(inRaster);
+		
+		
+        Bitmap bm = new Bitmap (inRaster.getWidth (), inRaster.getHeight ());
+        wsize = (Math.min(wsize * 2 + 2,bm.height())-2)/2;
+        wsize = (Math.min(wsize * 2 + 2,bm.width())-2)/2;
+        
+        int[] yMap = new int[bm.height()];
+        double[][] intLines = new double[wsize * 2 + 2][bm.width()];
+        double[][] intSquareLines = new double[wsize * 2 + 2][bm.width()];
+        
+
+        // make Integral-Image for quick averaging
+        for (int y = 0; y < wsize * 2 + 2; ++y) {
+            yMap[y] = y;
+            addIntLines (inRaster, yMap, intLines, 
+                         intSquareLines, bm.width(), y);
+        }
+
+        
+        double range = stats.max-stats.min;
+        
+        
+        double[] dl = new double[bm.width()];
+        for (int y = 0; y < bm.height(); ++y) {
+            int y1 = Math.max (y - wsize, 0);
+            int y2 = Math.min (y + wsize, bm.height() - 1);
+            int boxHeight = (y2 - y1 + 1);
+            double[] topIntLine = null;
+            double[] topSquareIntLine = null;
+            double[] bottomIntLine = null;
+            double[] bottomSquareIntLine = null;
+
+            if (y1 >= 2) {
+                if (boxHeight >= wsize * 2 + 1) {
+                    yMap[y2] = yMap[y1 - 2];
+                    addIntLines (inRaster, yMap, intLines, intSquareLines,
+                                 bm.width(), y2);
+                }
+            }
+            if (y1 > 0) {
+                topIntLine = intLines[yMap[y1 - 1]];
+                topSquareIntLine = intSquareLines[yMap[y1 - 1]];
+            }
+            bottomIntLine = intLines[yMap[y2]];
+            bottomSquareIntLine = intSquareLines[yMap[y2]];
+            inRaster.getSamples(0, y, bm.width(), 1, 0, dl);
+            for (int x = 0; x < bm.width(); ++x) {
+                // box to average over:
+                int x1 = Math.max (x - wsize, 0);
+                int x2 = Math.min (x + wsize, bm.width() - 1);
+                int count = (x2 - x1 + 1) * boxHeight;
+                double sum = bottomIntLine[x2];
+                double sumSquare = bottomSquareIntLine[x2];
+                if (y1 > 0) {
+                    sum += -topIntLine[x2];
+                    sumSquare += -topSquareIntLine[x2];
+                }
+                if (x1 > 0) {
+                    sum += -bottomIntLine[x1 - 1];
+                    sumSquare += -bottomSquareIntLine[x1 - 1];
+                }
+                if (y1 > 0 && x1 > 0) {
+                    sum += topIntLine[x1 - 1];
+                    sumSquare += topSquareIntLine[x1 - 1];
+                }
+
+                double mean = sum / ((double) count);
+                double stdDEV = Math.sqrt 
+                    (Math.abs (sumSquare / ((double) count)
+                                                     - mean * mean));
+                double threshold = Math.min (mean + stdDEV * sigma, stats.min + range*absMax);
+                threshold = Math.max(threshold, stats.min+range*absMin);
+                double pel = dl[x];
+                bm.set (x, y, pel > threshold);
+            }
+        }
+
+        return bm;
+	}
 }

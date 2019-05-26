@@ -26,6 +26,7 @@ import gov.nih.ncats.molvec.Bitmap;
 import gov.nih.ncats.molvec.CachedSupplier;
 import gov.nih.ncats.molvec.algo.Tuple;
 import gov.nih.ncats.molvec.algo.Tuple.KEqualityTuple;
+import gov.nih.ncats.molvec.util.GeomUtil.ShapeWrapper;
 
 public class ConnectionTable{
 	private List<Node> nodes = new ArrayList<Node>();
@@ -963,21 +964,21 @@ public class ConnectionTable{
 		return this.edges.get(this.edges.size()-1);
 	}
 	
-	public List<Node> getNodesInsideShape(Shape s, double tol){
+	public List<Node> getNodesInsideShape(ShapeWrapper s, double tol){
 		List<Node> mnodes= new ArrayList<>();
 		
 		for(int i=nodes.size()-1;i>=0;i--){
 			Point2D pn = nodes.get(i).point;
-			if(GeomUtil.distanceTo(s,pn)<tol || s.contains(pn)){
+			if(s.distanceTo(pn)<tol || s.contains(pn)){
 				mnodes.add(nodes.get(i));
 			}
 		}
 		return mnodes;
 	}
 	
-	public Tuple<Node,Double> getClosestNodeToShape(Shape s){
+	public Tuple<Node,Double> getClosestNodeToShape(ShapeWrapper s){
 		return nodes.stream()
-		     .map(n->Tuple.of(n,GeomUtil.distanceTo(s, n.point)).withVComparator())
+		     .map(n->Tuple.of(n,s.distanceTo(n.point)).withVComparator())
 		     .min(CompareUtil.naturalOrder())
 		     .orElse(null);
 		
@@ -1003,7 +1004,7 @@ public class ConnectionTable{
 	}
 	
 
-	public ConnectionTable getNewConnectionTable(List<Shape> likelyNodes,
+	public ConnectionTable getNewConnectionTable(List<ShapeWrapper> likelyNodes,
 			double maxDistanceRatioNonLikely, 
 			double maxDistanceRatioLikely, 
 			double maxDistanceRatioPerLine,
@@ -1110,7 +1111,7 @@ public class ConnectionTable{
 	}
 	
 	
-	public ConnectionTable mergeAllNodesInside(Shape s, double tol,Predicate<Node> allow, Function<List<Point2D>, Point2D> merger){
+	public ConnectionTable mergeAllNodesInside(ShapeWrapper s, double tol,Predicate<Node> allow, Function<List<Point2D>, Point2D> merger){
 		
 		List<Integer> toMerge = getAllNodeIndexesInsideShape(s,tol);
 		toMerge=toMerge.stream()
@@ -1120,27 +1121,27 @@ public class ConnectionTable{
 		return this.mergeNodes(toMerge, merger);
 	}
 	
-	private List<Integer> getAllNodeIndexesInsideShape(Shape s,double tol){
+	private List<Integer> getAllNodeIndexesInsideShape(ShapeWrapper s,double tol){
 		List<Integer> toMerge = new ArrayList<Integer>();
 		for(int i=nodes.size()-1;i>=0;i--){
 			Point2D pn = nodes.get(i).point;
-			if(GeomUtil.distanceTo(s,pn)<=tol){
+			if(s.distanceTo(pn)<=tol){
 				toMerge.add(i);
 			}
 		}
 		return toMerge;
 	}
-	public List<Node> getAllNodesInsideShape(Shape s,double tol){
+	public List<Node> getAllNodesInsideShape(ShapeWrapper s,double tol){
 		return getAllNodeIndexesInsideShape(s,tol).stream().map(i->this.nodes.get(i)).collect(Collectors.toList());
 	}
 	
 	
-	public List<Tuple<Edge,Tuple<Node,Node>>> getAllEdgesEntering(Shape s, double tol){
+	public List<Tuple<Edge,Tuple<Node,Node>>> getAllEdgesEntering(ShapeWrapper s, double tol){
 		
 		List<Node> toMerge = new ArrayList<Node>();
 		for(int i=nodes.size()-1;i>=0;i--){
 			Point2D pn = nodes.get(i).point;
-			if(GeomUtil.distanceTo(s,pn)<tol){
+			if(s.distanceTo(pn)<tol){
 				toMerge.add(nodes.get(i));
 			}
 		}
@@ -1167,13 +1168,12 @@ public class ConnectionTable{
 			
 	}
 	
-	public ConnectionTable mergeAllNodesInsideCenter(Shape s, double tol){
-		Rectangle2D r=s.getBounds2D();
-		Point2D p = new Point2D.Double(r.getCenterX(),r.getCenterY());
+	public ConnectionTable mergeAllNodesInsideCenter(ShapeWrapper s, double tol){
+		Point2D p = s.centerOfBounds();
 		return mergeAllNodesInside(s,tol,n->true,(l)->p);
 	}
 	
-	public ConnectionTable mergeNodesExtendingTo(Collection<Shape> shapes,double maxAvgBondRatio, double maxTotalAvgBondRatio){
+	public ConnectionTable mergeNodesExtendingTo(Collection<ShapeWrapper> shapes,double maxAvgBondRatio, double maxTotalAvgBondRatio){
 		double avg = this.getAverageBondLength();
 		edges.stream()
 		     //.filter(e->e.getBondLength()<avg)
@@ -1191,12 +1191,12 @@ public class ConnectionTable{
 		    	 Point2D p2=e.getPoint2();
 		    	 double minDistp1=Double.MAX_VALUE;
 		    	 double minDistp2=Double.MAX_VALUE;
-		    	 Shape closest1=null;
-		    	 Shape closest2=null;
+		    	 ShapeWrapper closest1=null;
+		    	 ShapeWrapper closest2=null;
 		    	 
-		    	 for(Shape s: shapes){
-		    		 double d1=GeomUtil.distanceTo(s, p1);
-		    		 double d2=GeomUtil.distanceTo(s, p2);
+		    	 for(ShapeWrapper s: shapes){
+		    		 double d1=s.distanceTo(p1);
+		    		 double d2=s.distanceTo(p2);
 		    		 if(d1<minDistp1){
 		    			 minDistp1=d1;
 		    			 closest1=s;
@@ -1216,8 +1216,8 @@ public class ConnectionTable{
 		    	 if(minDistp1<avg*maxR && minDistp2<avg*maxR && 
 		    		closest1!=closest2){
 		    		 onlyOne=false;
-		    		newPoint1=GeomUtil.findCenterOfShape(closest1);
-		    		newPoint2=GeomUtil.findCenterOfShape(closest2);
+		    		newPoint1=closest1.centerOfBounds();
+		    		newPoint2=closest2.centerOfBounds();
 		    		newLine=new Line2D.Double(newPoint1,newPoint2);
 		    		double nl=GeomUtil.length(newLine);
 		    		if(nl> maxTR*avg ){
@@ -1243,11 +1243,11 @@ public class ConnectionTable{
 			    	// Line2D newLine = null;
 			    	 if(minDistp1>minDistp2){
 			    	//	 closestNode = this.nodes.get(e.n2);
-			    		 newPoint2=GeomUtil.findCenterOfShape(closest2);
+			    		 newPoint2=closest2.centerOfBounds();
 			    		 newPoint1=e.getPoint1();
 			    		 //newLine=new Line2D.Double(p1,newPoint);
 			    	 }else{
-			    		 newPoint1=GeomUtil.findCenterOfShape(closest1);
+			    		 newPoint1=closest1.centerOfBounds();
 			    		 newPoint2=e.getPoint2();
 			    		 //newLine=new Line2D.Double(p2,newPoint);
 			    	 }
@@ -1414,6 +1414,11 @@ public class ConnectionTable{
 	
 	public double getAverageBondLength(){
 		return _averageBondLength.get();
+	}
+	
+	public double getAverageBondLengthSquared(){
+		double bl = getAverageBondLength();
+		return bl*bl;
 	}
 	public double getLargestBondLength(){
 		return this.getEdges().stream().mapToDouble(e->e.getEdgeLength()).max().orElse(1);
@@ -1815,7 +1820,7 @@ public class ConnectionTable{
 		          .collect(Collectors.toList());
 	}
 
-	public ConnectionTable makeMissingBondsToNeighbors(Bitmap bm, double d, double tol, Collection<Shape> OCRSet, double ocrTol,Consumer<Tuple<Double,Edge>> econs) {
+	public ConnectionTable makeMissingBondsToNeighbors(Bitmap bm, double d, double tol, Collection<ShapeWrapper> OCRSet, double ocrTol,Consumer<Tuple<Double,Edge>> econs) {
 		double avg=this.getAverageBondLength();
 		Map<Integer,Set<Integer>> nmap = new HashMap<>();
 		
@@ -1832,8 +1837,8 @@ public class ConnectionTable{
 				if(!nmap.getOrDefault(i,nullSet).contains(j)){
 					Node n2=nodes.get(j);
 					if(n1.distanceTo(n2)<avg*d){
-						Tuple<Shape,Double> t1=GeomUtil.findClosestShapeTo(OCRSet, n1.point).orElse(null);
-						Tuple<Shape,Double> t2=GeomUtil.findClosestShapeTo(OCRSet, n2.point).orElse(null);
+						Tuple<ShapeWrapper,Double> t1=GeomUtil.findClosestShapeWTo(OCRSet, n1.point).orElse(null);
+						Tuple<ShapeWrapper,Double> t2=GeomUtil.findClosestShapeWTo(OCRSet, n2.point).orElse(null);
 						
 						Point2D pt1=n1.point;
 						Point2D pt2=n2.point;
@@ -1844,13 +1849,13 @@ public class ConnectionTable{
 						
 						if(t1!=null){
 							lines=lines.stream()
-									   .map(l->GeomUtil.getLinesNotInside(l, t1.k()))
+									   .map(l->t1.k().getLinesNotInside(l))
 									   .flatMap(ll->ll.stream())
 									   .collect(Collectors.toList());
 						}
 						if(t2!=null){
 							lines=lines.stream()
-									   .map(l->GeomUtil.getLinesNotInside(l, t2.k()))
+									   .map(l->t2.k().getLinesNotInside(l))
 									   .flatMap(ll->ll.stream())
 									   .collect(Collectors.toList());
 						}
@@ -1961,27 +1966,27 @@ public class ConnectionTable{
 		return this.nodes;
 	}
 	
-	public List<Node> getNodesNotInShapes(Collection<Shape> shapes, double tol){
+	public List<Node> getNodesNotInShapes(Collection<ShapeWrapper> shapes, double tol){
 		if(shapes.isEmpty())return nodes;
 		return nodes.stream()
-		     .map(n->Tuple.of(n,GeomUtil.getClosestShapeTo(shapes, n.point)))
-		     .filter(t->GeomUtil.distanceTo(t.v(),t.k().point)>tol)
+		     .map(n->Tuple.of(n,GeomUtil.getClosestShapeToSW(shapes, n.point)))
+		     .filter(t->t.v().distanceTo(t.k().point)>tol)
 		     .map(t->t.k())
 		     .collect(Collectors.toList());
 	}
 
-	public ConnectionTable makeMissingNodesForShapes(Collection<Shape> likelyOCR, double mAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,
+	public ConnectionTable makeMissingNodesForShapes(Collection<ShapeWrapper> likelyOCR, double mAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL,
 			double mIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL) {
 		double avg=this.getAverageBondLength();
-		List<Shape> addShapes=likelyOCR.stream() 
+		List<ShapeWrapper> addShapes=likelyOCR.stream() 
 		         .map(oc->Tuple.of(getClosestNodeToShape(oc),oc))
 		         .filter(t->t.k().v()>avg*mIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL)
 				 .filter(t->t.k().v()<avg*mAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL)
 				 .map(t->t.v())
 				 .collect(Collectors.toList());
 		
-		for(Shape s:addShapes){
-			this.addNode(GeomUtil.findCenterOfShape(s));
+		for(ShapeWrapper s:addShapes){
+			this.addNode(s.centerOfBounds());
 		}        
 		
 		return this;

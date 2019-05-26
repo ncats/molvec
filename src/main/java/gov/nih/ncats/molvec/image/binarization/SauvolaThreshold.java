@@ -2,6 +2,7 @@ package gov.nih.ncats.molvec.image.binarization;
 
 import java.awt.image.Raster;
 import java.util.Arrays;
+import java.util.function.Consumer;
 
 import gov.nih.ncats.molvec.Bitmap;
 import gov.nih.ncats.molvec.image.Binarization;
@@ -29,33 +30,20 @@ public class SauvolaThreshold implements Binarization{
 		
 	}
 	
+
 	@Override
-	//TODO: update to use integral images
-	public Bitmap binarize(Raster inRaster) {
-		
+	public Bitmap binarize(Raster inRaster, ImageStats stats, Consumer<ImageStats> cons) {
+
 		Bitmap bm = new Bitmap (inRaster.getWidth (), inRaster.getHeight ());
-		double max = -1, min = Double.MAX_VALUE;
-		double tmean=0;
-        for (int y = 0; y < bm.height(); ++y) {
-            for (int x = 0; x < bm.width(); ++x) {
-                double pel = inRaster.getSampleDouble (x, y, 0);
-                if (pel < min)
-                    min = pel;
-                if (pel > max)
-                    max = pel;
-                tmean+=pel;
-            }
-        }
-        tmean=tmean/(inRaster.getWidth()*inRaster.getHeight());
-        double ek =k;
+		if(stats==null)stats = Binarization.computeImageStats(inRaster);
         		
-        		
-        if(tmean-min > max-tmean){
+		double ek = k;
+        if(stats.mean-stats.min > stats.max-stats.mean){
         	ek=ek*-1;
         }
         
-        double t1=min+(max-min)*DEFAULT_MIN_THRESHOLD_RATIO;
-        double t2=min+(max-min)*DEFAULT_MAX_THRESHOLD_RATIO;
+        double t1=stats.min+(stats.max-stats.min)*DEFAULT_MIN_THRESHOLD_RATIO;
+        double t2=stats.min+(stats.max-stats.min)*DEFAULT_MAX_THRESHOLD_RATIO;
         
 		double[] vals = new double[rad*rad*4];
 		
@@ -87,6 +75,7 @@ public class SauvolaThreshold implements Binarization{
             	bm.set (x, y, isOn);
             }
         }
+        cons.accept(stats);
         return bm;
 	}
 

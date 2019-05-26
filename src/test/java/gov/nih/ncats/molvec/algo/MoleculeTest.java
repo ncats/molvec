@@ -63,6 +63,7 @@ public class MoleculeTest {
 		private String filePath;
 		private ThrowingStream.ThrowingConsumer<Chemical, Exception> assertionConsumer;
 
+		
 		public TestSpec(String filePath, ThrowingStream.ThrowingConsumer<Chemical, Exception> assertionConsumer) {
 			this.filePath = filePath;
 			this.assertionConsumer = assertionConsumer;
