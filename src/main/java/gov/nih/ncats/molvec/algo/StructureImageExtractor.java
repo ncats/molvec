@@ -131,7 +131,7 @@ public class StructureImageExtractor {
 	
 	private final boolean REMOVE_NONSENSE_OCR_LINES = false;
 
-	private final double MAX_TOLERANCE_FOR_DASH_BONDS = 3.0;
+	private final double MAX_TOLERANCE_FOR_DASH_BONDS = 2.0;
 	private final double MAX_TOLERANCE_FOR_SINGLE_BONDS = 0.4;
 
 	private final double OCRcutoffCosine=0.65;
@@ -434,7 +434,7 @@ public class StructureImageExtractor {
 
 		Stream<ShapeWrapper> stream;
 		
-		if(polygons.size()>100){
+		if(polygons.size()>20){
 			stream = polygons.parallelStream();
 		}else{
 			stream = polygons.stream();
@@ -452,7 +452,7 @@ public class StructureImageExtractor {
 			if(bounds2d.getWidth()>0 && bounds2d.getHeight()>0){
 				List<Tuple<Character,Number>> ll = new ArrayList<>();
 				
-				processOCRShape(socr,s,bitmap,thin,(sf,lf)->{
+				processOCRShape(socr,s,bitmap,(sf,lf)->{
 					ll.addAll(lf);
 					//onFind.accept(sf, lf);
 				});
@@ -494,13 +494,13 @@ public class StructureImageExtractor {
 							ShapeWrapper cropShape1=GeomUtil.getIntersectionShape(box1, s).get();
 							ShapeWrapper cropShape2=GeomUtil.getIntersectionShape(box2, s).get();
 							
-							processOCRShape(socr,cropShape1,bitmap,thin,(sf,lf)->{
+							processOCRShape(socr,cropShape1,bitmap,(sf,lf)->{
 								if(lf.get(0).v().doubleValue()>=bestMatch[0]-0.0){
 									splitMatches.add(Tuple.of(sf,lf));
 								}
 								//onFind.accept(sf, lf);
 							});
-							processOCRShape(socr,cropShape2,bitmap,thin,(sf,lf)->{
+							processOCRShape(socr,cropShape2,bitmap,(sf,lf)->{
 								if(lf.get(0).v().doubleValue()>=bestMatch[1]-0.0){
 									splitMatches.add(Tuple.of(sf,lf));
 								}
@@ -566,13 +566,13 @@ public class StructureImageExtractor {
 								ShapeWrapper cropShape1=GeomUtil.getIntersectionShape(box1, s).get();
 								ShapeWrapper cropShape2=GeomUtil.getIntersectionShape(box2, s).get();
 								
-								processOCRShape(socr,cropShape1,bitmap,thin,(sf,lf)->{
+								processOCRShape(socr,cropShape1,bitmap,(sf,lf)->{
 									if(lf.get(0).v().doubleValue()>=bestMatch[0]-0.0){
 										splitMatches.add(Tuple.of(sf,lf));
 									}
 									//onFind.accept(sf, lf);
 								});
-								processOCRShape(socr,cropShape2,bitmap,thin,(sf,lf)->{
+								processOCRShape(socr,cropShape2,bitmap,(sf,lf)->{
 									if(lf.get(0).v().doubleValue()>=bestMatch[1]-0.0){
 										splitMatches.add(Tuple.of(sf,lf));
 									}
@@ -604,8 +604,8 @@ public class StructureImageExtractor {
 							onFind.accept(s, ll);
 						}
 					}else{
-					onFind.accept(s, ll);
-				}				
+						onFind.accept(s, ll);
+					}				
 			}
 		});
 		
@@ -615,7 +615,7 @@ public class StructureImageExtractor {
 		polygons.addAll(toAddShapes);
 	}
 
-	private void processOCRShape(SCOCR socr, ShapeWrapper inputShape, Bitmap bitmap, Bitmap thin,BiConsumer<ShapeWrapper,List<Tuple<Character,Number>>> onFind){
+	private void processOCRShape(SCOCR socr, ShapeWrapper inputShape, Bitmap bitmap, BiConsumer<ShapeWrapper,List<Tuple<Character,Number>>> onFind){
 		//this is a critical section that is called thousands of times
 		//so some work as been put in to optimize it
 		//shaving off a few ms really adds up!
@@ -661,8 +661,10 @@ public class StructureImageExtractor {
 			}
 			
 			List<Tuple<Character,Number>> potential = socr.getNBestMatches(4,
-					cropped,
-					thin.getLazyCrop(sTest.getShape()))
+					cropped
+					,thin.getLazyCrop(sTest.getShape())
+					
+					)
 					.stream()
 					.map(Tuple::of)
 					.map(t->adjustConfidence(t))
@@ -1056,7 +1058,7 @@ public class StructureImageExtractor {
 					
 					
 					
-					processOCRShape(scocr,nshape,bitmap,thin,(s,potential)->{
+					processOCRShape(scocr,nshape,bitmap,(s,potential)->{
 						String st=potential.get(0).k().toString();
 						double cos=potential.get(0).v().doubleValue();
 						if(cos>OCRcutoffCosineRescueInitial){
@@ -1074,7 +1076,7 @@ public class StructureImageExtractor {
 					ShapeWrapper nshape =  ShapeWrapper.of(bb.getRect())
 													   .growShapeBounds(1);
 					
-					processOCRShape(scocr,nshape,bitmap,thin,(s,potential)->{
+					processOCRShape(scocr,nshape,bitmap,(s,potential)->{
 						
 						String st=potential.get(0).k().toString();
 						double cos=potential.get(0).v().doubleValue();
@@ -1540,7 +1542,7 @@ public class StructureImageExtractor {
 			// smallLines= thin.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
 
 			smallLines= bitmap.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
-			smallLines= thin.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
+//			smallLines= thin.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
 
 			List<Line2D> removedTinyLines =smallLines.stream()
 					.map(l->l.getLine())
@@ -2400,7 +2402,7 @@ public class StructureImageExtractor {
 
 				int numEdges=n.getEdges().size();
 				Shape[] area=new Shape[]{null};
-				Shape nshape=null;
+				ShapeWrapper nshape=null;
 				double radius=Math.max(avgbond*SEED_BOND_RATIO_FOR_OCR_WIDTH_FOR_CENTROID,averageLargestOCR/2);
 
 				List<Point2D> allVertices = verticesJ;
@@ -2446,12 +2448,12 @@ public class StructureImageExtractor {
 							.filter(pt->center.distanceSq(pt)<dCutoffSq)
 							.collect(Collectors.toList());
 
-					nshape = GeomUtil.convexHull2(realMissing.toArray(new Point2D[0]));
+					nshape = ShapeWrapper.of(GeomUtil.convexHull2(realMissing.toArray(new Point2D[0])));
 
+					
+					Point2D[] far=nshape.getPairOfFarthestPoints();
 
-					Point2D[] far=GeomUtil.getPairOfFarthestPoints(nshape);
-
-					double arean = GeomUtil.area(nshape);
+					double arean = nshape.getArea();
 
 					double r=0;
 					if(far!=null){
@@ -2461,23 +2463,23 @@ public class StructureImageExtractor {
 						keep=false;
 					}
 
-					if(arean < GeomUtil.area(nshape.getBounds2D())*MIN_AREA_RATIO_FOR_HULL_TO_BBOX_OCR){
+					if(arean < GeomUtil.area(nshape.getBounds())*MIN_AREA_RATIO_FOR_HULL_TO_BBOX_OCR){
 						keep=false;
 					}
-					if(GeomUtil.area(nshape.getBounds2D())>avgbond*avgbond*0.5){
+					if(GeomUtil.area(nshape.getBounds())>avgbond*avgbond*0.5){
 						keep=false;
 					}
-					if(GeomUtil.area(nshape.getBounds2D()) < averageAreaOCR*MIN_AREA_RATIO_FOR_OCR_TO_AVERAGE){
+					if(GeomUtil.area(nshape.getBounds()) < averageAreaOCR*MIN_AREA_RATIO_FOR_OCR_TO_AVERAGE){
 						keep=false;
 					}
 					
-					if(GeomUtil.area(nshape.getBounds2D()) > averageAreaOCR*MAX_AREA_RATIO_FOR_OCR_TO_AVERAGE){
+					if(GeomUtil.area(nshape.getBounds()) > averageAreaOCR*MAX_AREA_RATIO_FOR_OCR_TO_AVERAGE){
 						keep=false;
 					}
 
 					radius=Math.max(averageLargestOCR/2,r/2);
 					//cpt=GeomUtil.findCenterOfVertices(Arrays.asList(GeomUtil.vertices(nshape)));
-					cpt=GeomUtil.findCenterOfShape(nshape);
+					cpt= nshape.centerOfBounds();
 				}
 
 
@@ -2486,38 +2488,38 @@ public class StructureImageExtractor {
 
 
 
-					Bitmap nmap=bitmap.getLazyCrop(nshape);
-					Bitmap nthinmap=thin.getLazyCrop(nshape);
-					if(nmap!=null && nthinmap!=null){
+					Bitmap nmap=bitmap.getLazyCrop(nshape.getShape());
+//					Bitmap nthinmap=thin.getLazyCrop(nshape);
+					if(nmap!=null ){
 						
-						nshape=GeomUtil.growShape(nshape, 2);
+						nshape=nshape.growShapeBounds(2);
 						
-						nmap=bitmap.crop(nshape);
+						nmap=bitmap.crop(nshape.getShape());
 
 						List<Shape> slist=nmap.connectedComponents(Bitmap.Bbox.DoublePolygon);
 
 
-						Shape bshape=slist.stream()
+						ShapeWrapper bshape=slist.stream()
 								.map(s->Tuple.of(s,s.getBounds2D().getWidth()*s.getBounds2D().getHeight()).withVComparator())
 								.max(CompareUtil.naturalOrder())
-								.map(t->t.k())
+								.map(t->ShapeWrapper.of(t.k()))
 								.orElse(nshape);
-						Rectangle2D rect1 = nshape.getBounds2D();
+						Rectangle2D rect1 = nshape.getBounds();
 						AffineTransform at = new AffineTransform();
 						at.translate(rect1.getX(),rect1.getY());
-						nshape=at.createTransformedShape(bshape).getBounds2D();
+						nshape=ShapeWrapper.of(at.createTransformedShape(bshape.getShape()).getBounds2D());
 						//                    
 
-						nmap=bitmap.getLazyCrop(nshape);
-						nthinmap=thin.getLazyCrop(nshape);
+						nmap=bitmap.getLazyCrop(nshape.getShape());
+//						nthinmap=thin.getLazyCrop(nshape);
 						
-						if(GeomUtil.area(nshape)<averageAreaOCR*MIN_AREA_RATIO_FOR_OCR_TO_AVERAGE){
+						if(nshape.getArea()<averageAreaOCR*MIN_AREA_RATIO_FOR_OCR_TO_AVERAGE){
 							return;
 						}
 
-						if(nmap!=null && nthinmap!=null){
-							ShapeWrapper nsw = ShapeWrapper.of(nshape);
-							processOCRShape(socr[0],nsw,bitmap,thin,(s,potential)->{
+						if(nmap!=null){
+							
+							processOCRShape(socr[0],nshape,bitmap,(s,potential)->{
 
 								if(potential.get(0).v().doubleValue()>OCRcutoffCosineRescue){
 									String st=potential.get(0).k().toString();
@@ -2564,7 +2566,7 @@ public class StructureImageExtractor {
 					Bitmap nmap=bitmap.getLazyCrop(nshape.getShape());
 					Bitmap nthinmap=thin.getLazyCrop(nshape.getShape());
 					if(nmap!=null && nthinmap!=null){
-						processOCRShape(socr[0],nshape,bitmap,thin,(s,potential)->{
+						processOCRShape(socr[0],nshape,bitmap,(s,potential)->{
 							matches.addAll(potential);
 						});
 					}
@@ -5852,7 +5854,7 @@ public class StructureImageExtractor {
 		    		if(!already){
 
 				    	realRescueOCRCandidates.add(mm.getShape());
-		    			processOCRShape(socr[0],mm,bitmap,thin,(sn,potential)->{
+		    			processOCRShape(socr[0],mm,bitmap,(sn,potential)->{
 		    				String st=potential.get(0).k().toString();
 //		    				System.out.println("Maybe it's:" + st);
 							if(potential.get(0).v().doubleValue()>OCRcutoffCosineRescue){

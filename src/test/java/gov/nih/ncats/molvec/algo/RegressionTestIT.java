@@ -1079,6 +1079,23 @@ public class RegressionTestIT {
 		}
 	}
 	
+	public void doAllScaleQualityTestsFor(String set, MethodAdapted adapted) throws FileNotFoundException{
+		for(int i=3;i<=20;i++){
+			adapted= adapted.suffix("sinc")
+							.interpolation(Interpolation.SINC)
+							.scale(i/10.0);
+			testSet(set, adapted);
+			adapted= adapted.suffix("bilinear")
+					.interpolation(Interpolation.BILINEAR)
+					.scale(i/10.0);
+			testSet(set, adapted);
+			adapted= adapted.suffix("bicubic")
+					.interpolation(Interpolation.BICUBIC)
+					.scale(i/10.0);
+			testSet(set, adapted);
+		}
+	}
+	
 	
 	public void doAllRMSEDataSetTests(MethodAdapted adapted) throws FileNotFoundException{
 			adapted= adapted.rmse(true);
@@ -1092,8 +1109,28 @@ public class RegressionTestIT {
 	@Test
 	public void test1() throws FileNotFoundException{
 		
+		testSet("usan",Method.MOLVEC.adapt());
+		
+//		doAllRMSEDataSetTests(Method.MOLVEC.adapt());
+//		doAllIdentityDataSetTests(Method.MOLVEC.adapt());
+//		doAllScaleQualityTestsFor("trec",Method.MOLVEC.adapt());
+		
+		
+//		testSet("usan", Method.MOLVEC.adapt().scale(0.5).interpolation(Interpolation.BICUBIC));
+//		testSet("usan", Method.IMAGO.adapt().scale(0.5).interpolation(Interpolation.BICUBIC));
+//		testSet("usan", Method.OSRA.adapt().scale(0.5).interpolation(Interpolation.BICUBIC));
+		
 //		
-		doAllIdentityDataSetTests(Method.MOLVEC.adapt());
+//		doAllIdentityDataSetTests(Method.MOLVEC.adapt());
+//		doAllRMSEDataSetTests(Method.MOLVEC.adapt());
+//		
+//		
+//		doAllIdentityDataSetTests(Method.IMAGO.adapt());
+//		doAllRMSEDataSetTests(Method.IMAGO.adapt());
+//		
+//		doAllIdentityDataSetTests(Method.OSRA.adapt());
+//		doAllRMSEDataSetTests(Method.OSRA.adapt());
+		
 		//testSet("trec", Method.MOLVEC.adapt());
 		
 		

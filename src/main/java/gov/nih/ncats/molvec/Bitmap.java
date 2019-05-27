@@ -4,13 +4,18 @@ import java.awt.Point;
 import java.awt.Polygon;
 import java.awt.Rectangle;
 import java.awt.Shape;
+import java.awt.Transparency;
+import java.awt.color.ColorSpace;
 import java.awt.geom.GeneralPath;
 import java.awt.geom.Line2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.ComponentColorModel;
 import java.awt.image.DataBuffer;
+import java.awt.image.DataBufferByte;
 import java.awt.image.MultiPixelPackedSampleModel;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
@@ -34,7 +39,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
+import java.util.Stack;
+import java.util.TreeSet;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -70,12 +76,17 @@ public class Bitmap implements Serializable, TiffTags {
     
     
     public static class Grid{
-    	private static final int MIN_WIDTH=8;
+    	private static final int MIN_WIDTH=16;
     	int x;
     	int y;
     	int wid;
     	int swid;
     	int count=0;
+    	
+//    	int minx=-1;
+//    	int miny=-1;
+//    	int maxx=-1;
+//    	int maxy=-1;
     	
     	boolean giveChildren=true;
     	
@@ -90,7 +101,7 @@ public class Bitmap implements Serializable, TiffTags {
     		this.wid=wid;
     		this.swid=wid/2;
     		
-    		if(wid<MIN_WIDTH){
+    		if(wid<=MIN_WIDTH){
     			giveChildren=false;
     		}
     	}
@@ -130,6 +141,17 @@ public class Bitmap implements Serializable, TiffTags {
     		
     	}
     	
+    	public List<Rectangle> getLeafBoundsInside(int c, int maxx, int maxy){
+    		 return this.getLeafGrids(c)
+    				 .stream()
+    				 .map(tgrid->{
+    					int widy = Math.min(tgrid.y+tgrid.wid, maxy);
+     	               	int widx = Math.min(tgrid.x+tgrid.wid, maxx);
+     	               	return new Rectangle(tgrid.x,tgrid.y,widx,widy);
+    				 })
+    				 .collect(Collectors.toList());
+    	}
+    	
     	public boolean addGridsAbove(int c, List<Grid> gridList){
     		if(count>c){
     			boolean added=false;
@@ -150,8 +172,6 @@ public class Bitmap implements Serializable, TiffTags {
     	public Rectangle2D getBounds(){
     		return new Rectangle2D.Double(x,y, wid, wid);
     	}
-    	
-    	
     	
     	
     	public Grid invert(){
@@ -183,6 +203,7 @@ public class Bitmap implements Serializable, TiffTags {
     }
     
     private Grid onGrid=null;
+    
     
     private static final boolean DEBUG;
     static {
@@ -506,6 +527,8 @@ public class Bitmap implements Serializable, TiffTags {
 
     
     public List<int[]> findHollowPoints(){
+//    	if(true)return new ArrayList<>();
+    	
     	return IntStream.range(1, width-1)
     			.mapToObj(i->IntStream.range(1, height-1).mapToObj(j->new int[]{i,j}))
     			.flatMap(t->t)
@@ -520,30 +543,6 @@ public class Bitmap implements Serializable, TiffTags {
     
     
     
-    
-    static class SparseArray<T> {
-        Map<Integer, Map<Integer, T>> data =
-            new HashMap<Integer, Map<Integer, T>> ();
-
-        T set (int i, int j, T v) {
-            Map<Integer, T> m = data.get (i);
-            if (m == null) {
-                data.put (i, m = new HashMap<Integer, T> ());
-            }
-            T x = m.put (j, v);
-            return x;
-        }
-
-        T get (int i, int j) {
-            Map<Integer, T> m = data.get (i);
-            if (m != null) {
-                return m.get (j);
-            }
-            return null;
-        }
-    }
-
-
     //y+ is down
     public enum ChainCode {
         E (1, 0, '0'), // 0
@@ -609,17 +608,6 @@ public class Bitmap implements Serializable, TiffTags {
         public double cosine(ChainCode cc){
         	return (this.dx*cc.dx + this.dy*cc.dy)*(this.rlen*cc.rlen);
         }
-        
-//        private static final int[] priority = new int[] {2,0,1,3,4,3,1,0};
-
-        //hard coded, probably bad
-//        private static final int[] priority = new int[] {0,7,6,5,4,3,2,1};
-        
-        
-        //private static final int[] priority = new int[] {7,0,1,9,9,9,5,6};
-        
-//        private static final int[] priority = new int[] {7,0,1,9,10,9,1,0};
-        
         
         //this is the || priority
         private static final int[] priority = new int[] {0,1,2,3,4,3,2,1};
@@ -927,6 +915,28 @@ public class Bitmap implements Serializable, TiffTags {
     private int scanline;
     private SampleModel sampleModel;
     
+
+    private CachedSupplier<List<int[]>> onInts = CachedSupplier.of(()->{
+    	List<int[]> on = new ArrayList<>(onGrid.count);
+        
+    	
+    	
+    	List<Rectangle> lookGrids = onGrid.getLeafBoundsInside(0,width,height);
+    	
+        for(int i=0;i<lookGrids.size();i++){
+               	Rectangle tgrid = lookGrids.get(i);
+   	            for (int y = tgrid.y; y < tgrid.height; ++y){
+   	                for (int x = tgrid.x; x < tgrid.width; ++x) {
+   	                		if(this.isOn(x, y)){
+   	                			on.add(new int[]{x,y});
+   	                		}
+   	                }
+   	            }
+        }
+        on.sort(Comparator.comparing(xy->xy[1]*width+xy[0]));
+    	return on;
+    });
+    
     private int getScanlineFor(int y){
     	return scanline*y;
     }
@@ -941,59 +951,61 @@ public class Bitmap implements Serializable, TiffTags {
     	return cache;
     }).get();
     
+    
+    
+    //Prime for optimization
+    //This is just a map of the distances from each pixel location to the nearest
+    //on pixel
     private CachedSupplier<byte[]> distanceData = CachedSupplier.of(()->{
-    	byte[] distanceX=new byte[data.length*8];
-    	byte[] distanceY=new byte[data.length*8];
-    	
+    	byte[] distanceX=new byte[width*height];
+    	byte[] distanceY=new byte[width*height];
     	
     	
     	//TODO may want to fiddle with this number/algorithm
-    	int growUntil = 2;
+    	int growUntil = 5;
     	
     	
-    	int nscan=scanline*8;
+    	int nscan=width;
 
     	Arrays.fill(distanceX, Byte.MAX_VALUE);
     	Arrays.fill(distanceY, Byte.MAX_VALUE);
-    	
-    	for (int y = 0; y < this.height; ++y) {
-             for (int x = 0; x < this.width; ++x) {
-            	 int loc = y * nscan + x;
-            	 if(isOn(x,y)){
-            		 distanceX[loc] =0;
-            		 distanceY[loc] =0;
-            		 
-            	 }
-             }
-        }
-    	
-//    	printGridDifference();
-    	
-    	
-    	
-    	
-//    	BiFunction<Integer,Integer,Integer> translate = (x,y)->y*nscan + x;
-    	
     	int[] dx = new int[]{-1, 0, 1,-1,1,-1,0,1};
     	int[] dy = new int[]{-1,-1,-1, 0,0, 1,1,1};
     	
+    	HashSet<Integer> currentUpdates = new HashSet<>();
+    	for(int[] xy:onInts.get()){
+    		int loc = xy[1] * nscan + xy[0];
+           	distanceX[loc] =0;
+       		distanceY[loc] =0;
+       		for(int i=0;i<dx.length;i++){
+       			int nx = xy[0]+dx[i];
+       			int ny = xy[1]+dy[i];
+       			if(nx>=0 && nx<width && ny>=0 && ny<height){
+	       			int locn = ny * nscan + nx;
+	       			currentUpdates.add(locn);
+       			}
+       		}
+    	}
+    	
+    	
     	boolean changedSomething=true;
+    	HashSet<Integer> nextUpdates = new HashSet<>();
+       
+    	Stack<int[]> toChange = new Stack<>();
     	
     	
+    	double MIN_SQ=Byte.MAX_VALUE*Byte.MAX_VALUE+Byte.MAX_VALUE*Byte.MAX_VALUE;
     	for (int r = 0; changedSomething && r<growUntil;r++){
     		changedSomething=false;
-	    	for (int y = 0; y < this.height; ++y) {
-	    		int yoff=y*nscan;
-	    		
-	            for (int x = 0; x < this.width; ++x) {
-	          		 int loc = yoff + x;
-	          		 
-	          		 if(distanceX[loc]==Byte.MAX_VALUE && distanceY[loc] == Byte.MAX_VALUE){
-	          			 //It's unset
+    		for(int loc: currentUpdates){    			
+	    			if(distanceX[loc]==Byte.MAX_VALUE && distanceY[loc] == Byte.MAX_VALUE){
+	    				 int x = loc %nscan;
+	    				 int y = loc /nscan;
+	    				//It's unset
 	          			 int mini=-1;
 	          			 byte ndx=0;
 	          			 byte ndy=0;
-	     				 double minsqdist=Byte.MAX_VALUE*Byte.MAX_VALUE+Byte.MAX_VALUE*Byte.MAX_VALUE;
+	     				 double minsqdist=MIN_SQ;
 	          			 for(int i=0;i<dx.length;i++){
 	          				 int nx = dx[i]+x;
 	          				 int ny = dy[i]+y;
@@ -1003,22 +1015,37 @@ public class Bitmap implements Serializable, TiffTags {
 	          					double bdy=distanceY[nloc] + Math.abs(dy[i]);
 	          					
 	          					double d = bdx*bdx+bdy*bdy;
-	          					if(d<minsqdist){
-	          						minsqdist=d;
-	          						mini=i;
-	          						ndx=(byte) Math.min(Byte.MAX_VALUE, bdx);
-	          						ndy=(byte) Math.min(Byte.MAX_VALUE, bdy);
+	          					if(d<MIN_SQ){
+		          					if(d<minsqdist){
+		          						minsqdist=d;
+		          						mini=i;
+		          						ndx=(byte) Math.min(Byte.MAX_VALUE, bdx);
+		          						ndy=(byte) Math.min(Byte.MAX_VALUE, bdy);
+		          					}
+	          					}else{
+	          						nextUpdates.add(nloc);
 	          					}
 	          				 }	 
 	          			 }
 	          			 if(mini>=0){
+	          				 //System.out.println("Changing:" + x + "," + y + "," + r);
 	          				changedSomething=true;
-	          				distanceX[loc] =ndx;
-	      					distanceY[loc] =ndy;
+	      					toChange.add(new int[]{loc,ndx,ndy});
+	      					
 	          			 }
-	          		 }
-	            }
-	       }
+	    			 }
+//	    		}
+    		}
+    		while(!toChange.empty()){
+    			int[] v=toChange.pop();
+    			distanceX[v[0]] =(byte)v[1];
+				distanceY[v[0]] =(byte)v[2];
+				nextUpdates.remove(v[0]);
+    		}
+    		HashSet<Integer> ts = currentUpdates;
+    		currentUpdates=nextUpdates;
+    		nextUpdates = ts;
+    		ts.clear();
     	}
     	
     	
@@ -1040,9 +1067,37 @@ public class Bitmap implements Serializable, TiffTags {
        }
     	
     	
+//    	BufferedImage gg=getGrayscale(width, distanceX);
+//    	
+//    	try {
+//			ImageIO.write(gg, "PNG", new File("lol.png"));
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+    	
     	return distanceX;
     }); //distance to nearest pixel*4
-    
+    /**
+    *
+    * @param width The image width (height derived from buffer length)
+    * @param buffer The buffer containing raw grayscale pixel data
+    *
+    * @return THe grayscale image
+    */
+   public static BufferedImage getGrayscale(int width, byte[] buffer) {
+       int height = buffer.length / width;
+       ColorSpace cs = ColorSpace.getInstance(ColorSpace.CS_GRAY);
+       int[] nBits = { 8 };
+       ColorModel cm = new ComponentColorModel(cs, nBits, false, true,
+               Transparency.OPAQUE, DataBuffer.TYPE_BYTE);
+       SampleModel sm = cm.createCompatibleSampleModel(width, height);
+       DataBufferByte db = new DataBufferByte(buffer, width * height);
+       WritableRaster raster = Raster.createWritableRaster(sm, db, null);
+       BufferedImage result = new BufferedImage(cm, raster, false, null);
+
+       return result;
+   }
     
     public static Bitmap createBitmap (Raster raster, Binarization bb) {
         SampleModel model = raster.getSampleModel();
@@ -1152,11 +1207,16 @@ public class Bitmap implements Serializable, TiffTags {
     	return this.fractionOn.get();
     }
     private double _fractionPixelsOn(){
-       int on=0;
-       for (int i = 0; i < data.length; ++i) {
-  		 on+= Integer.bitCount((data[i] & 0xff));
-      }
-       return ((double)on) / (data.length*8);
+       if(onGrid!=null){
+    	   return onGrid.count / (double)(width*height);
+       }else{
+    	   int on=0;
+	       
+	       for (int i = 0; i < data.length; ++i) {
+	  		 on+= Integer.bitCount((data[i] & 0xff));
+	       }
+	       return ((double)on) / (data.length*8);
+       }
     }
     
     
@@ -1507,28 +1567,6 @@ public class Bitmap implements Serializable, TiffTags {
     }
     
     
-    private CachedSupplier<List<int[]>> onInts = CachedSupplier.of(()->{
-    	List<int[]> on = new ArrayList<>(onGrid.count);
-        
-    	
-    	
-        List<Grid> lookGrids = onGrid.getLeafGrids(0);
-        for(int i=0;i<lookGrids.size();i++){
-               	Grid tgrid = lookGrids.get(i);
-               	int widy = Math.min(tgrid.y+tgrid.wid, height);
-               	int widx = Math.min(tgrid.x+tgrid.wid, width);
-               	
-   	            for (int y = tgrid.y; y < widy; ++y){
-   	                for (int x = tgrid.x; x < widx; ++x) {
-   	                		if(this.isOn(x, y)){
-   	                			on.add(new int[]{x,y});
-   	                		}
-   	                }
-   	            }
-        }
-        on.sort(Comparator.comparing(xy->xy[1]*width+xy[0]));
-    	return on;
-    });
     
     public Stream<int[]> getXYOnPoints(){
     	
@@ -1629,21 +1667,17 @@ public class Bitmap implements Serializable, TiffTags {
         boolean changed;
         
         Grid gg = thin.onGrid;
-        List<Grid> lookGrids = gg.getLeafGrids(0);
+        List<Rectangle> lookGrids = gg.getLeafBoundsInside(0,width,height);
         do {
         	changed = false;
             parity = 1 - parity;
             
+            
             for(int i=0;i<lookGrids.size();i++){
-            	Grid tgrid = lookGrids.get(i);
-            	
-            	int widy = Math.min(tgrid.y+tgrid.wid, height);
-            	int widx = Math.min(tgrid.x+tgrid.wid, width);
-            	
-	            for (int y = tgrid.y; y < widy; ++y){
-	                for (int x = tgrid.x; x < widx; ++x) {
+            	Rectangle tgrid = lookGrids.get(i);
+            	for (int y = tgrid.y; y < tgrid.height; ++y){
+	                for (int x = tgrid.x; x < tgrid.width; ++x) {
 	                    if (thin.isOn(x, y)) {
-	                    	
 	                    	int ni = thin.neighbor8Index(x, y);
 	                    	
 	                    	boolean should = thin.shouldThin(ni, parity);
@@ -2387,14 +2421,7 @@ public class Bitmap implements Serializable, TiffTags {
     
     public double getLineLikeScore(Line2D line){
     	byte[] distMet=distanceData.get();
-    	BiFunction<Double,Double,Double> sample = (x,y)->{
-    		//TODO: do interp eventually
-    		int ix=(int)Math.round(x);
-    		int iy=(int)Math.round(y);
-    		int ni=getScanlineFor(iy)*8+ix;
-    		if(ni>distMet.length || ni<0)return (double)Byte.MAX_VALUE/4;
-    		return (double) (distMet[ni]/4);    		
-    	};
+    	
     	double sx=line.getX1();
 		double sy=line.getY1();
 		double dx=line.getX2()-line.getX1();
@@ -2406,7 +2433,11 @@ public class Bitmap implements Serializable, TiffTags {
 		for(int d=0;d<len;d++){
 			double ddx = mult*d*dx+sx;
 			double ddy = mult*d*dy+sy;
-			double dist=sample.apply(ddx, ddy);
+			int ix=(int)Math.round(ddx);
+    		int iy=(int)Math.round(ddy);
+    		int ni=width*iy+ix;
+    		if(ni>distMet.length || ni<0)return (double)Byte.MAX_VALUE*0.25;
+    		double dist= (distMet[ni]*0.25);    		
 			sumDist+=dist;
 		}
 		return sumDist/len;
@@ -2456,10 +2487,12 @@ public class Bitmap implements Serializable, TiffTags {
     	
     	
     	BiFunction<Double,Double,Double> sample = (x,y)->{
-    		//do interp eventually
+    		//TODO: do interp eventually
     		int ix=(int)Math.round(x);
     		int iy=(int)Math.round(y);
-    		return (double) (distMet[getScanlineFor(iy)*8+ix]/4);    		
+    		int ni=width*iy+ix;
+    		if(ni>distMet.length || ni<0)return (double)Byte.MAX_VALUE*0.25;
+    		return (double) (distMet[ni]*0.25);    		
     	};
     	
     	double maxCosAng = Math.abs(Math.cos(maxAngle));

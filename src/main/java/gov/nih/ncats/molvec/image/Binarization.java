@@ -74,7 +74,11 @@ public interface Binarization {
         	   stats.histogram[ni] +=fstats[i];
         	   stats.histogramRaw[i] = fstats[i];
            }
-         
+           
+//           for(int i=0;i<stats.histogramRaw.length;i++){
+//        	   System.out.println(i + "\t" + stats.histogramRaw[i]);
+//           }
+//         
            stats.min=min;
            stats.max=max;
            stats.mean=mean;

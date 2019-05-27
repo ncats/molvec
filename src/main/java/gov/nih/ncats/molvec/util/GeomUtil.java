@@ -1989,7 +1989,7 @@ public class GeomUtil {
 		
 		
 		public double getLineDensity(){
-			return totLen.get()/(rect.getWidth()*2+rect.getHeight()*2);
+			return Math.pow(totLen.get(),2)/(rect.getWidth()*2+rect.getHeight()*2);
 		}
 		
 		
