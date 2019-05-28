@@ -2612,15 +2612,18 @@ public class StructureImageExtractor {
 			        .filter(st->!growLikelyOCR.stream().filter(g->g.contains(st.v())).findFirst().isPresent())
 			        .map(t->t.k())
 			        .map(t->Tuple.of(t,t.findLongestSplittingLine()))
-			        
 			        .filter(t->{
 			        	
 			        	if(t.v()!=null){
+			        		
 			        		return t.v().length()<ctab.getAverageBondLength()*0.5;
 			        	}
-//			        	realRescueOCRCandidates.add(t.k());
+//			        	
 			        	return true;
 			        })
+//			        .peek(t->{
+//			        	realRescueOCRCandidates.add(t.k().getShape());
+//			        })
 			        .map(t->t.k())
 			        .collect(Collectors.toList());
 
@@ -2637,14 +2640,14 @@ public class StructureImageExtractor {
 											LineWrapper splitting=ShapeWrapper.of(l.stream().map(sw->sw.getShape()).collect(GeomUtil.joined())).findLongestSplittingLine();
 											List<ShapeWrapper> mlines = l.stream()
 													.map(l1->Tuple.of(l1, l1.findLongestSplittingLine()))
-											        .filter(l2->splitting.cosTheta(l2.v()) < Math.cos(45*Math.PI/180)) //assumes dashes are not ||
+													 .filter(l2->Math.abs(splitting.cosTheta(l2.v())) < Math.cos(45*Math.PI/180)) //assumes dashes are not ||
 											        .map(t->t.k())
 											        .collect(Collectors.toList());
 											
 											if(mlines.isEmpty()){
 												return l.stream()
 														.map(l1->Tuple.of(l1, l1.findLongestSplittingLine()))
-												        .filter(l2->splitting.cosTheta(l2.v()) > Math.cos(45*Math.PI/180)) //assumes dashes are ||
+												        .filter(l2->Math.abs(splitting.cosTheta(l2.v())) > Math.cos(45*Math.PI/180)) //assumes dashes are ||
 												        .map(t->t.k())
 												        .collect(Collectors.toList());
 											}
@@ -2662,6 +2665,9 @@ public class StructureImageExtractor {
 											}else{
 												return false;
 											}
+										})
+										.peek(s->{
+											realRescueOCRCandidates.add(s.getShape());
 										})
 										.collect(Collectors.toList());
 			
@@ -4699,7 +4705,9 @@ public class StructureImageExtractor {
 							
 								//Looks very promising
 								dashShapes.add(bshape.growShapeNPoly(2,12));
-								Point2D[] pts=bshape.getPairOfFarthestPoints();
+								
+								LineWrapper lw = bshape.findLongestSplittingLine();
+								Point2D[] pts=new Point2D[]{lw.getLine().getP1(),lw.getLine().getP2()};
 								List<Node> forN1=ctab.getNodes()
 								    .stream()
 								    .filter(n->n.getPoint().distance(pts[0])< ctab.getAverageBondLength()*0.55)
@@ -4713,7 +4721,7 @@ public class StructureImageExtractor {
 								
 								
 								if(forN1.size()+forN2.size()==0)return;
-								LineWrapper splitLine=bshape.findLongestSplittingLine();
+								LineWrapper splitLine=lw;
 								
 								
 								
@@ -4724,13 +4732,14 @@ public class StructureImageExtractor {
 										List<Node> nadd = forN1.stream().filter(nn->!forN2.contains(nn))
 												.collect(Collectors.toList());
 										toMergeNodes.add(nadd);
-									}else if(forN2.size()>1){
+									}
+									if(forN2.size()>1){
 										//probably merge
 										List<Node> nadd = forN2.stream().filter(nn->!forN1.contains(nn))
 												.collect(Collectors.toList());
 										toMergeNodes.add(nadd);
-									}else{
-										if(forN1.size()==1 && forN2.size()==1){
+									}
+									if(forN1.size()==1 && forN2.size()==1){
 											//probably reset the nodes now
 											//realRescueOCRCandidates.add(GeomUtil.growShapeNPoly(bshape,2,12));
 //											realRescueOCRCandidates.add(splitLine.getLine());
@@ -4767,9 +4776,7 @@ public class StructureImageExtractor {
 													ee.setDashed(true);
 													centerOfExplicitDashes.add(ee.getCenterPoint());
 												}
-											});;
-											
-										}
+											});
 										
 									}
 									return;

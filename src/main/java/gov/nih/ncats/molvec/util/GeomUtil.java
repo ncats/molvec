@@ -848,7 +848,15 @@ public class GeomUtil {
     	public LineWrapper findLongestSplittingLine(){
     		if(longestSplittingLine==null){
 	        	if(s instanceof Line2D)return LineWrapper.of((Line2D)s);
+	        	
+	        	Point2D[] verts = this.getVerts();
+	        	if(verts.length==2){
+	        		longestSplittingLine =  LineWrapper.of(new Line2D.Double(verts[0], verts[1]));
+	        		return longestSplittingLine;
+	        	}
+	        	
 	        	Point2D center = centerOfMass();
+	        	
 	        	int ptNum = 1000;
 	        	List<Point2D> pts = 
 	        			//Arrays.stream(vertices(s))
@@ -868,9 +876,18 @@ public class GeomUtil {
 	        	      .map(t->t.v())
 	        	      .collect(Collectors.toList());
 	        	
-	        	Point2D[] ptsDist=GeomUtil.getPairOfFarthestPoints(ptsIntersect);
+	        	if(ptsIntersect.size()<2){
+	        		Point2D[] pfpts = this.getPairOfFarthestPoints();
+	        		longestSplittingLine= LineWrapper.of(new Line2D.Double(pfpts[0], pfpts[1]));
+	        	}else{
+		        	Point2D[] ptsDist=GeomUtil.getPairOfFarthestPoints(ptsIntersect);
+		        	longestSplittingLine= LineWrapper.of(new Line2D.Double(ptsDist[0], ptsDist[1]));
+		        	if(longestSplittingLine.length()<2){
+		        		Point2D[] pfpts = this.getPairOfFarthestPoints();
+		        		longestSplittingLine= LineWrapper.of(new Line2D.Double(pfpts[0], pfpts[1]));
+		        	}
+	        	}
 	        	
-	        	longestSplittingLine= LineWrapper.of(new Line2D.Double(ptsDist[0], ptsDist[1]));
     		}
     		return longestSplittingLine;
         	
