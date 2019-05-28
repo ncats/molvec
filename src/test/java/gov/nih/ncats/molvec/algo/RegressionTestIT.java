@@ -1021,9 +1021,7 @@ public class RegressionTestIT {
 		testSet("testSet1", adapted);
 		testSet("uspto", adapted);
 		testSet("usan", adapted);
-		
-		
-			
+		testSet("usan", adapted.scale(0.5).interpolation(Interpolation.BICUBIC));
 	}
 	
 	

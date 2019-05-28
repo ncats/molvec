@@ -55,8 +55,8 @@ public class LeastPopulatedThreshold implements Binarization {
         stats.threshold=threshold;
         
         
-        System.out.println("Threshold Num:" + mini);
-        System.out.println("Threshold:" + threshold);
+//        System.out.println("Threshold Num:" + mini);
+//        System.out.println("Threshold:" + threshold);
         
         Binarization.globalThreshold(inRaster,bm,threshold);
         
@@ -95,8 +95,8 @@ public class LeastPopulatedThreshold implements Binarization {
         stats.threshold=threshold;
         
         
-        System.out.println("Threshold Num:" + mini);
-        System.out.println("Threshold:" + threshold);
+//        System.out.println("Threshold Num:" + mini);
+//        System.out.println("Threshold:" + threshold);
         
         Binarization.globalThreshold(inRaster,bm,threshold);
         

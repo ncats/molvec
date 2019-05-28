@@ -217,7 +217,6 @@ public class StructureImageExtractor {
 //		if(true)return true;
 		double ptc=is.getPercentageThreshold();
 		if((ptc>80) || (ptc < 20)){
-			System.out.println("edge effect");
 			return true; //edge effect
 		}
 
@@ -238,19 +237,19 @@ public class StructureImageExtractor {
         double correl1=GeomUtil.rankedCorrel(Arrays.copyOfRange(is.histogram, 0, (int)is.getPercentageThreshold()));
         double correl2=GeomUtil.rankedCorrel(Arrays.copyOfRange(is.histogram, (int)is.getPercentageThreshold(), 100));
         
-        System.out.println("Correl1:" + correl1);
-        System.out.println("Correl2:" + correl2);
+//        System.out.println("Correl1:" + correl1);
+//        System.out.println("Correl2:" + correl2);
         
         
         if(correl1>-.5 && correl2 <.5){
-        	System.out.println("too unsmooth");
+//        	System.out.println("too unsmooth");
             return true;
         }
 
         //If there's a little uncertainty about where to draw the threshold line
         //fallback
         if(count> countOn*0.12 || count> (is.count-countOn)*0.12){
-        	System.out.println("too uncertain");
+//        	System.out.println("too uncertain");
             return true;
         }
         return false;

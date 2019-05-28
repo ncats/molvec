@@ -35,12 +35,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Stack;
-import java.util.TreeSet;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -954,15 +954,26 @@ public class Bitmap implements Serializable, TiffTags {
     
     
     //Prime for optimization
-    //This is just a map of the distances from each pixel location to the nearest
-    //on pixel
+    //This is just a map of the l2 distances from each pixel location to the nearest
+    //feature pixel. This is sometimes called the "distance transform", and is useful
+    //for a few things like thickening, etc. Here, it's used mostly for giving some 
+    //tolerance when walking line segments through the bitmap.
+    
+    //This algorithm below is a fairly intensive one, and only works up to a fixed
+    //radius from feature pixels.
+    //A better implementation would likely be:
+    //http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.507.6791
+    //
     private CachedSupplier<byte[]> distanceData = CachedSupplier.of(()->{
+    	//TODO may want to fiddle with this number/algorithm
+    	long start=System.currentTimeMillis();
+    	int growUntil = 5;
+
+    	
     	byte[] distanceX=new byte[width*height];
     	byte[] distanceY=new byte[width*height];
     	
     	
-    	//TODO may want to fiddle with this number/algorithm
-    	int growUntil = 5;
     	
     	
     	int nscan=width;
@@ -988,67 +999,75 @@ public class Bitmap implements Serializable, TiffTags {
     	}
     	
     	
-    	boolean changedSomething=true;
     	HashSet<Integer> nextUpdates = new HashSet<>();
        
     	Stack<int[]> toChange = new Stack<>();
     	
     	
     	double MIN_SQ=Byte.MAX_VALUE*Byte.MAX_VALUE+Byte.MAX_VALUE*Byte.MAX_VALUE;
-    	for (int r = 0; changedSomething && r<growUntil;r++){
-    		changedSomething=false;
-    		for(int loc: currentUpdates){    			
-	    			if(distanceX[loc]==Byte.MAX_VALUE && distanceY[loc] == Byte.MAX_VALUE){
-	    				 int x = loc %nscan;
-	    				 int y = loc /nscan;
-	    				//It's unset
-	          			 int mini=-1;
-	          			 byte ndx=0;
-	          			 byte ndy=0;
-	     				 double minsqdist=MIN_SQ;
-	          			 for(int i=0;i<dx.length;i++){
-	          				 int nx = dx[i]+x;
-	          				 int ny = dy[i]+y;
-	          				 if(nx<this.width && nx>=0 && ny<this.height && ny>=0){
-	          					int nloc=ny*nscan + nx;
-	          					double bdx=distanceX[nloc] + Math.abs(dx[i]);
-	          					double bdy=distanceY[nloc] + Math.abs(dy[i]);
-	          					
-	          					double d = bdx*bdx+bdy*bdy;
-	          					if(d<MIN_SQ){
-		          					if(d<minsqdist){
-		          						minsqdist=d;
-		          						mini=i;
-		          						ndx=(byte) Math.min(Byte.MAX_VALUE, bdx);
-		          						ndy=(byte) Math.min(Byte.MAX_VALUE, bdy);
-		          					}
-	          					}else{
-	          						nextUpdates.add(nloc);
-	          					}
-	          				 }	 
-	          			 }
-	          			 if(mini>=0){
-	          				 //System.out.println("Changing:" + x + "," + y + "," + r);
-	          				changedSomething=true;
-	      					toChange.add(new int[]{loc,ndx,ndy});
-	      					
-	          			 }
-	    			 }
-//	    		}
+    	for (int r = 0; r<growUntil;r++){
+    		int p=r%2;
+    		
+    		HashSet<Integer> cur;
+    		HashSet<Integer> nex;
+    		
+    		
+    		if(p==0){
+    			cur=currentUpdates;
+    			nex=nextUpdates;
+    		}else{
+    			nex=currentUpdates;
+    			cur=nextUpdates;
     		}
+    		
+    		for(int loc:cur){
+    			if(distanceX[loc]==Byte.MAX_VALUE && distanceY[loc] == Byte.MAX_VALUE){
+   				 int x = loc %nscan;
+   				 int y = loc /nscan;
+   				//It's unset
+         			 int mini=-1;
+         			 byte ndx=0;
+         			 byte ndy=0;
+    				 double minsqdist=MIN_SQ;
+         			 for(int i=0;i<dx.length;i++){
+         				 int nx = dx[i]+x;
+         				 int ny = dy[i]+y;
+         				 if(nx<this.width && nx>=0 && ny<this.height && ny>=0){
+         					int nloc=ny*nscan + nx;
+         					double bdx=distanceX[nloc] + Math.abs(dx[i]);
+         					double bdy=distanceY[nloc] + Math.abs(dy[i]);
+         					
+         					double d = bdx*bdx+bdy*bdy;
+         					if(d<MIN_SQ){
+	          					if(d<minsqdist){
+	          						minsqdist=d;
+	          						mini=i;
+	          						ndx=(byte) Math.min(Byte.MAX_VALUE, bdx);
+	          						ndy=(byte) Math.min(Byte.MAX_VALUE, bdy);
+	          					}
+         					}else{
+         						nex.add(nloc);
+         					}
+         				 }	 
+         			 }
+         			 if(mini>=0){
+     					toChange.add(new int[]{loc,ndx,ndy});
+     					
+         			 }
+   			 }
+    		}
+    		
     		while(!toChange.empty()){
     			int[] v=toChange.pop();
     			distanceX[v[0]] =(byte)v[1];
 				distanceY[v[0]] =(byte)v[2];
-				nextUpdates.remove(v[0]);
+				nex.remove(v[0]);
+				
     		}
-    		HashSet<Integer> ts = currentUpdates;
-    		currentUpdates=nextUpdates;
-    		nextUpdates = ts;
-    		ts.clear();
+    		cur.clear();
     	}
     	
-    	
+//    	System.out.println("Total Time:" + (System.currentTimeMillis() - start));
     	
     	for (int y = 0; y < this.height; ++y) {
     		int yoff=y*nscan;
@@ -1066,18 +1085,184 @@ public class Bitmap implements Serializable, TiffTags {
             }
        }
     	
+    	System.out.println("Total Time:" + (System.currentTimeMillis() - start));
+    	return distanceX;
     	
-//    	BufferedImage gg=getGrayscale(width, distanceX);
+    	
+    	//This method should be faster, but isn't yet ... probably because it
+    	//has to compute the real thing, not just the first few pixels
+    	
+//    	return getNNPixelMapX(growUntil);
+    	
+    	
+    }); //distance to nearest pixel*4
+    
+
+    
+    //Based roughly on this publication:
+    //http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.507.6791
+    public byte[] getNNPixelMapX(int limit){
+    	int BAD= Integer.MAX_VALUE;
+    	int pow2widt=Integer.highestOneBit(width);
+		if(pow2widt<width){
+			pow2widt=pow2widt*2;
+		}
+		int pow2wid = pow2widt;
+		
+		int nshift = (int)Math.round(Math.log(pow2wid)/Math.log(2.0));
+		
+    	int[] bestIndex = new int[pow2wid*height];
+    	byte[] distanceY=new byte[width*height];
+    	
+    	IntStream.range(0, height)
+    	   .parallel()
+    	   .forEach(y->{
+	       		int lOnx = -1;
+	       		//each column
+	       		for(int x=0;x<width;x++){	
+	       			boolean on=isOn(x,y);
+	       			int locn = y * pow2wid + x;
+	       			if(on){
+	       				
+	       				bestIndex[locn] = locn;
+	       				int upto=x;
+	       				int setx=lOnx;
+	       				if(lOnx>-1){
+	       					upto=((lOnx+x)/2);
+	       				}else{
+	       					setx=x;
+	       				}
+	       				if(x>lOnx+1){
+	   	    				//update nn for last point
+	   	    				for(int i=lOnx+1;i<upto;i++){
+	   	    					int locn2 = (y) * pow2wid + i;
+	   	    					bestIndex[locn2] = y*pow2wid +setx;
+	   	    				}
+	   	    				for(int i=upto;i<x;i++){
+	   	    					int locn2 = (y) * pow2wid + i;
+	   	    					bestIndex[locn2] = locn;
+	   	    				}
+	       				}
+	       				lOnx=x;
+	       			}else{
+	       				bestIndex[locn] = BAD;
+	       			}
+	       		}
+	       		if(lOnx>-1){
+	       			for(int i=lOnx+1;i<width;i++){
+	   					int locn2 = (y) * pow2wid + i;
+	   					bestIndex[locn2] = y*pow2wid+lOnx;
+	   				}
+	       		}
+    	   });
+    	
+//
+////		//each column
+    	IntStream.range(0, width)
+    	.parallel()
+ 	   .forEach(x->{
+ 		   
+ 		   
+ 		  int startAt = 0;
+  		for(int y=0;y<height;y++){
+//				int bfound = -1;
+				int locn = y*pow2wid + x;
+				
+				int bx = bestIndex[locn]& (pow2wid - 1);
+				int by = bestIndex[locn]>>nshift;
+				
+				int dist = BAD;
+				
+				int maxD = height;
+				
+				//it has a guess
+				if(bestIndex[locn] != BAD){
+					maxD = Math.abs(x-bx);
+					dist = (y-by)*(y-by) + (x-bx)*(x-bx);
+				}
+				
+				{
+					//up-side will only have a real hit one before
+					if(y>=1){
+						int locnl = locn-pow2wid;
+						int lbi =bestIndex[locnl];
+						
+						if(lbi!=BAD){
+							int lbx =lbi& (pow2wid - 1);
+							int lby =lbi>>nshift;
+							int dx=(x-lbx);
+							int dy=(y-lby);
+							int ndist=dx*dx+dy*dy;
+							if(ndist<dist){
+								dist=ndist;
+								bx=lbx;
+								by=lby;
+								bestIndex[locn]=lbi;
+								maxD =  Math.min(maxD, Math.abs(dx) + Math.abs(dy)); //triangle inequality
+							}
+						}
+					}
+				}
+				
+				for(int nyd=Math.max(startAt, y+1);nyd<=maxD+y;nyd++){					
+					// down
+					if(nyd<height){
+						int locnr = nyd*pow2wid+x;
+						int rbi =bestIndex[locnr];
+						
+						if(rbi!=BAD){
+							int rbx =bestIndex[locnr]& (pow2wid - 1);
+							int rby =bestIndex[locnr]>>nshift;
+							int dx=(x-rbx);
+							int dy=(y-rby);
+							int ndist=dx*dx+dy*dy;
+							if(ndist<dist){
+								startAt=nyd+1;
+								dist=ndist;
+								bx=rbx;
+								by=rby;
+								maxD = Math.min(maxD, Math.abs(dx) + Math.abs(dy)); //triangle inequality
+								bestIndex[locn]=bestIndex[locnr];
+							}
+						}
+					}
+					
+				}
+				
+				 int ddx=Math.abs(bx-x);
+        		 int ddy=Math.abs(by-y);
+        		 int bloc =width*y+x;
+        		 
+         		 if(ddx>=Byte.MAX_VALUE || ddy>=Byte.MAX_VALUE){
+         			distanceY[bloc] = (byte)Byte.MAX_VALUE;
+         			continue;
+         		 }          		 
+         		 int dd=ddx*ddx+ddy*ddy;
+         		 if(ddx<=(limit) && ddy<=(limit)){
+         			distanceY[bloc]=sqrtCache[dd];	 
+         		 }else{
+         			distanceY[bloc] = (byte)Byte.MAX_VALUE;
+         		 }
+			}	
+ 	   });
+//
+//    	BufferedImage gg=getGrayscale(width, distanceY);
 //    	
 //    	try {
-//			ImageIO.write(gg, "PNG", new File("lol.png"));
+//			ImageIO.write(gg, "PNG", new File("loWAR.png"));
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
 //			e.printStackTrace();
 //		}
+
     	
-    	return distanceX;
-    }); //distance to nearest pixel*4
+    	return distanceY;
+    	
+    }
+    
+    
+    
+    
     /**
     *
     * @param width The image width (height derived from buffer length)
@@ -1085,7 +1270,7 @@ public class Bitmap implements Serializable, TiffTags {
     *
     * @return THe grayscale image
     */
-   public static BufferedImage getGrayscale(int width, byte[] buffer) {
+   private static BufferedImage getGrayscale(int width, byte[] buffer) {
        int height = buffer.length / width;
        ColorSpace cs = ColorSpace.getInstance(ColorSpace.CS_GRAY);
        int[] nBits = { 8 };
@@ -1140,7 +1325,6 @@ public class Bitmap implements Serializable, TiffTags {
 	        //the adaptive threshold, possibly
 	        if(count> countOn*0.1 || count> (is[0].count-countOn)*0.1){
 	
-	        	System.out.println("testing adaptive");
 	            List<Shape> polys2= bm.connectedComponents(Bitmap.Bbox.DoublePolygon);
 	
 	            if(polys2.size()<4000){
@@ -1161,7 +1345,6 @@ public class Bitmap implements Serializable, TiffTags {
 	//    		        //the thresholding washes them out, then you'd expect to see about 3 or more shapes
 	//    		        //inside other shapes with good thresholding than with bad thresholding
 	    		        if(sum1>=sum2+3){
-	    		        	System.out.println("Using adaptive");
 	    		        	return bm1;
 	    		        }
 	    	        }
