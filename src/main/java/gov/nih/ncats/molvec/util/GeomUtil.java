@@ -673,6 +673,83 @@ public class GeomUtil {
     	      .sum();
     }
     
+    
+    public static double[] getPCALikeUnitVector(double[] xs, double[] ys){
+    	double k1=0;  //variance contribution. >0 means x-varies more, <0 means y-varies more
+    	double k2=0;  //orientation. >0 means 1st and 3rd quad, <0 means 2nd and 4th quad
+    	
+    	for(int i=0;i<xs.length;i++){
+    		k1+=xs[i]*xs[i]-ys[i]*ys[i];
+    		k2+=xs[i]*ys[i];
+    	}
+    	
+    	if(Math.abs(k2)<ZERO_DISTANCE_TOLERANCE){
+    		if(k2==0){
+    			k2=ZERO_DISTANCE_TOLERANCE;
+    		}else{
+    			k2=Math.signum(k2)*ZERO_DISTANCE_TOLERANCE;
+    		}
+    	}
+    	
+    	double k = k1/k2;
+    	
+    	double ki = k / (Math.sqrt(k*k+4));
+    	
+    	double cos=0;
+    	
+    	if(ki<=1){
+    		cos = Math.sqrt((1-ki)/2.0);
+    	}else if(ki>=-1){
+    		cos = Math.sqrt((1+ki)/2.0);
+    	}else{
+    		cos=0;  //if everything else fails, default to +x-direction
+    	}
+    	//we now know that the best cos(theta) is either cos1, cos2 or -cos1,-cos2
+    	//If we assume we always report sin(theta) as positive
+    	
+    	double sin=Math.sqrt(1-cos*cos);
+    	double keepCos = cos;
+    	double keepSin = sin;
+    	
+    	
+    	if(k1>0){
+    		//more variance in the x direction, so we want a larger |cos(theta)|
+    		if(k2>=0){
+    			//aligned in the 1st and 3rd quad, so cos(theta) is positive
+    			keepCos = Math.max(Math.abs(cos),Math.abs(sin));
+    			keepSin = Math.min(Math.abs(cos),Math.abs(sin));    			
+    		}else{
+    			//aligned in the 2nd and 4th quad, so cos(theta) is negative
+    			keepCos = -Math.max(Math.abs(cos),Math.abs(sin));
+    			keepSin = Math.min(Math.abs(cos),Math.abs(sin));
+    		}
+    	}else{
+    		//more variance in the y direction, so we want a smaller |cos(theta)|
+    		if(k2>=0){
+    			//aligned in the 1st and 3rd quad, so cos(theta) is positive
+    			keepCos = Math.min(Math.abs(cos),Math.abs(sin));
+    			keepSin = Math.max(Math.abs(cos),Math.abs(sin));    			
+    		}else{
+    			//aligned in the 2nd and 4th quad, so cos(theta) is negative
+    			keepCos = -Math.min(Math.abs(cos),Math.abs(sin));
+    			keepSin = Math.max(Math.abs(cos),Math.abs(sin));
+    		}
+    	}
+    	
+    	return new double[]{keepCos, keepSin};
+    	    	
+    }
+    
+    
+    /**
+     * Grid-based search for a zero in a supplied function, using a set number of steps, and returning the first bounds
+     * where there is a sign change in the supplied function.  
+     * @param f
+     * @param high
+     * @param low
+     * @param steps
+     * @return
+     */
     private static Tuple<Double,Double> findZeroGrid(Function<Double,Double> f, double high, double low, int steps){
     	double delta = (high-low)/steps;
     	
@@ -697,6 +774,16 @@ public class GeomUtil {
     	return Tuple.of(low,high);
     }
     
+    /**
+     * Finds the zero of a function by linear interpolation. That is, a high and low x value is specified, and the midpoint
+     * x value is also sampled. I
+     * @param f
+     * @param high
+     * @param low
+     * @param tolError
+     * @param minStep
+     * @return
+     */
     private static double findZeroInterp(Function<Double,Double> f, double high, double low, double tolError, double minStep){
     	
     	double hv=f.apply(high);

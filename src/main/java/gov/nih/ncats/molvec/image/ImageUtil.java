@@ -63,14 +63,18 @@ public class ImageUtil implements TiffTags {
         int bands=raster.getNumBands();
     	int max = 0;
     	int min = Integer.MAX_VALUE;
-    	for (int i = 0; i < raster.getWidth(); ++i) {
-    	    for (int j = 0; j < raster.getHeight(); ++j) {
-    	    	for(int k=0;k<bands;k++){
-	                int pixel = raster.getSample(i, j, k);
+    	int[] pix = new int[raster.getWidth()];
+    	for (int j = 0; j < raster.getHeight(); ++j) {
+//    		for (int i = 0; i < raster.getWidth(); ++i) {
+    		for(int k=0;k<bands;k++){
+    			raster.getSamples(0, j, raster.getWidth(), 1, k, pix);
+    	    	for(int i=0;i<pix.length;i++){
+	                int pixel = pix[i];
 	                //System.out.print(pixel%10);
 	                if (pixel > max) max = pixel;
 	                if (pixel < min) min = pixel;
     	    	}
+    	    	
     	    }
     	    //System.out.println();
     	}

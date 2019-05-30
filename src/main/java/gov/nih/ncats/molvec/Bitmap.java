@@ -26,8 +26,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -57,6 +59,7 @@ import gov.nih.ncats.molvec.image.ImageUtil;
 import gov.nih.ncats.molvec.image.TiffTags;
 import gov.nih.ncats.molvec.image.binarization.AdaptiveThreshold;
 import gov.nih.ncats.molvec.image.binarization.ImageStats;
+import gov.nih.ncats.molvec.ui.RasterBasedCosineSCOCR.RasterChar;
 import gov.nih.ncats.molvec.util.GeomUtil;
 import gov.nih.ncats.molvec.util.GeomUtil.LineDistanceCalculator;
 import gov.nih.ncats.molvec.util.GeomUtil.LineWrapper;
@@ -948,6 +951,7 @@ public class Bitmap implements Serializable, TiffTags {
     	for(int i=0;i<maxReal;i++){
     		cache[i] = (byte)Math.min(Byte.MAX_VALUE, Math.round(Math.sqrt(i)*4));
     	}
+
     	return cache;
     }).get();
     
@@ -1122,7 +1126,7 @@ public class Bitmap implements Serializable, TiffTags {
     	byte[] distanceY=new byte[width*height];
     	
     	IntStream.range(0, height)
-    	   .parallel()
+//    	   .parallel()
     	   .forEach(y->{
 	       		int lOnx = -1;
 	       		//each column
@@ -1271,7 +1275,7 @@ public class Bitmap implements Serializable, TiffTags {
     		 }          		 
     		 int dd=ddx*ddx+ddy*ddy;
     		 
-    		 if(dd < sqrtCache.length){
+    		 if(dd < limit*limit*2){
     			distanceY[bloc]=(byte) Math.min(sqrtCache[dd], Byte.MAX_VALUE);	 
     		 }else{
     			distanceY[bloc] = (byte)Byte.MAX_VALUE;
@@ -1462,6 +1466,7 @@ public class Bitmap implements Serializable, TiffTags {
     	return read(file,StructureImageExtractor.DEF_BINARIZATION);
     }
     public static Bitmap read (File file, Binarization bin) throws IOException {
+    	
             return createBitmap (ImageUtil.grayscale(file).getData(), bin);
 
     }

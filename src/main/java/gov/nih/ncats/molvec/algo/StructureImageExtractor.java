@@ -123,7 +123,6 @@ public class StructureImageExtractor {
 	private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE = 1/3.6;
 	private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE_AFTER_SPLIT = 1/6.0;
 	private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE_INITIAL = 1/2.9;
-	private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_MERGE_INITIAL_1 = 1/5.0;
 
 	private final double MAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 1.3;
 	private final double MIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL = 0.4;
@@ -149,11 +148,9 @@ public class StructureImageExtractor {
 	private final double minPerLineDistanceRatioForIntersection = 0.7;
 	private final double OCR_TO_BOND_MAX_DISTANCE=3.0;
 	private final double maxCandidateRatioForIntersection = 1.5;
-	private final double maxCandidateRatioForIntersectionWithNeighbor = 1.3;       
-	private final double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN = 1;
+	private final double maxCandidateRatioForIntersectionWithNeighbor = 1.3; 
 	private final double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL = 0.5;
 	private final double MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS = 6;
-	private final double MIN_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS = 2;
 	private final double MAX_BOND_TO_AVG_BOND_RATIO_FOR_INTERSECTION= 0.8;
 
 	private final double MAX_ANGLE_FOR_JOINING_SEGMENTS=25 * Math.PI/180.0;
@@ -185,14 +182,10 @@ public class StructureImageExtractor {
 	private final double MIN_BIGGER_PROJECTION_RATIO_FOR_HIGH_ORDER_BONDS=.25;
 	private final double MAX_ANGLE_FOR_PARALLEL=10.0 * Math.PI/180.0;
 
-	private final double MIN_ST_DEV_FOR_KEEPING_DASHED_LINES=0.50;
-
-
 
 	//Parallel lines
 
 	private final double MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC=7.0;
-	private final double MAX_ANGLE_FOR_PARALLEL_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC=15.0 * Math.PI/180.0;
 
 
 	
@@ -214,7 +207,6 @@ public class StructureImageExtractor {
 //	//By default, find the least populated section of the histogram with a 10 percent window, and use that as the threshold
 //	//however, fallback to sigma-based threshold if the best threshold is near the extremes or has significant uncertainty
 	public static Binarization DEF_BINARIZATION = new LeastPopulatedThreshold(10).fallback(new SigmaThreshold(THRESH_STDEV), (is)->{
-//		if(true)return true;
 		double ptc=is.getPercentageThreshold();
 		if((ptc>80) || (ptc < 20)){
 			return true; //edge effect
@@ -1112,8 +1104,6 @@ public class StructureImageExtractor {
 		
 		
 		
-		
-		
 
 		thin = bitmap.thin();
 		boolean blurred=false;
@@ -1247,6 +1237,7 @@ public class StructureImageExtractor {
 
 		Set<ShapeWrapper> NPlusShapes = Collections.synchronizedSet(new LinkedHashSet<>());
 		
+		
 		processOCR(socr[0],polygons,bitmap,thin,(s,potential)->{
 			ocrAttempt.put(s, potential);
 			
@@ -1334,7 +1325,7 @@ public class StructureImageExtractor {
 		        .map(s->s.growShapeBounds(2))
 		        .peek(s->realRescueOCRCandidates.add(s.getShape()))
 		        .collect(Collectors.toList());
-		
+
 		
 		lines= GeomUtil.asLines(thin.segments())
 					   .stream()
@@ -1539,8 +1530,9 @@ public class StructureImageExtractor {
 
 
 			// smallLines= thin.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
-
+			
 			smallLines= bitmap.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
+
 //			smallLines= thin.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
 
 			List<Line2D> removedTinyLines =smallLines.stream()
@@ -1662,8 +1654,6 @@ public class StructureImageExtractor {
 			List<LineWrapper> dottedLines = new ArrayList<>();
 			
 			
-			
-//			if(true)throw new RuntimeException();
 			
 			while(tooLongBond){
 				if (Thread.currentThread().isInterrupted()){
@@ -2543,7 +2533,6 @@ public class StructureImageExtractor {
 			.forEach(nshape->{
 				
 				
-				//if(true)return;
 				boolean sigOverlap = 
 						likelyOCRAll.stream()
 						.map(s->Tuple.of(s,GeomUtil.getIntersectionShape(nshape, s)))
@@ -3316,7 +3305,7 @@ public class StructureImageExtractor {
 
 			ctab.standardCleanEdges();
 
-
+			
 			if(DEBUG)logState(21,"merge nodes that are roughly in OCR shapes to be in the center of the shape, or at the area of maximal intersection");
 
 			
@@ -4280,7 +4269,8 @@ public class StructureImageExtractor {
 				});
 			
 			ctab.standardCleanEdges();
-
+			
+			
 			if(DEBUG)logState(32,"very short non-intersection-derived edges are either removed, or their neighbors are merged based on the resulting fidelity to ABL");
 			
 			
@@ -5248,7 +5238,6 @@ public class StructureImageExtractor {
 				    .filter(n->n.getValanceTotal()>2)
 				    .filter(n->n.getEdges().stream().filter(e->e.getOrder()>1).anyMatch(e->{
 				    	//If the double bond is right above the current node, it's likely an erroneous carbon
-//				    	if(true)return true;
 				    	double costheta=GeomUtil.cosTheta(e.getLine(), new Line2D.Double(0,0,0,1));
 				    	return costheta>0.9;
 				    }))

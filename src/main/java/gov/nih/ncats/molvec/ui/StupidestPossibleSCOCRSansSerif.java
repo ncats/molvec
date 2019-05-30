@@ -494,7 +494,7 @@ public class StupidestPossibleSCOCRSansSerif extends RasterBasedCosineSCOCR{
 		      .map(Tuple.vmap(bb->new String(bb, Charset.defaultCharset())))
 		      .map(Tuple.vmap(s->new RasterChar(null,null).readDataFromString(s)))
 		      .collect(Tuple.toGroupedMap());
-		      ;
+		
 	}
 	
 	
