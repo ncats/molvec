@@ -63,6 +63,7 @@ import gov.nih.ncats.molvec.ui.RasterBasedCosineSCOCR.RasterChar;
 import gov.nih.ncats.molvec.util.GeomUtil;
 import gov.nih.ncats.molvec.util.GeomUtil.LineDistanceCalculator;
 import gov.nih.ncats.molvec.util.GeomUtil.LineWrapper;
+import gov.nih.ncats.molvec.util.GeomUtil.ShapeWrapper;
 
 /**
  * A bitmap image
@@ -2485,7 +2486,7 @@ public class Bitmap implements Serializable, TiffTags {
 
 		public void setHull(Shape hull) {
 			this.hull = hull;
-			this.longSplit=GeomUtil.findLongestSplittingLine(hull).getLine();
+			this.longSplit=ShapeWrapper.of(hull).findLongestSplittingLine().getLine();
 		}
     	
 		

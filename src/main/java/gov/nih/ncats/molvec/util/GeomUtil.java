@@ -588,6 +588,20 @@ public class GeomUtil {
     	return lp1;
     }
     
+    public static Line2D findMaxSeparationLinePCA(List<Point2D> pts){
+    	
+    	double[] xs = new double[pts.size()];
+    	double[] ys = new double[pts.size()];
+    	for(int i=0;i<pts.size();i++){
+    		Point2D p=pts.get(i);
+    		xs[i]=p.getX();
+    		ys[i]=p.getY();
+    	}
+    	double[] vec=getPCALikeUnitVector(xs, ys);
+    	
+    	return new Line2D.Double(0,0,vec[0],vec[1]);
+    }
+    
     public static LineWrapper findLongestSplittingLine(Shape s){
     	if(s instanceof Line2D)return LineWrapper.of((Line2D)s);
     	Point2D center = GeomUtil.centerOfMass(s);
@@ -951,7 +965,7 @@ public class GeomUtil {
 	        			                .map(p->new Point2D.Double(p.getX()-center.getX(),p.getY()-center.getY()))
 	        			                .collect(Collectors.toList());
 	        	
-	        	Line2D mline=findMaxSeparationLine(pts);
+	        	Line2D mline=findMaxSeparationLinePCA(pts);
 	        	
 	        	Line2D mlineReal = new Line2D.Double(mline.getX1() + center.getX(), mline.getY1()+center.getY(), mline.getX2() + center.getX(), mline.getY2()+center.getY());
 	        	
