@@ -689,44 +689,28 @@ public class GeomUtil {
     
     
     public static double[] getPCALikeUnitVector(double[] xs, double[] ys){
-    	double k1=0;  //variance contribution. >0 means x-varies more, <0 means y-varies more
+    	double vx=0;
+    	double vy=0;
     	double k2=0;  //orientation. >0 means 1st and 3rd quad, <0 means 2nd and 4th quad
     	
     	for(int i=0;i<xs.length;i++){
-    		k1+=xs[i]*xs[i]-ys[i]*ys[i];
+    		vx+=xs[i]*xs[i];
+    		vy+=ys[i]*ys[i];
     		k2+=xs[i]*ys[i];
     	}
     	
-    	if(Math.abs(k2)<ZERO_DISTANCE_TOLERANCE){
-    		if(k2==0){
-    			k2=ZERO_DISTANCE_TOLERANCE;
-    		}else{
-    			k2=Math.signum(k2)*ZERO_DISTANCE_TOLERANCE;
-    		}
-    	}
     	
-    	double k = k1/k2;
+    	double hyp = Math.sqrt(vx+vy);
+    	double cos = Math.sqrt(vx)/hyp;
     	
-    	double ki = k / (Math.sqrt(k*k+4));
-    	
-    	double cos=0;
-    	
-    	if(ki<=1){
-    		cos = Math.sqrt((1-ki)/2.0);
-    	}else if(ki>=-1){
-    		cos = Math.sqrt((1+ki)/2.0);
-    	}else{
-    		cos=0;  //if everything else fails, default to +x-direction
-    	}
     	//we now know that the best cos(theta) is either cos1, cos2 or -cos1,-cos2
-    	//If we assume we always report sin(theta) as positive
-    	
+    	//If we assume we always report sin(theta) as positive    	
     	double sin=Math.sqrt(1-cos*cos);
     	double keepCos = cos;
     	double keepSin = sin;
     	
     	
-    	if(k1>0){
+    	if(vx>vy){
     		//more variance in the x direction, so we want a larger |cos(theta)|
     		if(k2>=0){
     			//aligned in the 1st and 3rd quad, so cos(theta) is positive
@@ -749,7 +733,6 @@ public class GeomUtil {
     			keepSin = Math.max(Math.abs(cos),Math.abs(sin));
     		}
     	}
-    	
     	return new double[]{keepCos, keepSin};
     	    	
     }
