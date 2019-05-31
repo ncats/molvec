@@ -45,6 +45,7 @@ import gov.nih.ncats.molvec.algo.Tuple;
 
 public class GeomUtil {
     private static final double ZERO_DISTANCE_TOLERANCE = 0.0001;
+    private static final double ZERO_DISTANCE_OPTIMISTIC_TOLERANCE = 0.000001;
 
 	private static final Logger logger = 
         Logger.getLogger (GeomUtil.class.getName ());
@@ -688,18 +689,44 @@ public class GeomUtil {
     }
     
     
-    public static double[] getPCALikeUnitVector(double[] xs, double[] ys){
-    	double vx=0;
-    	double vy=0;
-    	double k2=0;  //orientation. >0 means 1st and 3rd quad, <0 means 2nd and 4th quad
+	 /**
+	  * 
+	  * Returns the y-axis, x-axis, and product second moment of area for a set
+	  * of CCW vertices defining a shape.
+	  * 
+	  * This is effectively the same as returning the variance in the x-direction,
+	  * y-direction, and along y=x.
+	  * 
+	  * 
+	  * For more information:
+	  * https://apps.dtic.mil/dtic/tr/fulltext/u2/a183444.pdf
+	  * 
+	  * @param xs
+	  * @param ys
+	  * @return
+	  */
+    public static double[] getSecondMomentXYandCross(double[] xs, double[] ys){
+    	
+    	double ix = 0;
+    	double iy = 0;
+    	double ixy = 0;
     	
     	for(int i=0;i<xs.length;i++){
-    		vx+=xs[i]*xs[i];
-    		vy+=ys[i]*ys[i];
-    		k2+=xs[i]*ys[i];
+    		int ni = i+1;
+    		if(ni>=xs.length)ni=ni%xs.length;
+    		double cp = xs[i]*ys[ni] - xs[ni]*ys[i];
+    		double xp = xs[i]*xs[i] + xs[i]*xs[ni] + xs[ni]*xs[ni];
+    		double yp = ys[i]*ys[i] + ys[i]*ys[ni] + ys[ni]*ys[ni];
+    		double xyp = xs[i]*ys[ni] + 2*xs[i]*ys[i]+ 2*xs[ni]*ys[ni] + xs[ni]*ys[i];
+    		ix+=cp*xp;
+    		iy+=cp*yp;
+    		ixy+=cp*xyp;
     	}
     	
-    	
+    	return new double[]{ix,iy,ixy};
+    }
+    
+    public static double[] getUnitVectorFromVariance(double vx, double vy, double vxy){
     	double hyp = Math.sqrt(vx+vy);
     	double cos = Math.sqrt(vx)/hyp;
     	
@@ -712,7 +739,7 @@ public class GeomUtil {
     	
     	if(vx>vy){
     		//more variance in the x direction, so we want a larger |cos(theta)|
-    		if(k2>=0){
+    		if(vxy>=0){
     			//aligned in the 1st and 3rd quad, so cos(theta) is positive
     			keepCos = Math.max(Math.abs(cos),Math.abs(sin));
     			keepSin = Math.min(Math.abs(cos),Math.abs(sin));    			
@@ -723,7 +750,7 @@ public class GeomUtil {
     		}
     	}else{
     		//more variance in the y direction, so we want a smaller |cos(theta)|
-    		if(k2>=0){
+    		if(vxy>=0){
     			//aligned in the 1st and 3rd quad, so cos(theta) is positive
     			keepCos = Math.min(Math.abs(cos),Math.abs(sin));
     			keepSin = Math.max(Math.abs(cos),Math.abs(sin));    			
@@ -734,6 +761,20 @@ public class GeomUtil {
     		}
     	}
     	return new double[]{keepCos, keepSin};
+    }
+    
+    public static double[] getPCALikeUnitVector(double[] xs, double[] ys){
+    	double vx=0;
+    	double vy=0;
+    	double vxy=0;  //orientation. >0 means 1st and 3rd quad, <0 means 2nd and 4th quad
+    	
+    	for(int i=0;i<xs.length;i++){
+    		vx+=xs[i]*xs[i];
+    		vy+=ys[i]*ys[i];
+    		vxy+=xs[i]*ys[i];
+    	}
+    	
+    	return getUnitVectorFromVariance(vx,vy, vxy);
     	    	
     }
     
@@ -941,6 +982,19 @@ public class GeomUtil {
 	        	
 	        	Point2D center = centerOfMass();
 	        	
+//	        	double[] xs = new double[verts.length];
+//	        	double[] ys = new double[verts.length];
+//	        	for(int i=0;i<verts.length;i++){
+//	        		xs[i]=verts[i].getX()-center.getX();
+//	        		ys[i]=verts[i].getY()-center.getY();
+//	        	}
+//	        	double[] stats=getSecondMomentXYandCross(xs,ys);
+//	        	
+//	        	double[] vec =getUnitVectorFromVariance(stats[0],stats[1],stats[2]);
+//	        	Line2D mline = new Line2D.Double(0,0,vec[0],vec[1]);
+	        	
+//	        	getSecondMomentXYandCross
+//	        	
 	        	int ptNum = 1000;
 	        	List<Point2D> pts = 
 	        			//Arrays.stream(vertices(s))

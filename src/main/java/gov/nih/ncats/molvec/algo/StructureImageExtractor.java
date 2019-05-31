@@ -2657,6 +2657,7 @@ public class StructureImageExtractor {
 										})
 										.peek(s->{
 											realRescueOCRCandidates.add(s.getShape());
+											realRescueOCRCandidates.add(s.findLongestSplittingLine().getLine());
 										})
 										.collect(Collectors.toList());
 			
