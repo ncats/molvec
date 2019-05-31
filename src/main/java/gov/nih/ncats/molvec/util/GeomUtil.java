@@ -727,9 +727,20 @@ public class GeomUtil {
     }
     
     public static double[] getUnitVectorFromVariance(double vx, double vy, double vxy){
-    	double hyp = Math.sqrt(vx+vy);
-    	double cos = Math.sqrt(vx)/hyp;
+    	double cos;
     	
+//    	double cos = Math.sqrt(vx)/hyp;
+    	
+    	double k = (vx-vy)/vxy;
+    	double ki = k / (Math.sqrt(k*k+4));
+		if (ki <= 1) {
+			cos = Math.sqrt((1 - ki) / 2.0);
+		} else if (ki >= -1) {
+			cos = Math.sqrt((1 + ki) / 2.0);
+		} else {
+			cos = 0; // if everything else fails, default to +x-direction
+		}
+		
     	//we now know that the best cos(theta) is either cos1, cos2 or -cos1,-cos2
     	//If we assume we always report sin(theta) as positive    	
     	double sin=Math.sqrt(1-cos*cos);
@@ -995,7 +1006,7 @@ public class GeomUtil {
 	        	
 //	        	getSecondMomentXYandCross
 //	        	
-	        	int ptNum = 1000;
+	        	int ptNum = 100;
 	        	List<Point2D> pts = 
 	        			//Arrays.stream(vertices(s))
 	        			getNEquallySpacedPointsAroundShape(s,ptNum).stream()
