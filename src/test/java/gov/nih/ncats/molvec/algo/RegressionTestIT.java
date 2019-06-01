@@ -1107,10 +1107,11 @@ public class RegressionTestIT {
 	@Test
 	public void test1() throws FileNotFoundException{
 		
-		testSet("usan",Method.MOLVEC.adapt());
+//		testSet("usan",Method.MOLVEC.adapt());
 		
 //		doAllRMSEDataSetTests(Method.MOLVEC.adapt());
-//		doAllIdentityDataSetTests(Method.MOLVEC.adapt());
+		doAllIdentityDataSetTests(Method.MOLVEC.adapt());
+		
 //		doAllScaleQualityTestsFor("trec",Method.MOLVEC.adapt());
 		
 		

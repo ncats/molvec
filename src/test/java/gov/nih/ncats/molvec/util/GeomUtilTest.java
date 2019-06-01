@@ -496,7 +496,6 @@ public class GeomUtilTest {
 			pts[i/2]=new Point2D.Double(icoords[i], icoords[i+1]);
 		}
 		Shape s= GeomUtil.convexHull2(pts);
-		System.out.println(Arrays.toString(vertices(s)));
 		
 		for(Point2D p : pts){
 			assertTrue(GeomUtil.distanceTo(s,p)<0.001);

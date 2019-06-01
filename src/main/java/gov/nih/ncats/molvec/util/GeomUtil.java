@@ -710,6 +710,9 @@ public class GeomUtil {
     	double ix = 0;
     	double iy = 0;
     	double ixy = 0;
+    	double c1 = 1/12.0;
+    	double c2 = 1/24.0;
+    	
     	
     	for(int i=0;i<xs.length;i++){
     		int ni = i+1;
@@ -723,21 +726,24 @@ public class GeomUtil {
     		ixy+=cp*xyp;
     	}
     	
-    	return new double[]{ix,iy,ixy};
+    	return new double[]{ix*c1,iy*c1,ixy*c2};
     }
     
     public static double[] getUnitVectorFromVariance(double vx, double vy, double vxy){
     	double cos;
     	
 //    	double cos = Math.sqrt(vx)/hyp;
+    	if(Math.abs(vxy)<ZERO_DISTANCE_OPTIMISTIC_TOLERANCE){
+    		vxy=ZERO_DISTANCE_OPTIMISTIC_TOLERANCE;
+    	}
     	
     	double k = (vx-vy)/vxy;
-    	double ki = k / (Math.sqrt(k*k+4));
+    	double ki = k / (Math.sqrt(k*k+4)); // bounded between -1 and 1
+    	
+    	
 		if (ki <= 1) {
 			cos = Math.sqrt((1 - ki) / 2.0);
-		} else if (ki >= -1) {
-			cos = Math.sqrt((1 + ki) / 2.0);
-		} else {
+		}else {
 			cos = 0; // if everything else fails, default to +x-direction
 		}
 		
@@ -747,30 +753,19 @@ public class GeomUtil {
     	double keepCos = cos;
     	double keepSin = sin;
     	
-    	
     	if(vx>vy){
-    		//more variance in the x direction, so we want a larger |cos(theta)|
-    		if(vxy>=0){
-    			//aligned in the 1st and 3rd quad, so cos(theta) is positive
+    			//more variance in the x direction, so we want a larger |cos(theta)|
     			keepCos = Math.max(Math.abs(cos),Math.abs(sin));
-    			keepSin = Math.min(Math.abs(cos),Math.abs(sin));    			
-    		}else{
-    			//aligned in the 2nd and 4th quad, so cos(theta) is negative
-    			keepCos = -Math.max(Math.abs(cos),Math.abs(sin));
     			keepSin = Math.min(Math.abs(cos),Math.abs(sin));
-    		}
     	}else{
-    		//more variance in the y direction, so we want a smaller |cos(theta)|
-    		if(vxy>=0){
-    			//aligned in the 1st and 3rd quad, so cos(theta) is positive
     			keepCos = Math.min(Math.abs(cos),Math.abs(sin));
-    			keepSin = Math.max(Math.abs(cos),Math.abs(sin));    			
-    		}else{
-    			//aligned in the 2nd and 4th quad, so cos(theta) is negative
-    			keepCos = -Math.min(Math.abs(cos),Math.abs(sin));
     			keepSin = Math.max(Math.abs(cos),Math.abs(sin));
-    		}
     	}
+    	//aligned in the 1st and 3rd quad, so cos(theta) is positive
+    	if(vxy<0){
+    		keepCos=-keepCos;
+    	}
+    	
     	return new double[]{keepCos, keepSin};
     }
     
@@ -993,27 +988,18 @@ public class GeomUtil {
 	        	
 	        	Point2D center = centerOfMass();
 	        	
-//	        	double[] xs = new double[verts.length];
-//	        	double[] ys = new double[verts.length];
-//	        	for(int i=0;i<verts.length;i++){
-//	        		xs[i]=verts[i].getX()-center.getX();
-//	        		ys[i]=verts[i].getY()-center.getY();
-//	        	}
-//	        	double[] stats=getSecondMomentXYandCross(xs,ys);
-//	        	
-//	        	double[] vec =getUnitVectorFromVariance(stats[0],stats[1],stats[2]);
-//	        	Line2D mline = new Line2D.Double(0,0,vec[0],vec[1]);
+	        	double[] xs = new double[verts.length];
+	        	double[] ys = new double[verts.length];
+	        	for(int i=0;i<verts.length;i++){
+	        		xs[i]=verts[i].getX()-center.getX();
+	        		ys[i]=verts[i].getY()-center.getY();
+	        	}
 	        	
-//	        	getSecondMomentXYandCross
-//	        	
-	        	int ptNum = 100;
-	        	List<Point2D> pts = 
-	        			//Arrays.stream(vertices(s))
-	        			getNEquallySpacedPointsAroundShape(s,ptNum).stream()
-	        			                .map(p->new Point2D.Double(p.getX()-center.getX(),p.getY()-center.getY()))
-	        			                .collect(Collectors.toList());
+	        	double[] stats=getSecondMomentXYandCross(xs,ys);
 	        	
-	        	Line2D mline=findMaxSeparationLinePCA(pts);
+	        	double[] vec =getUnitVectorFromVariance(stats[0],stats[1],stats[2]);
+	        	
+	        	Line2D mline = new Line2D.Double(0,0,vec[0],vec[1]);
 	        	
 	        	Line2D mlineReal = new Line2D.Double(mline.getX1() + center.getX(), mline.getY1()+center.getY(), mline.getX2() + center.getX(), mline.getY2()+center.getY());
 	        	
