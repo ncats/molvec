@@ -14,9 +14,14 @@ public class SigmaThreshold implements Binarization {
 
     static final Logger logger = Logger.getLogger(SigmaThreshold.class.getName());
     public static double DEFAULT_SIGMA_THRESHOLD = 1.2;
+    
+    
 
     public static final double DEFAULT_MIN_THRESHOLD_RATIO = 0.1;
     public static final double DEFAULT_MAX_THRESHOLD_RATIO = 0.9;
+    
+    private double minThresholdRation = DEFAULT_MIN_THRESHOLD_RATIO;
+    private double maxThresholdRation = DEFAULT_MAX_THRESHOLD_RATIO;
     
     private double sigma;
     
@@ -27,6 +32,12 @@ public class SigmaThreshold implements Binarization {
     public SigmaThreshold (double sigma) {
         this.sigma = sigma;
     }
+    public SigmaThreshold (double sigma, double minRat, double maxRat) {
+        this.sigma = sigma;
+        this.minThresholdRation=minRat;
+        this.maxThresholdRation=maxRat;
+    }
+    
 
     public void setSigma (double sigma) { this.sigma = sigma; }
     public double getSigma () { return sigma; }
@@ -74,8 +85,8 @@ public class SigmaThreshold implements Binarization {
 		        }	
 	        }
 	        
-	        threshold = Math.max(threshold,stats.min+(stats.max-stats.min)*DEFAULT_MIN_THRESHOLD_RATIO);
-	        threshold = Math.min(threshold,stats.min+(stats.max-stats.min)*DEFAULT_MAX_THRESHOLD_RATIO);
+	        threshold = Math.max(threshold,stats.min+(stats.max-stats.min)*minThresholdRation);
+	        threshold = Math.min(threshold,stats.min+(stats.max-stats.min)*maxThresholdRation);
 	        
 	        Binarization.globalThreshold(inRaster,bm,threshold);
 	        stats.threshold=threshold;

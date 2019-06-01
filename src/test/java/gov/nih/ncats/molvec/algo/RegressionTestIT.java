@@ -103,13 +103,16 @@ public class RegressionTestIT {
 	public static class TestResult{
 		public Result result;
 		public long time;
-		public double RMSE=Double.POSITIVE_INFINITY;
 		
-		public static TestResult of(Result r, long ms, double rmse){
+		public double RMSE=Double.POSITIVE_INFINITY;
+		public double maxE=Double.POSITIVE_INFINITY;
+		
+		public static TestResult of(Result r, long ms, double[] err){
 			TestResult tr = new TestResult();
 			tr.result=r;
 			tr.time=ms;
-			tr.RMSE=rmse;
+			tr.RMSE=err[0];
+			tr.maxE=err[1];
 			return tr;
 		}
 		public static TestResult of(Result r, long ms){
@@ -408,14 +411,21 @@ public class RegressionTestIT {
         return rank;
     }
 
+	/**
+	 * Aligns each fragment in chemical c2 to chemical c1 by a a scale / translation transformation, removes hydrogens, and returns two values for
+	 * alignment:
+	 * 
+	 * 1. The RMSE of atom distance offsets
+	 * 2. The largest single atom distance offset
+	 * 
+	 * @param c1
+	 * @param c2
+	 * @return
+	 * @throws IOException
+	 */
 	
-	//need to align them:
-	// 1. Resize to same size (easy enough based on bond length probably)
-	// 2. Center?
-	// 3. Something else ...
-	
-	public static double align(Chemical c1, Chemical c2) throws IOException{
-		if(!DO_ALIGN)return Double.POSITIVE_INFINITY;
+	public static double[] align(Chemical c1, Chemical c2) throws IOException{
+		if(!DO_ALIGN)return new double[]{Double.POSITIVE_INFINITY,Double.POSITIVE_INFINITY};
 		c1.makeHydrogensImplicit();
 		c2.makeHydrogensImplicit();
 		
@@ -450,18 +460,18 @@ public class RegressionTestIT {
 					.map(Tuple.kmap(ik->c2chems.get(ik)))
 					.map(t->{
 						try{
-							double rmse= align(t.v(),t.k());
-							double unrmse= rmse*rmse*t.v().getAtomCount();
-							return Tuple.of(t.v().getAtomCount(),unrmse);
+							double[] errors= align(t.v(),t.k());
+							double unrmse= errors[0]*errors[0]*t.v().getAtomCount();
+							return Tuple.of(t.v().getAtomCount(),new double[]{unrmse, errors[1]});
 						}catch(Exception e){
 							throw new RuntimeException(e);
 						}
 					})
-					.reduce((a,b)->Tuple.of(a.k()+b.k(),a.v()+b.v()))
+					.reduce((a,b)->Tuple.of(a.k()+b.k(),new double[]{a.v()[0]+b.v()[0], Math.max(a.v()[1],b.v()[1])}))
 					.map(t->{
-						return Math.sqrt(t.v()/t.k());
+						return new double[]{Math.sqrt(t.v()[0]/t.k()), t.v()[1]};
 					})
-					.orElse(0.0);
+					.orElse(new double[]{Double.POSITIVE_INFINITY,Double.POSITIVE_INFINITY});
 			
 		}
 		
@@ -622,15 +632,18 @@ public class RegressionTestIT {
 		
 		long c1TotCount = c1.atoms().count();
 		
+		double[] maxdd = new double[]{0};
+		
 		double dd=		Math.sqrt(c1.atoms()
 				  .map(a->a.getAtomCoordinates())
 				  .mapToDouble(p->c2.atoms().mapToDouble(a->a.getAtomCoordinates().distanceSquaredTo(p))
 						  					   .min()
 						  					   .orElse(0))
+				  .peek(dd1->maxdd[0]=Math.max(dd1, maxdd[0]))
 				  .sum()/c1TotCount);
 		//center, I guess
 		//System.out.println("RMSE=" + dd);
-		return dd;
+		return new double[]{dd, Math.sqrt(maxdd[0])};
 		
 		
 		
@@ -643,7 +656,7 @@ public class RegressionTestIT {
 		return AtomCoordinates.valueOf(pt.getX(),pt.getY());
 	}
 	
-	private static Chemical wiggleNoise(Chemical cc) throws IOException{
+	private static Chemical wiggleNoise(Chemical cc, double fractionOfBond) throws IOException{
 		Chemical c1 = Chemical.parseMol(cc.toMol());
 		double b1avg = c1.bonds().mapToDouble(b->b.getBondLength()).average().orElse(1);
 
@@ -661,7 +674,7 @@ public class RegressionTestIT {
 		c1.atoms()
 		  .map(a->Tuple.of(a,a.getAtomCoordinates()))
 		  .map(Tuple.vmap(ac->asPoint(ac)))
-		  .map(Tuple.vmap(p->new Point2D.Double(p.getX() + (Math.random()-0.5)*1/(35.0), p.getY() + (Math.random()-0.5)*1/(35.0))))
+		  .map(Tuple.vmap(p->new Point2D.Double(p.getX() + (Math.random()-0.5)*fractionOfBond, p.getY() + (Math.random()-0.5)*fractionOfBond)))
 		  .map(Tuple.vmap(p->fromPoint(p)))
 		  .forEach(t->{
 			  t.k().setAtomCoordinates(t.v());
@@ -851,6 +864,7 @@ public class RegressionTestIT {
 			
 			if(Method.EXACT.equals(meth.method)){
 				c= getCleanChemical(c1.toMol());
+				c= wiggleNoise(c, meth.wiggleRatio());
 			}else{
 				c=meth.getChem(image);
 			}
@@ -1097,8 +1111,9 @@ public class RegressionTestIT {
 	
 	public void doAllRMSEDataSetTests(MethodAdapted adapted) throws FileNotFoundException{
 			adapted= adapted.rmse(true);
-			testSet("uspto", adapted);
 			testSet("trec", adapted);		
+			testSet("uspto", adapted);
+			
 	}
 	
 	
@@ -1109,8 +1124,15 @@ public class RegressionTestIT {
 		
 //		testSet("usan",Method.MOLVEC.adapt());
 		
-//		doAllRMSEDataSetTests(Method.MOLVEC.adapt());
-		doAllIdentityDataSetTests(Method.MOLVEC.adapt());
+//		doAllRMSEDataSetTests(Method.MOLVEC.adapt().limit(100));
+//		doAllIdentityDataSetTests(Method.MOLVEC.adapt());
+//		doAllRMSEDataSetTests(Method.EXACT.adapt().wiggleRatio(1/35.0));
+		doAllRMSEDataSetTests(Method.MOLVEC.adapt());
+		doAllRMSEDataSetTests(Method.IMAGO.adapt());
+		doAllRMSEDataSetTests(Method.OSRA.adapt());
+		
+		
+//		doAllScaleQualityTestsFor("trec",Method.MOLVEC.adapt());
 		
 //		doAllScaleQualityTestsFor("trec",Method.MOLVEC.adapt());
 		
@@ -1326,6 +1348,7 @@ public class RegressionTestIT {
 		long max = Long.MAX_VALUE;
 		boolean RMSE = false;
 		String suffix =""; 
+		double wiggleRatio=0;
 		
 		
 		
@@ -1333,6 +1356,15 @@ public class RegressionTestIT {
 			this.method=m;
 		}
 		
+		public double wiggleRatio() {
+			return wiggleRatio;
+		}
+		
+		public MethodAdapted wiggleRatio(double r){
+			this.wiggleRatio=r;
+			return this;
+		}
+
 		public MethodAdapted quality(double q){
 			this.quality=q;
 			return this;
@@ -1476,7 +1508,7 @@ public class RegressionTestIT {
 		    	  pw1.println("======================================");
 		    	  pw1.println(r.toString() + "\t" + fl.size());
 		    	  pw1.println("--------------------------------------");
-		    	  pw1.println(t.v().stream().map(tf->tf.v().get(1).getAbsolutePath() + "\t" + tf.k().k().time + "\t" + tf.k().k().RMSE).collect(Collectors.joining("\n")));
+		    	  pw1.println(t.v().stream().map(tf->tf.v().get(1).getAbsolutePath() + "\t" + tf.k().k().time + "\t" + tf.k().k().RMSE + "\t" + tf.k().k().maxE).collect(Collectors.joining("\n")));
 
 		      });
 			}

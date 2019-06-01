@@ -341,8 +341,8 @@ public class Viewer extends JPanel
     }
 
     public void load (File file) throws Exception {
-//    	File f = File.createTempFile("tmpImgViewer", ".png");
-//    	file = stdResize(file,f,2.0,Interpolation.BILINEAR, 1.0);
+//    	File f = File.createTempFile("LOOKtmpImgViewer", ".png");
+//    	file = stdResize(file,f,1.0,Interpolation.SINC, 1.0);
 //    	StructureImageExtractor.DEF_BINARIZATION=new SigmaThreshold(-0.5);
         load (file, Math.min(sx, sy));
     }

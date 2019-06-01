@@ -248,7 +248,7 @@ public class StructureImageExtractor {
 	});
 	
 	public static Binarization RESIZE_BINARIZATION = new SigmaThreshold(THRESH_STDEV_RESIZE);
-	public static Binarization TOO_WASHED_BINARIZATION = new SigmaThreshold(TOO_WASHED_STDEV);
+	public static Binarization TOO_WASHED_BINARIZATION = new SigmaThreshold(TOO_WASHED_STDEV, 0.2,0.8);
 	
 	
 	
@@ -3026,7 +3026,7 @@ public class StructureImageExtractor {
 				            .stream()
 				            .map(Tuple::of)
 				            .filter(t1->t1.k()!=t.k())
-				            .filter(t1->t1.v().equals("S") || t1.v().equals("N"))
+				            .filter(t1->t1.v().equalsIgnoreCase("S") || t1.v().equals("N"))
 				            .filter(t1->t.k().distanceSq(t1.k())<cutoffSq)
 				            .filter(t1->(Math.abs(t1.k().getBounds().getMinX()-t.k().getBounds().getMinX())< cutoff/3.0))
 				            .findFirst()
@@ -3917,7 +3917,7 @@ public class StructureImageExtractor {
 					    	      .map(t->t.k())
 					    	      .collect(Collectors.toList());
 					    	if(nnodes.size()==5){
-//					    		realRescueOCRCandidates.add(nnshape);
+					    		realRescueOCRCandidates.add(nnshape);
 					    		
 					    		Node[] nodes = nnodes.stream().toArray(s->new Node[s]);
 					    		
