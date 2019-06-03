@@ -1511,6 +1511,9 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("REVERSE_HN", "HN", "[<H><N>]", ()->{
 			return parseBranchNode("NH").get().k();
 		}));
+		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("REVERSE_HC", "HC", "[<H><C>]", ()->{
+			return parseBranchNode("CH").get().k();
+		}));
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("NORMAL_NH", "NH", "[<N><H>]", ()->{
 			return of("N");
 		}));
