@@ -34,9 +34,11 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -71,7 +73,7 @@ import gov.nih.ncats.molvec.util.GeomUtil;
 
 public class RegressionTestIT {
 	
-	
+	public static Map<String,AtomicInteger> elementCounts = new ConcurrentHashMap<String, AtomicInteger>();
 	
 	private static boolean DO_ALIGN = false;
 	private static boolean EXPORT_CORRECT = false;
@@ -846,10 +848,23 @@ public class RegressionTestIT {
 			}
 			Chemical c1=null;
 			if(assmiles){
-				c1=ChemicalBuilder.createFromSmiles(rawMol).build();
+				c1=Chemical.createFromSmilesAndComputeCoordinates(rawMol);
+				
 			}else{
 				c1=ChemicalBuilder.createFromMol(rawMol,Charset.defaultCharset()).build();
 			}
+			
+			c1.getAtoms()
+			.forEach(a->{
+				elementCounts.computeIfAbsent(a.getSymbol(), k->{
+					return new AtomicInteger(0);
+				}).getAndIncrement();
+				
+			});
+//			if(!c1.atoms().anyMatch(ca->ca.getSymbol().equals("Al"))){
+//				return TestResult.of(Result.WEIRD_SOURCE,0);
+//			}
+			
 			System.out.println("--------------------------------");
 			System.out.println(sdf.getAbsolutePath());
 			System.out.println("--------------------------------");
@@ -863,8 +878,15 @@ public class RegressionTestIT {
 			Chemical c=null;
 			
 			if(Method.EXACT.equals(meth.method)){
-				c= getCleanChemical(c1.toMol());
-				c= wiggleNoise(c, meth.wiggleRatio());
+//				c= getCleanChemical(c1.toMol());
+				if(assmiles){
+					c=Chemical.createFromSmilesAndComputeCoordinates(rawMol);
+				}else{
+					c=ChemicalBuilder.createFromMol(rawMol,Charset.defaultCharset()).build();
+				}
+				if(meth.wiggleRatio()!=0){
+					c= wiggleNoise(c, meth.wiggleRatio());
+				}
 			}else{
 				c=meth.getChem(image);
 			}
@@ -1107,6 +1129,14 @@ public class RegressionTestIT {
 			testSet(set, adapted);
 		}
 	}
+	public void doAllCompressionQualityDataSetTestsFor(String set, MethodAdapted adapted) throws FileNotFoundException{
+		for(int i=1;i<=10;i++){
+			double q=i/10.0;
+			adapted= adapted.suffix("_jpg[" + q + "]")
+						    .quality(q);
+			testSet(set, adapted);
+		}		
+	}
 	
 	
 	public void doAllRMSEDataSetTests(MethodAdapted adapted) throws FileNotFoundException{
@@ -1125,172 +1155,22 @@ public class RegressionTestIT {
 //		testSet("usan",Method.MOLVEC.adapt());
 		
 //		doAllRMSEDataSetTests(Method.MOLVEC.adapt().limit(100));
-//		doAllIdentityDataSetTests(Method.MOLVEC.adapt());
+		doAllIdentityDataSetTests(Method.MOLVEC.adapt().suffix("BN_NEW"));
+//		doAllScaleQualityTestsFor("trec",Method.MOLVEC.adapt());
+//		doAllCompressionQualityDataSetTestsFor("trec",Method.MOLVEC.adapt());
+		
 //		doAllRMSEDataSetTests(Method.EXACT.adapt().wiggleRatio(1/35.0));
-		doAllRMSEDataSetTests(Method.MOLVEC.adapt());
-		doAllRMSEDataSetTests(Method.IMAGO.adapt());
-		doAllRMSEDataSetTests(Method.OSRA.adapt());
-		
-		
-//		doAllScaleQualityTestsFor("trec",Method.MOLVEC.adapt());
-		
-//		doAllScaleQualityTestsFor("trec",Method.MOLVEC.adapt());
-		
-		
-//		testSet("usan", Method.MOLVEC.adapt().scale(0.5).interpolation(Interpolation.BICUBIC));
-//		testSet("usan", Method.IMAGO.adapt().scale(0.5).interpolation(Interpolation.BICUBIC));
-//		testSet("usan", Method.OSRA.adapt().scale(0.5).interpolation(Interpolation.BICUBIC));
-		
-//		
-//		doAllIdentityDataSetTests(Method.MOLVEC.adapt());
 //		doAllRMSEDataSetTests(Method.MOLVEC.adapt());
-//		
-//		
-//		doAllIdentityDataSetTests(Method.IMAGO.adapt());
 //		doAllRMSEDataSetTests(Method.IMAGO.adapt());
-//		
-//		doAllIdentityDataSetTests(Method.OSRA.adapt());
 //		doAllRMSEDataSetTests(Method.OSRA.adapt());
 		
-		//testSet("trec", Method.MOLVEC.adapt());
 		
+//		doAllIdentityDataSetTests(Method.EXACT.adapt().suffix("with2D"));
 		
-		//*********************		
-		//      Full quality analysis molvec
-		//*********************		
-//		for(int i=1;i<=10;i++){
-//			double q=i/10.0;
-//			testSet("trec", Method.MOLVEC.adapt().suffix("_jpg[" + q+ "]").quality(q));
-//		}		
-		//*********************
-
-//		
-//		for(int i=1;i<=10;i++){
-//			double q=i/10.0;
-//			testSet("trec", Method.IMAGO.adapt().suffix("_jpg[" + q+ "]").quality(i/10.0));
-//		}
-//		for(int i=1;i<=10;i++){
-//			double q=i/10.0;
-//			testSet("trec", Method.OSRA.adapt().suffix("_jpg[" + q+ "]").quality(i/10.0));
-//		}
+//		elementCounts.forEach((s,i)->{
+//			System.out.println(s + "\t" + i);
+//		});
 		
-		
-		//Full rescale for Molvec
-//		for(int i=3;i<=20;i++){
-//			testSet("trec", Method.MOLVEC.adapt().suffix("bicubicLim").interpolation(Interpolation.BICUBIC).scale(i/10.0));
-//		}
-//		for(int i=3;i<=20;i++){
-//			testSet("trec", Method.MOLVEC.adapt().suffix("sincLim").interpolation(Interpolation.SINC).scale(i/10.0));
-//		}
-//		for(int i=3;i<=20;i++){
-//			testSet("trec", Method.MOLVEC.adapt().suffix("bilinearLim").interpolation(Interpolation.BILINEAR).scale(i/10.0));
-//		}
-		
-		
-		
-//		for(int i=3;i<=20;i++){
-//			testSet("uspto", Method.MOLVEC.adapt().suffix("bicubicLim").limit(100).interpolation(Interpolation.BICUBIC).scale(i/10.0));
-//		}
-//		for(int i=3;i<=20;i++){
-//			testSet("uspto", Method.MOLVEC.adapt().suffix("sincLim").limit(100).interpolation(Interpolation.SINC).scale(i/10.0));
-//		}
-//		for(int i=3;i<=20;i++){
-//			testSet("uspto", Method.MOLVEC.adapt().suffix("bilinearLim").limit(100).interpolation(Interpolation.BILINEAR).scale(i/10.0));
-//		}
-		
-		
-		
-		
-		
-//		testSet("maybridge", Method.MOLVEC.adapt());
-//		testSet("testSet1", Method.MOLVEC.adapt());
-		
-//		for(int i=20;i<=20;i++){
-//			testSet("trec", Method.MOLVEC.adapt().suffix("bilinearLim2").interpolation(Interpolation.BILINEAR).scale(i/10.0));
-//		}
-		
-		
-		
-//		
-		
-		
-//		
-//		for(int i=17;i<=20;i++){
-//			testSet("trec", Method.OSRA.adapt().suffix("_sinc").interpolation(Interpolation.SINC).scale(i/10.0));
-//		}
-		
-//		for(int i=3;i<=20;i++){
-//			testSet("trec", Method.IMAGO.adapt().suffix("_sinc").scale(i/10.0));
-//		}
-//		for(int i=3;i<=20;i++){
-//			testSet("trec", Method.OSRA.adapt().suffix("_sinc").scale(i/10.0));
-//		}
-//		
-//		testSet("uspto", Method.MOLVEC.adapt().rmse(true));
-		//All data sets stats
-		
-//		for(int j=0;j<20;j++){
-//			double sig = (j-10)/5.0;
-//			StructureImageExtractor.THRESH_STDEV=sig;
-//			for(int i=10;i<=10;i++){
-//				testSet("trec", Method.MOLVEC.adapt().limit(10).suffix("_sig[" + sig + "]").scale(i/10.0));
-//			}
-//		}
-		
-//		testSet("usan", Method.OSRA.adapt().scale(0.5));
-//		testSet("maybridge", Method.MOLVEC.adapt());
-//		testSet("trec", Method.MOLVEC.adapt());
-//		testSet("uspto", Method.MOLVEC.adapt());
-//		testSet("testSet1", Method.MOLVEC.adapt());
-//		testSet("usan", Method.MOLVEC.adapt());
-//		testSet("usan", Method.MOLVEC.adapt().scale(0.5));
-		
-		
-//		
-////		testSet("uspto", Method.MOLVEC.adapt().rmse(true));
-////		
-////		
-//		for(int i=3;i<=20;i++){
-//			testSet("trec", Method.IMAGO.adapt().scale(i/10.0));
-//		}
-//		for(int i=3;i<=20;i++){
-//			testSet("trec", Method.MOLVEC.adapt().scale(i/10.0));
-//		}
-//		for(int i=4;i<=20;i++){
-//			testSet("trec", Method.OSRA.adapt().scale(i/10.0));
-//		}
-//		
-		
-//		for(int j=1;j<20;j++){
-//			double sig = j*5.0;
-//			StructureImageExtractor.DEF_BINARIZATION = new RangeFractionThreshold(sig/100.0);
-//			StructureImageExtractor.RESIZE_BINARIZATION = new RangeFractionThreshold(sig/100.0);
-//			
-//			for(int i=3;i<=10;i++){
-//				testSet("trec", Method.MOLVEC.adapt().limit(100).suffix("_sig[" + sig + "]").scale(i/10.0));
-//			}
-//		}
-		
-//		testSet("usan", Method.MOLVEC.adapt());
-//		testSet("usan", Method.MOLVEC.adapt().scale(0.5));
-//		
-		
-		//testSet("uspto",true);
-
-		//IMAGO_SCALE
-		
-		//RegressionTestIT.EXPORT_CORRECT=true;
-
-		
-//
-//		for(int i=15;i<=20;i++){
-//			testSet("trec", Method.IMAGO.adapt().scale(i/10.0));
-//		}
-//		for(int i=14;i<=20;i++){
-//			testSet("trec", Method.OSRA.adapt().scale(i/10.0));
-//		}
-		//
-//			
 		
 	}
 	
