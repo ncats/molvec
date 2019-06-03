@@ -302,6 +302,7 @@ class BranchNode{
 	//Always add to the left
 	//
 	private BranchNode _addChild(BranchNode bn){
+		
 		BranchNode nToAddTo= this.getNodeForLinearCombine();
 		
 		if(bn.isCombiner){
@@ -1127,11 +1128,11 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 		
 		//N_Ketone_Linker
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("N_Ketone_Linker", "NHCO", "[<N><H><C><O>]", ()->{
-			BranchNode full = new BranchNode("N");
-			BranchNode carb = new BranchNode("C").thetaOffset(1)
-					                             .addChild(new BranchNode("O").setOrderToParent(2));
+			BranchNode full = of("N");
+			BranchNode carb = of("C").addChild(new BranchNode("O").setOrderToParent(2));
 			full.addChild(carb);
 			full.setRightBranchNode(carb);
+			full.setCombiningNode(carb);
 			return full;
 		}));
 		
@@ -1169,7 +1170,7 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 		
 		
 		Supplier<BranchNode> cyanoSupplier = ()->{
-			BranchNode bn = new BranchNode("C");
+			BranchNode bn = new BranchNode("C").thetaOffset(2);
 			bn.addChild(new BranchNode("N").setOrderToParent(3));
 			//bn.addChild(new BranchNode("O").setOrderToParent(1).flagForCombining());
 			return bn;
@@ -1441,10 +1442,10 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 			BranchNode bn = new BranchNode("C").thetaOffset(1);
 			
 			bn.addChild(new BranchNode("C").setOrderToParent(2)
-					    			       .addChild(new BranchNode("C").setOrderToParent(1)
-					    			    		   .addChild(new BranchNode("C").setOrderToParent(2)
-					    			    				   .addChild(new BranchNode("C").setOrderToParent(1).addChild(new BranchNode("C").setOrderToParent(2).addRing(bn, 1)))
-					    			    				   .addChild(new BranchNode("O").addChild(new BranchNode("C")))
+					    			       .addChild(of("C").setOrderToParent(1)
+					    			    		   .addChild(of("C").setOrderToParent(2)
+					    			    				   .addChild(of("C").setOrderToParent(1).addChild(of("C").setOrderToParent(2).addRing(bn, 1)))
+					    			    				   .addChild(of("O").addChild(of("C")))
 					    			    		   )
 					    			    	)
 					);
@@ -1504,8 +1505,17 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("REVERSE_HO", "HO", "[<H><O>]", ()->{
 			return parseBranchNode("OH").get().k();
 		}));
+		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("REVERSE_SO3H", "HO3S", "[<H><O><3><S>]", ()->{
+			return parseBranchNode("SO3H").get().k();
+		}));
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("REVERSE_HN", "HN", "[<H><N>]", ()->{
 			return parseBranchNode("NH").get().k();
+		}));
+		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("NORMAL_NH", "NH", "[<N><H>]", ()->{
+			return of("N");
+		}));
+		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("NORMAL_NH2", "NH2", "[<N><H><2>]", ()->{
+			return of("N");
 		}));
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("REVERSE_HS", "HS", "[<H><S>]", ()->{
 			return parseBranchNode("SH").get().k();

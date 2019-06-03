@@ -1052,10 +1052,10 @@ public class RegressionTestIT {
 	
 	
 	public void doAllIdentityDataSetTests(MethodAdapted adapted) throws FileNotFoundException{
+		testSet("uspto", adapted);
 		testSet("trec", adapted);
 		testSet("maybridge", adapted);
-		testSet("testSet1", adapted);
-		testSet("uspto", adapted);
+		testSet("testSet1", adapted);		
 		testSet("usan", adapted);
 		testSet("usan", adapted.scale(0.5).interpolation(Interpolation.BICUBIC));
 	}
