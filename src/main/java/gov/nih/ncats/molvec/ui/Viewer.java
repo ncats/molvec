@@ -73,7 +73,6 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import com.mortennobel.imagescaling.ResampleOp;
 
 import gov.nih.ncats.molvec.Bitmap;
 import gov.nih.ncats.molvec.algo.CentroidEuclideanMetric;
@@ -389,133 +388,133 @@ public class Viewer extends JPanel
 		SINC,
 		NEAREST_NEIGHBOR;
 	}
-private static File stdResize(File f, File imageFile, double scale, Interpolation terp, double quality) throws IOException{
-		
-
-		
-
-
-		RenderedImage ri = ImageUtil.decode(f);
-		
-		int nwidth=(int) (ri.getWidth() *scale);
-		int nheight=(int) (ri.getHeight() *scale);
-		BufferedImage outputImage=null;
-		
-		if(Interpolation.SINC.equals(terp)){
-			
-			ResampleOp resizeOp = new ResampleOp(nwidth, nheight);
-			outputImage = resizeOp.filter(convertRenderedImage(ri), null);
-			
-		}else{
-			
-	        // creates output image
-	        outputImage = new BufferedImage(nwidth,
-	                nheight,BufferedImage.TYPE_3BYTE_BGR);
-	 
-	        // scales the input image to the output image
-	        Graphics2D g2d = outputImage.createGraphics();
-	        
-	        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-	        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-	        
-	        if(Interpolation.BICUBIC.equals(terp)){
-	        	g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-	        	       RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-	        }else if(Interpolation.BILINEAR.equals(terp)){
-	        	g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-		        	       RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-	        }else if(Interpolation.NEAREST_NEIGHBOR.equals(terp)){
-	        	g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-		        	       RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
-	        }
-	        g2d.scale(scale, scale);
-	        g2d.drawImage(convertRenderedImage(ri), 0, 0,null);
-	        g2d.dispose();
-
-	        for (int x = 0; x < outputImage.getWidth(); x++) {
-	            for (int y = 0; y < outputImage.getHeight(); y++) {
-	                int rgba = outputImage.getRGB(x, y);
-	                Color col = new Color(rgba, false);
-	                col = new Color(col.getRed(),
-	                		col.getRed(),
-	                		col.getRed());
-	                outputImage.setRGB(x, y, col.getRGB());
-	                
-	            }
-	        }
-		}
-  
-		if(quality<1 && quality>0){
-			JPEGImageWriteParam jpegParams = new JPEGImageWriteParam(null);
-			jpegParams.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-			jpegParams.setCompressionQuality((float) quality);
-			
-			final ImageWriter writer = ImageIO.getImageWritersByFormatName("jpg").next();
-			// specifies where the jpg image has to be written
-			
-			File tfile = new File(imageFile.getAbsolutePath() + ".jpg");
-			
-			
-			try(FileImageOutputStream fos = new FileImageOutputStream(
-					tfile)){
-				writer.setOutput(fos);
-				writer.write(null, new IIOImage(outputImage, null, null), jpegParams);
-				return tfile;
-			}
-		}
-		
-		ImageIO.write(outputImage, "png", imageFile);
-		
-		return imageFile;
-	}
-    
-	private static File stdResize(File f, File imageFile, double scale) throws IOException{
-		
-		
-
-		RenderedImage ri = Bitmap.readToImage(f);
-		
-		int nwidth=(int) (ri.getWidth() *scale);
-		int nheight=(int) (ri.getHeight() *scale);
-
-		//	this is using a sinc filter
-		BufferedImage outputImage=null;
-		if(scale<0.95 || scale > 1.05){ // don't do sinc if near unity
-			ResampleOp resizeOp = new ResampleOp(nwidth, nheight);
-			outputImage = resizeOp.filter(convertRenderedImage(ri), null);
-		}else{
-		
-	        // creates output image
-	        outputImage = new BufferedImage(nwidth,
-	                nheight,ColorModel.BITMASK);
-	 
-	        // scales the input image to the output image
-	        Graphics2D g2d = outputImage.createGraphics();
-	        
-	        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-	        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-	        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-	        	       RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-	        g2d.scale(scale, scale);
-	        g2d.drawImage(convertRenderedImage(ri), 0, 0,null);
-	        g2d.dispose();
-	        
-	        for (int x = 0; x < outputImage.getWidth(); x++) {
-	            for (int y = 0; y < outputImage.getHeight(); y++) {
-	                int rgba = outputImage.getRGB(x, y);
-	                Color col = new Color(rgba, true);
-	                col = new Color(255 - col.getRed(),
-	                                255 - col.getGreen(),
-	                                255 - col.getBlue());
-	                outputImage.setRGB(x, y, col.getRGB());
-	            }
-	        }
-		}
-        
-
-		ImageIO.write(outputImage, "png", imageFile);
-		return imageFile;
-	}
+//private static File stdResize(File f, File imageFile, double scale, Interpolation terp, double quality) throws IOException{
+//		
+//
+//		
+//
+//
+//		RenderedImage ri = ImageUtil.decode(f);
+//		
+//		int nwidth=(int) (ri.getWidth() *scale);
+//		int nheight=(int) (ri.getHeight() *scale);
+//		BufferedImage outputImage=null;
+//		
+//		if(Interpolation.SINC.equals(terp)){
+//			
+//			ResampleOp resizeOp = new ResampleOp(nwidth, nheight);
+//			outputImage = resizeOp.filter(convertRenderedImage(ri), null);
+//			
+//		}else{
+//			
+//	        // creates output image
+//	        outputImage = new BufferedImage(nwidth,
+//	                nheight,BufferedImage.TYPE_3BYTE_BGR);
+//	 
+//	        // scales the input image to the output image
+//	        Graphics2D g2d = outputImage.createGraphics();
+//	        
+//	        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+//	        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+//	        
+//	        if(Interpolation.BICUBIC.equals(terp)){
+//	        	g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+//	        	       RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+//	        }else if(Interpolation.BILINEAR.equals(terp)){
+//	        	g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+//		        	       RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+//	        }else if(Interpolation.NEAREST_NEIGHBOR.equals(terp)){
+//	        	g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+//		        	       RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+//	        }
+//	        g2d.scale(scale, scale);
+//	        g2d.drawImage(convertRenderedImage(ri), 0, 0,null);
+//	        g2d.dispose();
+//
+//	        for (int x = 0; x < outputImage.getWidth(); x++) {
+//	            for (int y = 0; y < outputImage.getHeight(); y++) {
+//	                int rgba = outputImage.getRGB(x, y);
+//	                Color col = new Color(rgba, false);
+//	                col = new Color(col.getRed(),
+//	                		col.getRed(),
+//	                		col.getRed());
+//	                outputImage.setRGB(x, y, col.getRGB());
+//	                
+//	            }
+//	        }
+//		}
+//  
+//		if(quality<1 && quality>0){
+//			JPEGImageWriteParam jpegParams = new JPEGImageWriteParam(null);
+//			jpegParams.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+//			jpegParams.setCompressionQuality((float) quality);
+//			
+//			final ImageWriter writer = ImageIO.getImageWritersByFormatName("jpg").next();
+//			// specifies where the jpg image has to be written
+//			
+//			File tfile = new File(imageFile.getAbsolutePath() + ".jpg");
+//			
+//			
+//			try(FileImageOutputStream fos = new FileImageOutputStream(
+//					tfile)){
+//				writer.setOutput(fos);
+//				writer.write(null, new IIOImage(outputImage, null, null), jpegParams);
+//				return tfile;
+//			}
+//		}
+//		
+//		ImageIO.write(outputImage, "png", imageFile);
+//		
+//		return imageFile;
+//	}
+//    
+//	private static File stdResize(File f, File imageFile, double scale) throws IOException{
+//		
+//		
+//
+//		RenderedImage ri = Bitmap.readToImage(f);
+//		
+//		int nwidth=(int) (ri.getWidth() *scale);
+//		int nheight=(int) (ri.getHeight() *scale);
+//
+//		//	this is using a sinc filter
+//		BufferedImage outputImage=null;
+//		if(scale<0.95 || scale > 1.05){ // don't do sinc if near unity
+//			ResampleOp resizeOp = new ResampleOp(nwidth, nheight);
+//			outputImage = resizeOp.filter(convertRenderedImage(ri), null);
+//		}else{
+//		
+//	        // creates output image
+//	        outputImage = new BufferedImage(nwidth,
+//	                nheight,ColorModel.BITMASK);
+//	 
+//	        // scales the input image to the output image
+//	        Graphics2D g2d = outputImage.createGraphics();
+//	        
+//	        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+//	        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+//	        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+//	        	       RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+//	        g2d.scale(scale, scale);
+//	        g2d.drawImage(convertRenderedImage(ri), 0, 0,null);
+//	        g2d.dispose();
+//	        
+//	        for (int x = 0; x < outputImage.getWidth(); x++) {
+//	            for (int y = 0; y < outputImage.getHeight(); y++) {
+//	                int rgba = outputImage.getRGB(x, y);
+//	                Color col = new Color(rgba, true);
+//	                col = new Color(255 - col.getRed(),
+//	                                255 - col.getGreen(),
+//	                                255 - col.getBlue());
+//	                outputImage.setRGB(x, y, col.getRGB());
+//	            }
+//	        }
+//		}
+//        
+//
+//		ImageIO.write(outputImage, "png", imageFile);
+//		return imageFile;
+//	}
 	public static BufferedImage convertRenderedImage(RenderedImage img) {
 	    if (img instanceof BufferedImage) {
 	        return (BufferedImage)img;  
