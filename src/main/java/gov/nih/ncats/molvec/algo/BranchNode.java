@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
@@ -21,6 +22,8 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import javax.swing.tree.TreeNode;
 
 import gov.nih.ncats.molvec.CachedSupplier;
 
@@ -291,6 +294,7 @@ class BranchNode{
 	
 	public BranchNode addChild(BranchNode bn){
 		BranchNode ret=_addChild(bn);
+		
 		return ret;
 	}
 	
@@ -302,12 +306,12 @@ class BranchNode{
 	//Always add to the left
 	//
 	private BranchNode _addChild(BranchNode bn){
-		
 		BranchNode nToAddTo= this.getNodeForLinearCombine();
 		
 		if(bn.isCombiner){
 			this.setCombiningNode(bn);
 		}
+		
 		if(bn.isRepeatNode()){
 			int rep=bn.getRepeat();
 			if(this.shouldComineLinearly()){
@@ -335,6 +339,8 @@ class BranchNode{
 			}
 		}else if(bn.isPseudoNode()){
 			nToAddTo.children.addAll(bn.children);
+		}else if(!this.isPseudoNode() && nToAddTo.isTerminal() && !bn.isTerminal() && bn.isRealNode()){
+			return bn.addChild(nToAddTo);
 		}else{
 			nToAddTo.children.add(bn);
 		}
@@ -484,6 +490,18 @@ class BranchNode{
 			}
 			return found;
 		}
+		
+		public default Token compoundToken(Token t2){
+			String[] forms1 =this.getForms();
+			String[] forms2 =t2.getForms();
+			List<String> nformsCombined = new ArrayList<String>();
+			for(int i=0;i<forms1.length;i++){
+				for(int j=0;j<forms2.length;j++){
+					nformsCombined.add(forms1[i] + forms2[j]);
+				}
+			}
+			return SimpleToken.of(this.getTokenName() + t2.getTokenName(), this.getTokenPreferredStyle() + t2.getTokenPreferredStyle(), nformsCombined.toArray(new String[0]));
+		}
 	}
 	
 	public static class SimpleToken implements Token{
@@ -548,6 +566,7 @@ class BranchNode{
 	private static Map<String, Token> masterTokenList = new LinkedHashMap<String,Token>();
 	
 	private static List<Token> atomicSet = new ArrayList<>();
+	private static List<Token> saturatedAtomicSet = new ArrayList<>();
 	private static List<Token> numericSet = new ArrayList<>();
 	private static void initializeTokenSet(){
 		
@@ -590,7 +609,25 @@ class BranchNode{
 		numericSet.forEach(tt->registerToken(tt,false));
 		registerToken(Token.groupedToken("Numeric", numericSet),true);
 		
-
+		if(false){
+			saturatedAtomicSet.add(getCombinedToken("C", "H", "3"));
+			saturatedAtomicSet.add(getCombinedToken("C", "H", "2"));
+			saturatedAtomicSet.add(getCombinedToken("C"));
+			saturatedAtomicSet.add(getCombinedToken("N", "H", "2"));
+			saturatedAtomicSet.add(getCombinedToken("N", "H"));
+			saturatedAtomicSet.add(getCombinedToken("O", "H"));
+			saturatedAtomicSet.add(getCombinedToken("S", "H"));
+			saturatedAtomicSet.add(getCombinedToken("H", "3", "C"));
+			saturatedAtomicSet.add(getCombinedToken("H", "2", "C"));
+			saturatedAtomicSet.add(getCombinedToken("H", "C"));
+			saturatedAtomicSet.add(getCombinedToken("H", "O"));
+			saturatedAtomicSet.add(getCombinedToken("H", "2", "N"));
+			saturatedAtomicSet.add(getCombinedToken("H", "N"));
+			saturatedAtomicSet.add(getCombinedToken("H", "S"));
+			saturatedAtomicSet.forEach(tt->registerToken(tt,false));
+		}
+		
+		
 		//Special Tokens:
 		//Me	Me, Mc, MC
 		//Et	Et
@@ -641,6 +678,13 @@ class BranchNode{
 		tokenList.put(t.getTokenName(), t);
 	}
 	
+	private static Token getCombinedToken(String ... tokNames){
+		return Arrays.stream(tokNames)
+						.map(s->tokenList.get(s))
+						.reduce((t1,t2)->t1.compoundToken(t2))
+						.orElse(null);
+	}
+	
 	
 	public static class TokenTree{
 		private Token root;
@@ -661,6 +705,26 @@ class BranchNode{
 			}			
 			return this;
 		}
+		
+		public List<TokenTree> asEnumeratedList(){
+			List<TokenTree> uTrees = new ArrayList<>();
+			getAllTrees((tl)->{
+				TokenTree rparent=null;
+				TokenTree parent = null;
+				for(TokenTree c: tl){
+					TokenTree clone = new TokenTree(c.root);
+					if(parent!=null){
+						parent.addChild(clone);
+					}else{
+						rparent=clone;
+					}
+					parent=clone;
+				}
+				uTrees.add(rparent);
+			});
+			return uTrees;
+		}
+		
 		public void getAllTrees(Consumer<List<TokenTree>> cons){
 			if(!children.isEmpty()){
 				for(TokenTree tt: children){
@@ -729,6 +793,25 @@ class BranchNode{
 			
 			return Tuple.of(shallowCopy,deepCopy);
 		}
+		public Tuple<TokenTree, TokenTree> splitTreeToRemaingDepth(int i) {
+			
+			TokenTree deepCopy=new TokenTree(null);
+			Set<TokenTree> trimAt = new HashSet<TokenTree>();
+			
+			consumeAllNodesAtFirstMatch((tn)->{
+				for(TokenTree child:tn.children){
+					deepCopy.addChild(child);	
+				}
+				trimAt.add(tn);
+			}, (tn)->tn.maxLength()==i+1);
+			
+			TokenTree shallowCopy = this.copyTruncatedAt(tn->{
+				return trimAt.contains(tn);
+			});
+			
+			
+			return Tuple.of(shallowCopy,deepCopy);
+		}
 		public void consumeAllNodesAtDepth(Consumer<TokenTree> cons, int initDepth){
 			if(initDepth==0){
 				cons.accept(this);
@@ -739,11 +822,32 @@ class BranchNode{
 			}
 		}
 		
+		public void consumeAllNodesAtFirstMatch(Consumer<TokenTree> cons, Predicate<TokenTree> stop){
+			if(stop.test(this)){
+				cons.accept(this);
+			}else{
+				for(TokenTree child:children){
+					child.consumeAllNodesAtFirstMatch(cons, stop);
+				}
+			}
+		}
+		
 		public TokenTree depthLimitedCopy(int maxDepth){
 			TokenTree tnew = new TokenTree(this.root);
 			if(maxDepth>0){
 				for(TokenTree child:children){
 					tnew.addChild(child.depthLimitedCopy(maxDepth-1));
+				}
+			}
+			return tnew;
+		}
+		
+		public TokenTree copyTruncatedAt(Predicate<TokenTree> truncateAfter){
+			TokenTree tnew = new TokenTree(this.root);
+			
+			if(!truncateAfter.test(this)){
+				for(TokenTree child:children){
+					tnew.addChild(child.copyTruncatedAt(truncateAfter));
 				}
 			}
 			return tnew;
@@ -817,14 +921,24 @@ class BranchNode{
 		
 		private String name;
 		private Pattern p;
-		private Function<Matcher,BranchNode> nodeMaker;
+		private Function<Matcher,Tuple<BranchNode,String>> nodeMaker;
 		private String returnAs=null;
 		
+		
+		
 		public RegexTokenParsingRule(String name,String pattern, Function<Matcher, BranchNode> maker){
+			this(name,pattern
+					 ,(m)->Optional.ofNullable(maker.apply(m)).map(b->Tuple.of(b,(String)null)).orElse(null)
+					 ,true);
+		}
+		
+		
+		public RegexTokenParsingRule(String name,String pattern, Function<Matcher,Tuple<BranchNode,String>> maker, boolean change){
 			p=Pattern.compile(pattern);
 			nodeMaker=maker;
 			this.name=name;
 		}
+		
 		public RegexTokenParsingRule setReturn(String ret){
 			this.returnAs=ret;
 			return this;
@@ -847,10 +961,13 @@ class BranchNode{
 			  .filter(t->t.v()!=null)
 			  .map(b->Tuple.of(b.v(),b.k()))
 			  .map(t->{
+				  String retcalc = t.k().v();
 				  if(returnAs!=null){
-					  return Tuple.of(t.k(),returnAs);
+					  return Tuple.of(t.k().k(),returnAs);
+				  }else if(retcalc!=null){
+					  return Tuple.of(t.k().k(),retcalc);
 				  }else{
-					  return Tuple.of(t.k(),t.v().stream().map(tok->tok.getTokenPreferredStyle()).collect(Collectors.joining()));
+					  return Tuple.of(t.k().k(),t.v().stream().map(tok->tok.getTokenPreferredStyle()).collect(Collectors.joining()));
 				  }
 			  });
 		}
@@ -1073,8 +1190,14 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 		//BOND_TYPE [-=#]
 		//LOCUS [1-9][0-9]+
 		//TEHTA_OFF [1-9]
+		
+		
 		return null;
 	}
+	
+	
+	
+	
 	
 	static{
 		
@@ -1099,14 +1222,17 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 		}));
 		
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("Ester_Linker", "COOCH2", "[<C><O><O><C><H><2>]", ()->{
-			BranchNode full = of("C").addChild(of("O").setOrderToParent(2));
-			BranchNode OMethyl = of("O").setOrderToParent(1);
+			BranchNode full = of("C").addChild(of("O").setOrderToParent(2).thetaOffset(1));
+			BranchNode OMethyl = of("O").setOrderToParent(1).thetaOffset(1);
 			BranchNode meth = of("C").setOrderToParent(1);
 			OMethyl.addChild(meth);
 			full.addChild(OMethyl);
 			full.setRightBranchNode(meth);
+			full.setCombiningNode(meth);
 			return full;
 		}));
+		
+		
 	
 		parsingRules.add(new RegexTokenParsingRule("Alkyl_Chain_Linker","((CH[2]*)+)C", (m)->{
 			Matcher mm=m;
@@ -1124,6 +1250,14 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 			full.setRightBranchNode(parent);
 			return full;
 		}));
+		
+		parsingRules.add(new RegexTokenParsingRule("HH_START_FIXER","H(H.*)", (m)->{
+			Matcher mm=m;
+			String cc=mm.group(1);
+			return parseBranchNode(cc).orElse(null);
+		},true));
+		
+	
 		
 		
 		//N_Ketone_Linker
@@ -1216,16 +1350,19 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 		
 
 		//ETHYL	[<Et>]	Et
-		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("ETHYL", "Et", "[<Et>]",()->new BranchNode("C").addChild(new BranchNode("C"))));
+		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("ETHYL", "Et", "[<Et>]",()->new BranchNode("C").addChild(new BranchNode("C")).setTerminal(true)));
 		
 		//PROPYL	[<Pr>]	Pr
-		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("PROPYL", "Pr", "[<Pr>]",()->new BranchNode("C").addChild(new BranchNode("C").addChild(new BranchNode("C")))));
+		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("PROPYL", "Pr", "[<Pr>]",()->new BranchNode("C").addChild(new BranchNode("C")
+				                                                                                                                    .addChild(new BranchNode("C"))
+				                                                                                                                    ).setTerminal(true)
+				));
 		
 		
 		//N_METHYL_F1	[<N><C><H><3>]	NCH3
 		//N_METHYL_F2	[<N><H><C><H><3>]	NHCH3
-		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("N_METHYL_F1", "NCH3", "[<N><C><H><3>]",()->new BranchNode("N").addChild(new BranchNode("C"))));
-		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("N_METHYL_F2", "NHCH3", "[<N><H><C><H><3>]",()->new BranchNode("N").addChild(new BranchNode("C"))));
+		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("N_METHYL_F1", "NCH3", "[<N><C><H><3>]",()->new BranchNode("N").addChild(new BranchNode("C").setTerminal(true))));
+		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("N_METHYL_F2", "NHCH3", "[<N><H><C><H><3>]",()->new BranchNode("N").addChild(new BranchNode("C").setTerminal(true))));
 		
 		
 		//SULFONE_F1	[<S><O><2>]	SO2
@@ -1287,14 +1424,14 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 		
 		//KETO	[<C><O>]	CO
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("KETO", "CO", "[<C><O>]", ()->{
-			return new BranchNode("C").thetaOffset(1).addChild(new BranchNode("O").setOrderToParent(2));
+			return new BranchNode("C").addChild(new BranchNode("O").setOrderToParent(2));
 		}));
 		
 				
 		//ALCOHOL	[<O><H>]	OH
-		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("ALCOHOL", "OH", "[<O><H>]", ()->{
-			return new BranchNode("O").setTerminal(true);
-		}));
+//		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("ALCOHOL", "OH", "[<O><H>]", ()->{
+//			return new BranchNode("O").setTerminal(true);
+//		}));
 		
 		//METHOXY_LINK	[<C><H><2><O>]	CH2O
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("METHOXY_LINK", "CH2O", "[<C><H><2><O>]", ()->{
@@ -1337,7 +1474,7 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 					    			    		   )
 					    			    	)
 					);
-			return bn;
+			return bn.setTerminal(true);
 		};
 		
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("BENZO", "Bn", "[<Bn>]", ()->{
@@ -1688,9 +1825,14 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 		List<ParsingRule> atomicRules = new ArrayList<ParsingRule>();
 		atomicSet.forEach(tok->{
 			String SYM = tok.getTokenPreferredStyle();
+			boolean termt=false;
+			if(SYM.equals("F") ||  SYM.equals("Cl") || SYM.equals("Br")){
+				termt=true;
+			}
+			boolean term=termt;
 			atomicRules.add(
 			new TemplateTokenParsingRule("ATOMIC_SYMBOL_" + SYM, SYM, Arrays.asList(tok), ()->{
-				return new BranchNode(SYM);
+				return new BranchNode(SYM).setTerminal(term);
 			})
 			);	
 		});
@@ -1706,7 +1848,9 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 			public Optional<Tuple<BranchNode, String>> parse(TokenTree tt) {
 				for(ParsingRule pr:atomicRules){
 					Optional<Tuple<BranchNode, String>> op = pr.parse(tt);
-					if(op.isPresent())return op;
+					if(op.isPresent()){
+						return op;
+					}
 				}
 				return Optional.empty();
 			}
@@ -1776,6 +1920,12 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 			return full;
 		}));
 		
+		parsingRules.add(new RegexTokenParsingRule("TERM_FH_EXTRACTOR","(.*F[2]*)H+", (m)->{
+			Matcher mm=m;
+			String cc=mm.group(1);
+			return parseBranchNode(cc).map(Tuple.vmap(hp->mm.group(0))).orElse(null);
+		},true));
+		
 //		parsingRules.add(new RegexTokenParsingRule("H_REPLACER",".*H.*", (m)->{
 //			String ss1=m.group(0);
 //			
@@ -1786,6 +1936,9 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 	
 	
 	public static Optional<Tuple<BranchNode, String>> parseBranchNode(TokenTree tt, boolean breakUp){
+//		System.out.println("subparse:");
+//		tt.printAlllTrees();
+//		System.out.println("-----------------");
 		for(ParsingRule pr: parsingRules){
 			Optional<Tuple<BranchNode, String>> op = pr.parse(tt);
 			if(op.isPresent()){
@@ -1797,33 +1950,49 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 		}
 		if(!breakUp)return Optional.empty();
 		
-		//start breaking up
-		int maxLength=tt.maxLength();
-		if(maxLength>1){
-			Optional<Tuple<BranchNode, String>> parent=null;
-			for(int i=maxLength-1;i>=1;i--){
-				Tuple<TokenTree,TokenTree> splitTree=tt.splitTreeAtDepth(i);
-				TokenTree head=splitTree.k();
-				TokenTree tail=splitTree.v();
-				 Optional<Tuple<BranchNode, String>> bn1=parseBranchNode(head,false);
-				if(bn1.isPresent()){
-					parent=bn1;
-					//System.out.println(bn1.toString());
-					Optional<Tuple<BranchNode, String>> child=parseBranchNode(tail,true);
-					if(child.isPresent()){
-						Optional<Tuple<BranchNode, String>> bnFinal= parent.map(bnn->Tuple.of(bnn.k().addChild(child.get().k()),
-								bnn.v() +child.get().v()
-								));
-						//System.out.println("F:" + bnFinal.toString());
-						return bnFinal;
+		List<TokenTree> ttlist = tt.asEnumeratedList()
+				.stream()
+				.map(tt1->Tuple.of(tt1,tt1.maxLength()).withVComparator())
+				.sorted()
+				.map(t->t.k())
+				.collect(Collectors.toList());
+		for(TokenTree mt: ttlist){
+//			System.out.println("Gonna try:");
+//			mt.printAlllTrees();
+			//start breaking up
+			int maxLength=mt.maxLength();
+			if(maxLength>1){
+				Optional<Tuple<BranchNode, String>> parent=null;
+				for(int i=maxLength-1;i>=0;i--){
+					Tuple<TokenTree,TokenTree> splitTree=mt.splitTreeAtDepth(i);
+					TokenTree head=splitTree.k();
+					TokenTree tail=splitTree.v();
+//					System.out.println("HEAD:");
+//					head.printAlllTrees();
+//					System.out.println("TAIL:");
+//					tail.printAlllTrees();
+					Optional<Tuple<BranchNode, String>> bn1=parseBranchNode(head,false);
+					if(bn1.isPresent()){
+						parent=bn1;
+						//System.out.println(bn1.toString());
+						Optional<Tuple<BranchNode, String>> child=parseBranchNode(tail,true);
+						if(child.isPresent()){
+							Optional<Tuple<BranchNode, String>> bnFinal= parent.map(bnn->Tuple.of(bnn.k().addChild(child.get().k()),
+									bnn.v() +child.get().v()
+									));
+							//System.out.println("F:" + bnFinal.toString());
+							return bnFinal;
+						}
+						//break;
 					}
-					//break;
 				}
-			}
-			if(parent!=null){
-				
-			}
+				if(parent!=null){
+					
+				}
+			}	
 		}
+		
+		
 		
 		
 		return Optional.empty();
@@ -1831,6 +2000,8 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 	
 	public static Optional<Tuple<BranchNode, String>> parseBranchNode(String p){
 		TokenTree tt=parseTokenTree(p);
+		//tt.printAlllTrees();
+		//System.out.println("-------");
 		return parseBranchNode(tt,true);
 	}
 	
@@ -2475,19 +2646,23 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 		try{
 			Optional<BranchNode> bn= _cache.get(s);
 			if(bn==null){
+				
+				
 				//old way
 				if(false){
 					bn=Optional.ofNullable(interpretOCRStringAsAtom(s,false));
 					_cache.put(s, bn);
 				}else{
 				//new way
-					bn=parseBranchNodeInit(s).map(b->b.k().removeHydrogens().setAlias(b.v()));
+					bn=parseBranchNodeInit(s).map(b->b.k()
+													.removeHydrogens()
+													.setAlias(b.v())
+													);
 					_cache.put(s, bn);
 				}
 			}
 			return bn.map(b->b.cloneNode()).orElse(null);
 		}catch(Exception e){
-			//e.printStackTrace();
 			return null;
 		}
 	}

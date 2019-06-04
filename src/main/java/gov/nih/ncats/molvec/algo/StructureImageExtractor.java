@@ -33,6 +33,7 @@ import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -833,7 +834,6 @@ public class StructureImageExtractor {
 			File bi= stdResize(file,3);
 			load(bitmap = Bitmap.read(bi,RESIZE_BINARIZATION).clean(),false);
 		}catch( ImageTooSpottyException e){
-			e.printStackTrace();
 			try{
 				load(Bitmap.read(file,TOO_WASHED_BINARIZATION).clean(), false);
 			}catch(ImageTooSmallException ex){
@@ -3717,6 +3717,7 @@ public class StructureImageExtractor {
 			if(DEBUG)logState(26,"split long triple bonds into single-triple composites");
 			
 			List<ShapeWrapper> appliedOCR = new ArrayList<>();
+			AtomicInteger groupNumber = new AtomicInteger(0);
 
 			for(ShapeWrapper s: bestGuessOCR.keySet()){
 				String sym=bestGuessOCR.get(s);
@@ -3728,7 +3729,9 @@ public class StructureImageExtractor {
 					//don't even keep it for now
 					if(!actual.isLinkable()){
 						for(Node n:ctab.getAllNodesInsideShape(s, 0.1)){
-							ctab.removeNodeAndEdges(n);	
+							if(!n.isInvented()){
+								ctab.removeNodeAndEdges(n);
+							}
 						}
 						
 						//eventually add it back
@@ -3752,6 +3755,7 @@ public class StructureImageExtractor {
 						ctab.standardCleanEdges();
 						nlist=ctab.getNodesInsideShape(s, 0.1).stream().filter(n->!n.isInvented()).collect(Collectors.toList());
 					}
+					//ideally this is only 1 node
 					nlist.forEach(n->{
 						n.setSymbol(actual.getSymbol());
 					});
@@ -3786,6 +3790,9 @@ public class StructureImageExtractor {
 						}
 						
 						if(actual.hasChildren()){
+							if(actual.getAlias()!=null){
+								pnode.setAlias(actual.getAlias());
+							}
 							actual.generateCoordinates();
 							AffineTransform at = new AffineTransform();
 							at.translate(ppoint.getX(), ppoint.getY());
@@ -3797,6 +3804,9 @@ public class StructureImageExtractor {
 							}
 							actual.applyTransform(at);
 
+							int gnum=groupNumber.incrementAndGet();
+							pnode.markGroup(gnum);
+							
 							Map<BranchNode,Node> parentNodes = new HashMap<BranchNode,Node>();
 
 							parentNodes.put(actual, pnode);
@@ -3811,6 +3821,7 @@ public class StructureImageExtractor {
 								Node n= ctab.addNode(curN.getSuggestedPoint())
 										    .setSymbol(curN.getSymbol())
 										    .setCharge(curN.getCharge())
+										    .markGroup(gnum)
 										    .setInvented(true);
 								
 								Edge e=ctab.addEdge(mpnode.getIndex(), n.getIndex(), curN.getOrderToParent());
@@ -4701,10 +4712,12 @@ public class StructureImageExtractor {
 								Point2D[] pts=new Point2D[]{lw.getLine().getP1(),lw.getLine().getP2()};
 								List<Node> forN1=ctab.getNodes()
 								    .stream()
+								    .filter(n->!n.isInvented())
 								    .filter(n->n.getPoint().distance(pts[0])< ctab.getAverageBondLength()*0.55)
 								    .collect(Collectors.toList());
 								List<Node> forN2=ctab.getNodes()
 									    .stream()
+									    .filter(n->!n.isInvented())
 									    .filter(n->n.getPoint().distance(pts[1])< ctab.getAverageBondLength()*0.55)
 									    .filter(n->!forN1.contains(n))
 									    .collect(Collectors.toList());
@@ -4793,6 +4806,7 @@ public class StructureImageExtractor {
 									
 									Node otherNode=ctab.getNodes()
 									    .stream()
+									    .filter(n->!n.isInvented())
 									    .map(n->Tuple.of(n,n.getPoint().distance(op)).withVComparator())
 									    .filter(t->t.v()<len*0.3)
 									    .max(Comparator.reverseOrder())
@@ -4823,10 +4837,14 @@ public class StructureImageExtractor {
 			
 			
 			if(!toMergeNodes.isEmpty()){
-				toMergeNodes.forEach(nm->{
-					//nervous about this
-					ctab.mergeNodes(nm.stream().map(n->n.getIndex()).collect(Collectors.toList()), pl->pl.stream().collect(GeomUtil.averagePoint()));		
-				});
+				try{
+					toMergeNodes.forEach(nm->{
+						//nervous about this
+						ctab.mergeNodes(nm.stream().map(n->n.getIndex()).collect(Collectors.toList()), pl->pl.stream().collect(GeomUtil.averagePoint()));		
+					});
+				}catch(Exception e){
+					e.printStackTrace();
+				}
 				ctab.standardCleanEdges();
 			}
 			if(DEBUG)logState(39,"find and add floating dashed methyl groups, and tweak/assign dashed bonds that are well-behaved");

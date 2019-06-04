@@ -1154,10 +1154,12 @@ public class RegressionTestIT {
 		
 //		testSet("usan",Method.MOLVEC.adapt());
 		
-//		doAllRMSEDataSetTests(Method.MOLVEC.adapt().limit(100));
-		doAllIdentityDataSetTests(Method.MOLVEC.adapt().suffix("BN_NEW"));
-//		doAllScaleQualityTestsFor("trec",Method.MOLVEC.adapt());
-//		doAllCompressionQualityDataSetTestsFor("trec",Method.MOLVEC.adapt());
+
+		doAllIdentityDataSetTests(Method.MOLVEC.adapt().suffix("BN_NEW3"));
+		doAllRMSEDataSetTests(Method.MOLVEC.adapt());
+		
+		doAllScaleQualityTestsFor("trec",Method.MOLVEC.adapt());
+		doAllCompressionQualityDataSetTestsFor("trec",Method.MOLVEC.adapt());
 		
 //		doAllRMSEDataSetTests(Method.EXACT.adapt().wiggleRatio(1/35.0));
 //		doAllRMSEDataSetTests(Method.MOLVEC.adapt());

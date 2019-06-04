@@ -552,9 +552,9 @@ public class ConnectionTable{
 		.collect(Collectors.toList());
 	}
 	public String toMol(){
-		return toMol(1, true);
+		return toMol(1, true, true);
 	}
-	public String toMol(double averageBondLength, boolean center){
+	public String toMol(double averageBondLength, boolean center , boolean includeSgroups){
 		AffineTransform at = new AffineTransform();
 		double blcur = Math.max(this.getAverageBondLength(),1);
 
@@ -596,16 +596,22 @@ public class ConnectionTable{
 		StringBuilder atomBlockBuilder = makeAtomBlock(at, newLine);
 
 		StringBuilder bondBuilder = makeBondBlock(newLine);
+		
+		StringBuilder sgroupBuilder =new StringBuilder(0);
+		if(includeSgroups){
+			sgroupBuilder = makeSGroupBlock(at, newLine);
+		}
 
+		
 
-		String mol= new StringBuilder(header.length() + countsLine.length() + atomBlockBuilder.length() + bondBuilder.length() +5)
+		String mol= new StringBuilder(header.length() + countsLine.length() + atomBlockBuilder.length() + bondBuilder.length() +sgroupBuilder.length())
 				.append(header)
 					.append(countsLine)
 				.append(atomBlockBuilder)
 				.append(bondBuilder)
+				.append(sgroupBuilder)
 				.append("M  END")
 						.toString();
-
 		return mol;
 	}
 
@@ -640,7 +646,7 @@ public class ConnectionTable{
 		}
 		return bondBuilder;
 	}
-	private  StringBuilder makeAtomBlock(AffineTransform at, String newLine){
+	private StringBuilder makeAtomBlock(AffineTransform at, String newLine){
 		StringBuilder atomBlockBuilder = new StringBuilder(82* nodes.size());
 		for(Node n : this.nodes){
 			Point2D np = at.transform(n.getPoint(), null);
@@ -652,8 +658,7 @@ public class ConnectionTable{
 				massDifference=1;
 			}
 
-
-
+			
 			atomBlockBuilder.append(writeMolDouble(np.getX(), 10))
 					.append(writeMolDouble(-np.getY(), 10))
 					.append(writeMolDouble(Double.NaN, 10))	//only write 2d coords
@@ -663,9 +668,67 @@ public class ConnectionTable{
 					.append(writeMolInt(computeMolCharge(n.charge), 3))
 							.append("  0  0  0  0  0  0  0  0  0  0")		//TODO really compute charge
 			.append(newLine);
-
 		}
 		return atomBlockBuilder;
+	}
+	
+	private StringBuilder makeSGroupBlock(AffineTransform at, String newLine){
+		StringBuilder sgroupBlockBuilder = new StringBuilder();
+		Map<Integer, List<Node>> groups = new HashMap<>();
+		
+		Map<Edge,Integer> bindex = new HashMap<Edge,Integer>();
+		for(int i=0;i<this.edges.size();i++){
+			bindex.put(this.edges.get(i), i+1);
+		}
+		
+		for(Node n : this.nodes){
+			Point2D np = at.transform(n.getPoint(), null);
+
+			String sym = n.symbol;
+			int massDifference = 0;
+			if(n.symbol.equals("D")){
+				sym="H";
+				massDifference=1;
+			}
+
+			if(n.getGroup()!=0){
+				groups.computeIfAbsent(n.getGroup(), k->new ArrayList<>()).add(n);
+			}
+		}
+		
+		groups.forEach((g,al)->{
+			Node aNode = al.stream()
+			.filter(n->n.getAlias()!=null)
+			.findFirst()
+			.orElse(null);
+			if(aNode==null)return;
+			
+			List<Edge> me = al.stream()
+							  .flatMap(n->n.getEdges().stream().filter(e->!e.isInventedBond()))
+							  .distinct()
+							  .collect(Collectors.toList());
+			String l1 = "M  STY  1" +rightPaddWithSpaces(g+"", 4) + " SUP";
+			String l2 = "M  SLB  1" +rightPaddWithSpaces(g+"", 4) + rightPaddWithSpaces(g+"", 4);
+			String la = al.stream().map(n->n.getIndex()+1)
+					   .map(i->rightPaddWithSpaces(i+"", 4))
+					   .collect(Collectors.joining());
+			String bl = me.stream().map(e->bindex.get(e))
+					   .map(i->rightPaddWithSpaces(i+"", 4))
+					   .collect(Collectors.joining());
+			
+			String l3 = "M  SAL" + rightPaddWithSpaces(g+"", 4) +rightPaddWithSpaces(al.size()+"", 3) + la;
+			String l4 = "M  SBL" + rightPaddWithSpaces(g+"", 4) +rightPaddWithSpaces(me.size()+"", 3) + bl;
+			String l5 = "M  SMT" + rightPaddWithSpaces(g+"", 4) + " " +aNode.getAlias();
+			//String l6 = "M  SBV" + leftPaddWithSpaces(g+"", 4) + " " +aNode.getAlias();
+			sgroupBlockBuilder.append(l1).append(newLine);
+			sgroupBlockBuilder.append(l2).append(newLine);
+			sgroupBlockBuilder.append(l3).append(newLine);
+			sgroupBlockBuilder.append(l4).append(newLine);
+			sgroupBlockBuilder.append(l5).append(newLine);
+			
+		});
+		
+		return sgroupBlockBuilder;
 	}
 
 	private static int computeMolCharge(int charge){
@@ -1457,6 +1520,8 @@ public class ConnectionTable{
 		private Point2D point;
 		private String symbol="C";
 		private int charge=0;
+		private int group=0;
+		private String alias = null;
 		private boolean invented=false;
 		
 		
@@ -1583,6 +1648,27 @@ public class ConnectionTable{
 
 		public int getValanceTotal() {
 			return getEdges().stream().mapToInt(e->e.getOrder()).sum();
+		}
+
+		public boolean hasInventedBond() {
+			return this.getEdges().stream().anyMatch(b->b.isInventedBond());
+		}
+
+		public Node markGroup(int gnum) {
+			this.group=gnum;
+			return this;
+		}
+		
+		public int getGroup() {
+			return this.group;
+		}
+		
+		public String getAlias(){
+			return this.alias;
+		}
+		public Node setAlias(String ali){
+			this.alias=ali;
+			return this;
 		}
 		
 	}
@@ -2028,6 +2114,7 @@ public class ConnectionTable{
 		this.nodes.stream()
 		          .filter(n->n.getEdgeCount()==3)
 		          .filter(n->!n.isInvented())
+		          .filter(n->!n.hasInventedBond())
 		          .filter(n->n.getEdges().stream().filter(e->e.getOrder()>1).map(e->e.getOtherNode(n).getSymbol()).anyMatch(s->!"C".equals(s)))
 		          .filter(n->n.getSmallestRingSize().orElse(999)>4)
 		          .forEach(n->{
