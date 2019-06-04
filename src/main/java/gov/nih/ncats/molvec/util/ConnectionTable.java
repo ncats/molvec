@@ -26,6 +26,7 @@ import gov.nih.ncats.molvec.Bitmap;
 import gov.nih.ncats.molvec.CachedSupplier;
 import gov.nih.ncats.molvec.algo.Tuple;
 import gov.nih.ncats.molvec.algo.Tuple.KEqualityTuple;
+import gov.nih.ncats.molvec.util.ConnectionTable.Node;
 import gov.nih.ncats.molvec.util.GeomUtil.ShapeWrapper;
 
 public class ConnectionTable{
@@ -2152,6 +2153,16 @@ public class ConnectionTable{
 
 	public int getSumCharge() {
 		return this.nodes.stream().mapToInt(n->n.getCharge()).sum();
+	}
+
+
+	public Node getClosestNodeToPoint(Point2D point) {
+		return this.getNodes().stream()
+				.map(n->Tuple.of(n,n.getPoint().distanceSq(point)).withVComparator())
+				.min(Comparator.naturalOrder())
+				.map(t->t.k())
+				.orElse(null);
+				
 	}
 
 	

@@ -150,7 +150,7 @@ public class StructureImageExtractor {
 	private final double OCR_TO_BOND_MAX_DISTANCE=3.0;
 	private final double maxCandidateRatioForIntersection = 1.5;
 	private final double maxCandidateRatioForIntersectionWithNeighbor = 1.3; 
-	private final double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL = 0.5;
+	private final double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL = 0.6;
 	private final double MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS = 6;
 	private final double MAX_BOND_TO_AVG_BOND_RATIO_FOR_INTERSECTION= 0.8;
 
@@ -2116,21 +2116,21 @@ public class StructureImageExtractor {
 							double ddelta=Math.abs(sumd-e.getEdgeLength());
 							List<Edge> edges=cn.getEdges();
 							if(edges.size()==2){
-								if(ddelta<MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC){
-									if(!toRemove.contains(n1) && !toRemove.contains(n2)){
-										toRemove.add(cn);
+								
+									if(ddelta<MAX_DELTA_LENGTH_FOR_STITCHING_LINES_ON_BOND_ORDER_CALC){
+										if(!toRemove.contains(n1) && !toRemove.contains(n2)){
+											toRemove.add(cn);
+										}
+										double o2=edges.stream().map(et->Tuple.of(et,et.getEdgeLength()))
+												.mapToDouble(e1->(e1.k().getOrder() * e1.v()))
+												.sum();
+										int o=(int)Math.round(((o2/sumd)+0.05));
+										t.v().setOrder(o);
 	
 									}
-									double o2=edges.stream().map(et->Tuple.of(et,et.getEdgeLength()))
-											.mapToDouble(e1->(e1.k().getOrder() * e1.v()))
-											.sum();
-									int o=(int)Math.round(((o2/sumd)+0.05));
-									t.v().setOrder(o);
-
-								}
-								if(!edges.stream().anyMatch(e2->e2.getDashed())){
-									alreadyExists=true;	
-								}
+									if(!edges.stream().anyMatch(e2->e2.getDashed())){
+										alreadyExists=true;	
+									}
 							}else if(edges.size()==4){ //might be intersection for cage
 								boolean isIntersection = intersectionNodes.stream()
 								                 .filter(in->in.distanceSq(cp)<4)
@@ -2140,7 +2140,6 @@ public class StructureImageExtractor {
 									toRemoveEdges.add(t.v());
 								}
 							}
-
 						}
 					}
 
@@ -2157,6 +2156,8 @@ public class StructureImageExtractor {
 				
 				
 				if(DEBUG)logState(15,"make missing bonds to neighbors that are close enough with enough pixel support, and are not seen as redundant");
+				
+				List<Tuple<Edge, Tuple<Node,Node>>> removeMe = new ArrayList<>();
 				
 				ctab.getRings()
 			    .stream()
@@ -2193,6 +2194,7 @@ public class StructureImageExtractor {
 			    	 .isPresent();
 			    	
 			    	if(looksOkay){
+			    		//System.out.println("Real ring:");
 			    		//this means the rings are likely to be real.
 			    		//with that in mind, let's take a look and see if there are things that should be merged
 			    		//specifically, we want edges that are dashes
@@ -2202,9 +2204,7 @@ public class StructureImageExtractor {
 			    		
 			    		eset
 			    		 .stream()
-			    		 //.filter(ee->ee.getDashed())
 			    		 .forEach(ed->{
-			    			 
 			    			 boolean[] changed=new boolean[]{false};
 			    			 
 			    			 ed.getRealNode1()
@@ -2218,6 +2218,7 @@ public class StructureImageExtractor {
 			    			   .filter(ne->{
 			    				   return ns.contains(ne.k().getPoint());
 			    			   })
+//			    			   .filter(ne->ne.v().getEdgeLength()<ctab.getAverageBondLength()*0.5)
 			    			   .forEach(ne->{
 			    				   ed.setDashed(ne.v().getDashed());
 			    				   if(ed.getOrder()==1 && ne.v().getOrder()!=1){
@@ -2225,6 +2226,11 @@ public class StructureImageExtractor {
 			    				   }
 			    				   toRemoveEdges.add(ne.v());
 			    				   toRemove.add(ne.k());
+			    				   ne.k().getEdges().stream()
+			    				   .filter(oe -> oe!=ne.v())
+			    				   .forEach(oe->{
+			    					   removeMe.add(Tuple.of(oe,Tuple.of(oe.getRealNode1(),oe.getRealNode2())));
+			    				   });
 			    				   changed[0]=true;
 			    			   });
 			    			 ed.getRealNode2()
@@ -2238,6 +2244,7 @@ public class StructureImageExtractor {
 			    			   .filter(ne->{
 			    				   return ns.contains(ne.k().getPoint());
 			    			   })
+//			    			   .filter(ne->ne.v().getEdgeLength()<ctab.getAverageBondLength()*0.5)
 			    			   .forEach(ne->{
 			    				   ed.setDashed(ne.v().getDashed());
 			    				   if(ed.getOrder()==1 && ne.v().getOrder()!=1){
@@ -2245,6 +2252,11 @@ public class StructureImageExtractor {
 			    				   }
 			    				   toRemoveEdges.add(ne.v());
 			    				   toRemove.add(ne.k());
+			    				   ne.k().getEdges().stream()
+			    				   .filter(oe -> oe!=ne.v())
+			    				   .forEach(oe->{
+			    					   removeMe.add(Tuple.of(oe,Tuple.of(oe.getRealNode1(),oe.getRealNode2())));
+			    				   });
 			    				   changed[0]=true;
 			    			   });
 			    			 
@@ -2266,21 +2278,31 @@ public class StructureImageExtractor {
 			    				        	  ed.setWedge(false);
 			    				           });
 			    			 }
-			    			 
-			    			  
-			    			 
-			    			 
 			    		 });
 			    		
 			    		
 			    		
 			    	}			    	
 			    });
-
-				
 				
 				toRemoveEdges.forEach(e->ctab.removeEdge(e));
 				toRemove.forEach(n->ctab.removeNodeAndEdges(n));
+				
+				removeMe.forEach(eet->{
+					Edge ee = eet.k();
+					Node n1=eet.v().k();
+					Node n2=eet.v().v();
+					Node n1a=ctab.getClosestNodeToPoint(n1.getPoint());
+					Node n2a=ctab.getClosestNodeToPoint(n2.getPoint());
+					if(n1a!=n2a){
+						if(!n1a.connectsTo(n2a)){
+							ctab.addEdge(n1a.getIndex(), n2a.getIndex(), ee.getOrder())
+							.setDashed(ee.getDashed());
+						}
+					}
+					
+				});
+				
 				if(DEBUG)logState(16,"remove edges which appear to have been noise / generated from proximity around a ring");
 
 				double avgBondLength=ctab.getAverageBondLength();
