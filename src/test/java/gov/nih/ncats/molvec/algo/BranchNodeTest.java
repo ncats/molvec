@@ -5,10 +5,13 @@ import static org.junit.Assert.assertTrue;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
-import gov.nih.ncats.molvec.algo.BranchNode;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import gov.nih.ncats.molvec.algo.BranchNode.TokenTree;
 public class BranchNodeTest {
 	
 	@Test
@@ -47,11 +50,29 @@ public class BranchNodeTest {
 		assertEquals("-C(=O,-O(-C))",s);
 	}
 	
-	@Ignore
 	@Test
 	public void methyoxyEsterShouldHave5NodesWithCorrectBonds(){
 		String s=BranchNode.interpretOCRStringAsAtom2("CO2CH2OH").toString();
 		assertEquals("-C(=O,-O(-C(-O)))",s);
+	}
+	
+	@Test
+	public void parseTree(){
+		TokenTree tt=BranchNode.parseTokenTree("cH31OBr()");
+		tt.getAllTrees(ll->{
+			String full=ll.stream()
+			  .map(tt1->tt1.getDisplay())
+			  .collect(Collectors.joining("-"));
+			System.out.println(full);
+		});
+	}
+	
+	@Test
+	public void testParse(){
+		Optional<Tuple<BranchNode,String>> op = BranchNode.parseBranchNode("(CH2O)3");
+		Tuple<BranchNode,String> gg=op.get();
+		System.out.println("Is linkable:" + gg.k().isLinkable());
+		System.out.println(gg.k().toString() + " as " + gg.v());
 	}
 	
 	@Test

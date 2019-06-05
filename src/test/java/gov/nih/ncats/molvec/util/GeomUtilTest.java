@@ -31,7 +31,7 @@ public class GeomUtilTest {
 
 	
 	@Test
-	public void testMaxTehtaForLineWorks(){
+	public void testMaxThetaForLineWorks(){
 		double theta1 = 3*Math.PI/9;
 		AffineTransform at= new AffineTransform();
 		at.rotate(theta1);
@@ -47,6 +47,62 @@ public class GeomUtilTest {
 		
 		assertEquals(theta1, theta,0.01);
 	}
+	
+	
+	@Test
+	public void testPCAMaxThetaForLineWorks(){
+		double noise = 0.0;
+		int totSlice = 100;
+		int npoints = 100;
+		for(int i=0;i<totSlice;i++){
+			double theta1 = 2*Math.PI*i/((double)totSlice);
+			AffineTransform at= new AffineTransform();
+			at.rotate(theta1);
+			
+			
+			
+			
+			List<Point2D> pts=IntStream.range(0, npoints)
+			         .mapToObj(j->new Point2D.Double(j-npoints/2,noise*(Math.random()-0.5)))
+			         .map(p->at.transform(p, null))
+			         .collect(Collectors.toList());
+			
+			double[] xs=pts.stream()
+			.mapToDouble(p->p.getX())
+			.toArray();
+			double[] ys=pts.stream()
+					.mapToDouble(p->p.getY())
+					.toArray();
+			
+			double[] ln=GeomUtil.getPCALikeUnitVector(xs, ys);
+			
+			double tTheta = theta1;
+			if(theta1>Math.PI){
+				tTheta = theta1-2*Math.PI; // restrict between -PI and PI
+			}
+			if(tTheta<0){
+				tTheta +=Math.PI;
+			}
+			
+			
+			double thetap1=GeomUtil.angle(new Point2D.Double(0,0),new Point2D.Double(ln[0],ln[1]));
+			
+			
+			//can be off by PI in either direction
+			try{
+				assertEquals(tTheta, thetap1,0.01);
+			}catch(Error e2){
+				if(tTheta>0.01){
+					assertEquals(tTheta-Math.PI, thetap1,0.01);
+				}else{
+					assertEquals(tTheta+Math.PI, thetap1,0.01);
+				}
+			}			
+		}
+	}
+	
+		
+	
 	
 	@Test 
 	public void testSplitShapeIntoNSides(){
@@ -440,7 +496,6 @@ public class GeomUtilTest {
 			pts[i/2]=new Point2D.Double(icoords[i], icoords[i+1]);
 		}
 		Shape s= GeomUtil.convexHull2(pts);
-		System.out.println(Arrays.toString(vertices(s)));
 		
 		for(Point2D p : pts){
 			assertTrue(GeomUtil.distanceTo(s,p)<0.001);

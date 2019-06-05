@@ -2,6 +2,7 @@ package gov.nih.ncats.molvec.image;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.logging.Logger;
 
 import java.awt.image.BufferedImage;
@@ -62,17 +63,21 @@ public class Grayscale {
     protected Raster createRaster (Raster raster) {
         int height = raster.getHeight();
         int width = raster.getWidth();
+        int nband = raster.getNumBands();
+        
 
         max = 0;
         min = Integer.MAX_VALUE;
-    	for (int i = 0; i < width; ++i) {
-    	    for (int j = 0; j < height; ++j) {
-                int pixel = raster.getSample(i, j, 0);
+        int[] row = new int[width];
+        for (int j = 0; j < height; ++j) {
+        	raster.getSamples(0, j, width, 1, 0, row);
+        	for (int i = 0; i < width; ++i) {
+    		    int pixel = row[i];
                 if (pixel > max) max = pixel;
                 if (pixel < min) min = pixel;
     	    }
     	}
-        int range = max - min;
+//        int range = max - min;
 //        logger.info("## range="+range+", min="+min+", max="+max);
 
         for (int i = 0; i < histogram.length; ++i)
@@ -81,16 +86,21 @@ public class Grayscale {
         WritableRaster outRaster = Raster.createWritableRaster
                 (new BandedSampleModel
                  (DataBuffer.TYPE_BYTE, width, height, 1), null);
-        double[] sample = new double[Math.max(raster.getNumBands(),3)];
         
+        double[] sampleRow = new double[width*raster.getNumBands()];
+        double[] resultRow = new double[width];
         for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; ++x) {
-            	
-                int s = grayscale (raster.getPixel(x, y, sample)) & 0xff;
-                //System.out.println(Arrays.toString(sample));
-                outRaster.setSample (x, y, 0, s);
+        	raster.getPixels(0, y, width, 1, sampleRow);
+        	//System.out.println(ff.length + "  vs " + width);
+        	for (int x = 0; x < width; x++) {
+        		
+        		double[] pp=Arrays.copyOfRange(sampleRow,x*nband,x*nband+nband);
+        		
+                int s = grayscale (pp) & 0xff;
+                resultRow[x]=s;
                 ++histogram[s];
             }
+        	outRaster.setSamples(0, y, width, 1, 0, resultRow);
         }
         raster = outRaster;
 
@@ -104,20 +114,6 @@ public class Grayscale {
                 ++cnt;
             }
         }
-
-        /*
-          try {
-          BufferedImage img = new BufferedImage
-          (raster.getWidth(), raster.getHeight(), 
-          BufferedImage.TYPE_BYTE_GRAY);
-          img.setData(raster);
-          ImageIO.write(img, "png", new java.io.FileOutputStream ("gray.png"));
-          }
-        catch (IOException ex) {
-            ex.printStackTrace();
-        }
-        */
-
         
         if (cnt > 0) {
             mean /= cnt;
@@ -130,8 +126,6 @@ public class Grayscale {
             }
             stddev = Math.sqrt(stddev/cnt);
         }
-
-//        logger.info("mean: "+mean+", std: "+stddev);
 
         return raster;
     }

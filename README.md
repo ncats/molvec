@@ -1,38 +1,39 @@
-#MolVec
+# MolVec
 NCATS (chemical) ocr
 engine that can a way to vectorize
 chemical images into Chemical objects preserving the 2D layout as much as 
 possible. The code is still very raw in terms of utility. Please forward
 questions and/or problems to tyler.peryea@nih.gov.
 
-#How To Build
+#$ How To Build
    
    This project has a dependency on Chemkit, to install those dependencies automatically using the default CDK implementation, run this command:
 
-   $ bash mavenInstall.sh
+   `$ bash mavenInstall.sh`
 
    Once the dependencies are installed, you can build the whole project as a jar file with:
 
-   $ mvn clean pacakge
+   `$ mvn clean pacakge`
 
    Or install the project into your maven repository using:
 
-   $ mvn install
+   `$ mvn install`
    
-##Example Usage
-
+## Example Usage
+```java
     File image = ...
     String mol = Molvec.ocr(image);
+```
     
-    
-##Async Support
+## Async Support
 
   New in 0.8 MolVec supports asynchronous calls
-  
+ ```java
     CompleteableFuture<String> future = Molvec.ocrAsync( image);
     String mol = future.get(5, TimeUnit.SECONDS);
+```
   
-##Commandline interface
+## Commandline interface
   The Molvec jar has a runnable Main class with the following options
   
     usage: molvec [ -f <path> | -gui]
@@ -47,7 +48,7 @@ questions and/or problems to tyler.peryea@nih.gov.
      -scale <arg>      scale of image to show in viewer (only valid if gui
                        mode AND file are specified)
                        
-###GUI
+### GUI
   Molvec Comes with a Swing Viewer you can use to step
   through each step of the structure recognition process
 

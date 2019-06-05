@@ -20,21 +20,21 @@ public class LineSegmentTest {
 	public void parallelLinesAtProblemAngleShouldBeJoined() throws Exception {
 		File f=getFile("segmentTest/badparlines.png");
 		StructureImageExtractor sie = new StructureImageExtractor(f);
-		assertEquals(6,sie.getLinesJoined().size());	
+		assertEquals(6,sie.getLineSegmentsJoined().size());	
 	}
 	
 	@Test
 	public void thickWigglyLineShouldBeJoined() throws Exception {
 		File f=getFile("segmentTest/angled_wiggle_line.png");
 		StructureImageExtractor sie = new StructureImageExtractor(f);
-		assertEquals(1,sie.getLinesJoined().size());	
+		assertEquals(1,sie.getLineSegmentsJoined().size());	
 	}
 	
 	@Test
 	public void thickWigglyLinesShouldBeJoinedAndStitched() throws Exception {
 		File f=getFile("segmentTest/angled_wiggle_line_branch.png");
 		StructureImageExtractor sie = new StructureImageExtractor(f);
-		int num=sie.getLinesJoined().size();
+		int num=sie.getLineSegmentsJoined().size();
 		
 
 		assertTrue("Expected number of segments was 3 or 4, found:" + num,num>=3 && num<=4);
@@ -48,7 +48,7 @@ public class LineSegmentTest {
 	public void thickWigglyLinesWithDoubleBondsShouldBeJoinedAndStitched() throws Exception {
 		File f=getFile("segmentTest/angled_wiggle_line_double.png");
 		StructureImageExtractor sie = new StructureImageExtractor(f);
-		int num=sie.getLinesJoined().size();
+		int num=sie.getLineSegmentsJoined().size();
 		
 
 		assertTrue("Expected number of segments was between 6 and 8, found:" + num,num>=6 && num<=8);
@@ -62,7 +62,7 @@ public class LineSegmentTest {
 	public void thickWigglyLinesWithSmallAngleSectionShouldBeStitched() throws Exception {
 		File f=getFile("segmentTest/angled_wiggle_line_with_small_part.png");
 		StructureImageExtractor sie = new StructureImageExtractor(f);
-		int num=sie.getLinesJoined().size();
+		int num=sie.getLineSegmentsJoined().size();
 		assertTrue("Expected number of segments was between 2 and 3, found:" + num,num>=2 && num<=3);
 	}
 	
@@ -70,7 +70,7 @@ public class LineSegmentTest {
 	public void thinLinesWithDoubleBondsShouldBeStitchedToCorrectNumber() throws Exception {
 		File f=getFile("segmentTest/thin_double.png");
 		StructureImageExtractor sie = new StructureImageExtractor(f);
-		int num=sie.getLinesJoined().size();
+		int num=sie.getLineSegmentsJoined().size();
 		assertTrue("Expected number of segments was between 9 and 11, found:" + num,num>=9 && num<=11);
 		if(num!=9){
 			int finalEdges=sie.getCtab().getEdges().size();
@@ -82,14 +82,14 @@ public class LineSegmentTest {
 	public void twoByOneDiagonalShouldBeReadableAsLine() throws Exception {
 		File f=getFile("segmentTest/2_by_1_diagonal.png");
 		StructureImageExtractor sie = new StructureImageExtractor(f);
-		int num=sie.getLinesJoined().size();
+		int num=sie.getLineSegmentsJoined().size();
 		assertTrue("Expected number of segments was 1, found:" + num,num==1);
 	}
 	@Test
 	public void oneByOneDiagonalShouldBeReadableAsLine() throws Exception {
 		File f=getFile("segmentTest/1_by_1_diagonal.png");
 		StructureImageExtractor sie = new StructureImageExtractor(f);
-		int num=sie.getLinesJoined().size();
+		int num=sie.getLineSegmentsJoined().size();
 		assertTrue("Expected number of segments was 1, found:" + num,num==1);
 	}
 	

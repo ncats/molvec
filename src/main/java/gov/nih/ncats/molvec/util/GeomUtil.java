@@ -41,10 +41,12 @@ import java.util.stream.Stream;
 
 import gov.nih.ncats.molvec.CachedSupplier;
 import gov.nih.ncats.molvec.algo.Tuple;
+import gov.nih.ncats.molvec.util.GeomUtil.ShapeWrapper;
 
 
 public class GeomUtil {
     private static final double ZERO_DISTANCE_TOLERANCE = 0.0001;
+    private static final double ZERO_DISTANCE_OPTIMISTIC_TOLERANCE = 0.000001;
 
 	private static final Logger logger = 
         Logger.getLogger (GeomUtil.class.getName ());
@@ -136,10 +138,10 @@ public class GeomUtil {
                                +"b=("+b.x+","+b.y+") ccw="+ccw(p0,a,b)
                                +" theta(p0,a)="+a0+" theta(p0,b)="+a1);
                              */
-                             if (a0 < a1) return -1;
+                             if (a0 < a1) return -1; 
                              if (a0 > a1) return 1;
 
-                             double d0 = a.distance (p0), d1 = b.distance (p0);
+                             double d0 = a.distanceSq(p0), d1 = b.distanceSq(p0);
                              if (d0 < d1) return -1;
                              if (d0 > d1) return 1;
                              return 0;
@@ -469,16 +471,29 @@ public class GeomUtil {
     }
     
     /**
-     * Find the center of mass of a shape. This is not a 100% validated method, but works by doing a weighted average of each vertex
-     * in a shape, where the vertex is weighted proportionally to the length of lines that connect to it. This seems to work well
-     * for convex hulls, but has not been evaluated for non-convex shapes.
+     * Find the center of mass (centroid) of a shape. This is done by using the triangle area method:
+     * <pre>
+     * X = SUM[(Xi + Xi+1) * (Xi * Yi+1 - Xi+1 * Yi)] / (6 * A)
+	 * Y = SUM[(Yi + Yi+1) * (Xi * Yi+1 - Xi+1 * Yi)] / (6 * A)
+	 * </pre>
+	 * 
+	 * Where A is the signed area of the polygon. For shapes with near zero area, the center of the bounding box is returned instead.
+	 * 
      * @param s1
      * @return
      */
     public static Point2D centerOfMass(Shape s1){
-    	return centerOfMass(Arrays.asList(GeomUtil.lines(s1)));
+    	return ShapeWrapper.of(s1).centerOfMass();
     }
     
+    
+    
+    
+    /**
+     * Finds the center point of a set of lines, weighted by the line lengths
+     * @param lines
+     * @return
+     */
     public static Point2D centerOfMass(List<Line2D> lines){
     	double sumLength = lines.stream().mapToDouble(l->length(l)).sum()*2;
     	
@@ -575,6 +590,20 @@ public class GeomUtil {
     	return lp1;
     }
     
+    public static Line2D findMaxSeparationLinePCA(List<Point2D> pts){
+    	
+    	double[] xs = new double[pts.size()];
+    	double[] ys = new double[pts.size()];
+    	for(int i=0;i<pts.size();i++){
+    		Point2D p=pts.get(i);
+    		xs[i]=p.getX();
+    		ys[i]=p.getY();
+    	}
+    	double[] vec=getPCALikeUnitVector(xs, ys);
+    	
+    	return new Line2D.Double(0,0,vec[0],vec[1]);
+    }
+    
     public static LineWrapper findLongestSplittingLine(Shape s){
     	if(s instanceof Line2D)return LineWrapper.of((Line2D)s);
     	Point2D center = GeomUtil.centerOfMass(s);
@@ -660,6 +689,112 @@ public class GeomUtil {
     	      .sum();
     }
     
+    
+	 /**
+	  * 
+	  * Returns the y-axis, x-axis, and product second moment of area for a set
+	  * of CCW vertices defining a shape.
+	  * 
+	  * This is effectively the same as returning the variance in the x-direction,
+	  * y-direction, and along y=x.
+	  * 
+	  * 
+	  * For more information:
+	  * https://apps.dtic.mil/dtic/tr/fulltext/u2/a183444.pdf
+	  * 
+	  * @param xs
+	  * @param ys
+	  * @return
+	  */
+    public static double[] getSecondMomentXYandCross(double[] xs, double[] ys){
+    	
+    	double ix = 0;
+    	double iy = 0;
+    	double ixy = 0;
+    	double c1 = 1/12.0;
+    	double c2 = 1/24.0;
+    	
+    	
+    	for(int i=0;i<xs.length;i++){
+    		int ni = i+1;
+    		if(ni>=xs.length)ni=ni%xs.length;
+    		double cp = xs[i]*ys[ni] - xs[ni]*ys[i];
+    		double xp = xs[i]*xs[i] + xs[i]*xs[ni] + xs[ni]*xs[ni];
+    		double yp = ys[i]*ys[i] + ys[i]*ys[ni] + ys[ni]*ys[ni];
+    		double xyp = xs[i]*ys[ni] + 2*xs[i]*ys[i]+ 2*xs[ni]*ys[ni] + xs[ni]*ys[i];
+    		ix+=cp*xp;
+    		iy+=cp*yp;
+    		ixy+=cp*xyp;
+    	}
+    	
+    	return new double[]{ix*c1,iy*c1,ixy*c2};
+    }
+    
+    public static double[] getUnitVectorFromVariance(double vx, double vy, double vxy){
+    	double cos;
+    	
+//    	double cos = Math.sqrt(vx)/hyp;
+    	if(Math.abs(vxy)<ZERO_DISTANCE_OPTIMISTIC_TOLERANCE){
+    		vxy=ZERO_DISTANCE_OPTIMISTIC_TOLERANCE;
+    	}
+    	
+    	double k = (vx-vy)/vxy;
+    	double ki = k / (Math.sqrt(k*k+4)); // bounded between -1 and 1
+    	
+    	
+		if (ki <= 1) {
+			cos = Math.sqrt((1 - ki) / 2.0);
+		}else {
+			cos = 0; // if everything else fails, default to +x-direction
+		}
+		
+    	//we now know that the best cos(theta) is either cos1, cos2 or -cos1,-cos2
+    	//If we assume we always report sin(theta) as positive    	
+    	double sin=Math.sqrt(1-cos*cos);
+    	double keepCos = cos;
+    	double keepSin = sin;
+    	
+    	if(vx>vy){
+    			//more variance in the x direction, so we want a larger |cos(theta)|
+    			keepCos = Math.max(Math.abs(cos),Math.abs(sin));
+    			keepSin = Math.min(Math.abs(cos),Math.abs(sin));
+    	}else{
+    			keepCos = Math.min(Math.abs(cos),Math.abs(sin));
+    			keepSin = Math.max(Math.abs(cos),Math.abs(sin));
+    	}
+    	//aligned in the 1st and 3rd quad, so cos(theta) is positive
+    	if(vxy<0){
+    		keepCos=-keepCos;
+    	}
+    	
+    	return new double[]{keepCos, keepSin};
+    }
+    
+    public static double[] getPCALikeUnitVector(double[] xs, double[] ys){
+    	double vx=0;
+    	double vy=0;
+    	double vxy=0;  //orientation. >0 means 1st and 3rd quad, <0 means 2nd and 4th quad
+    	
+    	for(int i=0;i<xs.length;i++){
+    		vx+=xs[i]*xs[i];
+    		vy+=ys[i]*ys[i];
+    		vxy+=xs[i]*ys[i];
+    	}
+    	
+    	return getUnitVectorFromVariance(vx,vy, vxy);
+    	    	
+    }
+    
+    
+    /**
+     * Grid-based search for a zero in a supplied function, using a set number of steps, and returning the first bounds
+     * where there is a sign change in the supplied function.  
+     * @param f
+     * @param high
+     * @param low
+     * @param steps
+     * @return
+     */
     private static Tuple<Double,Double> findZeroGrid(Function<Double,Double> f, double high, double low, int steps){
     	double delta = (high-low)/steps;
     	
@@ -684,6 +819,16 @@ public class GeomUtil {
     	return Tuple.of(low,high);
     }
     
+    /**
+     * Finds the zero of a function by linear interpolation. That is, a high and low x value is specified, and the midpoint
+     * x value is also sampled. I
+     * @param f
+     * @param high
+     * @param low
+     * @param tolError
+     * @param minStep
+     * @return
+     */
     private static double findZeroInterp(Function<Double,Double> f, double high, double low, double tolError, double minStep){
     	
     	double hv=f.apply(high);
@@ -725,27 +870,27 @@ public class GeomUtil {
     }
     
     
-    public static Tuple<Point2D,double[]> getCircumscribedAndInscribedCircles(Shape s1){
-    	Point2D centerOfMass=centerOfMass(s1);
+    public static Tuple<Point2D,double[]> getCircumscribedAndInscribedCircles(ShapeWrapper s1){
+    	Point2D centerOfMass=s1.centerOfMass();
     	
 
-    	Line2D[] lines=GeomUtil.lines(s1);
+    	Line2D[] lines=s1.getLines();
     	
     	double min=Arrays.stream(lines)
     			.map(l->GeomUtil.projectPointOntoLine(l, centerOfMass))
-			    	      .mapToDouble(lp->lp.distance(centerOfMass))
+			    	      .mapToDouble(lp->lp.distanceSq(centerOfMass))
 			    	      .min()
 			    	      .orElse(0);
-    	double max=Arrays.stream(vertices(s1))
-	    	      .mapToDouble(v->v.distance(centerOfMass))
+    	double max=Arrays.stream(s1.getVerts())
+	    	      .mapToDouble(v->v.distanceSq(centerOfMass))
 	    	      .max()
 	    	      .orElse(0);
     	
-    	return Tuple.of(centerOfMass,new double[]{min,max});
+    	return Tuple.of(centerOfMass,new double[]{Math.sqrt(min),Math.sqrt(max)});
     }
     
     public static double getCircleLikeScore(Shape s){
-    	Tuple<Point2D,double[]> circles=getCircumscribedAndInscribedCircles(s);
+    	Tuple<Point2D,double[]> circles=getCircumscribedAndInscribedCircles(ShapeWrapper.of(s));
     	double[] rads=circles.v();
     	return rads[0]*rads[0]/(rads[1]*rads[1]);
     }
@@ -767,6 +912,17 @@ public class GeomUtil {
             pts.add (p);
         }
         return convexHull2(pts.toArray (new Point2D[0]));
+    }
+    
+    public static ShapeWrapper add(ShapeWrapper s1, ShapeWrapper s2){
+    	ArrayList<Point2D> pts = new ArrayList<Point2D> ();
+        for (Point2D p : s1.getVerts()) {
+            pts.add (p);
+        }
+        for (Point2D p : s2.getVerts()) {
+            pts.add (p);
+        }
+        return ShapeWrapper.of(convexHull2(pts.toArray (new Point2D[0])));
     }
 
     public static Point2D[] vertices (Shape shape) {
@@ -795,6 +951,362 @@ public class GeomUtil {
         }
 
         return vertices.toArray (new Point2D[0]);
+    }
+    
+    public static class ShapeWrapper{
+    	private Shape s;
+    	private Rectangle2D r;
+    	private Line2D[] lines;
+    	private Point2D[] verts;
+    	private Double signedArea = null;
+    	
+    	private Double inscribedRadius = null;
+    	private Double circumscribedRadius = null;
+    	
+    	private Point2D[] extremes = null;
+    	
+    	
+    	private LineWrapper longestSplittingLine = null;
+    	
+    	public ShapeWrapper(Shape s){
+    		this.s=s;
+    	}
+    	
+    	public Shape getShape(){
+    		return this.s;
+    	}
+    	
+    	
+    	public LineWrapper findLongestSplittingLine(){
+    		if(longestSplittingLine==null){
+	        	if(s instanceof Line2D)return LineWrapper.of((Line2D)s);
+	        	
+	        	Point2D[] verts = this.getVerts();
+	        	if(verts.length==2){
+	        		longestSplittingLine =  LineWrapper.of(new Line2D.Double(verts[0], verts[1]));
+	        		return longestSplittingLine;
+	        	}
+	        	
+	        	Point2D center = centerOfMass();
+	        	
+	        	double[] xs = new double[verts.length];
+	        	double[] ys = new double[verts.length];
+	        	for(int i=0;i<verts.length;i++){
+	        		xs[i]=verts[i].getX()-center.getX();
+	        		ys[i]=verts[i].getY()-center.getY();
+	        	}
+	        	
+	        	double[] stats=getSecondMomentXYandCross(xs,ys);
+	        	
+	        	double[] vec =getUnitVectorFromVariance(stats[0],stats[1],stats[2]);
+	        	
+	        	Line2D mline = new Line2D.Double(0,0,vec[0],vec[1]);
+	        	
+	        	Line2D mlineReal = new Line2D.Double(mline.getX1() + center.getX(), mline.getY1()+center.getY(), mline.getX2() + center.getX(), mline.getY2()+center.getY());
+	        	
+	        	
+	        	List<Point2D> ptsIntersect=Stream.of(getLines())
+	        	      .map(l->Tuple.of(l,GeomUtil.intersection(mlineReal, l)))
+	        	      .filter(t->t.v()!=null)
+	        	      .filter(t->t.k().ptSegDist(t.v())<0.001)
+	        	      .map(t->t.v())
+	        	      .collect(Collectors.toList());
+	        	
+	        	if(ptsIntersect.size()<2){
+	        		Point2D[] pfpts = this.getPairOfFarthestPoints();
+	        		longestSplittingLine= LineWrapper.of(new Line2D.Double(pfpts[0], pfpts[1]));
+	        	}else{
+		        	Point2D[] ptsDist=GeomUtil.getPairOfFarthestPoints(ptsIntersect);
+		        	longestSplittingLine= LineWrapper.of(new Line2D.Double(ptsDist[0], ptsDist[1]));
+		        	if(longestSplittingLine.length()<2){
+		        		Point2D[] pfpts = this.getPairOfFarthestPoints();
+		        		longestSplittingLine= LineWrapper.of(new Line2D.Double(pfpts[0], pfpts[1]));
+		        	}
+	        	}
+	        	
+    		}
+    		return longestSplittingLine;
+        	
+        	
+        }
+    	public double distanceTo(Point2D pt){
+    		if(s.contains(pt)){
+    	    	return 0;
+    	    }
+    		
+    	    return Math.sqrt(Arrays.stream(getLines())
+    	    	      .mapToDouble(l->l.ptSegDistSq(pt))
+    	    	      .min()
+    	    	      .getAsDouble());    	    
+    	}
+    	
+    	public Point2D[] closestPointsTo(ShapeWrapper sw){
+    		return GeomUtil.closestPoints(getLines(), sw.getLines());
+    	}
+    	
+    	public Point2D[] getPairOfFarthestPoints(){
+    		if(extremes==null)extremes=GeomUtil.getPairOfFarthestPoints(getVerts());
+    		return extremes;
+    	}
+    	
+    	private void calcRadii(){
+    		Tuple<Point2D, double[]> circles = getCircumscribedAndInscribedCircles(this);
+    		this.circumscribedRadius = circles.v()[1];
+    		this.inscribedRadius = circles.v()[0];
+    	}
+    	
+    	public double getInscribedRadius(){
+    		if(inscribedRadius==null)calcRadii();
+    		return inscribedRadius;
+    	}
+    	public double getCircumscribedRadius(){
+    		if(circumscribedRadius==null)calcRadii();
+    		return circumscribedRadius;
+    	}
+    	
+    	public double getCircleLikeScore(){
+    		double cr=getCircumscribedRadius();
+    		double ir = getInscribedRadius();
+    		return ir*ir/(cr*cr);
+    	}
+    	
+    	private void cacheAll(){
+    		this.r=s.getBounds2D();
+    		this.lines = GeomUtil.lines(s);
+    		this.verts=vertices(s);
+    		this.signedArea = areaVerticesCW(verts);    		
+    	}
+    	
+    	
+    	public List<Line2D> getLinesNotInside(Line2D l){
+
+    		boolean p1Inside = contains(l.getP1());
+    		boolean p2Inside = contains(l.getP2());
+    		
+    		//empty
+    		if(p1Inside && p2Inside)return new ArrayList<Line2D>();
+    		
+    		
+    		
+    		List<Point2D> ips=getAllIntersections(l);
+    		if(ips.isEmpty())return Arrays.asList(l);
+    		if(ips.size()>2){
+    			System.out.println("Line:" + l);
+    			System.out.println("Shape:" + Arrays.toString(vertices(s)));
+    			System.out.println("Shape:" + Arrays.toString(vertices(convexHull2(vertices(s)))));
+    			throw new IllegalStateException("Line should not intersect with convex hull more than twice, maybe the shape isn't a convux hull?");
+    		}
+    		
+    		
+    		Point2D ip1 = ips.get(0);
+    		Point2D ip2 = (ips.size()==2)?ips.get(1):null;
+    		
+    		if(p1Inside && ip2==null){			
+    			Line2D ln = new Line2D.Double(ip1,l.getP2());
+    			return Arrays.asList(ln);
+    		}else if(p2Inside && ip2==null){
+    			Line2D ln = new Line2D.Double(l.getP1(),ip1);
+    			return Arrays.asList(ln);
+    		}else{
+    			if(ip2==null){
+    				//Could be tangent to one point actually, in this case just return whole line
+    				return Arrays.asList(l);
+    				
+    				//throw new IllegalStateException("Line should not have both points inside convux hull and have no intersections. Something is wrong.");
+    			}else{
+    				double p1Distance1 = ip1.distanceSq(l.getP1());
+    				double p1Distance2 = ip2.distanceSq(l.getP1());
+    				
+    				Point2D kp1 = l.getP1();
+    				Point2D kp2 = l.getP2();
+    				
+    				if(p1Distance1>p1Distance2){
+    					kp1 = l.getP2();
+    					kp2 = l.getP1();
+    				}
+    				return Arrays.asList(new Line2D.Double(kp1,ip1),new Line2D.Double(kp2,ip2));
+    			}
+    		}
+    	}
+    	
+    	public Line2D[] getLines(){
+    		if(lines==null)lines = GeomUtil.lines(s);
+    		return lines;
+    	}
+    	
+    	public List<Point2D> getAllIntersections(Line2D l1){
+    		   	List<Point2D> plist= Arrays.stream(getLines())
+    								    	      .map(l->segmentIntersection(l,l1))
+    								    	      .filter(p->p.isPresent())
+    								    	      .map(p->p.get())
+    								    	      .collect(Collectors.toList());
+    		    	
+		    	return GeomUtil.groupPointsCloserThan(plist, ZERO_DISTANCE_TOLERANCE)
+		    	        .stream()
+		    	        .map(pl->pl.get(0))
+		    	        .collect(Collectors.toList());
+    	}
+    	
+    	public Point2D[] getVerts(){
+    		if(verts==null)verts = GeomUtil.vertices(s);
+    		return verts;
+    	}
+    	
+    	public double getWidth(){
+    		return getBounds().getWidth();
+    	}
+    	public double getHeight(){
+    		return getBounds().getHeight();
+    	}
+    	
+    	public Rectangle2D getBounds(){
+    		if(r==null)r=s.getBounds2D();
+    		return r;
+    	}
+    	
+    	public double getSignedArea(){
+    		if(signedArea==null)signedArea=areaVerticesCW(getVerts());
+    		return signedArea;
+    	}
+    	
+    	public double getArea(){
+    		return Math.abs(getSignedArea());
+    	}
+    	
+    	public static ShapeWrapper of(Shape s){
+    		return new ShapeWrapper(s);
+    	}
+
+		public boolean contains(Point2D p) {
+			return s.contains(p);
+		}
+		
+	    /**
+	     * Find the center of mass (centroid) of a shape. This is done by using the triangle area method:
+	     * <pre>
+	     * X = SUM[(Xi + Xi+1) * (Xi * Yi+1 - Xi+1 * Yi)] / (6 * A)
+		 * Y = SUM[(Yi + Yi+1) * (Xi * Yi+1 - Xi+1 * Yi)] / (6 * A)
+		 * </pre>
+		 * 
+		 * Where A is the signed area of the polygon. For shapes with near zero area, the center of the bounding box is returned instead.
+		 * 
+	     * @param s1
+	     * @return
+	     */
+		public Point2D centerOfMass(){
+
+	    	Point2D[] vts = this.getVerts();
+	    	
+	    	double sarea = this.getSignedArea();
+	    	
+	    	if(Math.abs(sarea)<ZERO_DISTANCE_TOLERANCE){
+	    		return centerOfBounds();
+	    	}
+	    	
+	    	double sumX=0;
+	    	double sumY=0;
+	    	double rArea = 1/(6*sarea);
+	    	
+	    	for(int i=0;i<vts.length;i++){
+	    		Point2D p1=vts[i];
+				Point2D p2=vts[(i+1+vts.length)%vts.length];
+				
+	    		double w=(p1.getX()*p2.getY()-p2.getX()*p1.getY());
+	    		sumX+= (p1.getX()+p2.getX())*w;
+	    		sumY+= (p1.getY()+p2.getY())*w;    		
+	    	}
+	    	
+	    	return new Point2D.Double(sumX*rArea, sumY*rArea);
+		}
+		
+		
+		public Point2D centerOfBounds(){
+			return new Point2D.Double(getBounds().getCenterX(),getBounds().getCenterY());
+		}
+		
+		/**
+		 * This method scales the shape based on its bounding box. The value given will scale the shape
+		 * such that the new bounding box width is 2*dr larger than it was before. Note that this
+		 * may scale a shape quite differently depending on whether they are "tall" or "wide"
+		 * @param s
+		 * @param dr
+		 * @return
+		 */
+		public ShapeWrapper growShapeBounds(double dr){
+			AffineTransform at = new AffineTransform();
+			Rectangle2D rect = getBounds();
+			
+			double scale = (rect.getWidth()+2*dr)/rect.getWidth();
+			
+			Point2D pt=centerOfBounds();
+			at.translate(pt.getX(), pt.getY());
+			at.scale(scale, scale);
+			at.translate(-pt.getX(), -pt.getY());
+			return ShapeWrapper.of(at.createTransformedShape(s));			
+		}
+		
+		public boolean intersects(ShapeWrapper other){
+			return GeomUtil.intersects(this, other);
+		}
+		
+		public ShapeWrapper and(ShapeWrapper s2){
+			return add(this, s2);
+		}
+		
+		public double distanceSq(ShapeWrapper sother){
+			Point2D[] pts = GeomUtil.nearestNeighborVertices(this, sother);
+			return pts[0].distanceSq(pts[1]);
+		}
+		
+		public ShapeWrapper growShapeNPoly(double r,int n){
+			return ShapeWrapper.of(GeomUtil.growShapeNPoly(getShape(), r, n));
+		}
+		
+		public Optional<Line2D> getLineInside(Line2D l){
+			boolean p1Inside = s.contains(l.getP1());
+			boolean p2Inside = s.contains(l.getP2());
+			
+			if(p1Inside && p2Inside)return Optional.of(l);
+			
+			
+			List<Point2D> ips=this.getAllIntersections(l);
+			
+			if(ips.isEmpty())return Optional.empty();
+			
+			if(ips.size()>2){
+				System.out.println("Line:" + l);
+				System.out.println("Shape:" + Arrays.toString(vertices(s)));
+				System.out.println("Shape:" + Arrays.toString(vertices(convexHull2(vertices(s)))));
+				throw new IllegalStateException("Line should not intersect with convex hull more than twice, maybe the shape isn't a convux hull?");
+			}
+
+			Point2D ip1 = ips.get(0);
+			Point2D ip2 = (ips.size()==2)?ips.get(1):null;
+			
+			if(p1Inside && ip2==null){			
+				Line2D ln = new Line2D.Double(l.getP1(),ip1);
+				return Optional.of(ln);
+			}else if(p2Inside && ip2==null){
+				Line2D ln = new Line2D.Double(ip1,l.getP2());
+				return Optional.of(ln);
+			}else{
+				if(ip2==null){
+					//Could be tangent to one point actually, in this case just return nothing
+					return Optional.empty();
+				}else{
+					return Optional.of(new Line2D.Double(ip1,ip2));
+				}
+			}
+		}
+		
+		public boolean contains(ShapeWrapper sother){
+			return GeomUtil.contains(this.s, sother.s);
+		}
+
+		public ShapeWrapper getTransformed(AffineTransform at) {
+			Shape ts=at.createTransformedShape(this.getShape());
+			return ShapeWrapper.of(ts);
+		}
     }
 
     public static Line2D[] lines (Shape shape) {
@@ -895,6 +1407,14 @@ public class GeomUtil {
     	return groupShapes(shapes,(t)->{
     		Point2D[] far=closestPoints(t.k(),t.v());
     		Shape[] s= new Shape[]{t.k(),t.v()};
+    		return merge.test(Tuple.of(s,far));	
+    	});
+    }
+    
+    public static List<List<ShapeWrapper>> groupShapesIfClosestPointsMatchCriteriaSW(Collection<ShapeWrapper> shapes, Predicate<Tuple<ShapeWrapper[],Point2D[]>> merge){
+    	return groupThings(shapes,(t)->{
+    		Point2D[] far=t.k().closestPointsTo(t.v());
+    		ShapeWrapper[] s= new ShapeWrapper[]{t.k(),t.v()};
     		return merge.test(Tuple.of(s,far));	
     	});
     }
@@ -1041,9 +1561,13 @@ public class GeomUtil {
     }
 
     public static boolean intersects (Shape s1, Shape s2) {
-        if(!s1.getBounds2D().intersects(s2.getBounds2D()))return false;
-    	Line2D[] lines1 = lines (s1);
-        Line2D[] lines2 = lines (s2);
+        return intersects(ShapeWrapper.of(s1), ShapeWrapper.of(s2));
+    }
+    
+    public static boolean intersects (ShapeWrapper s1, ShapeWrapper s2) {
+        if(!s1.getBounds().intersects(s2.getBounds()))return false;
+    	Line2D[] lines1 = s1.getLines();
+        Line2D[] lines2 = s2.getLines();
         for (Line2D l1 : lines1) {
             for (Line2D l2 : lines2) {
                 Point2D pt = intersection (l1, l2);
@@ -1052,15 +1576,15 @@ public class GeomUtil {
                 }
             }
         }
-        Point2D[] p1s=vertices(s1);
-        Point2D[] p2s=vertices(s2);
+        Point2D[] p1s=s1.getVerts();
+        Point2D[] p2s=s2.getVerts();
         
         for(Point2D p:p1s){
-        	if(s1.contains(p))return true;
+        	if(s2.contains(p))return true;
         	break;
         }
         for(Point2D p:p2s){
-        	if(s2.contains(p))return true;
+        	if(s1.contains(p))return true;
         	break;
         }
         return false;
@@ -1072,18 +1596,7 @@ public class GeomUtil {
     }
     
     public static List<Point2D> getAllIntersections(Shape s1, Line2D l1){
-    	
-    	List<Point2D> plist= Arrays.stream(lines(s1))
-						    	      .map(l->segmentIntersection(l,l1))
-						    	      .filter(p->p.isPresent())
-						    	      .map(p->p.get())
-						    	      .collect(Collectors.toList());
-    	
-    	return GeomUtil.groupPointsCloserThan(plist, ZERO_DISTANCE_TOLERANCE)
-    	        .stream()
-    	        .map(pl->pl.get(0))
-    	        .collect(Collectors.toList());
-    	
+    	return ShapeWrapper.of(s1).getAllIntersections(l1);
     }
 
     /**
@@ -1103,14 +1616,20 @@ public class GeomUtil {
      * Return two closest vertices between two shapes
      */
     public static Point2D[] nearestNeighborVertices (Shape s1, Shape s2) {
-        Point2D[] pts1 = vertices (s1);
-        Point2D[] pts2 = vertices (s2);
+       
+        return nearestNeighborVertices(ShapeWrapper.of(s1),ShapeWrapper.of(s2));
+    }
+    
+    
+    public static Point2D[] nearestNeighborVertices (ShapeWrapper s1, ShapeWrapper s2) {
+        Point2D[] pts1 = s1.getVerts();
+        Point2D[] pts2 = s2.getVerts();
 
         double minDist = Double.MAX_VALUE;
         Point2D p1 = null, p2 = null;
         for (int i = 0; i < pts1.length; ++i) {
             for (int j = 0; j < pts2.length; ++j) {
-                double dist = length (pts1[i], pts2[j]);
+                double dist =pts1[i].distanceSq(pts2[j]);
                 if (dist < minDist) {
                     p1 = pts1[i];
                     p2 = pts2[j];
@@ -1144,7 +1663,7 @@ public class GeomUtil {
         for(Line2D l1: l1s){
         	for(Line2D l2: l2s){
         		Point2D[] p=closestPointsOnLines(l1,l2);
-        		double d=p[0].distance(p[1]);
+        		double d=p[0].distanceSq(p[1]);
         		if(d<dist){
         			dist=d;
         			closest=p;
@@ -1164,15 +1683,19 @@ public class GeomUtil {
     	return intersectingPoints(Arrays.asList(lines(l1s)),Arrays.asList(lines(l2s)));
     }
     
+    public static List<Point2D> intersectingPoints(ShapeWrapper l1s, ShapeWrapper l2s){
+    	return intersectingPoints(Arrays.asList(l1s.getLines()),Arrays.asList(l2s.getLines()));
+    }
+    
     
     public static double distanceTo(Shape s, Point2D pt){
     	if(s.contains(pt)){
     		return 0;
     	}
-    	return Arrays.stream(lines(s))
-    	      .mapToDouble(l->l.ptSegDist(pt))
+    	return Math.sqrt(Arrays.stream(lines(s))
+    	      .mapToDouble(l->l.ptSegDistSq(pt))
     	      .min()
-    	      .getAsDouble();
+    	      .getAsDouble());
     }
     
     public static Point2D findCenterOfShape(Shape s){
@@ -1214,6 +1737,12 @@ public class GeomUtil {
     public static Optional<Tuple<Shape,Double>> findClosestShapeTo(Collection<Shape> shapes, Point2D pt){
     	return shapes.stream()
     	      .map(s->Tuple.of(s,distanceTo(s,pt)).withVComparator())
+    	      .min(CompareUtil.naturalOrder());
+    }
+    
+    public static Optional<Tuple<ShapeWrapper,Double>> findClosestShapeWTo(Collection<ShapeWrapper> shapes, Point2D pt){
+    	return shapes.stream()
+    	      .map(s->Tuple.of(s,s.distanceTo(pt)).withVComparator())
     	      .min(CompareUtil.naturalOrder());
     }
     
@@ -1311,8 +1840,25 @@ public class GeomUtil {
      * Euclidean between two polygons based on nearest vertices distance
      */
     public static double distance (Shape s1, Shape s2) {
+        return distance(ShapeWrapper.of(s1), ShapeWrapper.of(s2));
+    }
+    
+    /**
+     * Euclidean between two polygons based on nearest vertices distance
+     */
+    public static double distance (ShapeWrapper s1, ShapeWrapper s2) {
         Point2D[] vertex = nearestNeighborVertices (s1, s2);
         return length (vertex[0], vertex[1]);
+    }
+    
+    
+    
+    /**
+     * Euclidean Squared distance between two polygons based on nearest vertices distance
+     */
+    public static double distanceSq (Shape s1, Shape s2) {
+        Point2D[] vertex = nearestNeighborVertices (s1, s2);
+        return vertex[0].distanceSq(vertex[1]);
     }
     
     public static double[] centerVector(double[] v){
@@ -1541,6 +2087,10 @@ public class GeomUtil {
 			process();
 			return this.len;
 		}
+		public double lengthSq(){
+			return GeomUtil.lengthSquared(this.line);
+		}
+		
 		public double recipLength(){
 			process();
 			return this.rlen;
@@ -1597,7 +2147,7 @@ public class GeomUtil {
 		
 		
 		public double getLineDensity(){
-			return totLen.get()/(rect.getWidth()*2+rect.getHeight()*2);
+			return Math.pow(totLen.get(),2)/(rect.getWidth()*2+rect.getHeight()*2);
 		}
 		
 		
@@ -1903,6 +2453,14 @@ public class GeomUtil {
 				      .orElse(null);
 	}
 	
+	public static ShapeWrapper getClosestShapeToSW(Collection<ShapeWrapper> shapes, Point2D pnt){
+		return shapes.stream()
+				      .map(s->Tuple.of(s,s.distanceTo(pnt)).withVComparator())
+				      .min(CompareUtil.naturalOrder())
+				      .map(t->t.k())
+				      .orElse(null);
+	}
+	
 
 	public static double cosTheta(Line2D l1, Line2D l2){
 		double[] vec1=asVector(l1);
@@ -1922,7 +2480,7 @@ public class GeomUtil {
 		}
 	}
 
-	public static ConnectionTable getConnectionTable(List<Tuple<Line2D, Integer>> linest, List<Shape> likelyNodes,
+	public static ConnectionTable getConnectionTable(List<Tuple<Line2D, Integer>> linest, List<ShapeWrapper> likelyNodes,
 			double maxDistanceRatioNonLikely, 
 			double maxDistanceRatioLikely, 
 			double maxDistanceRatioPerLine,
@@ -1935,7 +2493,8 @@ public class GeomUtil {
 			                    		  maxDistanceRatioNonLikely, 
 			                    		  maxDistanceRatioLikely, 
 			                    		  maxDistanceRatioPerLine, 
-			                    		  minPerLineDistanceRatioForIntersection, 
+			                    		  minPerLineDistanceRatioForIntersection,
+			                    		  
 			                    		  maxCandidateRatioForIntersectionWithNeighbor,
 			                    		  acceptNewLine);
 			
@@ -1981,7 +2540,7 @@ public class GeomUtil {
 		//not sure if this is really what should be done
 		if(pts.size()==0)return new Point2D[]{new Point2D.Double(0,0),new Point2D.Double(0,0)};
 		return eachCombination(pts)
-		         .map(t->Tuple.of(t,t.k().distance(t.v())).withVComparator())
+		         .map(t->Tuple.of(t,t.k().distanceSq(t.v())).withVComparator())
 		         .max(CompareUtil.naturalOrder())
 		         .map(t->t.k())
 		         .map(t->new Point2D[]{t.k(),t.v()})
@@ -1990,20 +2549,37 @@ public class GeomUtil {
 	
 	public static List<Shape> mergeOverlappingShapes(List<Shape> shapes, double minOverlapRatio){
 		return GeomUtil.groupShapes(shapes, t->{
-			if(intersects(t.k(),t.v())){
-				double areaCombined=area(add(t.k(),t.v()));
-				double areaIntersect=getIntersectionShape(t.k(), t.v()).map(s->area(s)).orElse(0.0);
-				if(areaIntersect/areaCombined>minOverlapRatio){
-					return true;
-				}
-			}
-			return false;
-		})
+							if(intersects(t.k(),t.v())){
+								double areaCombined=area(add(t.k(),t.v()));
+								double areaIntersect=getIntersectionShape(t.k(), t.v()).map(s->area(s)).orElse(0.0);
+								if(areaIntersect/areaCombined>minOverlapRatio){
+									return true;
+								}
+							}
+							return false;
+						})
 					.stream()
 					.map(ll->ll.stream().reduce((s1,s2)->add(s1,s2)).orElse(null))
 					.filter(s->s!=null)
 				    .collect(Collectors.toList());
-
+	}
+	
+	public static List<ShapeWrapper> mergeOverlappingShapesSW(List<ShapeWrapper> shapes, double minOverlapRatio){
+		return GeomUtil.groupThings(shapes, t->{
+							double areaIntersect=getIntersectionShape(t.k(), t.v()).map(s->s.getArea()).orElse(0.0);
+							if(areaIntersect>ZERO_DISTANCE_TOLERANCE){
+								double areaCombined=add(t.k(),t.v()).getArea();
+								
+								if(areaIntersect/areaCombined>minOverlapRatio){
+									return true;
+								}
+							}
+							return false;
+						})
+					.stream()
+					.map(ll->ll.stream().reduce((s1,s2)->add(s1,s2)).orElse(null))
+					.filter(s->s!=null)
+				    .collect(Collectors.toList());
 	}
 	
 	public static <T> Stream<Tuple<T,T>> eachCombination(List<T> list){
@@ -2022,19 +2598,16 @@ public class GeomUtil {
 		return new Rectangle2D.Double(p.getX()-rad, p.getY()-rad, rad*2, rad*2);
 	}
 	
+	/**
+	 * This method scales the shape based on its bounding box. The value given will scale the shape
+	 * such that the new bounding box width is 2*dr larger than it was before. Note that this
+	 * may scale a shape quite differently depending on whether they are "tall" or "wide"
+	 * @param s
+	 * @param dr
+	 * @return
+	 */
 	public static Shape growShape(Shape s, double dr){
-		AffineTransform at = new AffineTransform();
-		Rectangle2D rect = s.getBounds2D();
-		
-		double scale = (rect.getWidth()+2*dr)/rect.getWidth();
-		
-		Point2D pt=GeomUtil.findCenterOfShape(s);
-		at.translate(pt.getX(), pt.getY());
-		at.scale(scale, scale);
-		at.translate(-pt.getX(), -pt.getY());
-		return at.createTransformedShape(s);
-		
-		//lines(shape, afx)
+		return ShapeWrapper.of(s).growShapeBounds(dr).getShape();
 	}
 	public static List<Line2D> splitLineIn2(Line2D l){
 		double cx=l.getBounds2D().getCenterX();
@@ -2177,54 +2750,7 @@ public class GeomUtil {
 	}
 	
 	public static List<Line2D> getLinesNotInside(Line2D l, Shape s){
-		
-		boolean p1Inside = s.contains(l.getP1());
-		boolean p2Inside = s.contains(l.getP2());
-		
-		//empty
-		if(p1Inside && p2Inside)return new ArrayList<Line2D>();
-		
-		
-		
-		List<Point2D> ips=GeomUtil.getAllIntersections(s, l);
-		if(ips.isEmpty())return Arrays.asList(l);
-		if(ips.size()>2){
-			System.out.println("Line:" + l);
-			System.out.println("Shape:" + Arrays.toString(vertices(s)));
-			System.out.println("Shape:" + Arrays.toString(vertices(convexHull2(vertices(s)))));
-			throw new IllegalStateException("Line should not intersect with convex hull more than twice, maybe the shape isn't a convux hull?");
-		}
-		
-		
-		Point2D ip1 = ips.get(0);
-		Point2D ip2 = (ips.size()==2)?ips.get(1):null;
-		
-		if(p1Inside && ip2==null){			
-			Line2D ln = new Line2D.Double(ip1,l.getP2());
-			return Arrays.asList(ln);
-		}else if(p2Inside && ip2==null){
-			Line2D ln = new Line2D.Double(l.getP1(),ip1);
-			return Arrays.asList(ln);
-		}else{
-			if(ip2==null){
-				//Could be tangent to one point actually, in this case just return whole line
-				return Arrays.asList(l);
-				
-				//throw new IllegalStateException("Line should not have both points inside convux hull and have no intersections. Something is wrong.");
-			}else{
-				double p1Distance1 = ip1.distance(l.getP1());
-				double p1Distance2 = ip2.distance(l.getP1());
-				
-				Point2D kp1 = l.getP1();
-				Point2D kp2 = l.getP2();
-				
-				if(p1Distance1>p1Distance2){
-					kp1 = l.getP2();
-					kp2 = l.getP1();
-				}
-				return Arrays.asList(new Line2D.Double(kp1,ip1),new Line2D.Double(kp2,ip2));
-			}
-		}
+		return ShapeWrapper.of(s).getLinesNotInside(l);
 	}
 	
 	public static List<Line2D> getLinesNotInside(Line2D l, Collection<Shape> shapes){
@@ -2234,6 +2760,18 @@ public class GeomUtil {
 			start=start.stream()
 					   .flatMap(ls->getLinesNotInside(ls,s).stream())
 					   .collect(Collectors.toList());
+		}
+		return start;
+	}
+	
+	public static List<Line2D> getLinesNotInsideSW(Line2D l, Collection<ShapeWrapper> shapes){
+		List<Line2D> start = Arrays.asList(l);
+		
+		for(ShapeWrapper s: shapes){
+			start=start.stream()
+					   .flatMap(ls->s.getLinesNotInside(ls).stream())
+					   .collect(Collectors.toList());
+			if(start.isEmpty())break;
 		}
 		return start;
 	}
@@ -2248,12 +2786,18 @@ public class GeomUtil {
 		       .map(t->t.k());
 		       
 	}
-	
 	public static Optional<Shape> getIntersectionShape(Shape s1, Shape s2){
-		List<Point2D> pointsInside1 = Arrays.stream(vertices(s1))
+		return getIntersectionShape(ShapeWrapper.of(s1), ShapeWrapper.of(s2))
+				.map(s->s.getShape());
+	}
+	
+	public static Optional<ShapeWrapper> getIntersectionShape(ShapeWrapper s1, ShapeWrapper s2){
+		if(!s1.getBounds().intersects(s2.getBounds()))return Optional.empty();
+		   
+		List<Point2D> pointsInside1 = Arrays.stream(s1.getVerts())
 				                            .filter(p->s2.contains(p))
 				                            .collect(Collectors.toList());
-		List<Point2D> pointsInside2 = Arrays.stream(vertices(s2))
+		List<Point2D> pointsInside2 = Arrays.stream(s2.getVerts())
                 .filter(p->s1.contains(p))
                 .collect(Collectors.toList());
 		
@@ -2265,7 +2809,8 @@ public class GeomUtil {
 		allPoints.addAll(pp);
 		
 		if(allPoints.isEmpty() || allPoints.size()<3)return Optional.empty();
-		return Optional.ofNullable(convexHull2(allPoints.toArray(new Point2D[0])));
+		return Optional.ofNullable(convexHull2(allPoints.toArray(new Point2D[0])))
+				.map(s->ShapeWrapper.of(s));
 	}
 	
 	/**
@@ -2360,6 +2905,10 @@ public class GeomUtil {
 			return ((Rectangle2D)s).getWidth()*((Rectangle2D)s).getHeight();
 		}
 		return Math.abs(areaVerticesCW(vertices(s)));
+	}
+	
+	public static double signedArea(Shape s){
+		return areaVerticesCW(vertices(s));
 	}
 	
 	
@@ -2547,6 +3096,44 @@ public class GeomUtil {
 
 			@Override
 			public Supplier<List<Shape>> supplier() {
+				return ()->new ArrayList<>();
+			}
+			
+		};
+	}
+	
+public static Collector<ShapeWrapper,List<ShapeWrapper>,ShapeWrapper> joinedSW(){
+		
+		return new Collector<ShapeWrapper,List<ShapeWrapper>,ShapeWrapper>(){
+
+			@Override
+			public BiConsumer<List<ShapeWrapper>, ShapeWrapper> accumulator() {
+
+				return (l,p)->{
+					l.add(p);
+				};
+			}
+
+			@Override
+			public Set<java.util.stream.Collector.Characteristics> characteristics() {
+				return new HashSet<java.util.stream.Collector.Characteristics>();
+			}
+
+			@Override
+			public BinaryOperator<List<ShapeWrapper>> combiner() {
+				return (l1,l2)->{
+					l1.addAll(l2);
+					return l1;
+				};
+			}
+
+			@Override
+			public Function<List<ShapeWrapper>, ShapeWrapper> finisher() {
+				return (pts)->pts.stream().reduce((s1,s2)->add(s1,s2)).orElse(null);
+			}
+
+			@Override
+			public Supplier<List<ShapeWrapper>> supplier() {
 				return ()->new ArrayList<>();
 			}
 			

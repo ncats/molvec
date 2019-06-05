@@ -10,10 +10,12 @@ import java.awt.image.IndexColorModel;
 import java.awt.image.Raster;
 import java.awt.image.RescaleOp;
 import java.io.*;
+import java.util.Iterator;
 import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
-
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 
 
 public class ImageUtil implements TiffTags {
@@ -62,14 +64,18 @@ public class ImageUtil implements TiffTags {
         int bands=raster.getNumBands();
     	int max = 0;
     	int min = Integer.MAX_VALUE;
-    	for (int i = 0; i < raster.getWidth(); ++i) {
-    	    for (int j = 0; j < raster.getHeight(); ++j) {
-    	    	for(int k=0;k<bands;k++){
-	                int pixel = raster.getSample(i, j, k);
+    	int[] pix = new int[raster.getWidth()];
+    	for (int j = 0; j < raster.getHeight(); ++j) {
+//    		for (int i = 0; i < raster.getWidth(); ++i) {
+    		for(int k=0;k<bands;k++){
+    			raster.getSamples(0, j, raster.getWidth(), 1, k, pix);
+    	    	for(int i=0;i<pix.length;i++){
+	                int pixel = pix[i];
 	                //System.out.print(pixel%10);
 	                if (pixel > max) max = pixel;
 	                if (pixel < min) min = pixel;
     	    	}
+    	    	
     	    }
     	    //System.out.println();
     	}
@@ -87,23 +93,15 @@ public class ImageUtil implements TiffTags {
         Grayscale grayscale = new Grayscale (raster);
     	return grayscale.getImage();
     }
-
-    private static boolean isTiff(PushbackInputStream pushbackInputStream) throws IOException{
-       byte[] magicNumber = new byte[2];
-        int len = pushbackInputStream.read(magicNumber,0,2);
-//        System.out.println("MAGIC NUMBER = " + Arrays.toString(magicNumber));
-        pushbackInputStream.unread(magicNumber,0,len);
-        if(len !=2){
-            return false;
-        }
-
-        //0x4949 or 0x4d4d
-        return ((magicNumber[0] == 0x49 && magicNumber[1] == 0x49) || (magicNumber[0] == 0x4d && magicNumber[1] == 0x4d));
-    }
     private static boolean isTiff(byte[] f) throws IOException{
 
         //0x4949 or 0x4d4d
         return ((f[0] == 0x49 && f[1] == 0x49) || (f[0] == 0x4d && f[1] == 0x4d));
+    }
+    private static boolean isPng(byte[] f) throws IOException{
+
+        //0x89PNG
+        return f[0] == 0x89 && f[1] == 0x50 && f[1] == 0x4E && f[1] == 0x47;
     }
     public static BufferedImage grayscale (BufferedImage bi) {
         Grayscale grayscale = new Grayscale (bi.getData());
@@ -115,8 +113,47 @@ public class ImageUtil implements TiffTags {
         return image;
     }
 
+
     public static BufferedImage grayscale (byte[] file) throws IOException {
-        return decode(ImageIO.read(new ByteArrayImageInputStream(file)));
+        // Create input stream
+
+        //this whole thing is to avoid using ImageIO.read(byte[])
+        //since that method writes the array to a temp file
+        //and saves it in some kind of cache which is slow(er)
+        //this avoids that and eliminates the need for temp files
+        //for a little it of a speed improvement and less hassle managing files
+        //or worrying if the caller wants to use the ImageIO cache and has set it properly.
+        try(ImageInputStream input = new ByteArrayImageInputStream(file)) {
+            // Get the reader
+            Iterator<ImageReader> readers;
+            if(isPng(file)){
+                readers = ImageIO.getImageReadersByFormatName("png");
+            }else if(isTiff(file)){
+                readers = ImageIO.getImageReadersByFormatName("tiff");
+            }else{
+                readers = ImageIO.getImageReaders(input);
+            }
+
+            if (!readers.hasNext()) {
+                throw new IOException("No reader found for format provided in byte array");
+            }
+
+            ImageReader reader = readers.next();
+
+            try {
+                reader.setInput(input);
+
+                // Finally read the image, using settings from param
+                return  decode(reader.read(0));
+
+                // ...
+            }
+            finally {
+                // Dispose reader in finally block to avoid memory leaks
+                reader.dispose();
+            }
+        }
+//        return decode(ImageIO.read(new ByteArrayImageInputStream(file)));
     }
     public static BufferedImage grayscale (File file) throws IOException {
 
