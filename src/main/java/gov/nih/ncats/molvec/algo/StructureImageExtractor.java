@@ -3898,15 +3898,26 @@ public class StructureImageExtractor {
 									parentNodes.values().stream().forEach(pn->{
 										pn.setPoint(att.transform(pn.getPoint(),null));
 									});
-									
 								}
 							}
-							
 						}
 					}
 				}
 			}			
 			if(DEBUG)logState(27,"add atom labels and computable groups");
+			
+			
+			ctab.getNodes()
+			    .stream()
+			    .filter(nn->nn.isInvented())
+			    .forEach(n->{
+			    	ctab.getNodes().stream()
+			    	    .filter(nn->nn.distanceTo(n)<ctab.getAverageBondLength()*0.5)
+			    	    .forEach(nm->{
+			    	    	nm.markTooClose(true);
+			    	    });
+			    });
+			
 			
 			// see what a bond would look like if it were in a ring
 			// To do this, first make a 5-membered ring, and then transform it to be on the bond
@@ -5213,26 +5224,68 @@ public class StructureImageExtractor {
 			    .filter(r->r.isConjugated())
 			    .forEach(r->{
 			    	Point2D center=GeomUtil.centerOfMass(r.getConvexHull());
-			    	Shape p=GeomUtil.convexHull2(GeomUtil.makeNPolyCenteredAt(new Point2D.Double(0,0), 6, 100));
+			    	ShapeWrapper p=ShapeWrapper.of(GeomUtil.convexHull2(GeomUtil.makeNPolyCenteredAt(new Point2D.Double(0,0), 6, 100)));
 			    	//Shape p2=GeomUtil.convexHull2(GeomUtil.makeNPolyCenteredAt(center, 6, ctab.getAverageBondLength()));
-			    	Point2D anchor = r.getNodes().stream()
-			    			          .map(n->Tuple.of(n, n.getPoint().distance(center)).withVComparator())
-			    			          .sorted(Comparator.reverseOrder())
-			    			          .skip(1)
-			    			          .max(Comparator.naturalOrder())
-			    			          .map(t->t.k().getPoint())
-			    			          .orElse(null);
-			    	Line2D nline = new Line2D.Double(center,anchor);
-			    	AffineTransform at=GeomUtil.getTransformFromLineToLine(new Line2D.Double(new Point2D.Double(0,0),new Point2D.Double(100,0)),nline,false);
-			    	Shape ns=at.createTransformedShape(p);
+			    	double aringBondLength=r.getEdges().stream()
+			    			.mapToDouble(e->e.getEdgeLength())
+			    			.average()
+			    			.orElse(ctab.getAverageBondLength());
+//			    	Node anchorn = r.getNodes().stream()
+//			    			          .map(n->Tuple.of(n, n.getPoint().distanceSq(center)).withVComparator())
+//			    			          .sorted(Comparator.reverseOrder())
+//			    			          .skip(1)
+//			    			          .max(Comparator.naturalOrder())
+//			    			          .map(t->t.k())
+//			    			          .orElse(null);
+//			    	
+//			    	
+//
+//			    	Node anchorn2=anchorn.getNeighborNodes()
+//				    	.stream()
+//				    	.map(nn->nn.k())
+//				    	.filter(nn->r.getNodes().contains(nn))
+//				    	.map(nn->Tuple.of(nn, nn.getPoint().distanceSq(center)).withVComparator())
+//				    	.max(Comparator.naturalOrder())
+//				        .map(t->t.k())
+//				    	.orElse(null);
 			    	
-			    	Point2D[] verts2 = GeomUtil.vertices(ns);
+			    	Edge bestEdge = r.getEdges().stream()
+			    			.map(e->Tuple.of(e,Math.pow(e.getEdgeLength()-aringBondLength,2) + 
+			    							   Math.pow(e.getRealNode1().getPoint().distance(center)-aringBondLength,2) +
+			    							   Math.pow(e.getRealNode2().getPoint().distance(center)-aringBondLength,2)
+			    					).withVComparator())
+			    			.min(Comparator.naturalOrder())
+			    			.map(t->t.k())
+			    			.orElse(null);
 			    	
+			    	Node anchorn=bestEdge.getRealNode1();
+			    	Node anchorn2=bestEdge.getRealNode2();
+			    	
+			    	
+			    	
+			    	Line2D nline = new Line2D.Double(anchorn.getPoint(), anchorn2.getPoint());
+			    	Point2D p1=p.getVerts()[0];
+			    	Point2D p2=p.getVerts()[1];
+			    	
+			    	
+			    	double[] v1=GeomUtil.asVector(nline.getP1());
+			    	double[] v2=GeomUtil.asVector(nline.getP2());
+			    	v1[0]=v1[0]-center.getX();
+			    	v1[1]=v1[1]-center.getY();
+			    	v2[0]=v2[0]-center.getX();
+			    	v2[1]=v2[1]-center.getY();
+			    	
+			    	boolean invert = GeomUtil.rejection(v1,v2)<0;
+			    	
+			    	AffineTransform at=GeomUtil.getTransformFromLineToLine(new Line2D.Double(p1,p2),nline,invert);
+			    	ShapeWrapper ns=p.getTransformed(at);
+			    	
+			    	Point2D[] verts2 = ns.getVerts();
 			    	
 			    	r.getNodes()
 			    	 .forEach(n->{
 			    		Point2D np=Arrays.stream(verts2)
-			    		      .map(v->Tuple.of(v, v.distance(n.getPoint())).withVComparator())
+			    		      .map(v->Tuple.of(v, v.distanceSq(n.getPoint())).withVComparator())
 			    		      .min(Comparator.naturalOrder())
 			    		      .map(t->t.k())
 			    		      .orElse(null);

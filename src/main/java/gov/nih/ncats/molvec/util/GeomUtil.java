@@ -41,6 +41,7 @@ import java.util.stream.Stream;
 
 import gov.nih.ncats.molvec.CachedSupplier;
 import gov.nih.ncats.molvec.algo.Tuple;
+import gov.nih.ncats.molvec.util.GeomUtil.ShapeWrapper;
 
 
 public class GeomUtil {
@@ -1300,6 +1301,11 @@ public class GeomUtil {
 		
 		public boolean contains(ShapeWrapper sother){
 			return GeomUtil.contains(this.s, sother.s);
+		}
+
+		public ShapeWrapper getTransformed(AffineTransform at) {
+			Shape ts=at.createTransformedShape(this.getShape());
+			return ShapeWrapper.of(ts);
 		}
     }
 

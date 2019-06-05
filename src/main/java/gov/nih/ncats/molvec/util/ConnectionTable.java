@@ -600,7 +600,7 @@ public class ConnectionTable{
 		
 		StringBuilder sgroupBuilder =new StringBuilder(0);
 		if(includeSgroups){
-			sgroupBuilder = makeSGroupBlock(at, newLine);
+			sgroupBuilder = makeSGroupBlock(at, newLine, true);
 		}
 
 		
@@ -673,7 +673,7 @@ public class ConnectionTable{
 		return atomBlockBuilder;
 	}
 	
-	private StringBuilder makeSGroupBlock(AffineTransform at, String newLine){
+	private StringBuilder makeSGroupBlock(AffineTransform at, String newLine, boolean onlyIfTooClose){
 		StringBuilder sgroupBlockBuilder = new StringBuilder();
 		Map<Integer, List<Node>> groups = new HashMap<>();
 		
@@ -681,23 +681,20 @@ public class ConnectionTable{
 		for(int i=0;i<this.edges.size();i++){
 			bindex.put(this.edges.get(i), i+1);
 		}
+		Set<Integer> dontDo = new HashSet<>();
 		
 		for(Node n : this.nodes){
-			Point2D np = at.transform(n.getPoint(), null);
-
-			String sym = n.symbol;
-			int massDifference = 0;
-			if(n.symbol.equals("D")){
-				sym="H";
-				massDifference=1;
-			}
-
 			if(n.getGroup()!=0){
 				groups.computeIfAbsent(n.getGroup(), k->new ArrayList<>()).add(n);
+				if(onlyIfTooClose){
+					if(!n.isTooClose())dontDo.add(n.getGroup());
+				}
 			}
 		}
 		
+		
 		groups.forEach((g,al)->{
+			if(dontDo.contains(g))return;
 			Node aNode = al.stream()
 			.filter(n->n.getAlias()!=null)
 			.findFirst()
@@ -1523,6 +1520,7 @@ public class ConnectionTable{
 		private int charge=0;
 		private int group=0;
 		private String alias = null;
+		private boolean tooClose = false;
 		private boolean invented=false;
 		
 		
@@ -1671,6 +1669,14 @@ public class ConnectionTable{
 			this.alias=ali;
 			return this;
 		}
+
+		public Node markTooClose(boolean b) {
+			this.tooClose=true;
+			return this;
+		}
+		public boolean isTooClose(){
+			return this.tooClose;
+		}
 		
 	}
 	public class Edge{
@@ -1817,6 +1823,10 @@ public class ConnectionTable{
 
 		public Point2D getCenterPoint() {
 			return GeomUtil.findCenterOfShape(this.getLine());
+		}
+
+		public double getEdgeLengthSquared() {
+			return ConnectionTable.this.nodes.get(n1).point.distanceSq(ConnectionTable.this.nodes.get(n2).point);
 		}
 		
 	}
