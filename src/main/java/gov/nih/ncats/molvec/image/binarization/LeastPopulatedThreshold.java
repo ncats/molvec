@@ -1,0 +1,108 @@
+package gov.nih.ncats.molvec.image.binarization;
+
+import java.awt.image.Raster;
+import java.util.function.Consumer;
+import java.util.logging.Logger;
+
+import gov.nih.ncats.molvec.Bitmap;
+import gov.nih.ncats.molvec.image.Binarization;
+
+/*
+ * Simple threshold based on full image mean and standard deviation. 
+ */
+public class LeastPopulatedThreshold implements Binarization {
+    
+    private int window;
+    
+    public LeastPopulatedThreshold () {
+        this (10);
+    }
+
+    public LeastPopulatedThreshold (int window) {
+        this.window = window;
+    }
+
+    
+    public Bitmap binarize (Raster inRaster) {
+    	return binarize(inRaster,(is)->{});
+    }
+    public Bitmap binarize (Raster inRaster, Consumer<ImageStats> cons) {
+        Bitmap bm = new Bitmap (inRaster.getWidth (), inRaster.getHeight ());
+        
+        ImageStats stats = Binarization.computeImageStats(inRaster);
+        
+        
+        
+        double threshold = stats.mean;
+        
+        int stot = 0;
+        int mini = 55;
+        int minVal = Integer.MAX_VALUE;
+        for(int i=0;i<100;i++){
+        	stot+=stats.histogram[i];
+        	if(i>window){
+        		stot-=stats.histogram[i-window];
+        	}
+        	if(i>=window){
+        		if(stot<minVal){
+        			minVal = stot;
+        			mini=i;
+        		}
+        	}
+        }
+        
+        threshold = stats.min + (stats.max-stats.min)*(mini-window*0.5)/100.0;
+        stats.threshold=threshold;
+        
+        
+//        System.out.println("Threshold Num:" + mini);
+//        System.out.println("Threshold:" + threshold);
+        
+        Binarization.globalThreshold(inRaster,bm,threshold);
+        
+        cons.accept(stats);
+        
+        return bm;
+    }
+
+	@Override
+	public Bitmap binarize(Raster inRaster, ImageStats stats, Consumer<ImageStats> cons) {
+		Bitmap bm = new Bitmap (inRaster.getWidth (), inRaster.getHeight ());
+        
+		if(stats==null)stats= Binarization.computeImageStats(inRaster);
+        
+        
+        
+        double threshold = stats.mean;
+        
+        int stot = 0;
+        int mini = 55;
+        int minVal = Integer.MAX_VALUE;
+        for(int i=0;i<100;i++){
+        	stot+=stats.histogram[i];
+        	if(i>window){
+        		stot-=stats.histogram[i-window];
+        	}
+        	if(i>=window){
+        		if(stot<minVal){
+        			minVal = stot;
+        			mini=i;
+        		}
+        	}
+        }
+        
+        threshold = stats.min + (stats.max-stats.min)*(mini-window*0.5)/100.0;
+        stats.threshold=threshold;
+        
+        
+//        System.out.println("Threshold Num:" + mini);
+//        System.out.println("Threshold:" + threshold);
+        
+        Binarization.globalThreshold(inRaster,bm,threshold);
+        
+        cons.accept(stats);
+        
+        return bm;
+	}
+    
+}

@@ -1,6 +1,8 @@
 package gov.nih.ncats.molvec.image.binarization;
 
 import java.awt.image.Raster;
+import java.util.function.Consumer;
+
 import gov.nih.ncats.molvec.Bitmap;
 import gov.nih.ncats.molvec.image.Binarization;
 
@@ -24,15 +26,17 @@ public class WindowThreshold implements Binarization {
     public void setHigh (double high) { this.high = high; }
     public double getHigh () { return high; }
 
-    public Bitmap binarize (Raster inRaster) {
-        Bitmap bm = new Bitmap (inRaster.getWidth (), inRaster.getHeight ());
-        for (int y = 0; y < bm.height(); ++y) {
-            for (int x = 0; x < bm.width(); ++x) {
-                double pel = inRaster.getSampleDouble (x, y, 0);
-                bm.set (x, y, pel >= low && pel <= high);
-            }
-        }
 
-        return bm;
-    }
+	@Override
+	public Bitmap binarize(Raster inRaster, ImageStats stats, Consumer<ImageStats> cons) {
+		  Bitmap bm = new Bitmap (inRaster.getWidth (), inRaster.getHeight ());
+	        for (int y = 0; y < bm.height(); ++y) {
+	            for (int x = 0; x < bm.width(); ++x) {
+	                double pel = inRaster.getSampleDouble (x, y, 0);
+	                bm.set (x, y, pel >= low && pel <= high);
+	            }
+	        }
+
+	        return bm;
+	}
 }

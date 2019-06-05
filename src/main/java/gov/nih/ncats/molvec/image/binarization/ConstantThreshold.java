@@ -1,6 +1,8 @@
 package gov.nih.ncats.molvec.image.binarization;
 
 import java.awt.image.Raster;
+import java.util.function.Consumer;
+
 import gov.nih.ncats.molvec.Bitmap;
 import gov.nih.ncats.molvec.image.Binarization;
 
@@ -23,15 +25,14 @@ public class ConstantThreshold implements Binarization {
     public void setThreshold (double threshold) { this.threshold = threshold; }
     public double getThreshold () { return threshold; }
 
-    public Bitmap binarize (Raster inRaster) {
-        Bitmap bm = new Bitmap (inRaster.getWidth (), inRaster.getHeight ());
-        for (int y = 0; y < bm.height(); ++y) {
-            for (int x = 0; x < bm.width(); ++x) {
-                double pel = inRaster.getSampleDouble (x, y, 0);
-                bm.set (x, y, pel >= threshold);
-            }
-        }
 
+
+	@Override
+	public Bitmap binarize(Raster inRaster, ImageStats stats, Consumer<ImageStats> cons) {
+		Bitmap bm = new Bitmap (inRaster.getWidth (), inRaster.getHeight ());
+        
+        Binarization.globalThreshold(inRaster, bm, threshold);
+        
         return bm;
-    }
+	}
 }

@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import gov.nih.ncats.molvec.algo.Tuple;
+import gov.nih.ncats.molvec.ui.RasterBasedCosineSCOCR.RasterChar;
 
 public class StupidestPossibleSCOCRSerif extends RasterBasedCosineSCOCR{
 	
@@ -152,7 +153,7 @@ public class StupidestPossibleSCOCRSerif extends RasterBasedCosineSCOCR{
 		      .map(Tuple.vmap(bb->new String(bb, Charset.defaultCharset())))
 		      .map(Tuple.vmap(s->new RasterChar(null,null).readDataFromString(s)))
 		      .collect(Tuple.toGroupedMap());
-		      ;
+		
 	}
 	
 	
