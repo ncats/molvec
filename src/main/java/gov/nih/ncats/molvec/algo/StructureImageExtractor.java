@@ -63,12 +63,29 @@ import gov.nih.ncats.molvec.util.GeomUtil.LineWrapper;
 import gov.nih.ncats.molvec.util.GeomUtil.ShapeWrapper;
 import gov.nih.ncats.molvec.util.RunningAverage;
 
+/**
+ * StructureImageExtractor takes in an Image file, byte array, or {@link BufferedImage} and produces a chemical structure connection table,
+ * as well as many intermediates that can be analyzed directly.  
+ * @author tyler
+ *
+ */
 public class StructureImageExtractor {
 
-	static final SCOCR OCR_DEFAULT=new StupidestPossibleSCOCRSansSerif();
+	/**
+	 * Categories used for character classification
+	 * @author tyler
+	 */
+	public static enum CharType{
+		ChemLikely,
+		NumericLikely,
+		BondLikely,
+		VerticalBondLikely,
+	}
+	
+	private static final SCOCR OCR_DEFAULT=new StupidestPossibleSCOCRSansSerif();
 	//static final SCOCR OCR_DEFAULT=new FontBasedRasterCosineSCOCR(FontBasedRasterCosineSCOCR.SANS_SERIF_FONTS());
 	//static final SCOCR OCR_BACKUP=new FontBasedRasterCosineSCOCR(FontBasedRasterCosineSCOCR.SERIF_FONTS())
-	static final SCOCR OCR_BACKUP=new StupidestPossibleSCOCRSerif()
+	private static final SCOCR OCR_BACKUP=new StupidestPossibleSCOCRSerif()
 			.adjustWeights(t->{
 				double ov=t.v().doubleValue();
 				Tuple<Character,Number> ret=t;
@@ -79,7 +96,7 @@ public class StructureImageExtractor {
 			});
 
 
-	static final SCOCR OCR_ALL=new FontBasedRasterCosineSCOCR();
+	private static final SCOCR OCR_ALL=new FontBasedRasterCosineSCOCR();
 
 	static{
 		Set<Character> alpha=SCOCR.SET_COMMON_CHEM_ALL();
@@ -94,7 +111,9 @@ public class StructureImageExtractor {
 
 		//((FontBasedRasterCosineSCOCR)OCR_BACKUP).debug();
 	}
+	private boolean DEBUG=false;
 
+	public static int SKIP_STEP_AT = -1;
 	private Bitmap bitmap; // original bitmap
 	private Bitmap thin; // thinned bitmap
 
@@ -290,9 +309,24 @@ public class StructureImageExtractor {
 		return grayScaled;
 
 	}
+	
+	/**
+	 * Create a new {@link StructureImageExtractor}, using a given {@link Raster}.
+	 * @param the raster to be processed
+	 * @throws Exception
+	 */
 	public StructureImageExtractor(Raster raster)throws Exception{
 		this(raster, false);
 	}
+	
+	/**
+	 * Create a new {@link StructureImageExtractor}, using a given {@link Raster}, if debug is specified,
+	 * debug information will be printed to standard out, and the connection table steps will be preserved
+	 * which can be obtained via {@link #getCtabRaw()}.
+	 * @param the raster to be processed
+	 * @param if true, print debug information to standard out
+	 * @throws Exception
+	 */
 	public StructureImageExtractor(Raster raster, boolean debug )throws Exception{
 		this.DEBUG = debug;
 		
@@ -309,8 +343,6 @@ public class StructureImageExtractor {
 				load(bitmap = Bitmap.read(bi,RESIZE_BINARIZATION).clean(),false);
 			}
 		}
-		
-		
 	}
 	public StructureImageExtractor(byte[] file, boolean debug) throws Exception{
 		this.DEBUG=debug;
@@ -333,7 +365,7 @@ public class StructureImageExtractor {
 	
 	
 	
-
+	
 	private static Tuple<Character,Number> adjustConfidence(Tuple<Character,Number> tup){
 		String ch=tup.k()+"";
 		double invScore=1-tup.v().doubleValue();
@@ -341,8 +373,6 @@ public class StructureImageExtractor {
 			invScore=invScore*3.5; // penalize "K"
 		}
 		if(ch.equals("R")||
-				//ch.equalsIgnoreCase("A")||
-				//ch.equalsIgnoreCase("Z")||
 				ch.equalsIgnoreCase("-")||
 				ch.equals("m")||
 				ch.equalsIgnoreCase("W")||
@@ -366,21 +396,11 @@ public class StructureImageExtractor {
 		if(ch.equals("h")){
 			invScore=invScore*(1.04); // penalize
 		}
-		
-
 		return Tuple.of(tup.k(),Math.max(0,1-invScore));
-
 	}
 
-	public static enum CharType{
-		ChemLikely,
-		NumericLikely,
-		BondLikely,
-		VerticalBondLikely,
-		
-	}
 	
-	private static CharType OCRIsLikely(Tuple<Character,Number> tup){
+	private static CharType computeCharType(Tuple<Character,Number> tup){
 		String t=tup.k()+"";
 		if(     "I".equalsIgnoreCase(t) || 
 				"L".equalsIgnoreCase(t) ||
@@ -789,28 +809,27 @@ public class StructureImageExtractor {
 				}
 			}
 
-//			if(best[0] != null && (best[0].equals('!'))){
-//				potential = potential.stream()
-//						.map(t->{
-//							if(t.k().equals('!')){
-//								if(t.v().doubleValue()<0.7 && t.v().doubleValue() > 0.5){
-//									return Tuple.of('!',(Number)0.65);	
-//								}
-//							}
-//							return t;
-//						})
-//						.collect(Collectors.toList());
-//			}
-
 			onFind.accept(inputShape, potential);
 		}
 	}
 	
+	/**
+	 * Thrown to signify that the supplied image has characteristics expected from 
+	 * very small structure images.
+	 * @author tyler
+	 */
 	private class ImageTooSmallException extends Exception{}
+	
+	/**
+	 * Thrown to signify that the supplied image has characteristics expected from 
+	 * a split/spotty thresholding or very washed image.
+	 * @author tyler
+	 */
 	private class ImageTooSpottyException extends Exception{}
 	
 	
 
+	
 	private void load(byte[] file) throws Exception{
 		try{
 			load(bitmap = Bitmap.read(file,DEF_BINARIZATION).clean(), true);
@@ -893,6 +912,7 @@ public class StructureImageExtractor {
 
 		return tfile;
 	}
+	
 	public static BufferedImage convertRenderedImage(RenderedImage img) {
 	    if (img instanceof BufferedImage) {
 	        return (BufferedImage)img;  
@@ -914,7 +934,7 @@ public class StructureImageExtractor {
 	    return result;
 	}
 	
-	private boolean DEBUG=false;
+	
 	
 	
 	private void rescueOCR(List<LineWrapper> lines, List<ShapeWrapper> polygons, Set<ShapeWrapper> likelyOCRAll, SCOCR scocr, BiConsumer<ShapeWrapper,List<Tuple<Character,Number>>> cons){
@@ -1242,7 +1262,7 @@ public class StructureImageExtractor {
 			ocrAttempt.put(s, potential);
 			
 			if(potential.stream().filter(e->e.v().doubleValue()>OCRcutoffCosine).findAny().isPresent()){
-				CharType ct=OCRIsLikely(potential.get(0));
+				CharType ct=computeCharType(potential.get(0));
 				
 				if(potential.get(0).k().toString().equals("?")){
 					NPlusShapes.add(s);
@@ -1288,7 +1308,7 @@ public class StructureImageExtractor {
 				
 				
 				
-				CharType ct=OCRIsLikely(ocrAttempt.get(s).get(0));
+				CharType ct=computeCharType(ocrAttempt.get(s).get(0));
 				
 				if(ct.equals(CharType.ChemLikely)){
 					likelyOCR.add(s);
@@ -1376,7 +1396,7 @@ public class StructureImageExtractor {
 				
 				ocrAttempt.put(s, potential);
 				
-				CharType ct=OCRIsLikely(potential.get(0));
+				CharType ct=computeCharType(potential.get(0));
 				if(ct.equals(CharType.ChemLikely)){
 					likelyOCR.add(s);
 					likelyOCRNonBond.add(s);
@@ -1489,20 +1509,6 @@ public class StructureImageExtractor {
 				if(shape1.get().k().equals(shape2.get().k())){
 					return true;
 				}
-				
-//				Point2D centerP = LineWrapper.of(l).centerPoint();
-//				
-//				
-//				boolean anyOutside=GeomUtil.getLinesNotInside(l, Arrays.asList(shape1.get().k(),shape2.get().k()))
-//				        .stream()
-//				        .filter(Objects::nonNull)
-//				        .filter(GeomUtil.longerThan(1))
-//				        .findAny()
-//				        .isPresent();
-//				if(anyOutside){
-//					return true;
-//				}
-				
 				return true;
 			};
 
@@ -1529,11 +1535,7 @@ public class StructureImageExtractor {
 					.collect(Collectors.toList());
 
 
-			// smallLines= thin.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
-			
 			smallLines= bitmap.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
-
-//			smallLines= thin.combineLines(smallLines, MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_THIN, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
 
 			List<Line2D> removedTinyLines =smallLines.stream()
 					.map(l->l.getLine())
@@ -2347,20 +2349,6 @@ public class StructureImageExtractor {
 			}
 			if(DEBUG)logState(18,"merge very close nodes if there were more intersections computed");
 
-
-
-
-//			double shortestRealBondRatio = .3;
-//			ctab.fixBondOrders(likelyOCR,shortestRealBondRatio, e->{
-//				e.setOrder(1);
-//			});
-//
-//			if(DEBUG)logState(19,"for bonds between two OCR shapes where the shapes are too close together for specifying higher order, set the order to 1");
-
-
-
-
-
 			//This is probably where we try to add some missed OCR based on the nodes
 
 			//1. Find all nodes that aren't in likely OCR shapes
@@ -2588,7 +2576,7 @@ public class StructureImageExtractor {
 				if (matches.get(0).v().doubleValue() > OCRcutoffCosineRescue) {
 				
 					
-					CharType ct=OCRIsLikely(matches.get(0));
+					CharType ct=computeCharType(matches.get(0));
 					if(ct.equals(CharType.ChemLikely)){
 						likelyOCR.add(nshape);
 						likelyOCRNonBond.add(nshape);
@@ -2919,10 +2907,6 @@ public class StructureImageExtractor {
 								bestGuessOCR.put(parts, keep);
 							}
 						}
-						
-						
-//						bestGuessOCR.put(contains.get(0), val.substring(0,1));
-//						bestGuessOCR.put(contains.get(1), val.substring(0,1));
 						continue;
 					}
 					
@@ -2939,8 +2923,6 @@ public class StructureImageExtractor {
 						val=val.replaceAll("[cC][tlI][8]", "Cl3");
 					}
 					
-					
-//					System.out.println("Got:" + val);
 					
 					BranchNode bn = BranchNode.interpretOCRStringAsAtom2(val);
 					
@@ -3649,27 +3631,7 @@ public class StructureImageExtractor {
 
 			if(DEBUG)logState(24,"remove bonds that form triangles if the triangle isn't roughly equilateral and nothing is expected to be a cage");
 			
-
-			//edges which are dashes now might not be dash supported later
-			//need to do something about that
-			
-			
-//			ctab.getDashLikeScoreForAllEdges(bitmap,likelyOCR)
-//			.forEach(t->{
-//				if(t.v()<MIN_ST_DEV_FOR_KEEPING_DASHED_LINES && t.k().getDashed()){
-//					t.k().setDashed(false);
-//					//Maybe it shouldn't even be here?
-//					//Try to remove it
-//					double tol=ctab.getToleranceForEdge(t.k(),bitmap,likelyOCR);
-//					if(tol>MAX_TOLERANCE_FOR_DASH_BONDS){
-//						ctab.removeEdge(t.k());
-//					}
-//				}
-//			});
-//
-//			
-//			if(DEBUG)logState(25,"remove dashed edges with little pixel-support, change dashed edges with too much pixel-support to single bonds");
-			
+		
 			double fbondlength=ctab.getAverageBondLength();
 			
 			//clean bad triple bonds
@@ -5230,24 +5192,6 @@ public class StructureImageExtractor {
 			    			.mapToDouble(e->e.getEdgeLength())
 			    			.average()
 			    			.orElse(ctab.getAverageBondLength());
-//			    	Node anchorn = r.getNodes().stream()
-//			    			          .map(n->Tuple.of(n, n.getPoint().distanceSq(center)).withVComparator())
-//			    			          .sorted(Comparator.reverseOrder())
-//			    			          .skip(1)
-//			    			          .max(Comparator.naturalOrder())
-//			    			          .map(t->t.k())
-//			    			          .orElse(null);
-//			    	
-//			    	
-//
-//			    	Node anchorn2=anchorn.getNeighborNodes()
-//				    	.stream()
-//				    	.map(nn->nn.k())
-//				    	.filter(nn->r.getNodes().contains(nn))
-//				    	.map(nn->Tuple.of(nn, nn.getPoint().distanceSq(center)).withVComparator())
-//				    	.max(Comparator.naturalOrder())
-//				        .map(t->t.k())
-//				    	.orElse(null);
 			    	
 			    	Edge bestEdge = r.getEdges().stream()
 			    			.map(e->Tuple.of(e,Math.pow(e.getEdgeLength()-aringBondLength,2) + 
@@ -5971,40 +5915,9 @@ public class StructureImageExtractor {
 				       .forEach(Edge::setToAromatic);
 		       });
 		
-		if(DEBUG)logState(57,"set aromatic bonds");
-		
-		
-	
-		
-		
-		
-
-		 
-		
-		
-		
-		
-		
-		
-		
-		
-//		ctab.getNodes().stream()
-//		    .map(n->likelyOCRNonBond.stream().filter(s->s.contains(n.getPoint())).map(s->Tuple.of(n,s)))
-//		    .flatMap(s->s)
-//		    .forEach(s->{
-//		    	double w = s.v().getBounds2D().getWidth()/ctab.getAverageBondLength();
-//		    	double h = s.v().getBounds2D().getHeight()/ctab.getAverageBondLength();
-//		    	System.out.println("char ratio:\t" + s.k().getSymbol() + "\t" + w + "\t" + h);
-//		    	
-//		    });
-		    
-		
-		    
-		
-
+		if(DEBUG)logState(57,"set aromatic bonds");		
 	}
 	
-	public static int SKIP_STEP_AT = -1;
 	
 	
 	private void logState(int stepNum, String msg){
@@ -6019,14 +5932,26 @@ public class StructureImageExtractor {
 		
 	}
 	
+	/**
+	 * Returns a molfile of the chemical structure.
+	 * @return
+	 */
 	public String toMol(){
 		return ctab.toMol();
 	}
 
+	/**
+	 * Returns the {@link Bitmap} produced after thresholding the supplied image.
+	 * @return
+	 */
 	public Bitmap getBitmap() {
 		return bitmap;
 	}
 
+	/**
+	 * Returns the {@link Bitmap} produced after thinning the thresholded supplied image.
+	 * @return
+	 */
 	public Bitmap getThin() {
 		return thin;
 	}
@@ -6034,8 +5959,8 @@ public class StructureImageExtractor {
 	public List<Shape> getPolygons() {
 		return polygons.stream().map(s->s.getShape()).collect(Collectors.toList());
 	}
+	
 	public Map<Shape,String> getBestGuessOCR(){
-		
 		return bestGuessOCR
 				.entrySet()
 				.stream()
@@ -6044,15 +5969,25 @@ public class StructureImageExtractor {
 				.collect(Tuple.toMap());
 	}
 
-	public List<Line2D> getLines() {
+	/**
+	 * Returns the initial line segments produced via thinning and segment detection. 
+	 * @return
+	 */
+	public List<Line2D> getLineSegments() {
 		return lines.stream().map(lw->lw.getLine()).collect(Collectors.toList());
 	}
 
-	public List<Line2D> getLinesJoined() {
+	/**
+	 * Returns the initial line segments produced via thinning and segment detection,
+	 * after stitching small and parallel segments together.
+	 * @return
+	 */
+	public List<Line2D> getLineSegmentsJoined() {
 		return linesJoined.stream().map(lw->lw.getLine()).collect(Collectors.toList());
 	}
 
-	public List<Tuple<Line2D, Integer>> getLinesOrder() {
+	
+	public List<Tuple<Line2D, Integer>> getLineSegmentsWithOrder() {
 		return linesOrder;
 	}
 
@@ -6065,12 +6000,20 @@ public class StructureImageExtractor {
 				.collect(Tuple.toMap());
 	}
 
+	/**
+	 * Returns the final {@link ConnectionTable} generated for the loaded image.
+	 * @return
+	 */
 	public ConnectionTable getCtab() {
 		return ctab;
 	}
 
 
-
+	/**
+	 * Returns all stages of the {@link ConnectionTable}, in the order it was modified. This is mostly used
+	 * for debugging purposes, and will not be available unless debug was set to true during generation.
+	 * @return
+	 */
 	public List<ConnectionTable> getCtabRaw() {
 		return this.ctabRaw;
 	}

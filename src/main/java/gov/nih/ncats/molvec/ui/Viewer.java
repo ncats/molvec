@@ -361,9 +361,9 @@ public class Viewer extends JPanel
         
         bitmap=sie.getBitmap();
         thin=sie.getThin();
-        segments=GeomUtil.fromLines(sie.getLines());
-        segmentsJoined=GeomUtil.fromLines(sie.getLinesJoined());
-        linesOrder=sie.getLinesOrder();
+        segments=GeomUtil.fromLines(sie.getLineSegments());
+        segmentsJoined=GeomUtil.fromLines(sie.getLineSegmentsJoined());
+        linesOrder=sie.getLineSegmentsWithOrder();
         polygons=sie.getPolygons();
         ctab=sie.getCtab();
         ctabRaw=sie.getCtabRaw();
