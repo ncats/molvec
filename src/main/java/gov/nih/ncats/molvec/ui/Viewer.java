@@ -1,22 +1,9 @@
 package gov.nih.ncats.molvec.ui;
 
-import java.awt.AlphaComposite;
-import java.awt.BasicStroke;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Composite;
-import java.awt.Dimension;
-import java.awt.FileDialog;
-import java.awt.Font;
-import java.awt.Frame;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.awt.RenderingHints;
-import java.awt.Shape;
-import java.awt.Stroke;
+import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Transferable;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentEvent;
@@ -36,10 +23,13 @@ import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
 import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
+import java.io.*;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -51,21 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import javax.swing.AbstractButton;
-import javax.swing.Box;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.JScrollPane;
-import javax.swing.JSpinner;
-import javax.swing.JToolBar;
-import javax.swing.SpinnerNumberModel;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -107,7 +83,9 @@ public class Viewer extends JPanel
     static final Color KNN_COLOR = new Color (0x70, 0x5a, 0x9c, 120);
     static final Color ZONE_COLOR = new Color (0x9e, 0xe6, 0xcd, 120);
 
-    
+    private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
+
+
     static Color[] colors = new Color[]{
     		
     		Color.RED,
@@ -178,6 +156,8 @@ public class Viewer extends JPanel
         popupMenu.add(item = new JMenuItem ("Save polygon bitmap"));
         item.setToolTipText("Save highlighted polygon bitmap");
         item.addActionListener(this);
+
+
     }
 
     public Viewer (File file) throws Exception {
@@ -278,16 +258,23 @@ public class Viewer extends JPanel
 
     public void setScale (double scale) {
         if (bitmap != null) {
+            double oldScale = sx;
             sx = scale;
             sy = scale;
             logger.info("scale x: "+sx + " scale y: "+sy);
             
             Dimension dim = new Dimension ((int)(sx*bitmap.width()+.5),
                                            (int)(sy*bitmap.height()+.5));
-            
+
             setPreferredSize (dim);
             resetAndRepaint ();
+            this.pcs.firePropertyChange("scale", 0, scale);
         }
+    }
+
+    @Override
+    public void addPropertyChangeListener(String propertyName, PropertyChangeListener listener) {
+        this.pcs.addPropertyChangeListener(propertyName, listener);
     }
 
     public void setVisible (int flag, boolean visible) {
@@ -326,22 +313,7 @@ public class Viewer extends JPanel
         }
         return file;
     }
-    public void save() throws Exception{
-    	String mol = ctab.toMol();
-        FileDialog fd = getFileDialog ();
 
-        fd.setMode(FileDialog.SAVE);
-        fd.setTitle("Save molfile");
-        fd.setFile(currentFile.getName() + ".mol");
-        fd.setVisible(true);
-        String name = fd.getFile();
-        if (null != name) {
-        	File f = new File (fd.getDirectory(), name);
-        	try(PrintWriter pw  = new PrintWriter(new FileOutputStream(f))){
-        		pw.print(mol);
-        	}            
-        }
-    }
     
     public File reload () throws Exception {
     	load(currentFile);
@@ -364,23 +336,41 @@ public class Viewer extends JPanel
         sy = scale;
 
         available = ALL;
-        
-        sie = new StructureImageExtractor(file,true);
+        this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        try {
+            sie = new StructureImageExtractor(file, true);
 
-        
-        bitmap=sie.getBitmap();
-        thin=sie.getThin();
-        segments=GeomUtil.fromLines(sie.getLineSegments());
-        segmentsJoined=GeomUtil.fromLines(sie.getLineSegmentsJoined());
-        linesOrder=sie.getLineSegmentsWithOrder();
-        polygons=sie.getPolygons();
-        ctab=sie.getCtab();
-        ctabRaw=sie.getCtabRaw();
-        ocrAttmept=sie.getOcrAttmept();
-        this.bestGuessOCR=sie.getBestGuessOCR();
 
-        
-        System.out.println(sie.toMol());
+            bitmap = sie.getBitmap();
+            thin = sie.getThin();
+            segments = GeomUtil.fromLines(sie.getLineSegments());
+            segmentsJoined = GeomUtil.fromLines(sie.getLineSegmentsJoined());
+            linesOrder = sie.getLineSegmentsWithOrder();
+            polygons = sie.getPolygons();
+            ctab = sie.getCtab();
+            ctabRaw = sie.getCtabRaw();
+            ocrAttmept = sie.getOcrAttmept();
+            this.bestGuessOCR = sie.getBestGuessOCR();
+
+
+            System.out.println(sie.toMol());
+            Bitmap bitmap = sie.getBitmap();
+
+            int height = bitmap.height();
+            int width = bitmap.width();
+
+            Dimension dim = this.getSize();
+            double newYScale = dim.getHeight()/height;
+            double newXScale = dim.getWidth()/width;
+
+            System.out.println("new scale x, y = " + newXScale + " , " + newYScale);
+            double newScale = Math.min(scale, Math.min(newYScale, newXScale));
+            System.out.println("new picked scale = " + newScale);
+            sx=sy= newScale;
+            this.setScale(newScale);
+        }finally{
+            this.setCursor(Cursor.getDefaultCursor());
+        }
         resetAndRepaint ();
     }
     
@@ -1101,12 +1091,15 @@ public class Viewer extends JPanel
         Viewer viewer;
         JToolBar toolbar;
         JToolBar toolbar2;
-
+        JSpinner spinner;
         ViewerFrame (File file, double scale) throws Exception {
             this ();
             setTitle (file.getName());
-            viewer.load(file, scale);           
+            viewer.load(file, scale);
+
         }
+
+
 
         ViewerFrame ()  {
             toolbar = new JToolBar ();
@@ -1195,12 +1188,16 @@ public class Viewer extends JPanel
             
            
             
-            {
+
             	
-             	  toolbar2.add(ab = new JButton ("Save Mol"));
-             	  ab.setToolTipText("Save Molfile");
-             	  ab.addActionListener(this);
-             }
+          toolbar2.add(ab = new JButton ("Save Mol"));
+          ab.setToolTipText("Save Molfile");
+          ab.addActionListener(this);
+
+            toolbar2.add(ab = new JButton ("Copy Mol to Clipboard"));
+            ab.setToolTipText("Copy Molfile");
+            ab.addActionListener(this);
+
             toolbar2.add(ab = new JCheckBox ("Connection Tab Raw"));
             ab.putClientProperty("MASK", CTAB_RAW);
             ab.setSelected(false);
@@ -1243,7 +1240,7 @@ public class Viewer extends JPanel
 	            Box hbox = Box.createHorizontalBox();
 	            hbox.add(new JLabel ("Scale"));
 	            hbox.add(Box.createHorizontalStrut(5));
-	            JSpinner spinner = new JSpinner 
+                spinner = new JSpinner
 	                (new SpinnerNumberModel (1., .1, 50., .2));
 	            spinner.addChangeListener(this);
 	            hbox.add(spinner);
@@ -1267,8 +1264,16 @@ public class Viewer extends JPanel
             pack ();
 //            setSize (600, 400);
             setDefaultCloseOperation (JFrame.EXIT_ON_CLOSE);
-            
-            
+
+            viewer.addPropertyChangeListener("scale", new PropertyChangeListener() {
+                @Override
+                public void propertyChange(PropertyChangeEvent evt) {
+                    BigDecimal bd = new BigDecimal((Double)evt.getNewValue()).setScale(2, RoundingMode.HALF_EVEN);
+
+
+                    spinner.setValue(bd.doubleValue());
+                }
+            });
         }
 
         public void actionPerformed (ActionEvent e) {
@@ -1302,11 +1307,22 @@ public class Viewer extends JPanel
                          JOptionPane.ERROR_MESSAGE);
                 }
             }else if (cmd.equalsIgnoreCase("save mol")) {
-               try {
-				viewer.save();
-               } catch (Exception e1) {
-				 e1.printStackTrace();
-               }
+
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setSelectedFile(new File(viewer.currentFile.getParentFile(), viewer.currentFile.getName() + ".mol"));
+                if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                    File mol = fileChooser.getSelectedFile();
+                    // save to file
+                    try (PrintWriter pw = new PrintWriter(new BufferedOutputStream(new FileOutputStream(mol)))) {
+                        pw.println(viewer.ctab.toMol());
+                    } catch (IOException ex) {
+                        JOptionPane.showMessageDialog(this, ex.getMessage(), "Error Saving Mol File", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            }else if (cmd.equalsIgnoreCase("Copy Mol to Clipboard")) {
+                Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                Transferable transferable = new StringSelection(viewer.ctab.toMol());
+                clipboard.setContents(transferable, null);
             }else  if (cmd.equalsIgnoreCase("reload")) {
             	File file = null;
                 try {
@@ -1378,6 +1394,8 @@ public class Viewer extends JPanel
             else if (cmd.equalsIgnoreCase("OCR Candidates")) {
                 viewer.setVisible(OCR_SHAPES, show);
             }
+
+
         }
 
         public void stateChanged (ChangeEvent e) {
