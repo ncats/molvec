@@ -1340,7 +1340,7 @@ public class StructureImageExtractor {
 		        .filter(p->!likelyOCRAll.contains(p))
 		        .map(s->Tuple.of(s,s.getCircleLikeScore()))
 		        .filter(t->t.v()>0.9)
-		        .peek(t->System.out.println("Cscore:" + t.v()))
+//		        .peek(t->System.out.println("Cscore:" + t.v()))
 		        .map(t->t.k())
 		        .map(s->s.growShapeBounds(2))
 		        .peek(s->realRescueOCRCandidates.add(s.getShape()))

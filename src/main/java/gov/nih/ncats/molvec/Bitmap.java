@@ -56,7 +56,6 @@ import gov.nih.ncats.molvec.algo.StructureImageExtractor;
 import gov.nih.ncats.molvec.algo.Tuple;
 import gov.nih.ncats.molvec.image.Binarization;
 import gov.nih.ncats.molvec.image.ImageUtil;
-import gov.nih.ncats.molvec.image.TiffTags;
 import gov.nih.ncats.molvec.image.binarization.AdaptiveThreshold;
 import gov.nih.ncats.molvec.image.binarization.ImageStats;
 import gov.nih.ncats.molvec.ui.RasterBasedCosineSCOCR.RasterChar;
@@ -68,7 +67,7 @@ import gov.nih.ncats.molvec.util.GeomUtil.ShapeWrapper;
 /**
  * A bitmap image
  */
-public class Bitmap implements Serializable, TiffTags {
+public class Bitmap implements Serializable {
     private static final long serialVersionUID = 0x5f1f54d8fed49ab3l;
     private static final Logger logger =
         Logger.getLogger (Bitmap.class.getName ());
