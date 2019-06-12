@@ -37,7 +37,9 @@ import java.awt.image.ColorModel;
 import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -49,12 +51,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import javax.imageio.IIOImage;
-import javax.imageio.ImageIO;
-import javax.imageio.ImageWriteParam;
-import javax.imageio.ImageWriter;
-import javax.imageio.plugins.jpeg.JPEGImageWriteParam;
-import javax.imageio.stream.FileImageOutputStream;
 import javax.swing.AbstractButton;
 import javax.swing.Box;
 import javax.swing.JButton;
@@ -73,15 +69,12 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-
 import gov.nih.ncats.molvec.Bitmap;
 import gov.nih.ncats.molvec.algo.CentroidEuclideanMetric;
 import gov.nih.ncats.molvec.algo.NearestNeighbors;
 import gov.nih.ncats.molvec.algo.StructureImageExtractor;
 import gov.nih.ncats.molvec.algo.Tuple;
-import gov.nih.ncats.molvec.image.ImageUtil;
 import gov.nih.ncats.molvec.image.binarization.RangeFractionThreshold;
-import gov.nih.ncats.molvec.image.binarization.SigmaThreshold;
 import gov.nih.ncats.molvec.util.ConnectionTable;
 import gov.nih.ncats.molvec.util.GeomUtil;
 
@@ -332,6 +325,22 @@ public class Viewer extends JPanel
             load (file = new File (fd.getDirectory(), name));
         }
         return file;
+    }
+    public void save() throws Exception{
+    	String mol = ctab.toMol();
+        FileDialog fd = getFileDialog ();
+
+        fd.setMode(FileDialog.SAVE);
+        fd.setTitle("Save molfile");
+        fd.setFile(currentFile.getName() + ".mol");
+        fd.setVisible(true);
+        String name = fd.getFile();
+        if (null != name) {
+        	File f = new File (fd.getDirectory(), name);
+        	try(PrintWriter pw  = new PrintWriter(new FileOutputStream(f))){
+        		pw.print(mol);
+        	}            
+        }
     }
     
     public File reload () throws Exception {
@@ -1091,6 +1100,7 @@ public class Viewer extends JPanel
         implements ActionListener, ChangeListener {
         Viewer viewer;
         JToolBar toolbar;
+        JToolBar toolbar2;
 
         ViewerFrame (File file, double scale) throws Exception {
             this ();
@@ -1100,6 +1110,8 @@ public class Viewer extends JPanel
 
         ViewerFrame ()  {
             toolbar = new JToolBar ();
+            toolbar2 = new JToolBar();
+            
 
             AbstractButton ab;
             toolbar.add(ab = new JButton ("Load"));
@@ -1180,45 +1192,54 @@ public class Viewer extends JPanel
             ab.setToolTipText("Show Connection Table");
             ab.addActionListener(this);
             
-            toolbar.add(ab = new JCheckBox ("Connection Tab Raw"));
+            
+           
+            
+            {
+            	
+             	  toolbar2.add(ab = new JButton ("Save Mol"));
+             	  ab.setToolTipText("Save Molfile");
+             	  ab.addActionListener(this);
+             }
+            toolbar2.add(ab = new JCheckBox ("Connection Tab Raw"));
             ab.putClientProperty("MASK", CTAB_RAW);
             ab.setSelected(false);
             ab.setToolTipText("Show Connection Table Raw");
             ab.addActionListener(this);
             
             {
-           	 Box hbox2 = Box.createHorizontalBox();
-                hbox2.add(new JLabel ("CT Step"));
-                hbox2.add(Box.createHorizontalStrut(5));
-                JSpinner spinner2 = new JSpinner 
-                    (new SpinnerNumberModel (0, 0, 150, 1));
-                spinner2.addChangeListener(e->{
-                	viewer.ctabIndex=((Number)spinner2.getValue()).intValue();
-                	viewer.resetAndRepaint();
-                });
-                hbox2.add(spinner2);
-                hbox2.add(Box.createHorizontalGlue());
-                toolbar.add(hbox2);
-           }
-            {
               	 Box hbox2 = Box.createHorizontalBox();
-                   hbox2.add(new JLabel ("Thresh 100"));
+                   hbox2.add(new JLabel ("CT Step"));
                    hbox2.add(Box.createHorizontalStrut(5));
                    JSpinner spinner2 = new JSpinner 
-                       (new SpinnerNumberModel (50, 0, 100, 1));
+                       (new SpinnerNumberModel (0, 0, 150, 1));
                    spinner2.addChangeListener(e->{
-                	
-                   StructureImageExtractor.DEF_BINARIZATION=new RangeFractionThreshold(((Number)spinner2.getValue()).intValue()/100.0);
-                   	
-                   	//viewer.resetAndRepaint();
+                   	viewer.ctabIndex=((Number)spinner2.getValue()).intValue();
+                   	viewer.resetAndRepaint();
                    });
                    hbox2.add(spinner2);
                    hbox2.add(Box.createHorizontalGlue());
-                   toolbar.add(hbox2);
+                   toolbar2.add(hbox2);
               }
-            
+              
             {
-	            toolbar.addSeparator();
+             	 Box hbox2 = Box.createHorizontalBox();
+                  hbox2.add(new JLabel ("Thresh 100"));
+                  hbox2.add(Box.createHorizontalStrut(5));
+                  JSpinner spinner2 = new JSpinner 
+                      (new SpinnerNumberModel (50, 0, 100, 1));
+                  spinner2.addChangeListener(e->{
+               	
+                  StructureImageExtractor.DEF_BINARIZATION=new RangeFractionThreshold(((Number)spinner2.getValue()).intValue()/100.0);
+                  	
+                  	//viewer.resetAndRepaint();
+                  });
+                  hbox2.add(spinner2);
+                  hbox2.add(Box.createHorizontalGlue());
+                  toolbar2.add(hbox2);
+             }
+            {
+	            toolbar2.addSeparator();
 	            Box hbox = Box.createHorizontalBox();
 	            hbox.add(new JLabel ("Scale"));
 	            hbox.add(Box.createHorizontalStrut(5));
@@ -1227,14 +1248,18 @@ public class Viewer extends JPanel
 	            spinner.addChangeListener(this);
 	            hbox.add(spinner);
 	            hbox.add(Box.createHorizontalGlue());
-	            toolbar.add(hbox);
+	            toolbar2.add(hbox);
 	        }
             
            
             
             
             JPanel pane = new JPanel (new BorderLayout (0, 2));
-            pane.add(toolbar, BorderLayout.NORTH);
+            Box vbox = Box.createVerticalBox();
+            vbox.add(toolbar,BorderLayout.WEST);
+            vbox.add(toolbar2,BorderLayout.WEST);
+            pane.add(vbox, BorderLayout.NORTH);
+            
             viewer = new Viewer ();
             viewer.setPreferredSize(new Dimension(600, 400));
             pane.add(new JScrollPane (viewer));
@@ -1273,10 +1298,15 @@ public class Viewer extends JPanel
                 catch (Exception ex) {
                     ex.printStackTrace();
                     JOptionPane.showMessageDialog
-                        (this, "Can't load file \""+file+"\"; perhaps "
-                         +"it's not a 1 bpp TIFF image?", "Error", 
+                        (this, "Can't load file \""+file+"\". Got error:" + ex.getMessage(), "Error", 
                          JOptionPane.ERROR_MESSAGE);
                 }
+            }else if (cmd.equalsIgnoreCase("save mol")) {
+               try {
+				viewer.save();
+               } catch (Exception e1) {
+				 e1.printStackTrace();
+               }
             }else  if (cmd.equalsIgnoreCase("reload")) {
             	File file = null;
                 try {
