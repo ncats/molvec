@@ -224,9 +224,6 @@ public class Bitmap implements Serializable {
     	public List<int[]> xys;
     	public int tcount;
     	
-    	
-    	
-    	
     	public static BitmapScaled of(Bitmap r, int DEF_WIDTH, int DEF_HEIGHT){
 	    	int twidth = r.width();
 			int theight = r.height();

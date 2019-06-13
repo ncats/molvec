@@ -222,30 +222,11 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 				data[i-2] = row;
 
 			}
-//
-//			this.data=Arrays.stream(rawlines)
-//							.skip(2)
-//							.map(l->Arrays.stream(VALUE_SEP_PATTERN.split(l))
-//			    		        .mapToInt(s->Integer.parseInt(s,16))
-//			    		        .toArray())
-//							.toArray(i->new int[rectX][rectY]);
+
 			this.rect=new Rectangle2D.Double(0,0,rectX,rectY);
 			return this;
 		}		
-		public static RasterChar fromRawString(String raw){
-			String[] rawlines = raw.split("\n");
-			int[] dim =Arrays.stream(rawlines[0].split("x")).mapToInt(s->Integer.parseInt(s)).toArray();
-			double[] dimB =Arrays.stream(rawlines[1].split("x")).mapToDouble(s->Double.parseDouble(s)).toArray();
-			RasterChar rc = new RasterChar(null,null);
-			rc.data=Arrays.stream(rawlines)
-							.skip(2)
-							.map(l->Arrays.stream(l.split(","))
-			    		        .mapToInt(s->Integer.parseInt(s,16))
-			    		        .toArray())
-							.toArray(i->new int[dim[0]][dim[1]]);
-			rc.rect=new Rectangle2D.Double(0,0,dimB[0],dimB[1]);
-			return rc;
-		}
+
 		
 		public static RasterChar from(Bitmap bm, int wid, int hit){
 			int[][] bmap = new int[wid][hit];
@@ -376,9 +357,8 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 		BitmapScaled bms=r.getScaled(DEF_WIDTH, DEF_HEIGHT);
 		
 		return _alphabet
-				//.stream()
 				.parallelStream()
-				.collect(Collectors.toMap(Function.identity(), c2->correlation(bms.xys,bms.ccount,bms.tcount,bms.twidth,bms.theight, c2)));
+				.collect(Collectors.toMap(Function.identity(), c2->correlation(bms, c2)));
 	}
 
 	public static void debugPrintBmap(int[][] test) {
@@ -396,20 +376,27 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 	
 	
 	
-	private double correlation(List<int[]> xys, int[][] ccount, int total, int twidth, int theight, Character c){
-		double maxCor = Double.MIN_VALUE;
+	private double correlation(BitmapScaled bms, Character c){
+
 		List<RasterChar> rcl = charVal.get(c);
-		if(rcl==null)return 0;
+		if(rcl==null){
+			return 0;
+		}
+		List<int[]> xys = bms.xys;
+		int[][] ccount = bms.ccount;
+		int total = bms.tcount;
+		int twidth = bms.twidth;
+		int theight = bms.theight;
+
+		double maxCor = Double.MIN_VALUE;
 		for (RasterChar rc: rcl) {
 			int[][] cM = rc.data;
-			int totalC = 0;
 			double cor = 0;
-			
-			cor=xys.stream()
-			    .mapToInt(xy->cM[xy[0]][xy[1]]*xy[2])
-			    .sum();
-			
 			int sum=0;
+			for(int[] xy : xys){
+				cor +=cM[xy[0]][xy[1]]*xy[2];
+			}
+
 			
 			for(int i=0;i<DEF_WIDTH;i++){
 				for(int j=0;j<DEF_HEIGHT;j++){
@@ -417,12 +404,13 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 					sum+=val*val*ccount[i][j];
 				}
 			}
-			totalC=sum;
+			int totalC=sum;
 			
 			double whrat = (double) twidth / (double) theight;
 			whrat = (rc.rect.getWidth()/rc.rect.getHeight()) / whrat;
-			if (whrat > 1)
+			if (whrat > 1) {
 				whrat = 1 / whrat;
+			}
 			whrat = 1 - Math.pow(1 - whrat, 2);
 
 			double tcor = whrat * cor / (Math.sqrt(total) * Math.sqrt(totalC));
@@ -431,29 +419,29 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 		return maxCor;
 	}
 
-	public double correlation(Bitmap test, Character c) {
-		int twidth = test.width();
-		int theight = test.height();
-		
-		int[][] ccount = new int[DEF_WIDTH][DEF_HEIGHT];
-		
-		List<int[]> xys=test.getXYOnPoints()
-						    .map(xy->{
-						    	int cx = (xy[0] * DEF_WIDTH) / twidth;
-						    	int cy = (xy[1] * DEF_HEIGHT) / theight;
-						    	return new int[]{cx,cy};
-						    })
-						    .collect(Collectors.toList());
-		
-		for(int i=0;i<twidth;i++){
-			for(int j=0;j<theight;j++){
-			   	int cx = (i * DEF_WIDTH) / twidth;
-		    	int cy = (j * DEF_HEIGHT) / theight;
-		    	ccount[cx][cy]++;
-			}
-		}
-		return correlation(xys,ccount,xys.size(),twidth,theight,c);
-	}
+//	public double correlation(Bitmap test, Character c) {
+//		int twidth = test.width();
+//		int theight = test.height();
+//
+//		int[][] ccount = new int[DEF_WIDTH][DEF_HEIGHT];
+//
+//		List<int[]> xys=test.getXYOnPoints()
+//						    .map(xy->{
+//						    	int cx = (xy[0] * DEF_WIDTH) / twidth;
+//						    	int cy = (xy[1] * DEF_HEIGHT) / theight;
+//						    	return new int[]{cx,cy};
+//						    })
+//						    .collect(Collectors.toList());
+//
+//		for(int i=0;i<twidth;i++){
+//			for(int j=0;j<theight;j++){
+//			   	int cx = (i * DEF_WIDTH) / twidth;
+//		    	int cy = (j * DEF_HEIGHT) / theight;
+//		    	ccount[cx][cy]++;
+//			}
+//		}
+//		return correlation(xys,ccount,xys.size(),twidth,theight,c);
+//	}
 	
 	
 
