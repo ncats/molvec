@@ -2037,7 +2037,9 @@ public class GeomUtil {
 		}
 		
 		public LineWrapper process(){
-			if(process)return this;
+			if(process){
+			    return this;
+            }
 			vec=asVector(line);
 			len=l2Norm(vec);
 			center=GeomUtil.findCenterOfShape(line);
