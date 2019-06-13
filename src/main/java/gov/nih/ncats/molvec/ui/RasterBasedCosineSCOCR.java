@@ -15,9 +15,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
@@ -164,7 +166,20 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 	public static class RasterChar{
 		public int[][] data;
 		public Rectangle2D rect;
-		
+
+		private static final Pattern LINE_SEP_PATTERN = Pattern.compile("\n");
+		private static final Pattern COORD_SEP_PATTERN = Pattern.compile("x");
+		private static final Pattern VALUE_SEP_PATTERN = Pattern.compile(",");
+
+		/**
+		 * Cache for Ints to their hex String representation this
+		 * is used to speed up performance of deserializing the rasters
+		 * in {@link #readDataFromString(String)}
+		 */
+		private static Map<String, Integer> INT_16_CACHE = new ConcurrentHashMap<>();
+		private static Map<String, Integer> INT_CACHE = new ConcurrentHashMap<>();
+		private static Map<String, Double> DOUBLE_CACHE = new ConcurrentHashMap<>();
+
 		public RasterChar(int[][] dat, Rectangle2D rect){
 			this.data=dat;
 			this.rect=rect;
@@ -180,18 +195,41 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 					    		           .collect(Collectors.joining(",")))
 					     .collect(Collectors.joining("\n"));      
 		}
-		
-		public RasterChar readDataFromString(String raw){
-			String[] rawlines = raw.split("\n");
-			int[] dim =Arrays.stream(rawlines[0].split("x")).mapToInt(s->Integer.parseInt(s)).toArray();
-			double[] dimB =Arrays.stream(rawlines[1].split("x")).mapToDouble(s->Double.parseDouble(s)).toArray();
-			this.data=Arrays.stream(rawlines)
-							.skip(2)
-							.map(l->Arrays.stream(l.split(","))
-			    		        .mapToInt(s->Integer.parseInt(s,16))
-			    		        .toArray())
-							.toArray(i->new int[dim[0]][dim[1]]);
-			this.rect=new Rectangle2D.Double(0,0,dimB[0],dimB[1]);
+		static RasterChar  parseFromString(String raw){
+			RasterChar rs = new RasterChar(null, null);
+			return rs.readDataFromString(raw);
+		}
+		private RasterChar readDataFromString(String raw){
+			String[] rawlines = LINE_SEP_PATTERN.split(raw);
+
+			String[] dimLine = COORD_SEP_PATTERN.split(rawlines[0]);
+			int x = INT_CACHE.computeIfAbsent(dimLine[0], v-> Integer.parseInt(v));
+			int y = INT_CACHE.computeIfAbsent(dimLine[1], v-> Integer.parseInt(v));
+
+
+			String[] rectLine = COORD_SEP_PATTERN.split(rawlines[1]);
+			double rectX = DOUBLE_CACHE.computeIfAbsent(rectLine[0], v->Double.parseDouble(v));
+			double rectY = DOUBLE_CACHE.computeIfAbsent(rectLine[1], v->Double.parseDouble(v));
+
+			this.data = new int[x][y];
+			for(int i=2; i< rawlines.length; i++){
+				int[] row = new int[y];
+				int j=0;
+				for(String v : VALUE_SEP_PATTERN.split(rawlines[i])){
+					row[j] = INT_16_CACHE.computeIfAbsent(v, value ->Integer.parseInt(value, 16));
+					j++;
+				}
+				data[i-2] = row;
+
+			}
+//
+//			this.data=Arrays.stream(rawlines)
+//							.skip(2)
+//							.map(l->Arrays.stream(VALUE_SEP_PATTERN.split(l))
+//			    		        .mapToInt(s->Integer.parseInt(s,16))
+//			    		        .toArray())
+//							.toArray(i->new int[rectX][rectY]);
+			this.rect=new Rectangle2D.Double(0,0,rectX,rectY);
 			return this;
 		}		
 		public static RasterChar fromRawString(String raw){
