@@ -3,7 +3,7 @@ package gov.nih.ncats.molvec.image.binarization;
 import java.awt.image.Raster;
 import java.util.function.Consumer;
 
-import gov.nih.ncats.molvec.Bitmap;
+import gov.nih.ncats.molvec.image.Bitmap;
 import gov.nih.ncats.molvec.image.Binarization;
 
 /*

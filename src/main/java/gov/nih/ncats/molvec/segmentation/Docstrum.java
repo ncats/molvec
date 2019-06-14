@@ -8,7 +8,6 @@ import java.util.logging.Logger;
 
 import java.io.*;
 
-import gov.nih.ncats.molvec.Segmentation;
 import gov.nih.ncats.molvec.algo.CentroidEuclideanMetric;
 import gov.nih.ncats.molvec.algo.NearestNeighbors;
 import gov.nih.ncats.molvec.algo.Peaks;

@@ -1,4 +1,4 @@
-package gov.nih.ncats.molvec;
+package gov.nih.ncats.molvec.image;
 
 import java.awt.Point;
 import java.awt.Polygon;
@@ -26,23 +26,18 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Stack;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -52,14 +47,11 @@ import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
 
+import gov.nih.ncats.molvec.util.CachedSupplier;
 import gov.nih.ncats.molvec.algo.StructureImageExtractor;
 import gov.nih.ncats.molvec.algo.Tuple;
-import gov.nih.ncats.molvec.image.Binarization;
-import gov.nih.ncats.molvec.image.ImageUtil;
-import gov.nih.ncats.molvec.image.TiffTags;
 import gov.nih.ncats.molvec.image.binarization.AdaptiveThreshold;
 import gov.nih.ncats.molvec.image.binarization.ImageStats;
-import gov.nih.ncats.molvec.ui.RasterBasedCosineSCOCR.RasterChar;
 import gov.nih.ncats.molvec.util.GeomUtil;
 import gov.nih.ncats.molvec.util.GeomUtil.LineDistanceCalculator;
 import gov.nih.ncats.molvec.util.GeomUtil.LineWrapper;

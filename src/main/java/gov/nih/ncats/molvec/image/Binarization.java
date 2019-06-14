@@ -4,7 +4,6 @@ import java.awt.image.Raster;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import gov.nih.ncats.molvec.Bitmap;
 import gov.nih.ncats.molvec.image.binarization.ImageStats;
 
 public interface Binarization {

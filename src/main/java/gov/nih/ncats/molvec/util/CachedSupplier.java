@@ -1,4 +1,4 @@
-package gov.nih.ncats.molvec;
+package gov.nih.ncats.molvec.util;
 
 
 import java.util.Optional;

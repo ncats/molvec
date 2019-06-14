@@ -4,7 +4,7 @@ import java.awt.image.Raster;
 import java.util.Arrays;
 import java.util.function.Consumer;
 
-import gov.nih.ncats.molvec.Bitmap;
+import gov.nih.ncats.molvec.image.Bitmap;
 import gov.nih.ncats.molvec.image.Binarization;
 /**
  * Implementation of Sauvola threshold. 

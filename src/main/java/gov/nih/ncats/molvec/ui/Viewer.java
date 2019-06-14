@@ -29,7 +29,6 @@ import java.beans.PropertyChangeSupport;
 import java.io.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -45,7 +44,7 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import gov.nih.ncats.molvec.Bitmap;
+import gov.nih.ncats.molvec.image.Bitmap;
 import gov.nih.ncats.molvec.algo.CentroidEuclideanMetric;
 import gov.nih.ncats.molvec.algo.NearestNeighbors;
 import gov.nih.ncats.molvec.algo.StructureImageExtractor;

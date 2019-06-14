@@ -11,7 +11,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Function;
 
-import gov.nih.ncats.molvec.Bitmap;
+import gov.nih.ncats.molvec.image.Bitmap;
 import gov.nih.ncats.molvec.algo.Tuple;
 
 /**

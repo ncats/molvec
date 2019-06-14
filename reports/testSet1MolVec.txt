@@ -27,7 +27,7 @@
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008225485_44_chem.sdf
 --------------------------------
-May 05, 2019 6:34:26 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:26 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -111,7 +111,7 @@ Image:C(c1ccc(C(=O)O)cc1)NC(=O)c2c(Cc3ccc(F)cc3)ncc(c2)F
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008088167_469_chem.sdf
 --------------------------------
-May 05, 2019 6:34:27 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:27 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -200,7 +200,7 @@ Image:c12-c3c4Cc5cc(O)ccc5-c4c6c(c3Cc1cc(O)cc2)-c7ccc(cc7C6)O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008089966_3_chem.sdf
 --------------------------------
-May 05, 2019 6:34:30 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:30 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -267,7 +267,7 @@ Cleaning cages:0
   1 12  1  0
   2 22  1  0
 M  END
-May 05, 2019 6:34:30 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:30 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(ON=Cc1ccc2sc3ccccc3c(c2c1)=O)(=O)C
 Image:c1cccc2c1c(=O)c3cc(ccc3s2)C(=NOC(=O)C)[H]
@@ -336,7 +336,7 @@ Image:C(C=C)(OCC(CC)CCCC)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008120831_17_chem.sdf
 --------------------------------
-May 05, 2019 6:34:31 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:31 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -367,7 +367,7 @@ Cleaning cages:0
   4  7  1  0
   5  6  1  0
 M  END
-May 05, 2019 6:34:31 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:31 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C1(COC(O1)=O)F
 Image:C1(=O)OC(CO1)F
@@ -438,7 +438,7 @@ Image:c1(c2n([H])c(Cl)nc2n(CCCC=C)c(n1[H])=O)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008131436_5_chem.sdf
 --------------------------------
-May 05, 2019 6:34:31 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:31 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -501,7 +501,7 @@ Cleaning cages:0
  20 21  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:34:31 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:31 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c12c([nH]c(n1-c3c(cc(C(C)C)cc3)Br)=O)c(nc(C)n2)Cl
 Image:c1(nc(C)nc2n(c([nH]c12)=O)-c3c(Br)cc(cc3)C(C)C)Cl
@@ -627,7 +627,7 @@ Image:C(CN1CCCCC1)Oc2ccc(cc2)C(c3ccc(cc3)OCCN4CCCCC4)C(c5ccccc5)C=C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008246832_44_chem.sdf
 --------------------------------
-May 05, 2019 6:34:33 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:33 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:34:33 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@2896fbe9 has 1 image; width=467.0 height=333.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=17.0
@@ -736,7 +736,7 @@ Cleaning cages:0
  27 29  1  0
  10 32  1  0
 M  END
-May 05, 2019 6:34:33 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:33 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(c2ccc3c4ccc5C(c6ccccc6C(c5c4[nH]c7c3c2c(c8ccccc18)cc7)=O)=O)=O
 Image:c1ccc2C(=O)c3ccc-4c5c3c(ccc5C(C)c6c7c(ccc64)C(=O)c8c(cccc8)C7=C)-c2c1
@@ -872,7 +872,7 @@ Cleaning cages:0
  27 28  2  0
  18 42  1  0
 M  END
-May 05, 2019 6:34:34 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:34 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1ccc(cc1)-c2c3ccccc3c(c4ccccc42)-c5ccc(N(c6ccccc6)c7ccc8n(-c9ccccc9)c%10ccccc%10c8c7)cc5
 Image:c1ccc2c(c1)c(c3ccccc3c2-c4ccc(N(c5ccccc5)c6ccc7c(c6)c8ccccc8n7-c9ccccc9)cc4)-c%10ccccc%10
@@ -880,7 +880,7 @@ Image:c1ccc2c(c1)c(c3ccccc3c2-c4ccc(N(c5ccccc5)c6ccc7c(c6)c8ccccc8n7-c9ccccc9)cc
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008069221_44_chem.sdf
 --------------------------------
-May 05, 2019 6:34:34 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:34 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -974,7 +974,7 @@ Cleaning cages:0
   2 33  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:34:35 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:35 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(c2[nH]c(c1C)cc3C(=C(c(n3)cc4[nH]c(c(c4CC)C)nc5C(CC)=C(c(c2)n5)C)C)CC)CC
 Image:c1(c2cc3nc(C(=C3C)CC)cc4c(c(c([nH]4)cc5nc(C(CC)=C5C)nc(c1C)[nH]2)CC)C)CC
@@ -1051,7 +1051,7 @@ Image:C=CCOC(C1(CC2C(C)(O2)CC1)C)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008047814_2_chem.sdf
 --------------------------------
-May 05, 2019 6:34:35 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:35 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -1107,7 +1107,7 @@ Cleaning cages:0
   2 11  2  0
  10 13  2  0
 M  END
-May 05, 2019 6:34:36 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:36 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1cc(O)ccc1C(C)(C)c2ccc(O)cc2
 Image:c1c(C(C)(c2ccc(O)cc2)C)ccc(c1)O
@@ -1194,7 +1194,7 @@ Cleaning cages:0
 M  END
 Real:C(CC(=O)C)C
 Image:CCCC.C(C)CC
-May 05, 2019 6:34:37 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:37 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -1380,7 +1380,7 @@ Cleaning cages:0
 M  END
 Real:O1C(C1)COc2ccc3c(c2)cc(OCC4OC4)cc3Cc5c6ccc(OCC7CO7)cc6cc(c5)OCC8CO8
 Image:c1(cc(cc2c1ccc(OCC3O4C[C@H]34)c2)OCC(OC)C)C.c1c(OCCC)ccc2c1cc(OCC34CO5C3[C@@H]45)cc2C.COC
-May 05, 2019 6:34:38 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:38 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:34:38 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@2097c121 has 1 image; width=2063.0 height=283.0 xres=400.0in yres=400.0in bpp=8 photometric=3 rows=3.0
@@ -1399,7 +1399,7 @@ May 05, 2019 6:34:38 PM gov.nih.ncats.molvec.image.binarization.SigmaThreshold b
 INFO: ## for threshold, mean =74.71066356758571, stDEV=8.969053657715527, threshold=44.20571015813943, max=76.0, min=0.0
 May 05, 2019 6:34:38 PM gov.nih.ncats.molvec.image.binarization.SigmaThreshold binarize
 INFO: ## for threshold, countAbove =566245.0, countBelow=17584.0
-May 05, 2019 6:34:38 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:38 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -1454,7 +1454,7 @@ Image:c1(ccc(-c2ccncc2)cc1)C(O)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008291055_5_chem.sdf
 --------------------------------
-May 05, 2019 6:34:39 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:39 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -1514,7 +1514,7 @@ Cleaning cages:0
   3 13  2  0
   9 12  1  0
 M  END
-May 05, 2019 6:34:40 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:40 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C1CC(CCC)CCC1c2ccc(cc2)OC(C=C)=O
 Image:c1(ccc(cc1)CC(=O)O)C2CCC(CCC)CC2
@@ -1585,7 +1585,7 @@ Cleaning cages:0
   9 17  1  0
  10 13  1  0
 M  END
-May 05, 2019 6:34:40 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:40 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(C(c1ccc(SC)cc1)=O)(C)(C)N2CCOCC2
 Image:N1(CCOCC1)C(C)(C)C(c2ccc(SC)cc2)=O
@@ -1603,7 +1603,7 @@ Checking if bond length looks okay:0
 Assigning OCR:0
 cleaning triples:0
 Cleaning cages:0
-May 05, 2019 6:34:40 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:40 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918342D
@@ -1840,7 +1840,7 @@ Cleaning cages:0
  23 29  1  0
  10 32  1  0
 M  END
-May 05, 2019 6:34:41 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:41 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:O=C(c1ccc(cc1)O)OC2CCC3(C4CCC5(C(C4CC=C3C2)CCC5C(CCC(C)C)C)C)C
 Image:C=1CC2C(CCC3(C2CCC3C(C)CCC(C)C)C)C4(CCC(CC14)O(c5ccc(O)cc5)(C)=O)C
@@ -2063,7 +2063,7 @@ Cleaning cages:0
   2 11  1  0
  24 40  1  0
 M  END
-May 05, 2019 6:34:42 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:42 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C1(CCC(CC1)C(C)(C2CCC(c3cc(C)c(cc3)O)(c4ccc(O)c(C)c4)CC2)C)(c5cc(c(O)cc5)C)c6cc(C)c(cc6)O
 Image:c1cc(C2(CCC(CC2)C(C)(C3CCC(c4cc(c(cc4)C)C)(CC3)c5cc(C)c(cc5)C)[H])c6ccc(c(C)c6)C)cc(C)c1O
@@ -2126,7 +2126,7 @@ Image:C1O[C@@]2([C@@H](O)CO[C@]2([H])[C@H]1O)[H]
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008138011_95_chem.sdf
 --------------------------------
-May 05, 2019 6:34:42 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:42 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -2239,7 +2239,7 @@ Cleaning cages:0
  24 40  2  0
  10 11  2  0
 M  END
-May 05, 2019 6:34:42 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:42 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1cc(ccc1)-c2cc(cc(-c3ccccc3)n2)-c4cc(ccc4)-c5cc(-c6ccccc6)nc(-c7ccccc7)c5
 Image:c1(cc(cc(n1)-c2ccccc2)-c3cccc(-c4cc(nc(-c5ccccc5)c4)-c6ccccc6)c3)-c7ccccc7.CC.CS
@@ -2295,7 +2295,7 @@ Image:c1ccc(c2nc(oc12)CC)OC
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008279331_3_chem.sdf
 --------------------------------
-May 05, 2019 6:34:43 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:43 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -2325,7 +2325,7 @@ Cleaning cages:0
   3  5  1  0
   2  7  1  0
 M  END
-May 05, 2019 6:34:43 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:43 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(C)(=CCC)CO
 Image:C(/C(=C/CC)/C)O
@@ -2371,7 +2371,7 @@ Cleaning cages:0
   8 11  1  0
   6  9  1  0
 M  END
-May 05, 2019 6:34:43 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:43 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c12ccc(nc2sc(n1)N)O
 Image:c1(ccc2nc(sc2n1)N)O
@@ -2451,7 +2451,7 @@ Cleaning cages:0
   1 12  1  0
  10 11  2  0
 M  END
-May 05, 2019 6:34:45 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:45 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(N)cc2nc(oc2cc1)-c3ccc(cc3)N
 Image:c12cc(N)ccc1oc(n2)-c3ccc(N)cc3
@@ -2571,7 +2571,7 @@ Cleaning cages:0
  10 11  2  0
  39 42  1  0
 M  END
-May 05, 2019 6:34:46 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:46 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1ccc2c3ccc4-c5c(-c6c4c3c(c7c2c1ccc7)cc6)c(-c8ccccc8)c9c(c5-c%10ccccc%10)cccc9
 Image:c12c3c(c4cccc5cccc1c45)ccc-6c3c(cc2)-c7c6c(c8c(cccc8)c7-c9ccccc9)-c%10ccccc%10
@@ -2683,7 +2683,7 @@ Image:c1ccc2n(c3ccccc3c2c1)-c4ccc(-c5ccc(cc5)-n6c7ccccc7c8c6cccc8)cc4
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008303214_112_chem.sdf
 --------------------------------
-May 05, 2019 6:34:47 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:47 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:34:47 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@55cab68f has 1 image; width=584.0 height=138.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=14.0
@@ -2750,7 +2750,7 @@ Image:c1(occ(n1)C=C)/C=C/c2ccccc2
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008226990_5_chem.sdf
 --------------------------------
-May 05, 2019 6:34:47 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:47 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:34:47 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@13ac3871 has 1 image; width=607.0 height=163.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=13.0
@@ -2816,7 +2816,7 @@ M  END
 Real:C(N1Cc2c(sc(Br)n2)C1)(OC(C)(C)C)=O
 Image:C(N1Cc2c(C1)nc(C)s2)(OC(C)(C)C)=O
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008138011_115_chem.tif:ATOM_COUNT_BOND_COUNT_RIGHT_WRONG_LABELS_OR_CONNECTIVITY
-May 05, 2019 6:34:47 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:47 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008239616_810_chem.sdf
@@ -2912,7 +2912,7 @@ Cleaning cages:0
  29 30  2  0
   9 22  2  0
 M  END
-May 05, 2019 6:34:49 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:49 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C1(OC(=O)c2c1cc(C(=O)Oc3ccc(cc3)OC(c4cc5C(OC(c5cc4)=O)=O)=O)cc2)=O
 Image:c1cc(OC(=O)c2cc3c(C(OC3=O)=O)cc2)ccc1OC(c4ccc5c(c4)C(OC5=O)=O)=O
@@ -3066,7 +3066,7 @@ Cleaning cages:0
  18 47  1  0
  27 30  1  0
 M  END
-May 05, 2019 6:34:49 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:49 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1ccc(CC)c(c1C)N(c2ccc(C=Cc3ccc(C=Cc4ccc(N(c5ccccc5)c6c(cccc6CC)C)cc4)cc3)cc2)c7ccccc7
 Image:C1CC1C.N(c1ccc(\C=C\c2ccc(\C=C\c3ccc(cc3)N(c4c(CC)cccc4C)c5ccccc5)cc2)cc1)(c6ccccc6)c7c(C)cccc7CC
@@ -3207,7 +3207,7 @@ Cleaning cages:0
  10 11  1  0
   6 53  1  0
 M  END
-May 05, 2019 6:34:51 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:51 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(C)cc(C)c(N(c2ccc(cc2)C)c3ccc(cc3)C=Cc4ccc(C=Cc5ccc(N(c6ccc(C)cc6C)c7ccc(C)cc7)cc5)cc4)cc1
 Image:C(c1ccc(C=Cc2ccc(N(c3ccc(C)cc3)c4c(C)cc(C)cc4)cc2)cc1)=Cc5ccc(cc5)N(c6c(cc(C)cc6)C)c7ccc(cc7)C
@@ -3215,7 +3215,7 @@ Image:C(c1ccc(C=Cc2ccc(N(c3ccc(C)cc3)c4c(C)cc(C)cc4)cc2)cc1)=Cc5ccc(cc5)N(c6c(cc
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008094795_14_chem.sdf
 --------------------------------
-May 05, 2019 6:34:51 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:51 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -3267,7 +3267,7 @@ Cleaning cages:0
   4  6  1  0
   3  8  2  0
 M  END
-May 05, 2019 6:34:51 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:51 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C1CC(CCC1=O)=O
 Image:C1(CCC(CC1)=O)=O
@@ -3315,7 +3315,7 @@ Image:COc1cc(c(c2OCOc12)C)OC
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008094015_15_chem.sdf
 --------------------------------
-May 05, 2019 6:34:51 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:51 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -3394,7 +3394,7 @@ Image:c1(c(SCc2ccncc2)ccs1)-c3nnc(s3)Nc4ccc(Cl)cc4
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008291018_868_chem.sdf
 --------------------------------
-May 05, 2019 6:34:53 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:53 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -3472,7 +3472,7 @@ Image:c1cc(P(=C)(c2ccccc2)c3ccccc3)ccc1
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008291277_3_chem.sdf
 --------------------------------
 Looking for dashes:0
-May 05, 2019 6:34:53 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:53 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Merging:0
 Checking noise
@@ -3531,7 +3531,7 @@ Cleaning cages:0
   5  6  2  0
   6  7  1  0
 M  END
-May 05, 2019 6:34:53 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:53 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1sn(C)c(c1)=O
 Image:S1C=CC(N1C)=C
@@ -3679,7 +3679,7 @@ Cleaning cages:0
   2 53  1  0
   9 45  2  0
 M  END
-May 05, 2019 6:34:54 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:54 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(OC(c1ccc(C(OCCOC(C(C)=C)=O)=O)cc1C(OCC(O)COc2ccc(cc2)C(c3ccc(OCC4OC4)cc3)(C)C)=O)=O)COC(C=C)=O
 Image:c1c(OCC2CO2)ccc(C(C)(C)c3ccc(cc3)OCC(O)COC(=O)c4c(C(OCCOC(=O)C=C)=O)ccc(c4)C(=O)OCCOC(=O)C(=C)C)c1
@@ -3790,7 +3790,7 @@ Image:C(OB)[N@@+](C)(C)C(=O)c1ncc(C2c3c(F)ccc(F)c3F2(OS)c4ccc(C(F)(F)F)nc4)c(c1)
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008149586_10_chem.sdf
 --------------------------------
-May 05, 2019 6:34:55 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:55 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:34:55 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@518ede0 has 1 image; width=435.0 height=256.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=18.0
@@ -3965,7 +3965,7 @@ Image:COC(=O)C(CC)(OCC(=O)[H])CC
  19 32  1  0
  23 28  2  0
 M  END
-May 05, 2019 6:34:55 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:55 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1ccc(cc1)N(c2c3ccccc3c(N(c4ccccc4)c5ccccc5)c6c2cccc6)c7ccccc7
 Image:c1cc(N(c2c3c(cccc3)c(N(c4ccccc4)c5ccccc5)c6ccccc62)c7ccccc7)ccc1
@@ -4085,7 +4085,7 @@ Image:C=12[C@@H]3[C@@]45C6(O[C@@H](O[C@H]5C1463)C(C)(C)C)(C(C(CO)(C)C)O2)C=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008243435_20_chem.sdf
 --------------------------------
-May 05, 2019 6:34:57 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:57 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -4144,7 +4144,7 @@ Image:C(OCC=C)(C1CC=CCC1C(OCC=C)=O)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008179797_8_chem.sdf
 --------------------------------
-May 05, 2019 6:34:57 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:57 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -4197,7 +4197,7 @@ Cleaning cages:0
   4  9  1  0
   3 10  1  0
 M  END
-May 05, 2019 6:34:58 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:58 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(ccc(cc1)O)C(c2ccc(cc2)O)(C)C
 Image:C(=O)C(C)(C)C1=C=C(C1)O
@@ -4277,7 +4277,7 @@ Cleaning cages:0
   4 12  1  0
  20 22  2  0
 M  END
-May 05, 2019 6:34:58 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:58 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1ccc(OCC2CCN(c3sc4c(n3)ccc(c4)Cl)CC2)c(c1)C(=O)O
 Image:c1(C(=O)O)c(OCC2CCN(CC2)c3nc4c(s3)cc(cc4)Cl)cccc1
@@ -4324,7 +4324,7 @@ Cleaning cages:0
   5  7  1  0
 M  END
 Real:C12CC(CCC1O2)C
-May 05, 2019 6:34:58 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:58 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Image:C12C(CCC(C1)C)O2
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008226990_5_chem.tif:CORRECT_FULL_INCHI
@@ -4443,7 +4443,7 @@ Image:C(=[N+2](c1ccc(-c2ccc(cc2)[N+](=C)c3ccc(C(C)C)c(C)c3)cc1)=C)c4ccccc4C(C)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008106016_131_chem.sdf
 --------------------------------
-May 05, 2019 6:34:59 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:59 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -4479,7 +4479,7 @@ Image:C[C@@H](C)CCCC
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008206514_228_chem.sdf
 --------------------------------
-May 05, 2019 6:34:59 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:34:59 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -4523,7 +4523,7 @@ Image:c1cnc(c2occc12)Cl
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008004725_7_chem.sdf
 --------------------------------
-May 05, 2019 6:35:00 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:00 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -4558,7 +4558,7 @@ Cleaning cages:0
   4  5  1  0
   2  7  2  0
 M  END
-May 05, 2019 6:35:00 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:00 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C1S(CC=C1)(=O)=O
 Image:C1S(CC=C1)(=O)=O
@@ -4639,7 +4639,7 @@ Image:c12c(cccc1)cc3c(cc4cc5ccccc5cc4c3)c2
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008189778_9_chem.sdf
 --------------------------------
-May 05, 2019 6:35:01 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:01 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -4706,7 +4706,7 @@ M  END
 Real:C(C)C(C)(C)COC(c1ccc(C(OC)=O)cc1)=O
 Image:c1(ccc(cc1)C(OCC(CC)(C)C)=O)C(OC)=O
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008189778_9_chem.tif:CORRECT_FULL_INCHI
-May 05, 2019 6:35:01 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:01 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008127290_10_chem.sdf
@@ -4759,7 +4759,7 @@ Cleaning cages:0
   6 12  1  0
   1 11  2  0
 M  END
-May 05, 2019 6:35:02 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:02 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(COC(C=C)=O)(COC(C=C)=C)(C)C
 Image:C(C(OCC(C)(C)COC(=O)C=C)=C)=C
@@ -4892,7 +4892,7 @@ Cleaning cages:0
   2 51  1  0
  10 11  2  0
 M  END
-May 05, 2019 6:35:02 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:02 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Real:COc1ccc(N(c2ccc(cc2)C=Cc3ccc(cc3)C=Cc4ccc(N(c5ccccc5)c6ccc(cc6)OC)cc4)c7ccccc7)cc1
@@ -4938,7 +4938,7 @@ Cleaning cages:0
   6  8  1  0
   8 11  1  0
 M  END
-May 05, 2019 6:35:02 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:02 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c12ccc(C)cc2cccc1
 Image:c1c2c(ccc1)cc(cc2)C
@@ -4999,7 +4999,7 @@ Cleaning cages:0
   9 12  1  0
  10 11  2  0
 M  END
-May 05, 2019 6:35:02 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:02 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(C(OCCOC(C(C)=C)=O)=O)(Br)(C)C
 Image:CC(C)(Br)C(=O)OCCOC(C(=C)C)=O
@@ -5071,7 +5071,7 @@ Cleaning cages:0
  11 12  1  6
  17 13  1  6
 M  END
-May 05, 2019 6:35:03 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:03 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(C=2C(CC(=O)NN2)C)ccc(OC)cc1
 Image:N1=C(C23([C@@H]4C[C@H]3C54(CC5)[C@@H]2C(N1)=O)C)c6ccc(OC)cc6
@@ -5159,7 +5159,7 @@ Cleaning cages:0
  17 31  2  0
   9 21  1  0
 M  END
-May 05, 2019 6:35:03 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:03 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1nc(n(c1)C)CON=C(c2ccc(cc2)S(=O)(=O)C3CC3)C(Nc4sc(F)cn4)=O
 Image:C1C(S(c2ccc(cc2)\C(=N/OCc3n(C)ccn3)\C(Nc4sc(F)cn4)=O)(=O)=O)C1
@@ -5232,7 +5232,7 @@ Cleaning cages:0
  21 22  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:35:03 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:03 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:O(c1cc2nc(C)nc(c2cc1OC)-c3ccc(C(C)C)cc3)C
 Image:c1c2nc(C)nc(c2cc(c1OC)OC)-c3ccc(cc3)C(C)C
@@ -5301,7 +5301,7 @@ Image:C(C)(C1(C)(C(N)=O)OCCO1)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008144099_10_chem.sdf
 --------------------------------
-May 05, 2019 6:35:04 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:04 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -5396,7 +5396,7 @@ Cleaning cages:0
  23 26  1  0
   8 32  1  0
 M  END
-May 05, 2019 6:35:06 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:06 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(-c2c3c(c(c4ccccc42)-c5ccc6ccccc6c5)cccc3)ccc7c(c1)cccc7
 Image:c1c2c(ccc(c2)-c3c4ccccc4c(-c5ccc6c(cccc6)c5)c7c3cccc7)ccc1
@@ -5480,7 +5480,7 @@ Cleaning cages:0
   2 12  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:35:08 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:08 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(N)cc2oc(-c3cccc(c3)N)nc2cc1
 Image:c1c(N)ccc2nc(oc12)-c3cc(ccc3)N
@@ -5579,7 +5579,7 @@ Image:C1(C(=O)O)CN(C1)Cc2cc(c(-c3noc(-c4ccc(Oc5ccccc5)c(F)c4)n3)s2)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008222713_15_chem.sdf
 --------------------------------
-May 05, 2019 6:35:08 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:08 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -5761,7 +5761,7 @@ Cleaning cages:0
  10 11  1  0
  58 64  1  0
 M  END
-May 05, 2019 6:35:09 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:09 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1c(cc2c3cc(ccc3n(-c4ccccc4)c2c1)-n5c6ccccc6c7c5cccc7)N(c8ccccc8)c9ccc%10c(c%11cc(ccc%11n%10-c%12ccccc%12)-n%13c%14c(c%15ccccc%15%13)cccc%14)c9
 Image:c1c2c3c(cccc3)n(c2ccc1)-c4ccc5n(-c6ccccc6)c7c(c5c4)cc(cc7)N(c8ccccc8)c9cc%10c%11c(n(c%10cc9)-c%12ccccc%12)ccc(-n%13c%14c(c%15ccccc%13%15)cccc%14)c%11
@@ -5853,7 +5853,7 @@ Image:c12cc(n(c2cccc1)CCCCn3c(cc4ccccc34)C(=O)O)C(O)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008094770_4_chem.sdf
 --------------------------------
-May 05, 2019 6:35:12 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:12 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:35:12 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@3261c49e has 1 image; width=362.0 height=444.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=22.0
@@ -5949,7 +5949,7 @@ Cleaning cages:0
  18 25  1  0
  25 29  1  0
 M  END
-May 05, 2019 6:35:12 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:12 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(c(OC)cc(OC)cc1)CNc2c(C(O)c3cccc(c3OC)OC)cc(Cl)c(c2)C
 Image:c1c(c(OC)c(cc1)C(O)c2cc(c(cc2NCc3c(cc(cc3)OC)OC)C)Cl)OC
@@ -6057,7 +6057,7 @@ Cleaning cages:0
  23 26  1  0
  10 35  1  0
 M  END
-May 05, 2019 6:35:15 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:15 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:O(N=C(c1ccc2n(c3c(cc(cc3)C(c4c(C)cc(SCCOC(C=C)=O)cc4)=O)c2c1)CC)C)C(=O)C
 Image:C(=O)(C=C)OCCSc1cc(c(C(c2ccc3n(c4c(c3c2)cc(\C(\C)=N\OC(=O)C)cc4)CC)=O)cc1)C
@@ -6089,7 +6089,7 @@ Cleaning cages:0
   1  4  1  0
   1  5  1  0
 M  END
-May 05, 2019 6:35:16 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:16 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:P(C)(C)(=O)C
 Image:P(=O)(C)(C)C
@@ -6185,7 +6185,7 @@ Cleaning cages:0
  25 30  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:35:16 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:16 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(C(=O)O)C(c1ccc(SCCC2CCN(CC2)c3sc4cc(ccc4n3)Cl)c(OC)c1)C
 Image:C1C2C(S[C@H](N2)N3CCC(CC3)CCSC4C=CC(C(C)CC(O)=O)CC4CC)C=C(Cl)C1
@@ -6279,7 +6279,7 @@ Cleaning cages:0
  23 28  1  0
  10 11  2  0
 M  END
-May 05, 2019 6:35:18 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:18 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(OC=1C=2N(C=CC1)C(Cc3ccccc3)(C(=O)N2)Cc4ccccc4)(C)C
 Image:C1(N=C2N(C1(Cc3ccccc3)Cc4ccccc4)C=CC=C2OC(C)C)=O
@@ -6329,7 +6329,7 @@ Cleaning cages:0
   6  7  1  0
   4 10  1  0
 M  END
-May 05, 2019 6:35:18 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:18 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:O(NCCCCCCNOC)C
 Image:C(CCCN(C)OC)CCN([H])OC
@@ -6391,7 +6391,7 @@ Cleaning cages:0
   1 12  1  0
   8 11  1  0
 M  END
-May 05, 2019 6:35:19 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:19 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:N12C(C=3CCCCC3C=C1)=NC(C42CCCC4)=O
 Image:C1C2(C(N=C3N2C=CC4=C3CCCC4)=O)CCC1
@@ -6457,7 +6457,7 @@ Cleaning cages:0
   1 21  2  0
  10 11  2  0
 M  END
-May 05, 2019 6:35:19 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:19 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1ccc(C(NNC(Nc2ccc(cc2)Cl)=O)=O)c(c1)Br
 Image:c1c(NC(=O)NNC(c2ccccc2Br)=O)ccc(c1)Cl
@@ -6513,7 +6513,7 @@ M  END
 Real:Brc1ccc(C(OCCCO)CC)cc1
 Image:c1cc(ccc1Br)C(OCCCO)CC
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008001635_153_chem.tif:CORRECT_FULL_INCHI
-May 05, 2019 6:35:20 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:20 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008074751_5_chem.sdf
@@ -6596,7 +6596,7 @@ Cleaning cages:0
  23 24  1  0
  23 28  2  0
 M  END
-May 05, 2019 6:35:21 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:21 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1cc2NC(=O)C(Oc2cc1)=Cc3cc(C=CC(=O)NCc4ccc(Cl)nc4)cs3
 Image:N(Cc1cnc(cc1)Cl)C(/C=C/c2csc(c2)/C=C/3\Oc4ccccc4NC3=O)=O
@@ -6742,7 +6742,7 @@ Cleaning cages:0
  22 56  2  0
  24 39  1  0
 M  END
-May 05, 2019 6:35:21 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:21 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:N(c1ccccc1)(c2ccc(-c3ccc(N(c4ccccc4)c5ccc(C=CC=Cc6ccccc6)cc5)cc3)cc2)c7ccc(C=CC=Cc8ccccc8)cc7
 Image:C(c1ccc(N(c2ccccc2)c3ccc(cc3)-c4ccc(cc4)N(c5ccc(C=CC=Cc6ccccc6)cc5)c7ccccc7)cc1)=CC=Cc8ccccc8
@@ -6840,7 +6840,7 @@ Cleaning cages:0
  23 24  2  0
 M  END
 Real:c1(ccc(-c2ccc(cc2)C=C)cc1)-c3oc(-c4ccc(-c5ccc(C=C)cc5)cc4)nn3
-May 05, 2019 6:35:22 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:22 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Image:n1c(-c2ccc(-c3ccc(C=C)cc3)cc2)oc(-c4ccc(-c5ccc(C=C)cc5)cc4)n1
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008243435_20_chem.tif:CORRECT_FULL_INCHI
@@ -7018,7 +7018,7 @@ Cleaning cages:0
  19 51  1  0
  20 62  2  0
 M  END
-May 05, 2019 6:35:26 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:26 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(cc(-c2ccccc2)nn1-c3cc(-c4cc(-n5nc(cc5-c6ccccc6)-c7ccccc7)cc(c4)-n8c9ccccc9c%10c8cccc%10)cc(c3)-n%11c%12ccccc%12c%13c%11cccc%13)-c%14ccccc%14
 Image:c12c(cccc1)c3ccccc3n2-c4cc(cc(N/C(=C\C(=N)c5ccccc5)/c6ccccc6)c4)-c7cc(-n8c9ccccc9c%10ccccc8%10)cc(-n%11c(cc(n%11)-c%12ccccc%12)-c%13ccccc%13)c7
@@ -7072,7 +7072,7 @@ Cleaning cages:0
   2 12  1  0
  10 11  2  0
 M  END
-May 05, 2019 6:35:26 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:26 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1cc(C=C(C#N)C(=O)OC)ccc1O
 Image:c1c(ccc(c1)C=C)O.C(C#N)C(=O)OC
@@ -7210,7 +7210,7 @@ Cleaning cages:0
   9  1  1  6
   7 10  1  6
 M  END
-May 05, 2019 6:35:26 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:26 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(-c2ccc3c(c2)cccc3)c4c(c(-c5ccc6c(c5)cccc6)c7c1cc(cc7)-c8cc9c(cccc9)cc8)cccc4
 Image:C12=345C[C@@H]5[C@H]1[C@@]64C3C26.c1c(-c2ccc3ccccc3c2)ccc4c1c(-c5cc6ccccc6cc5)c7ccccc7c4-c8ccc9c(c8)cccc9
@@ -7291,7 +7291,7 @@ Cleaning cages:0
  23 24  1  0
  10 13  1  0
 M  END
-May 05, 2019 6:35:30 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:30 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1ccc2c(cc3c(c2)n(c4C(N5C(Cc34)C(N(C5=S)C)=O)C)C)c1
 Image:N12C(Cc3c(n(C)c4c3cc5ccccc5c4)C1C)C(N(C2=S)C)=O
@@ -7347,7 +7347,7 @@ Cleaning cages:0
   2 12  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:35:31 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:31 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:OCCOP(OCCC#N)N(CC)C(C)C
 Image:C(COP(OCCC#N)N(C(C)C)CC)O[H]
@@ -7399,7 +7399,7 @@ Image:C(OCC(OCC)=O)/C=C\CCl
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008241754_12_chem.sdf
 --------------------------------
-May 05, 2019 6:35:31 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:31 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -7493,7 +7493,7 @@ Cleaning cages:0
   9 22  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:35:35 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:35 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(N)cc(ccc1)-c2oc3cc4nc(-c5ccc(cc5)N)oc4cc3n2
 Image:c1(-c2cc(N)ccc2)oc3cc4c(oc(-c5ccc(N)cc5)n4)cc3n1
@@ -7579,7 +7579,7 @@ Cleaning cages:0
  18 21  1  0
  20 22  1  0
 M  END
-May 05, 2019 6:35:35 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:35 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(NC(N)=N)(c1cnn(-c2c3ccccc3ncc2)c1C4CC4)=O
 Image:C1C(C1)c2n(-c3ccnc4ccccc43)ncc2C(NC(=N)N)=O
@@ -7636,7 +7636,7 @@ M  END
 Real:c1(ccc(Oc2cc(C)ccc2)cc1)C
 Image:c1(ccc(cc1)C)Oc2cc(ccc2)C
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008285789_3_chem.tif:CORRECT_FULL_INCHI
-May 05, 2019 6:35:35 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:35 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008239558_46_chem.sdf
@@ -7724,7 +7724,7 @@ M  END
 Real:c1c(ccc(c1)-c2oc3c(cc4oc(nc4c3)-c5ccc(cc5)N)n2)N
 Image:CCC.c1cc(ccc1N)-c2nc3cc4c(nc(o4)-c5ccc(cc5)N)cc3o2
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008144099_10_chem.tif:LARGEST_FRAGMENT_CORRECT_FULL_INCHI
-May 05, 2019 6:35:37 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:37 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008266294_145_chem.sdf
@@ -7814,7 +7814,7 @@ Cleaning cages:0
   9 23  2  0
  23 29  1  0
 M  END
-May 05, 2019 6:35:37 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:37 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(C)c(SCCC2CCN(c3nc4ccc(cc4s3)Cl)CC2)ccc5c1scc5CC(=O)O
 Image:c1c2c(cc(Cl)c1)sc(n2)N3CCC(CCSc4ccc5c(scc5CC(=O)O)c4C)CC3
@@ -7864,7 +7864,7 @@ Image:O=C1OCCN1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008050365_252_chem.sdf
 --------------------------------
-May 05, 2019 6:35:38 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:38 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -7936,7 +7936,7 @@ Cleaning cages:0
  18 21  2  0
  10 13  1  0
 M  END
-May 05, 2019 6:35:39 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:39 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:Clc1c(ccc(-c2ncnc(c2)N3CCN(CC3)c4ccncc4)c1)Cl
 Image:c1(c(cc(cc1)-c2ncnc(N3CCN(CC3)c4ccncc4)c2)Cl)Cl
@@ -7993,7 +7993,7 @@ M  END
 Real:C(N)CNCCNCCNCCNCCN
 Image:C(NCCNCCN)CNCCNCCN
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008266331_28_chem.tif:CORRECT_FULL_INCHI
-May 05, 2019 6:35:40 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:40 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008024884_10_chem.sdf
@@ -8075,7 +8075,7 @@ Cleaning cages:0
  18 21  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:35:40 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:40 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c-12ccccc2C(c3ccc(cc3)OC)(c4c1cccc4)c5ccc(OC)cc5
 Image:c1cc(ccc1OC)C2(c3ccc(OC)cc3)c4c(-c5c2cccc5)cccc4
@@ -8179,7 +8179,7 @@ Cleaning cages:0
  23 25  1  0
  25 26  2  0
 M  END
-May 05, 2019 6:35:41 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:41 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(N(c2ccc(CCCOC(C=C)=O)cc2)c3ccc(CCCOC(C=C)=O)cc3)cc(c(C)cc1)C
 Image:c1c(ccc(c1C)C)N(Cc2ccc(cc2)CCCOC)c3ccc(CCC)cc3.O(CCC)C
@@ -8276,7 +8276,7 @@ Cleaning cages:0
  25 26  2  0
  25 29  1  0
 M  END
-May 05, 2019 6:35:43 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:43 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(ccc(-c2oc3c(n2)cc4oc(nc4c3)-c5ccc(cc5)N)cc1)N
 Image:c12cc3oc(-c4ccc(cc4)N)nc3cc2oc(-c5ccc(N)cc5)n1.O(=O)C
@@ -8352,7 +8352,7 @@ M  END
 Real:C1(C(O)=O)(CCOCC1)c2ccc(OCCCN3CCCC3)cc2
 Image:O1CCC(C(=O)O)(c2ccc(cc2)OCCCN3CCCC3)CC1
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008050365_252_chem.tif:CORRECT_FULL_INCHI
-May 05, 2019 6:35:43 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:43 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008291018_506_chem.sdf
@@ -8424,7 +8424,7 @@ Cleaning cages:0
  10 13  2  0
   8 11  1  0
 M  END
-May 05, 2019 6:35:44 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:44 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1cc(-c2nc(C(Cl)(Cl)Cl)nc(n2)C(Cl)(Cl)Cl)cc3OCOc31
 Image:O1COc2c1cc(-c3nc(nc(C(Cl)(Cl)Cl)n3)C(Cl)(Cl)Cl)cc2
@@ -8484,7 +8484,7 @@ Image:C(c1ccc(-c2ccccc2)cc1)C=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008106016_106_chem.sdf
 --------------------------------
-May 05, 2019 6:35:45 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:45 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -8570,7 +8570,7 @@ Image:n1nc(oc1-c2ccccc2OCc3ccncc3)Nc4cc(ccc4)C(F)(F)F
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008239616_1072_chem.sdf
 --------------------------------
-May 05, 2019 6:35:46 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:46 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:35:46 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@15f87ef2 has 1 image; width=692.0 height=286.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=11.0
@@ -8813,7 +8813,7 @@ Cleaning cages:0
  23 27  2  0
  28 40  1  0
 M  END
-May 05, 2019 6:35:47 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:47 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(C=CC=Cc2ccccc2)ccc(cc1)N(c3ccc(C=NN(c4ccccc4)c5ccccc5)cc3)c6ccccc6
 Image:c1ccc(N(c2ccc(cc2)/C=C/C=C/c3ccccc3)c4ccc(cc4)\C=N\N(c5ccccc5)c6ccccc6)cc1.CC
@@ -8867,7 +8867,7 @@ Cleaning cages:0
   3 11  2  0
   5 13  1  0
 M  END
-May 05, 2019 6:35:47 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:47 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(ccc(cc1)O)-c2c(C)cc([nH]n2)=O
 Image:c1([nH]nc(-c2ccc(O)cc2)c(c1)C)=O
@@ -8950,7 +8950,7 @@ Cleaning cages:0
  25 26  2  0
   2 11  1  0
 M  END
-May 05, 2019 6:35:49 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:49 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1cc2-c3cc(c(OC)cc3CN(C)c2c4c1cc5OCOc5c4)OC
 Image:c1cc-2c(c3cc4c(OCO4)cc31)N(Cc5cc(OC)c(OC)cc25)C
@@ -9017,7 +9017,7 @@ Cleaning cages:0
  10 13  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:35:49 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:49 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C1(C(N(CCC(NN)=O)C(N1CCC(NN)=O)=O)=O)C(C)C
 Image:C(CN1C(=O)C(C(C)C)N(C1=O)CCC(=O)NN)C(NN)=O
@@ -9075,7 +9075,7 @@ Cleaning cages:0
   7 17  2  0
   2 13  1  0
 M  END
-May 05, 2019 6:35:49 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:49 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(ccc(S(Nc2ccccc2)(=O)=O)cc1)C
 Image:c1ccc(cc1)NS(c2ccc(cc2)C)(=O)=O
@@ -9154,7 +9154,7 @@ Cleaning cages:0
   2 12  1  0
  23 26  1  0
 M  END
-May 05, 2019 6:35:50 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:50 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(c1cc2[nH]cnc2c(F)c1Nc3c(C)cc(cc3)OC(F)(F)F)(=O)OC
 Image:O=C(c1c(c(F)c2nc[nH]c2c1)Nc3c(cc(OC(F)(F)F)cc3)C)OC
@@ -9237,7 +9237,7 @@ Cleaning cages:0
  10 12  2  0
  10 11  1  0
 M  END
-May 05, 2019 6:35:50 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:50 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C1CC1Nc2c3sccc3nc(n2)Nc4cc(C#N)c(N5CCNCC5)cc4
 Image:c1c(c(C#N)cc(Nc2nc(c3sccc3n2)NC4CC4)c1)N5CCNCC5
@@ -9337,7 +9337,7 @@ Cleaning cages:0
   7 15  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:35:50 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:50 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(CCN1CCN(c2c(OC)cccc2)CC1)(C(C3CCCCC3)=O)(c4ccccc4)C
 Image:C(=O)C1CCCCC1.C1N(CCC)CCNC1.CC
@@ -9390,7 +9390,7 @@ Image:c1(ccc(cc1)COC)COC
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008227159_16_chem.sdf
 --------------------------------
-May 05, 2019 6:35:51 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:51 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -9430,7 +9430,7 @@ Image:C12C(O1)CC(CC2)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008074947_29_chem.sdf
 --------------------------------
-May 05, 2019 6:35:51 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:51 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -9516,7 +9516,7 @@ Cleaning cages:0
 M  END
 Real:C(C)C(O)CC(O)CC(O)C
 Image:C(C(C)C)(C)C.C(C)CC.CCCC
-May 05, 2019 6:35:53 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:53 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008105283_3_chem.tif:INCORRECT
 --------------------------------
@@ -9559,7 +9559,7 @@ Cleaning cages:0
   3 10  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:35:54 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:54 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1c(ccc(c1)C)S(C)(=O)=O
 Image:c1c(C)ccc(S(=O)(=O)C)c1
@@ -9638,7 +9638,7 @@ Cleaning cages:0
  10 12  2  0
  10 11  1  0
 M  END
-May 05, 2019 6:35:54 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:54 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1cccc(c1)-c2c3ccc4c(-c5ccccc5)ccnc4c3ncc2
 Image:c1cccc(c1)-c2c3ccc4c(c3ncc2)nccc4-c5ccccc5
@@ -9728,7 +9728,7 @@ Cleaning cages:0
  23 24  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:35:55 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:55 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(Cc1ccc(Cl)c(c1)OCCC2(CCN(c3sc(Br)cn3)CC2)N4CCOCC4)(=O)O
 Image:c1c(c(cc(c1)CC(O)=O)OCCC2(N3CCOCC3)CCN(CC2)c4sc(cn4)Br)C
@@ -9788,7 +9788,7 @@ Image:c1(ccc(N2CCNCC2)cc1)COC
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008280331_29_chem.sdf
 --------------------------------
-May 05, 2019 6:35:55 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:55 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -9809,7 +9809,7 @@ Checking if bond length looks okay:0
 Assigning OCR:0
 cleaning triples:0
 Cleaning cages:0
-May 05, 2019 6:35:57 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:57 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918352D
@@ -9931,7 +9931,7 @@ Cleaning cages:0
   5  6  2  0
 M  END
 Real:c1cc(C)ccc1C
-May 05, 2019 6:35:57 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:57 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Image:c1(ccc(cc1)C)C
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008106016_106_chem.tif:CORRECT_FULL_INCHI
@@ -10043,7 +10043,7 @@ Image:c1(ccc(-n2cc3ncnc(c3n2)Nc4ccc(OCc5cccc(F)c5)c(c4)Cl)cc1)CNCCS(=O)(=O)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008101187_15_chem.sdf
 --------------------------------
-May 05, 2019 6:35:58 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:58 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -10122,7 +10122,7 @@ Cleaning cages:0
  23 27  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:35:59 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:59 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(F)c(COc2cc(n(c(c2Br)=O)-c3cc(ccc3C)C(NC)=O)C)ccc(c1)F
 Image:c1(cc(c(C)cc1)-n2c(C)cc(OCc3c(cc(cc3)F)F)c(c2=O)Br)C(NC)=O
@@ -10204,7 +10204,7 @@ M  END
 Real:c12c3c(c=4c5c6c(ccc5)cccc6c4c3ccc1)ccc2
 Image:c1c2cccc3c2c(cc1)c=4c5c6c(ccc5)cccc6c34.CC
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008300750_3_chem.tif:LARGEST_FRAGMENT_CORRECT_FULL_INCHI
-May 05, 2019 6:35:59 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:35:59 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008206514_254_chem.sdf
@@ -10328,7 +10328,7 @@ Cleaning cages:0
  24 40  2  0
  39 42  1  0
 M  END
-May 05, 2019 6:36:02 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:02 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(-c2ccc3c(c2)c4cc(-c5ccccc5)ccc4n3-c6cc(-n7nc(cc7-c8ccccc8)-c9ccccc9)ccc6)ccccc1
 Image:c1cc(-n2c3ccc(-c4ccccc4)cc3c5cc(ccc52)-c6ccccc6)cc(-n7c(cc(n7)-c8ccccc8)-c9ccccc9)c1
@@ -10410,7 +10410,7 @@ Cleaning cages:0
  10 12  2  0
  10 11  1  0
 M  END
-May 05, 2019 6:36:03 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:03 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:OC(C)c1c(-n2cncc2)ccc(c1)C=CC(NC3CCc4ccccc34)=O
 Image:C(c1c(ccc(c1)\C=C\C(=O)NC2CCc3ccccc32)-n4cncc4)(C)O
@@ -10473,7 +10473,7 @@ Cleaning cages:0
   5  9  2  0
   5  6  1  6
 M  END
-May 05, 2019 6:36:03 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:03 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(P(C(=O)C)(C)=O)(=O)C
 Image:[P@@](=C)(C(C)=C)(C(=C)CC)C
@@ -10581,7 +10581,7 @@ Cleaning cages:0
  18 21  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:36:04 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:04 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(C)ccc(N(c2ccc3c4cccc5c4c(c6c3c2ccc6)ccc5)c7ccc(cc7)C)cc1
 Image:c1(C)ccc(N(c2ccc3c4c2cccc4c5cccc6cccc3c56)c7ccc(C)cc7)cc1
@@ -10647,7 +10647,7 @@ Image:C(C)CCc1ccc(cc1)Cc2ncccc2O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008291018_1396_chem.sdf
 --------------------------------
-May 05, 2019 6:36:05 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:05 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:36:05 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@57cfa975 has 1 image; width=606.0 height=95.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=13.0
@@ -10704,7 +10704,7 @@ Image:C1CN(Cc2c1ncs2)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008074837_20_chem.sdf
 --------------------------------
-May 05, 2019 6:36:05 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:05 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -10749,7 +10749,7 @@ Image:[H]C(c1c(cccc1Cl)Cl)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008266327_30_chem.sdf
 --------------------------------
-May 05, 2019 6:36:05 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:05 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -10871,7 +10871,7 @@ Image:C(\c1ccc(Nc2cc(ccc2)Cc3cc(ccc3)Nc4ccc(\C=C\C=C\c5ccccc5)cc4)cc1)=C/C=C/c6c
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008222607_5_chem.sdf
 --------------------------------
-May 05, 2019 6:36:07 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:07 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:36:07 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@2090dec7 has 1 image; width=412.0 height=406.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=19.0
@@ -10896,7 +10896,7 @@ Checking if bond length looks okay:0
 Assigning OCR:0
 cleaning triples:0
 Cleaning cages:0
-May 05, 2019 6:36:07 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:07 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918362D
@@ -10977,7 +10977,7 @@ Checking if bond length looks okay:0
 Assigning OCR:0
 cleaning triples:0
 Cleaning cages:0
-May 05, 2019 6:36:07 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:07 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918362D
@@ -11194,7 +11194,7 @@ Cleaning cages:0
 M  END
 Real:c12ccc(C(Oc3ccc(cc3)OC(c4ccc(C(=O)Oc5ccc(OC(=O)c6ccc7c(C(OC7=O)=O)c6)cc5)cc4)=O)=O)cc2C(OC1=O)=O
 Image:C1(=O)c2c(C(=O)O1)ccc(C(=O)Oc3ccc(OC(=O)c4ccc(cc4)C(=O)Oc5ccc(cc5)OC(=O)c6ccc7C(OC(=O)c7c6)=O)cc3)c2.C
-May 05, 2019 6:36:08 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:08 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:36:08 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@2a5e215a has 1 image; width=595.0 height=425.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=13.0
@@ -11329,7 +11329,7 @@ Image:C(C)c1c(N(c2ccc(\C=C\C=C\c3ccccc3)cc2)c4ccc(/C=C/c5ccc(C)cc5)cc4)c(ccc1)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008161737_18_chem.sdf
 --------------------------------
-May 05, 2019 6:36:08 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:08 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:36:08 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@46562923 has 1 image; width=456.0 height=340.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=17.0
@@ -11363,7 +11363,7 @@ Checking if bond length looks okay:0
 Assigning OCR:0
 cleaning triples:0
 Cleaning cages:0
-May 05, 2019 6:36:09 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:09 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918362D
@@ -11490,7 +11490,7 @@ Cleaning cages:0
   9  8  1  6
   9 10  1  6
 M  END
-May 05, 2019 6:36:09 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:09 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(c(c(O)c(c1=O)O)=O)=O
 Image:O=c1c(=O)c(c(O)c1O2[C@]34[C@@H]5[C@H]4[C@]325)=O
@@ -11512,7 +11512,7 @@ Checking if bond length looks okay:0
 Assigning OCR:0
 cleaning triples:0
 Cleaning cages:0
-May 05, 2019 6:36:10 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:10 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918362D
@@ -11800,7 +11800,7 @@ Cleaning cages:0
  20 21  1  0
   1 42  1  0
 M  END
-May 05, 2019 6:36:11 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:11 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(C)ccc(C(c2ccccc2)=Cc3ccc(N(c4ccc(C=C(c5ccc(C)cc5)c6ccccc6)cc4)c7ccc(cc7)C)cc3)cc1
 Image:c1c(ccc(c1)C(=Cc2ccc(N(c3ccc(cc3)C=C(c4ccc(C)cc4)c5ccccc5)c6ccc(cc6)C)cc2)c7ccccc7)C
@@ -11913,7 +11913,7 @@ Cleaning cages:0
  20 22  2  0
  10 11  1  0
 M  END
-May 05, 2019 6:36:12 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:12 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(C)cc(ccc1)N(c2ccc(-c3ccc(N(c4cc(ccc4)C)c5ccccc5)cc3)cc2)c6ccccc6
 Image:c1(cccc(c1)C)N(c2ccc(cc2)-c3ccc(Nc4cc(ccc4)C)cc3)c5ccccc5.c1cccc(c1)C
@@ -12049,7 +12049,7 @@ Image:c1(-c2c3cc4c(ccc(c4cc3c(-c5ccccc5)c6cc7c(cc26)c(ccc7CCC)CCC)CCC)CCC)ccccc1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008174648_4_chem.sdf
 --------------------------------
-May 05, 2019 6:36:13 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:13 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looks noisey
@@ -12121,7 +12121,7 @@ Image:C(CC(C)CO(C)(C)C)POC
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008222580_150_chem.sdf
 --------------------------------
-May 05, 2019 6:36:20 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:20 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -12137,7 +12137,7 @@ Checking if bond length looks okay:0
 Assigning OCR:0
 cleaning triples:0
 Cleaning cages:0
-May 05, 2019 6:36:21 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:21 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918362D
@@ -12266,7 +12266,7 @@ Cleaning cages:0
   5 15  2  0
   9 21  1  0
 M  END
-May 05, 2019 6:36:21 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:21 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1cccc(c1C(=O)O)COc2ccc(CC(=O)O)cc2
 Image:c1c(c(COc2ccc(cc2)CC(=O)O)ccc1)C(=O)O
@@ -12353,7 +12353,7 @@ Cleaning cages:0
  21 22  1  0
  20 21  2  0
 M  END
-May 05, 2019 6:36:23 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:23 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1c2c(-c3ccccc3)cc(C)nc2c4c(c1)c(-c5ccccc5)cc(n4)C
 Image:c12c3c(c(cc(n3)C)-c4ccccc4)ccc1c(-c5ccccc5)cc(C)n2
@@ -12416,7 +12416,7 @@ Cleaning cages:0
   3 13  1  0
   2 13  2  0
 M  END
-May 05, 2019 6:36:24 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:24 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:O=C1c2cccc(c2C(C=C1)=O)O
 Image:C1(c2cccc(O)c2C(=O)C=C1)=O
@@ -12511,7 +12511,7 @@ Cleaning cages:0
  10 11  1  0
   8 31  2  0
 M  END
-May 05, 2019 6:36:25 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:25 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:N(CCO)C(c1ncc(C(S(c2cc(c(OC)cc2)F)(=O)=O)c3cc(ccc3F)F)c(c1)C)=O
 Image:C([N+](C(c1ncc(c(c1)C)C(c2c(F)ccc(F)c2)S(=O)(=O)c3ccc(c(F)c3)OC)=O)=C)CC
@@ -12637,7 +12637,7 @@ Image:c1c2n(c3ccc(C(=O)C(=NOC(C)=O)C(=O)c4c5ccccc5ccc4)cc3c2cc(c1)C(c6ccccc6C)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008115269_6_chem.sdf
 --------------------------------
-May 05, 2019 6:36:27 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:27 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -12731,7 +12731,7 @@ Cleaning cages:0
  10 11  1  0
   9 21  1  0
 M  END
-May 05, 2019 6:36:27 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:27 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(CCCCNc1ncccc1C(Nc2ccc(-n3nc(cc3C(F)(F)F)-c4cnccc4)cc2)=O)O
 Image:n1cccc(c1)-c2cc(C(F)(F)F)n(n2)-c3ccc(cc3)NC(c4c(NCCCCCO)nccc4)=O
@@ -12787,7 +12787,7 @@ Cleaning cages:0
   4 14  1  0
   8 11  1  0
 M  END
-May 05, 2019 6:36:28 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:28 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1c(c(O)cc(c1)C=2C(C(NN2)=O)(C)C)F
 Image:C1(c2cc(c(F)cc2)O)=NNC(=O)C1(C)C
@@ -12895,7 +12895,7 @@ Image:c1cc(N2Cc3cc(S(=O)(c4cc5CN(COc5cc4)c6ccccc6)=O)ccc3OC2)ccc1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008266359_30_chem.sdf
 --------------------------------
-May 05, 2019 6:36:28 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:28 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -12961,7 +12961,7 @@ Image:c1cc(ccc1)CC(NC(C(=O)O)Cc2c[nH]cn2)CN
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008146044_10_chem.sdf
 --------------------------------
-May 05, 2019 6:36:29 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:29 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -13033,7 +13033,7 @@ Image:c-12ccccc2OP(=O)(c3cc(ccc3O)O)c4c1cccc4
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008158469_93_chem.sdf
 --------------------------------
-May 05, 2019 6:36:31 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:31 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -13143,7 +13143,7 @@ Cleaning cages:0
  16 41  2  0
   6 31  2  0
 M  END
-May 05, 2019 6:36:32 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:32 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(O)ccc(cc1)N(c2ccc(-c3ccc(N(c4ccc(C)cc4)c5ccc(cc5)C)cc3)cc2)c6ccc(O)cc6
 Image:c1c(ccc(c1)N(c2ccc(C)cc2)c3ccc(-c4ccc(cc4)N(c5ccc(O)cc5)c6ccc(cc6)O)cc3)C
@@ -13218,7 +13218,7 @@ Image:O=c1cc(c2cc(C)c(C(O)=O)cc2o1)-c3ccc(F)cc3
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008285681_4_chem.sdf
 --------------------------------
-May 05, 2019 6:36:33 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:33 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:36:33 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@6235dc7f has 1 image; width=425.0 height=377.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=19.0
@@ -13314,7 +13314,7 @@ Cleaning cages:0
  27 30  1  0
  23 24  1  0
 M  END
-May 05, 2019 6:36:34 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:34 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:O(c1cccc(c1OC)C2c3c(ccc(Cl)c3)-n4c(C(O2)CC5OCCO5)ncc4)C
 Image:c1c(Cl)ccc2-n3ccnc3C(OC(c4c(c(OC)ccc4)OC)c12)CC5OCCO5
@@ -13491,7 +13491,7 @@ Cleaning cages:0
  23 28  1  0
  10 13  1  0
 M  END
-May 05, 2019 6:36:43 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:43 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:O(C(C)(C)C)OC(C(C)(C)CCCCCC)=O
 Image:CC(C(CC)(C)C)C.C(C)C(CCC)(C)C.CCC(C)(C)(C)CC.CCC.CC(C(C)(C)C)(C)C.CCC1(C)CC1.CC.C(C)C.C(CC)C.CC.C[C@@H](C)[C@@H](C)[C@H](C)C.CC
@@ -13578,7 +13578,7 @@ Cleaning cages:0
  14 16  1  6
  18 20  1  6
 M  END
-May 05, 2019 6:36:43 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:43 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(c1c(O)c(Br)c(c(c1)C)C)(c2ccccc2)(C)C
 Image:c1(cc(C)c(c(Br)c1O)C)C(C)(c2ccccc2)C.C123C(C1C)(C2)C3C
@@ -13691,7 +13691,7 @@ Image:c1cc(N(c2cc(C)c(cc2)C)c3ccc(CCCOC(C(=C)[H])=O)cc3)ccc1CCCOC(=O)C([H])=C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008231428_19_chem.sdf
 --------------------------------
-May 05, 2019 6:36:44 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:44 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -13739,7 +13739,7 @@ Cleaning cages:0
  10 13  2  0
  10 11  1  0
 M  END
-May 05, 2019 6:36:46 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:46 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(C=2CCC(NN2)=O)cc(c(O)cc1)F
 Image:c1(cc(F)c(cc1)O)C2=NNC(CC2)=O
@@ -13757,7 +13757,7 @@ Checking if bond length looks okay:0
 Assigning OCR:0
 cleaning triples:0
 Cleaning cages:0
-May 05, 2019 6:36:46 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:46 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918362D
@@ -13912,7 +13912,7 @@ Image:c1(ccc(cc1OC)CCC(CC(O)CCCCCCC)=O)O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008266237_44_chem.sdf
 --------------------------------
-May 05, 2019 6:36:47 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:47 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:36:47 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@777674ee has 1 image; width=577.0 height=475.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=14.0
@@ -14024,7 +14024,7 @@ Image:c1c2OCCOc2c(cc1)C(c3cc(ccc3-n4c(\C=C\C(OCc5ccccc5)=O)ccc4)Cl)O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008255324_35_chem.sdf
 --------------------------------
-May 05, 2019 6:36:47 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:47 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -14036,7 +14036,7 @@ Checking if bond length looks okay:0
 Assigning OCR:0
 cleaning triples:0
 Cleaning cages:0
-May 05, 2019 6:36:47 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:47 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918362D
@@ -14120,7 +14120,7 @@ Cleaning cages:0
   7  8  1  0
   7  9  1  0
 M  END
-May 05, 2019 6:36:48 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:48 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C1(CO1)CN(CC2CO2)C
 Image:C1(OC1)CN(C)CC2OC2
@@ -14163,7 +14163,7 @@ Image:[H]n1c([H])nnn1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008106016_33_chem.sdf
 --------------------------------
-May 05, 2019 6:36:48 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:48 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -14245,7 +14245,7 @@ Image:c1cccc2c1C(c3cc(/C(=N/OC(=O)C)/[H])ccc3C2)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008056719_47_chem.sdf
 --------------------------------
-May 05, 2019 6:36:48 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:48 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -14281,7 +14281,7 @@ M  END
 Real:C1(C)CCC(C)CC1
 Image:C1(CCC(C)CC1)C
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008106016_33_chem.tif:CORRECT_FULL_INCHI
-May 05, 2019 6:36:49 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:49 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008122451_32_chem.sdf
@@ -14330,7 +14330,7 @@ Image:C1(C)[C@@H]2C(C)C([C@@H](C2)C1C)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008230977_28_chem.sdf
 --------------------------------
-May 05, 2019 6:36:49 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:49 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -14398,7 +14398,7 @@ Cleaning cages:0
  10 22  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:36:50 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:50 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(ccc(cc1)S(ON=C(c2ccc(cc2)OC)C#N)(=O)=O)C
 Image:c1cc(ccc1C)S(=O)(=O)O\N=C(\c2ccc(cc2)OC)/C#N
@@ -14454,7 +14454,7 @@ Image:O(C)C12OO1[C@@H]2C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008164715_14_chem.sdf
 --------------------------------
-May 05, 2019 6:36:51 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:51 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -14542,7 +14542,7 @@ Image:C1(CCC2OC2C1)COC(=O)CC(CC(C)(C)COC(C3CCC4OC4C3)=O)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008189709_10_chem.sdf
 --------------------------------
-May 05, 2019 6:36:51 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:51 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -14582,11 +14582,11 @@ Cleaning cages:0
   6  9  2  0
 M  END
 Real:c1(cc(c(O)cc1)C(=O)O)C
-May 05, 2019 6:36:52 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:52 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Image:c1(cc(C)ccc1O)C(O)=O
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008122451_32_chem.tif:CORRECT_FULL_INCHI
-May 05, 2019 6:36:52 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:52 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -14623,7 +14623,7 @@ Image:C(=O)(C)CC(=O)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008058707_41_chem.sdf
 --------------------------------
-May 05, 2019 6:36:52 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:52 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -14740,7 +14740,7 @@ Cleaning cages:0
  23 25  1  0
  24 40  1  0
 M  END
-May 05, 2019 6:36:52 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:52 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C1CNCCC1C(N2CCN(c3ccc(NC(NC(CC4CCCCC4)C(N)=O)=O)cc3NC(CCCc5ccccc5)=O)CCC2)=O
 Image:C(CCCc1ccccc1)(Nc2c(N3CCN(CCC3)C(=O)C4CCNCC4)ccc(c2)NC(NC(C(=O)N)CC5CCCCC5)=O)=O
@@ -14859,7 +14859,7 @@ Image:c1ccc(P)cc1\C(=[NH+]/N)\O.c1cc(ccc1C(C)(C)C)/C(=N/N)/O.c1(C(C)(C)C)ccc(P)c
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008163045_138_chem.sdf
 --------------------------------
-May 05, 2019 6:36:52 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:52 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 
   Molvec0105051918362D
@@ -14889,7 +14889,7 @@ Image:C[C@H]1C2(CO)[C@@H]1OC2
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008050567_7_chem.sdf
 --------------------------------
-May 05, 2019 6:36:52 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:52 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 May 05, 2019 6:36:52 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@37050ea5 has 1 image; width=107.0 height=242.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=76.0
@@ -14954,7 +14954,7 @@ Cleaning cages:0
  10 11  2  0
   7  8  1  0
 M  END
-May 05, 2019 6:36:53 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:53 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(C2C(=O)NN=C2)ccccc1
 Image:c1(ccccc1)C2C=NNC2=O
@@ -15020,7 +15020,7 @@ Image:C1CC2C(CC1C(=O)O)C(=O)OC2=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008087309_5_chem.sdf
 --------------------------------
-May 05, 2019 6:36:53 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:53 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -15164,7 +15164,7 @@ Checking if bond length looks okay:0
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008049613_14_chem.sdf
 --------------------------------
-May 05, 2019 6:36:54 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:54 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Assigning OCR:0
 cleaning triples:0
@@ -15233,7 +15233,7 @@ M  END
 Real:c1-2c(c3c(cc1)cc4OCOc4c3)N(C)Cc5c2cc(c(OC)c5)OC
 Image:c1cc-2c(c3cc4c(OCO4)cc31)N(Cc5cc(OC)c(OC)cc25)C
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008230977_28_chem.tif:CORRECT_FULL_INCHI
-May 05, 2019 6:36:54 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:54 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008161737_15_chem.sdf
@@ -15397,7 +15397,7 @@ Cleaning cages:0
  20 23  1  0
  10 56  1  0
 M  END
-May 05, 2019 6:36:57 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:57 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(COc1ccc(cc1)Cc2ccc(OCC3CO3)cc2)(O)COC(c4c(ccc(C(OCCOC(C(C)=C)=O)=O)c4)C(OCCCOC(C=C)=O)=O)=O
 Image:O(CCOC(c1cc(C(OCC(COc2ccc(cc2)Cc3ccc(OCC4OC4)cc3)O)=O)c(C(OCCCOC(=O)C=C)=O)cc1)=O)C(=O)C(C)=C.CC.C(C)C
@@ -15443,7 +15443,7 @@ Image:CC(CC(CC)C)CC
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008242093_73_chem.sdf
 --------------------------------
-May 05, 2019 6:36:57 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:57 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:36:57 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@2c6fc19 has 1 image; width=441.0 height=146.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=18.0
@@ -15502,7 +15502,7 @@ Image:CO[C@]1(C(C)C1)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008189923_8_chem.sdf
 --------------------------------
-May 05, 2019 6:36:58 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:58 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:36:58 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@78dcef76 has 1 image; width=462.0 height=423.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=17.0
@@ -15608,7 +15608,7 @@ Image:c1ccc(c(OCc2ccccc2)c1OC)C(=O)c3cc(Cl)ccc3NC(C(C)(C)C)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008198989_81_chem.sdf
 --------------------------------
-May 05, 2019 6:36:58 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:58 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Removing bad edges:0
 Checking if bond length looks okay:0
@@ -15718,7 +15718,7 @@ Image:c1cccc2c1c(SCC3COC(C)(CC)O3)c(c(C4C(=O)c5ccccc5C4=O)n2)O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008285516_6_chem.sdf
 --------------------------------
-May 05, 2019 6:36:59 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:59 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 cleaning triples:0
@@ -15760,7 +15760,7 @@ Image:C(NOCC)(N)=N
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008050544_6_chem.sdf
 --------------------------------
-May 05, 2019 6:36:59 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:36:59 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -15866,7 +15866,7 @@ Image:C(OC)C.C(=C)(NC(=O)(C(B)B)(B)(B)B)C.C(=C)(N(C)C)C.CC.CC(B)(B)(B)(=O)C(B)B.
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008089871_86_chem.sdf
 --------------------------------
-May 05, 2019 6:37:00 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:00 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -15956,7 +15956,7 @@ Cleaning cages:0
  29 30  2  0
  10 11  2  0
 M  END
-May 05, 2019 6:37:01 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:01 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(-c2c(cccc2)-c3nnn(n3)P)ccc(Cn4c(CCC)nc(C(C)(O)C)c4C(O)=O)cc1
 Image:c1cc(ccc1Cn2c(C(O)=O)c(nc2CCC)C(C)(C)O)-c3ccccc3-c4nn[nH]n4
@@ -16051,7 +16051,7 @@ Image:c1(cc(c(N)c(c1)CC)CC)C(c2cc(CC)c(N)c(c2)CC)(c3c(cccc3Cl)Cl)[H]
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008266236_60_chem.sdf
 --------------------------------
-May 05, 2019 6:37:01 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:01 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -16138,7 +16138,7 @@ Image:c1cc(cc2c1oc(-c3ccc(cc3)-c4oc5ccc(N)cc5n4)n2)N
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008116677_14_chem.sdf
 --------------------------------
-May 05, 2019 6:37:02 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:02 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -16194,7 +16194,7 @@ Image:C1C(CCC(C1)C2CCC(CC2)O)O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008260691_49_chem.sdf
 --------------------------------
-May 05, 2019 6:37:03 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:03 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -16206,7 +16206,7 @@ Checking if bond length looks okay:0
 Assigning OCR:0
 cleaning triples:0
 Cleaning cages:0
-May 05, 2019 6:37:04 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:04 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918372D
@@ -16377,7 +16377,7 @@ Image:c1ccc(F)c(N2CCN(CC(=O)Nc3c(Sc4ccc(Cl)cc4)cccc3)CC2)c1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008094741_21_chem.sdf
 --------------------------------
-May 05, 2019 6:37:04 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:04 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -16430,7 +16430,7 @@ Image:C(=C)C(OCCNC(N)=O)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008208129_1092_chem.sdf
 --------------------------------
-May 05, 2019 6:37:04 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:04 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:37:04 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@34cafe68 has 1 image; width=450.0 height=444.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=18.0
@@ -16535,7 +16535,7 @@ Image:c1(c(OC)ccnc1C(c2c(ccc(Cl)c2)-n3cccc3\C=C\C(O)=O)O)OC
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008143905_328_chem.sdf
 --------------------------------
-May 05, 2019 6:37:05 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:05 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -16679,7 +16679,7 @@ Cleaning cages:0
  23 24  1  0
  22 57  1  0
 M  END
-May 05, 2019 6:37:07 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:07 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(C(=C)C)(=O)Oc1ccc(-c2ccc(cc2)N(c3ccc(-c4ccc(cc4)OC(C(C)=C)=O)cc3)c5ccc(-c6ccc(cc6)OC(C(C)=C)=O)cc5)cc1
 Image:C=C(C(Oc1ccc(-c2ccc(cc2)N(c3ccc(cc3)-c4ccc(OC(C(=C)C)=O)cc4)c5ccc(-c6ccc(OC(C(C)=C)=O)cc6)cc5)cc1)=O)C.C(C)CC1CC1
@@ -16776,7 +16776,7 @@ Image:c1c(cc(Cl)cc1Cl)C2(CC(=CO2)c3ccc(CNC(C)=O)cc3)C(F)(F)(F)(F)F
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008214335_15_chem.sdf
 --------------------------------
-May 05, 2019 6:37:07 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:07 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -16895,7 +16895,7 @@ Image:c1(N)ccc2oc(nc2c1)-c3cccc(c3)N.CC
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008247887_375_chem.sdf
 --------------------------------
-May 05, 2019 6:37:10 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:10 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -16969,7 +16969,7 @@ Image:C(c1c(c(c(O)cc1C)C(O)=O)OC)c2c(cc(cc2O)O)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008007377_23_chem.sdf
 --------------------------------
-May 05, 2019 6:37:13 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:13 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:37:13 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@7b3f367d has 1 image; width=2063.0 height=425.0 xres=400.0in yres=400.0in bpp=8 photometric=3 rows=3.0
@@ -17038,7 +17038,7 @@ M  END
 Real:c1(c(ccc(c1)NC(C(=O)OC)=O)Cl)C
 Image:c1(NC(C(OC)=O)=O)ccc(Cl)c(C)c1
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008143905_328_chem.tif:CORRECT_FULL_INCHI
-May 05, 2019 6:37:15 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:15 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008081504_15_chem.sdf
@@ -17108,7 +17108,7 @@ Image:c1cc(ccc1S(NS(=O)(=O)CCCCCCCC)(=O)=O)N
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008239504_10_chem.sdf
 --------------------------------
-May 05, 2019 6:37:15 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:15 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -17188,7 +17188,7 @@ Cleaning cages:0
  27 28  1  0
   8 11  2  0
 M  END
-May 05, 2019 6:37:16 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:16 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1ccc(c(C=C2C(Nc3c(O2)cccc3)=O)c1)C=CC(=O)NCc4ncccc4
 Image:c1cc(/C=C/2\Oc3c(cccc3)NC2=O)c(cc1)/C=C/C(=O)NCc4ccccn4
@@ -17370,7 +17370,7 @@ Image:c1(C)c(C)c(O)c(C)cc1C(c2cc(C(c3cc(C)c(c(c3C)C)O)c4cc(c(c(c4C)C)O)C)cc(C(c5
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008146044_3_chem.sdf
 --------------------------------
-May 05, 2019 6:37:17 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:17 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:37:17 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@391ee744 has 1 image; width=2268.0 height=1071.0 xres=400.0in yres=400.0in bpp=8 photometric=3 rows=3.0
@@ -17424,7 +17424,7 @@ M  END
 Real:C1CC(CCC1C)C
 Image:C1CC(CCC1C)C
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008050567_7_chem.tif:CORRECT_FULL_INCHI
-May 05, 2019 6:37:18 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:18 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008143905_423_chem.sdf
@@ -17474,7 +17474,7 @@ Cleaning cages:0
   4 13  1  0
   8 11  2  0
 M  END
-May 05, 2019 6:37:19 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:19 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(C(c1ccc(OC)cc1)=O)C(=O)OC
 Image:O(C)c1ccc(cc1)C(CC(OC)=O)=O
@@ -17595,7 +17595,7 @@ Cleaning cages:0
  10 13  1  0
  23 30  1  0
 M  END
-May 05, 2019 6:37:20 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:20 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1cccc(c1)-c2cc(-n3ccc(CN(CC(O)=O)CC(=O)O)n3)nc(c2)-n4ccc(n4)CN(CC(O)=O)CC(=O)O
 Image:C(CN(Cc1ccn(n1)-c2nc(cc(-c3ccccc3)c2)-n4ccc(CN(CC(=O)O)CC(=O)O)n4)CC(=O)O)(O)=O
@@ -17671,7 +17671,7 @@ Cleaning cages:0
   6 15  2  0
   3 23  1  0
 M  END
-May 05, 2019 6:37:20 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:20 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(O)c(O)c(O)cc(c1)C2C(Cc3c(cc(O)cc3O)O2)OC(=O)CCCC=CCC=CCC=CCC=CCC=CCC
 Image:Oc1c(O)cc(cc1O)C2Oc3c(CC2OC=O)c(O)cc(O)c3
@@ -17742,7 +17742,7 @@ Image:s1c2c(c(C)c(s2)C)c(C)c1C
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008189871_18_chem.sdf
 --------------------------------
 cleaning triples:0
-May 05, 2019 6:37:20 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:20 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Cleaning cages:0
 
@@ -17801,7 +17801,7 @@ Image:C12C(C(C=C1)C(C(OCC(C)=C)=O)C2C(OCC(C)=C)=O)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008101015_439_chem.sdf
 --------------------------------
-May 05, 2019 6:37:20 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:20 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:37:20 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@1bd6a95a has 1 image; width=2079.0 height=551.0 xres=400.0in yres=400.0in bpp=8 photometric=3 rows=3.0
@@ -17875,7 +17875,7 @@ Image:c1(c(cccc1C)C)N2/C(/SCC2=O)=N/C(C)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008094836_62_chem.sdf
 --------------------------------
-May 05, 2019 6:37:22 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:22 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -17916,7 +17916,7 @@ Cleaning cages:0
   3  9  1  0
   6  8  2  0
 M  END
-May 05, 2019 6:37:22 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:22 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(Cl)cnc(NC(CCl)=O)cc1
 Image:c1c(NC(=O)CCl)ncc(Cl)c1
@@ -18029,7 +18029,7 @@ Cleaning cages:0
  27 28  2  0
  29 30  2  0
 M  END
-May 05, 2019 6:37:22 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:22 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1ccc2c(c1)CCc3ccccc3N2c4ccc(-c5ccc(N6c7ccccc7CCc8ccccc86)cc5)cc4
 Image:c12ccccc2CCc3c(cccc3)N1c4ccc(-c5ccc(N6c7c(cccc7)CCc8ccccc68)cc5)cc4
@@ -18093,7 +18093,7 @@ Cleaning cages:0
   7 18  1  0
  10 11  2  0
 M  END
-May 05, 2019 6:37:22 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:22 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1ccc2c(c1)ccc3c2Cc4c(c(ccc4)C)O3
 Image:Cc1c2Oc3ccc4ccccc4c3Cc2ccc1
@@ -18176,7 +18176,7 @@ Cleaning cages:0
   2 22  2  0
  10 22  1  0
 M  END
-May 05, 2019 6:37:23 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:23 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c12c(c(c3cc(ccc3s1)C=NOC(=O)C)=O)cccc2
 Image:c1cccc2c1c(c3cc(/C(=N/OC(=O)C)/[H])ccc3s2)=O
@@ -18291,7 +18291,7 @@ Cleaning cages:0
  28 40  2  0
  10 33  1  0
 M  END
-May 05, 2019 6:37:23 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:23 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(ccc(C(c2ccc(OCCN3CCOCC3)cc2)C(C=C)c4ccccc4)cc1)OCCN5CCOCC5
 Image:C(CN1CCOCC1)Oc2ccc(cc2)C(c3ccc(cc3)OCCN4CCOCC4)C(C=C)c5ccccc5
@@ -18394,7 +18394,7 @@ Cleaning cages:0
   8 33  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:37:24 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:24 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C1CN(c2sc3c(n2)ccc(C(F)(F)F)c3)CCC1(CCOc4cc(ccc4)CC(=O)O)N5CCOCC5
 Image:C(CC1(CCN(CC1)c2nc3ccc(cc3s2)C(F)(F)F)N4CCOCC4)Oc5cccc(c5)CC(O)=O
@@ -18494,7 +18494,7 @@ Image:C123C4CC5(CC(CC42(C1)C5)C3)Nc6nc(N(CO)CO)nc(n6)N(CO)CO
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008074874_72_chem.sdf
 --------------------------------
 Checking noise
-May 05, 2019 6:37:24 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:24 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:37:24 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@e413248 has 1 image; width=569.0 height=427.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=14.0
@@ -18598,7 +18598,7 @@ Image:[C@H]1(c2cccn2-c3ccc(cc3[C@@H](c4cccc(c4OC)OC)O1)Cl)CCC=5NNNN5
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008007566_12_chem.sdf
 --------------------------------
-May 05, 2019 6:37:24 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:24 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:37:24 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@59e273d has 1 image; width=340.0 height=440.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=24.0
@@ -18692,7 +18692,7 @@ Cleaning cages:0
  27 28  1  0
   6 31  2  0
 M  END
-May 05, 2019 6:37:25 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:25 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1cc(F)c(C(c2c(-n3cccc3C=CC(OC)=O)ccc(Cl)c2)=O)c(c1OC)OC
 Image:c1cc(c(c(OC)c1OC)C(=O)c2c(ccc(Cl)c2)-n3cccc3\C=C\C(OC)=O)F
@@ -18784,7 +18784,7 @@ Cleaning cages:0
  20 22  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:37:25 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:25 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(CCl(Cl)Cl)nc(CCl(Cl)Cl)nc(n1)-c2cc(c(cc2)N(CC(=O)OCC)CC(=O)OCC)Br
 Image:C(c1nc(nc(C(Cl)(Cl)Cl)c1)-c2cc(c(N(CC(=O)OCC)CC(=O)OCC)cc2)Br)(Cl)(Cl)Cl
@@ -18856,7 +18856,7 @@ Image:CC1(c2cc(Br)c3c(c2-c4c1cccc4)cccc3)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008284471_2_chem.sdf
 --------------------------------
-May 05, 2019 6:37:25 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:25 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -18952,7 +18952,7 @@ Image:C(c1cccc(c1/N=C/c2c(c(c(=O)n(c2O)CC)C#N)C)C(C)C)(C)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008275949_47_chem.sdf
 --------------------------------
-May 05, 2019 6:37:25 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:25 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918372D
@@ -19042,7 +19042,7 @@ INFO: TIFF image: bpp=1 channels=1
  29 30  2  0
   9 22  1  0
 M  END
-May 05, 2019 6:37:25 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:25 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:O=C1C(CCCN1Cc2cc3c(cc(cc3)N4CCOCC4)cc2)=Cc5ccc(-n6cc(C)nc6)c(c5)OC
 Image:c1(N2CCOCC2)cc3c(cc1)cc(CN4CCC/C(=C\c5ccc(c(OC)c5)-n6cc(C)nc6)/C4=O)cc3
@@ -19100,7 +19100,7 @@ Cleaning cages:0
   5  6  1  0
 M  END
 Real:C(OC)(OC)CC
-May 05, 2019 6:37:26 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:26 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Image:C(OC)(OC)CC
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008266172_6_chem.tif:CORRECT_FULL_INCHI
@@ -19147,7 +19147,7 @@ Cleaning cages:0
   7  8  1  0
   6  9  1  0
 M  END
-May 05, 2019 6:37:26 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:26 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:OCC1CCC(COC=C)CC1
 Image:C(=C)OCC1CCC(CC1)CO
@@ -19216,7 +19216,7 @@ Image:C12C(OC(=O)C1CC(C3CC(OC3=O)=O)C=C2C)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008207401_7_chem.sdf
 --------------------------------
-May 05, 2019 6:37:26 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:26 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Assigning OCR:0
@@ -19315,7 +19315,7 @@ Image:c1(ccc(cc1)Oc2ccc(cc2)C(c3ccc(cc3)OC)(C)C)[S+](c4ccc(C)cc4)[O-]
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008274007_23_chem.sdf
 --------------------------------
-May 05, 2019 6:37:27 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:27 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 Checking noise
 May 05, 2019 6:37:27 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
@@ -19485,7 +19485,7 @@ Image:c1c2ccccc2c(cc1-c3ccc(cc3)-c4ccc5cc(ccc5c4)\C=C\c6ccc7c(c6)ccc(c7)-c8ccc(-
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008110966_12_chem.sdf
 --------------------------------
-May 05, 2019 6:37:27 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:27 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:37:27 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@340fb47a has 1 image; width=628.0 height=141.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=13.0
@@ -19549,7 +19549,7 @@ Image:c1nc(ccc1Br)NC(C(OC)=O)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008206514_28_chem.sdf
 --------------------------------
-May 05, 2019 6:37:27 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:27 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -19586,7 +19586,7 @@ Cleaning cages:0
   6  7  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:37:27 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:27 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1cc(P(O)=O)ccc1
 Image:c1ccccc1POC.C=O
@@ -19639,7 +19639,7 @@ Cleaning cages:0
   6  7  1  0
   6 10  1  0
 M  END
-May 05, 2019 6:37:27 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:27 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C1OC2C(C1O)OCC2O
 Image:C12C(C(CO1)O)OCC2O
@@ -19709,7 +19709,7 @@ Cleaning cages:0
   6 14  1  0
   7 17  1  0
 M  END
-May 05, 2019 6:37:28 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:28 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(C(OC(C)OCCOCC(F)(F)F)=O)(C)=C
 Image:C(OCCOC(OC(=O)C(=C)C)C)C(F)(F)F
@@ -19776,7 +19776,7 @@ Image:C(N1CC(OCC1)c2c3c(ccc2)[nH]cc3)CC
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008195740_13_chem.sdf
 --------------------------------
-May 05, 2019 6:37:28 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:28 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -19897,7 +19897,7 @@ Cleaning cages:0
  10 11  1  0
  39 42  1  0
 M  END
-May 05, 2019 6:37:29 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:29 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C1C(COc2ccc(Cc3ccc(OCC(O)COC(=O)c4ccc(C(OCCOC(C(=C)C)=O)=O)cc4)cc3)cc2)O1
 Image:C(OCCOC(=O)C(=C)C)(c1ccc(cc1)C(OCC(O)COc2ccc(cc2)Cc3ccc(OCC4OC4)cc3)=O)=O.CC.CC
@@ -20099,7 +20099,7 @@ Cleaning cages:0
   8 32  1  0
  33 62  2  0
 M  END
-May 05, 2019 6:37:30 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:30 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C1(C(COC(C=C)=O)CCOC(=O)CCC(OCC(OC(c2c(C(OCC(O)COc3ccc1cc3)=O)cccc2)=O)COCCOC(=O)C(C)=C)=O)(c4ccc(OCC5CO5)cc4)C
 Image:C(COC(=O)C=C)CCOC(CCC(=O)OCC(COCCOC(=O)C(=C)C)OC(=O)c1ccccc1C(OCC(O)COc2ccc(C(C)(C)c3ccc(cc3)OCC4CO4)cc2)=O)=O.CCC.CC.CC
@@ -20177,7 +20177,7 @@ Cleaning cages:0
  23 26  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:37:31 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:31 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(cc(C=Cc2cc(c(cc2)OC)OP(O)(=O)O)cc(c1OC)OC)OC
 Image:c1cc(c(OP(O)(O)=O)cc1/C=C\c2cc(OC)c(OC)c(OC)c2)OC
@@ -20325,7 +20325,7 @@ Cleaning cages:0
  10 13  2  0
  10 54  1  0
 M  END
-May 05, 2019 6:37:31 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:31 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(C=CC=Cc2ccccc2)ccc(N(c3ccccc3)c4ccc(-c5ccc(N(c6ccccc6)c7ccc(cc7)C=CC=Cc8ccccc8)cc5)cc4)cc1
 Image:c1(ccc(N(c2ccc(-c3ccc(N(c4ccc(cc4)C=CC=Cc5ccccc5)c6ccccc6)cc3)cc2)C7=8=CC(=CC=C7)C8)cc1)C=CC=Cc9ccccc9
@@ -20377,7 +20377,7 @@ Cleaning cages:0
   9 13  1  0
  10 12  1  0
 M  END
-May 05, 2019 6:37:31 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:31 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:O(C)c1cc2OCOc2c(OC)c1C
 Image:c1(c(C)c(OC)cc2c1OCO2)OC
@@ -20421,7 +20421,7 @@ Image:CN(C(=O)N([H])C)[H]
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008145901_27_chem.sdf
 --------------------------------
-May 05, 2019 6:37:32 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:32 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -20460,7 +20460,7 @@ Image:C1(CCCN1C=C)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008214389_11_chem.sdf
 --------------------------------
-May 05, 2019 6:37:32 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:32 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:37:32 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@1bd41df9 has 1 image; width=513.0 height=157.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=15.0
@@ -20525,7 +20525,7 @@ M  END
 Real:c-12ccc(N3CCCC3)ccc1ccc2
 Image:C1CCCC1C2=CC=C3C=CCC3C=C2
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008285435_46_chem.tif:ATOM_COUNT_BOND_COUNT_RIGHT_WRONG_LABELS_OR_CONNECTIVITY
-May 05, 2019 6:37:32 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:32 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008189937_12_chem.sdf
@@ -20607,7 +20607,7 @@ Image:c1c(c2c(cc1)cccc2)CP3(CO3CC)(=O=C)OCC
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008257220_35_chem.sdf
 --------------------------------
-May 05, 2019 6:37:33 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:33 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 cleaning triples:0
 Cleaning cages:0
@@ -20712,7 +20712,7 @@ Checking noise
  20 21  1  0
  23 27  1  0
 M  END
-May 05, 2019 6:37:33 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:33 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(ccc(C(c2ccc(cc2)OCC3CO3)C(c4ccc(cc4)OCC5CO5)c6ccc(cc6)OCC7CO7)cc1)OCC8CO8
 Image:c1c(OCC2CO2)ccc(C(c3ccc(OCC4CO4)cc3)C(c5ccc(cc5)CC6CO6)c7ccc(CC8CO8)cc7)c1
@@ -20754,7 +20754,7 @@ Image:C1CC(CCC1)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008242081_17_chem.sdf
 --------------------------------
-May 05, 2019 6:37:33 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:33 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -20768,7 +20768,7 @@ Assigning OCR:0
 cleaning triples:0
 Cleaning cages:0
 Looking for dashes:0
-May 05, 2019 6:37:35 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:35 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918372D
@@ -20913,7 +20913,7 @@ Image:c12c(=O)oc(=O)c2cc3c(c(oc3=O)=O)c1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008239616_446_chem.sdf
 --------------------------------
-May 05, 2019 6:37:35 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:35 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -20979,7 +20979,7 @@ Image:C(CC)N1CCOC(c2c3c(ccc2)NC(C3(Br)Br)=O)C1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008115166_155_chem.sdf
 --------------------------------
-May 05, 2019 6:37:35 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:35 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -21101,7 +21101,7 @@ Cleaning cages:0
  18 43  2  0
  10 11  2  0
 M  END
-May 05, 2019 6:37:36 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:36 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1cc2c(-c3ccccc3)c4C=Cc(c(c5ccc([nH]5)c(c6C=Cc(c(c1[nH]2)-c7ccccc7)n6)-c8ccccc8)-c9ccccc9)n4
 Image:c1cc(ccc1)-c2c3nc(C=C3)c(c4ccc(C4)c(-c5ccccc5)c6nc(c(c7[nH]c2cc7)-c8ccccc8)C=C6)-c9ccccc9
@@ -21217,7 +21217,7 @@ Image:c1c(SCCOC(C=C)=O)ccc(c1)C(c2ccc3n(CC)c4ccc(\C(=N\O[H]C(F)(F)F)\C)cc4c3c2)=
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008152128_22_chem.sdf
 --------------------------------
-May 05, 2019 6:37:37 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:37 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -21280,7 +21280,7 @@ Image:C(COCOC)N(CCOCOC)CCOCOC.C=C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008227202_10_chem.sdf
 --------------------------------
-May 05, 2019 6:37:37 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:37 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -21366,7 +21366,7 @@ Image:C(C#N)c1ccc(s1)CN2CCCN(CC2)c3sc4c(n3)ccc([Cl-])c4
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008251533_17_chem.sdf
 --------------------------------
-May 05, 2019 6:37:38 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:38 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Cleaning cages:0
 
@@ -21457,7 +21457,7 @@ Image:c1(ccc(S(O)(=O)=O)cc1)Nc2nc(Nc3ccc(S(=O)(=O)O)cc3)nc(Nc4cc(C#N)ccc4)n2
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008049482_3_chem.sdf
 --------------------------------
-May 05, 2019 6:37:38 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:38 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -21546,7 +21546,7 @@ Cleaning cages:0
  10 13  1  0
   8 33  1  0
 M  END
-May 05, 2019 6:37:38 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:38 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:n1c(C)cn(c1)-c2ccc(C=C3CCCN(C3=O)C(CO)c4cc(c(F)c(F)c4)F)cc2OC
 Image:C(\c1cc(c(cc1)-n2cc(nc2)C)OC)=C\3/C(N(C(CO)c4cc(c(F)c(F)c4)F)CCC3)=O
@@ -21606,7 +21606,7 @@ Image:C1(=O)C2C(C)C=CCC2C(=O)N1CC=C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008024650_8_chem.sdf
 --------------------------------
-May 05, 2019 6:37:38 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:38 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:37:38 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@1f629491 has 1 image; width=1293.0 height=381.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=6.0
@@ -21725,7 +21725,7 @@ Image:CC.c1cc(-c2sc(-c3ccc(-c4sc(-c5ccccc5)cc4)s3)cc2)sc1-c6ccc(s6)-c7ccccc7
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008056680_130_chem.sdf
 --------------------------------
-May 05, 2019 6:37:39 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:39 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -21804,7 +21804,7 @@ Assigning OCR:0
  21 22  1  0
   2 13  1  0
 M  END
-May 05, 2019 6:37:39 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:39 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(CC1OC1C=CO)C=CCCC2C(O2)CC(C=C)CC(C=C)O
 Image:C(\C=C\CCC1C(CC(C=C)CC(C=C)O)O1)CC2OC2/C=C\ON
@@ -21880,7 +21880,7 @@ Image:C(C(=O)O(C)Cl)c1ccc2c(c1)C(=O)c3ccccc3CO2
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008133264_118_chem.sdf
 --------------------------------
-May 05, 2019 6:37:39 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:39 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -21950,7 +21950,7 @@ Cleaning cages:0
  16 21  1  0
   7 17  1  0
 M  END
-May 05, 2019 6:37:40 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:40 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(C)c(ccc(c1)C(C)(c2cc(C)c(cc2)O)C)O
 Image:c1(ccc(c(c1)C)O)C(CC)(CC)c2cc(c(cc2)O)C
@@ -22024,7 +22024,7 @@ M  END
 Real:c1c(SCC(=O)Nc2ccccc2O)ccc(c1)O
 Image:c1cc(ccc1O)SCC(Nc2ccccc2O)=O
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008049482_3_chem.tif:CORRECT_FULL_INCHI
-May 05, 2019 6:37:40 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:40 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008050365_50_chem.sdf
@@ -22122,7 +22122,7 @@ Image:C(NC(c1cc(C)c(C(c2c(F)c(ccc2C)F)S(c3ccc(OC)cc3)(=O)=O)cn1)=O)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008247887_263_chem.sdf
 --------------------------------
-May 05, 2019 6:37:41 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:41 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -22308,7 +22308,7 @@ Checking noise
   1 41  2  0
   6 53  1  0
 M  END
-May 05, 2019 6:37:42 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:42 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1c(N(c2ccc(N(c3ccc(cc3)N(c4ccccc4)c5cc(ccc5)C)c6ccc(N(c7cc(ccc7)C)c8ccccc8)cc6)cc2)c9cc(ccc9)C)cccc1
 Image:c1ccc(cc1)N(c2ccc(N(c3ccc(N(c4cccc(c4)C)c5ccccc5)cc3)c6ccc(cc6)N(c7ccccc7)c8cccc(C)c8)cc2)c9cc(C)ccc9.C#C
@@ -22382,7 +22382,7 @@ Image:c1ccc(SC(=S)P(OCC)(=O)OCC)c(c1)O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008034788_14_chem.sdf
 --------------------------------
-May 05, 2019 6:37:42 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:42 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -22437,7 +22437,7 @@ Image:CC(C)(C)OC(NCc1cccc(I)c1)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008273974_25_chem.sdf
 --------------------------------
-May 05, 2019 6:37:42 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:42 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -22505,7 +22505,7 @@ Image:C1(C(O)C(O)CC(O)CC(O)C2(C(O)C(CS2(C1)=O)O)O)O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008170399_18_chem.sdf
 --------------------------------
-May 05, 2019 6:37:43 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:43 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -22582,7 +22582,7 @@ Cleaning cages:0
  23 24  2  0
   1 22  2  0
 M  END
-May 05, 2019 6:37:44 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:44 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(ccc(cc1)C(=O)O)COc2c(-c3nnc(Nc4ccccc4)s3)cccc2
 Image:n1nc(sc1-c2ccccc2OCc3ccc(cc3)C(=O)O)Nc4ccccc4
@@ -22647,7 +22647,7 @@ Image:c1(ccc(cc1O)C(O)CCC)O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008176218_24_chem.sdf
 --------------------------------
-May 05, 2019 6:37:44 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:44 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -22737,7 +22737,7 @@ Assigning OCR:0
   2 11  1  0
   9 21  1  0
 M  END
-May 05, 2019 6:37:45 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:45 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:ClC=1C=2N(C(C(N2)=O)(Cc3ccccc3)Cc4ccccc4)C=C(C1)Cl
 Image:ClC1=CC(=CN2C1=NC(C2(Cc3ccccc3)Cc4ccccc4)=O)Cl
@@ -22819,7 +22819,7 @@ Image:[O-]C1C(C)C1C2=CC3=C(CC=C2)C/C=C\C=C/C3
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008189659_402_chem.sdf
 --------------------------------
-May 05, 2019 6:37:45 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:45 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -22897,7 +22897,7 @@ Image:c1c(N(C)C)ccc(c1)C(=CC=O)c2ccc(cc2)N(C)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008169191_29_chem.sdf
 --------------------------------
-May 05, 2019 6:37:46 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:46 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Removing bad edges:0
 Checking if bond length looks okay:0
@@ -22983,7 +22983,7 @@ Cleaning cages:0
  27 28  1  0
   8 31  1  0
 M  END
-May 05, 2019 6:37:46 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:46 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C1CCCCC1N=C2N(C(C(=Cc3ccc(N(CC)CC)cc3)O2)=O)C4CCCCC4
 Image:C1(N\2C(O)/C(=C\c3ccc(N(CC)CC)cc3)/O/C2=N/C4CCCCC4)CCCCC1
@@ -23115,7 +23115,7 @@ Cleaning cages:0
   1 42  1  0
  23 29  1  0
 M  END
-May 05, 2019 6:37:47 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:47 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1ccccc1N(c2cccc(C=Cc3cc(cc(c3)C(C)(C)C)C(C)(C)C)c2)c4ccc(C=Cc5cc(cc(C(C)(C)C)c5)C(C)(C)C)cc4
 Image:c1(cc(C(C)(C)C)cc(\C=C\c2cc(N(c3ccccc3)c4ccc(\C=C\c5cc(C(C)(C)C)cc(C(C)C)c5)cc4)ccc2)c1)C(C)(C)C
@@ -23204,7 +23204,7 @@ Cleaning cages:0
  27 28  1  0
  10 12  1  0
 M  END
-May 05, 2019 6:37:48 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:48 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(cc(CC)c(N)c(c1)CC)C(c2c(Cl)cccc2Cl)(c3cc(CC)c(c(CC)c3)N)O
 Image:c1(CC)cc(C(c2c(cccc2Cl)Cl)(c3cc(c(c(c3)CC)N)CC)O)cc(CC)c1N
@@ -23275,7 +23275,7 @@ Image:FCC(N(C)N(C(=S)SC(C#N)(C)C)CC)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008088177_7_chem.sdf
 --------------------------------
-May 05, 2019 6:37:48 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:48 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -23357,7 +23357,7 @@ Image:C1N(CCC(CCO)C1)CCCOc2ccc(C3(CCOCC3)CN(C)C)cc2
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008120831_29_chem.sdf
 --------------------------------
-May 05, 2019 6:37:48 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:48 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -23446,7 +23446,7 @@ M  END
 Real:c1cc(c(c2c1c(C)no2)CCN3CCC(n4c5cc(C(N)=O)ccc5cc4)CC3)OC
 Image:O=C(c1ccc2ccn(c2c1)C3CCN(CCc4c5onc(C)c5ccc4OC)CC3)N
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008169191_29_chem.tif:CORRECT_FULL_INCHI
-May 05, 2019 6:37:50 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:50 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008101015_67_chem.sdf
@@ -23524,7 +23524,7 @@ Cleaning cages:0
 M  END
 Real:C1(C(F)(F)F)(N=N1)c2ccc(cc2)CN3C(C=CC3=O)=O
 Image:N=1C(N1)(c2ccc(cc2)CN3C(=O)C=CC3=O)C(F)(F)F.CCCCC
-May 05, 2019 6:37:50 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:50 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008088177_7_chem.tif:LARGEST_FRAGMENT_CORRECT_FULL_INCHI
 --------------------------------
@@ -23626,7 +23626,7 @@ Looking for dashes:0
 M  END
 Real:C1(c2cc(ccc2C(O1)=O)S(c3cc4C(=O)OC(c4cc3)=O)(=O)=O)=O
 Image:c1c2C(=O)OC(=O)c2cc(S(c3cc4c(cc3)C(OC4=O)=O)(=O)=O)c1.C[C@@H](CO)PN
-May 05, 2019 6:37:52 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:52 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008130784_22_chem.tif:LARGEST_FRAGMENT_CORRECT_FULL_INCHI
 --------------------------------
@@ -23717,7 +23717,7 @@ Cleaning cages:0
  10 11  1  0
  21 30  3  0
 M  END
-May 05, 2019 6:37:52 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:52 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(C#N)c(C#N)nc2c(n1)c3c(c4c2nc(C#N)c(n4)C#N)nc(c(n3)C#N)C#N
 Image:n1c2c3c(c4nc(c(nc4c2nc(C#N)c1C#N)C#N)C#N)nc(C#N)c(n3)NO
@@ -23788,7 +23788,7 @@ Cleaning cages:0
  10 13  2  0
   9 11  2  0
 M  END
-May 05, 2019 6:37:52 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:52 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(ccc(NC(c2c(OC)cccc2OC)=O)cc1)C=C
 Image:c1c(N([H])C(=O)c2c(OC)cccc2OC)ccc(c1)C=C.C=C
@@ -23999,9 +23999,9 @@ M  END
  25 26  2  0
  21 30  1  0
 M  END
-May 05, 2019 6:37:53 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:53 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
-May 05, 2019 6:37:53 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:53 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1ccc(-c2cc(cc(-c3ccccc3)n2)-c4cccc(c4)-c5cc(-c6ccccc6)nc(c5)-c7ccccc7)cc1
 Image:CCC[C@H]1CC1.c1(-c2ccccc2)cc(-c3cc(ccc3)-c4cc(-c5ccccc5)nc(c4)-c6ccccc6)cc(-c7ccccc7)n1
@@ -24012,7 +24012,7 @@ Image:C1(=O)OC(=O)c2c1cc(cc2)C(=O)OCCOC(c3ccc4c(c3)C(=O)OC4=O)=O
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008044357_8_chem.sdf
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008223012_41_chem.tif:LARGEST_FRAGMENT_CORRECT_FULL_INCHI
-May 05, 2019 6:37:53 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:53 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -24109,7 +24109,7 @@ Cleaning cages:0
   1 23  2  0
  23 26  1  0
 M  END
-May 05, 2019 6:37:53 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:53 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C1(F)(F)C(F)(F)C(c2c3ccccc3sc2C)=C(c4c5c(sc4C)cccc5)C1(F)F
 Image:c1ccc2sc(CCCCCC)c(C=3C(F)(F)C(C(C3c4c5ccccc5sc4)(F)F)(F)F)c2c1
@@ -24177,7 +24177,7 @@ Cleaning cages:0
  20 21  1  0
   2 12  1  0
 M  END
-May 05, 2019 6:37:54 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:54 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1c(ccc(CCCC)c1)C(c2c3c(ccn2)cccc3)=O
 Image:c12c(C(=O)c3ccc(cc3)CCCC)nccc1cccc2
@@ -24241,7 +24241,7 @@ Cleaning cages:0
   2 11  1  0
   9 11  1  0
 M  END
-May 05, 2019 6:37:54 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:54 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:[nH]1c2c([nH]c(n(c2nc1Cl)CCC3CC3)=O)=O
 Image:c1(n([H])c(=O)n(c2nc(n([H])c12)Cl)CCC3CC3)=O
@@ -24316,7 +24316,7 @@ Image:c1cccc(c1)P(=C=O)(Cl)c2ccccc2
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008072905_2_chem.sdf
 --------------------------------
-May 05, 2019 6:37:54 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:54 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918372D
@@ -24399,7 +24399,7 @@ Image:C12(=CC=c3c4c1cccc4c5cccc6c5c3ccc6)C789%10C%11%12C%13%14%10C7%15%16[C@@]%1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008239873_27_chem.sdf
 --------------------------------
-May 05, 2019 6:37:54 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:54 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -24461,7 +24461,7 @@ Image:c1cnc(Cc2ccc(cc2)OC)c3sccc13
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008214349_78_chem.sdf
 --------------------------------
-May 05, 2019 6:37:54 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:54 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -24623,7 +24623,7 @@ Cleaning cages:0
 M  END
 Real:C(COC(c1cc(ccc1)C(OCC(C)OC(c2cccc(C(OCC=C)=O)c2)=O)=O)=O)(COC(c3cccc(C(OCC=C)=O)c3)=O)(CC)COC(c4cccc(c4)C(OCC=C)=O)=O
 Image:c1cc(cc(C(=O)OCC(COC(c2cc(ccc2)C(=O)OCC=C)=O)(CC)COC(c3cc(ccc3)C(=O)OCC=C)=O)c1)C(OCC(OC(=O)c4cc(ccc4)C(OCC=C)=O)C)=O.[C@H]12C[C@H]2C1
-/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008044357_8_chem.tif:LARGEST_FRAGMENT_CORRECT_FULL_INCHIMay 05, 2019 6:37:54 PM gov.nih.ncats.molvec.Bitmap readtif
+/home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008044357_8_chem.tif:LARGEST_FRAGMENT_CORRECT_FULL_INCHIMay 05, 2019 6:37:54 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
 --------------------------------
@@ -24686,7 +24686,7 @@ Cleaning cages:0
   5 12  1  0
   7 13  2  0
 M  END
-May 05, 2019 6:37:55 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:55 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c12c(sc(-c3nccc(C(O)=O)c3)nc1=O)cccc2
 Image:c1cccc2c(nc(sc12)-c3cc(ccn3)C(=O)O)=O
@@ -24776,7 +24776,7 @@ Cleaning cages:0
  20 23  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:37:55 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:55 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:s1c(N2CCC(CSc3cccc(CC(=O)O)c3)CC2)nc4c1cc(Cl)cc4
 Image:C(=O)Cc1cccc(SCC2CCN(c3nc4c(cc(Cl)cc4)s3)CC2)c1
@@ -24870,7 +24870,7 @@ Image:c1c2cc(C(=O)\C(=C\c3ccc(cc3)C(=O)O)\C)c(=O)oc2cc(c1)N4CCOCC4
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008088245_2_chem.sdf
 --------------------------------
-May 05, 2019 6:37:55 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:55 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:37:55 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@6aa77735 has 1 image; width=618.0 height=418.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=13.0
@@ -24895,7 +24895,7 @@ Checking if bond length looks okay:0
 Assigning OCR:0
 cleaning triples:0
 Cleaning cages:0
-May 05, 2019 6:37:55 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:55 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918372D
@@ -25042,7 +25042,7 @@ Image:c1c(NC(C)C)ccc(OC)c1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008094741_34_chem.sdf
 --------------------------------
-May 05, 2019 6:37:55 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:55 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -25158,7 +25158,7 @@ Image:C(C)c1c(N(c2ccc(cc2)\C=C\c3ccc(cc3)C)c4ccc(cc4)/C=C/c5ccc(cc5)C)c(ccc1)C
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008094933_9_chem.sdf
 --------------------------------
 Checking noise
-May 05, 2019 6:37:56 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:56 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -25231,7 +25231,7 @@ Image:C1CO2[C@H]1[C@H]3O(P24[C@H]5CC54=C)CC3
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008163087_5_chem.sdf
 --------------------------------
-May 05, 2019 6:37:56 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:56 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -25313,7 +25313,7 @@ M  END
 Real:n1(ccnc1)-c2ccc(C=CC(NC3c4ccccc4-c5ccccc35)=O)cc2
 Image:c1nccn1-c2ccc(/C=C/C(NC3c4c(-c5ccccc53)cccc4)=O)cc2
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008101015_67_chem.tif:CORRECT_FULL_INCHI
-May 05, 2019 6:37:56 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:56 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008169174_16_chem.sdf
@@ -25365,7 +25365,7 @@ Cleaning cages:0
   5  8  1  0
   6  7  1  0
 M  END
-May 05, 2019 6:37:57 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:57 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1cc(ccc1)NCC(=O)O
 Image:c1cc(NCC(=O)O)ccc1
@@ -25437,7 +25437,7 @@ Checking if bond length looks okay:0
   5 15  1  0
   1 11  1  0
 M  END
-May 05, 2019 6:37:58 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:58 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:O1c2ccccc2-c3ccccc3P1=O
 Image:c1ccc2OP(=O)(c3ccccc3-c2c1)[H]
@@ -25594,7 +25594,7 @@ Image:C(=C)C(OCCCCCCOc1ccc(CCC(Oc2ccc(cc2)-c3ccc(c(F)c3)-c4ccc(cc4)OC(=O)CCc5ccc
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008239593_92_chem.sdf
 --------------------------------
-May 05, 2019 6:37:58 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:58 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -25649,7 +25649,7 @@ Image:c1ccc(c2[nH]cc(c12)Cl)N
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008095000_18_chem.sdf
 --------------------------------
-May 05, 2019 6:37:58 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:58 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -25755,7 +25755,7 @@ Cleaning cages:0
   8 11  2  0
  23 30  1  0
 M  END
-May 05, 2019 6:37:58 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:58 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:Cc1cc2ccc3oc(cc4cc(c(c1o2)=O)c5cc4c(c6oc(ccc7oc(c5)c(C)c7)cc6)=O)cc3
 Image:c1(c2c(=O)c3c(c(c4c(c3c(c5oc(ccc6ccc(c4=O)o6)cc5C)[H])[H])c(c7ccc(o7)ccc(c1)o2)[H])[H])C
@@ -25817,7 +25817,7 @@ Image:c1(ccc2c(n1)sc(n2)N)OCCN(C)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008050365_476_chem.sdf
 --------------------------------
-May 05, 2019 6:37:58 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:58 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:37:58 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@22225bf9 has 1 image; width=2031.0 height=598.0 xres=400.0in yres=400.0in bpp=8 photometric=3 rows=4.0
@@ -25911,7 +25911,7 @@ Image:O=C1C=CC(=O)N1c2ccc(Cc3ccc(N4C(C=CC4=O)=O)cc3)cc2
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008247907_169_chem.sdf
 --------------------------------
-May 05, 2019 6:37:59 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:37:59 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Assigning OCR:0
@@ -25973,7 +25973,7 @@ Image:C(OC)n1c(n(COC)c(n(c1=O)COC)=O)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008214335_5_chem.sdf
 --------------------------------
-May 05, 2019 6:38:00 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:00 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -26041,7 +26041,7 @@ Image:c12cc3c(=O)oc(=O)c3cc1c(oc2=O)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008050365_490_chem.sdf
 --------------------------------
-May 05, 2019 6:38:01 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:01 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:38:01 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@287effd1 has 1 image; width=535.0 height=415.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=15.0
@@ -26281,7 +26281,7 @@ Cleaning cages:0
  10 11  2  0
  55 74  1  0
 M  END
-May 05, 2019 6:38:02 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:02 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1c(ccc(c1)N(c2ccccc2)c3ccccc3)N(c4ccccc4)c5ccc(-c6ccc(-c7ccc(N(c8ccc(-c9ccccc9)cc8)c%10ccc(cc%10)N(c%11ccccc%11)c%12ccccc%12)cc7)cc6)cc5
 Image:C12C3C42C#C413.c1(ccccc1)N(c2ccccc2)c3ccc(cc3)N(c4ccc(-c5ccc(-c6ccc(cc6)N(c7ccc(cc7)-c8ccccc8)c9ccc(N(c%10ccccc%10)c%11ccccc%11)cc9)cc5)cc4)c%12ccccc%12
@@ -26363,7 +26363,7 @@ Image:c1c(C(c2c(OC)c(ccc2)OC)=O)c(ccc1Cl)N3[C@H](N=C3C(CC4OCCO4)O)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008088126_8_chem.sdf
 --------------------------------
-May 05, 2019 6:38:02 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:02 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918382D
@@ -26431,7 +26431,7 @@ INFO: TIFF image: bpp=1 channels=1
  27 29  1  0
   8 11  2  0
 M  END
-May 05, 2019 6:38:02 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:02 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(C)(C)(c1cc(CP2(Oc3ccccc3-c4c2cccc4)=O)cc(c1O)C(C)(C)C)C
 Image:c1-2ccccc1P(Cc3cc(c(c(C(C)(C)C)c3)O)CC)(Oc4ccccc42)=O
@@ -26515,7 +26515,7 @@ Checking noise
  10 13  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:38:02 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:02 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C1COCCC1(c2ccc(OCCCN3CCOCC3)cc2)CNC
 Image:C(CCO=C)N1CCOCC1.C1OCCC(CNC)C1
@@ -26616,9 +26616,9 @@ M  END
 Real:C(C1CCN(C2Nc3ccc(Cl)cc3S2)CC1)COc4cc(CC(=O)O)ccc4OC
 Image:C1C(N2CCC(CC2)CCOC3C(CCC(CC(=O)O)=C3)OC)=Nc4c1cc(cc4)Cl
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008208129_808_chem.tif:ATOM_COUNT_BOND_COUNT_RIGHT_WRONG_LABELS_OR_CONNECTIVITY
-May 05, 2019 6:38:03 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:03 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
-May 05, 2019 6:38:03 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:03 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -26697,7 +26697,7 @@ Image:c1cc(ccc1Br)Nc2nnc(-c3ccccc3OCc4ccncc4)s2
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008254447_5_chem.sdf
 --------------------------------
-May 05, 2019 6:38:03 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:03 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -26764,7 +26764,7 @@ Cleaning cages:0
   9 12  1  0
  10 11  2  0
 M  END
-May 05, 2019 6:38:04 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:04 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:O(CCO)CCNC(C(C(NCCOCCO)=O)=Cc1ccco1)=O
 Image:C(=O)(NCCOCCO)C(C(=O)NCCOCCO)=Cc1ccco1
@@ -26872,7 +26872,7 @@ Image:c1(C)cc(Nc2c3c(ncn2)cn(-c4ccc(cc4)NC(=O)COC)n3)ccc1Oc5ccc(nc5)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008088176_677_chem.sdf
 --------------------------------
-May 05, 2019 6:38:04 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:04 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -26953,7 +26953,7 @@ Finding new bonds:0
 Looking for rings:0
 Removing bad edges:0
 Checking if bond length looks okay:0
-May 05, 2019 6:38:05 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:05 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:38:05 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@75192102 has 1 image; width=2394.0 height=441.0 xres=400.0in yres=400.0in bpp=8 photometric=3 rows=3.0
@@ -27048,7 +27048,7 @@ Cleaning cages:0
   3 25  1  0
  23 24  2  0
 M  END
-May 05, 2019 6:38:05 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:05 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1ccc2c(-c3c4ccccc4ccc3OCC(=O)Cl)c(ccc2c1)OCC(=O)Cl
 Image:c1cccc2c1ccc(OCC(=O)C)c2C3=C(OCC(C)=O)C=C[C@H]4C=CC=C[C@H]43
@@ -27147,7 +27147,7 @@ Merging:0
 Removing bad edges:0
 Checking if bond length looks okay:0
 Finding new bonds:0
-May 05, 2019 6:38:06 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:06 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 Looking for rings:0
 Removing bad edges:0
@@ -27175,7 +27175,7 @@ Assigning OCR:0
 Checking noise
 cleaning triples:0
 Cleaning cages:0
-May 05, 2019 6:38:06 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:06 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918382D
@@ -27349,7 +27349,7 @@ Image:c1cc(ccc1)N(c2ccccc2)c3cc4ccc(\C=C\c5cc6ccc(cc6cc5)C=7Cc8c(cccc8)C7)cc4cc3
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008094847_337_chem.sdf
 --------------------------------
-May 05, 2019 6:38:06 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:06 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -27476,7 +27476,7 @@ Cleaning cages:0
   3 12  2  0
   2 11  2  0
 M  END
-May 05, 2019 6:38:07 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:07 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C12(C(c3ccc(C=C)cc3)C(O1)=O)CCCC2
 Image:[C@H]1(CC1)OC(C(c2ccc(C=C)cc2)C3CCCC3)=O
@@ -27545,7 +27545,7 @@ Cleaning cages:0
   9 10  1  0
   1 11  1  0
 M  END
-May 05, 2019 6:38:08 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:08 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1c(c(O)ccc1C2(CCC(C(C3CCC(CC3)(c4ccc(O)c(C(C)CC)c4)c5cc(C(C)CC)c(cc5)O)(C)C)CC2)c6ccc(O)c(c6)C(C)CC)C(C)CC
 Image:C(C(C=C)C=C)C(CC)C=C.C(CC)C.CC.CC
@@ -27617,7 +27617,7 @@ Cleaning cages:0
  10 19  1  0
   8 11  1  0
 M  END
-May 05, 2019 6:38:08 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:08 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:O=C(c1ccc(F)cc1)Nc2c(N)ccc(c2)-c3sccc3
 Image:c1(ccc(cc1)C2=[N+](=O)([O-])c3ccc(-c4cccs4)cc3N2)F
@@ -27776,9 +27776,9 @@ Assigning OCR:0
  27 28  1  0
  10 11  2  0
 M  END
-May 05, 2019 6:38:08 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:08 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
-May 05, 2019 6:38:08 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:08 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(OC(C2CCC3C(C(=O)OC3=O)C2)=O)ccc(OC(C4CCC5C(C(OC5=O)=O)C4)=O)cc1
 Image:c1(ccc(cc1)OC(=O)C2CCC3C(=O)OC(=O)C3C2)OC(C4CCC5C(=O)OC(C5C4)=O)=O
@@ -27891,7 +27891,7 @@ cleaning triples:0
  27 28  2  0
  10 12  2  0
 M  END
-May 05, 2019 6:38:08 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:08 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(ccccc1C(F)(F)F)-c2oc3c(cc(cc3)C(c4ccc5oc(-c6c(cccc6)C(F)(F)F)nc5c4)(C(F)(F)F)C(F)(F)F)n2
 Image:c1ccc(c(C(F)(F)F)c1)-c2oc3ccc(cc3n2)C(C(F)(F)F)(C(F)(F)F)c4ccc5c(nc(o5)-c6ccccc6C(F)(F)F)c4
@@ -27958,7 +27958,7 @@ Checking noise
   4 15  2  0
   2 12  1  0
 M  END
-May 05, 2019 6:38:08 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:08 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(c(c(cc(c1)O)OC)Cc2c(cc(O)cc2O)C)C
 Image:C(c1c(cc(cc1C)O)OC)c2c(cc(cc2O)O)C
@@ -28073,7 +28073,7 @@ Cleaning cages:0
   8 31  1  0
  21 30  2  0
 M  END
-May 05, 2019 6:38:09 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:09 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C1N(c2sc3cc(ccc3n2)C(F)(F)F)CCC(N4CCCCC4)(CCOc5cc(cc(Cl)c5)CC(=O)O)C1
 Image:C(COc1cc(CC(=O)O)cc(Cl)c1)C2(N3CCCCC3)(C)CCN(CC2)c4sc5c(n4)ccc(C(F)(F)F)c5
@@ -28144,7 +28144,7 @@ Image:C(CCCCCCCC(C(=O)O)C=O)CCOC(C(=C)C)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008112630_13_chem.sdf
 --------------------------------
-May 05, 2019 6:38:09 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:09 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -28233,7 +28233,7 @@ Cleaning cages:0
   1 11  1  0
   8 11  2  0
 M  END
-May 05, 2019 6:38:10 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:10 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1cc(C(C(CCC=C)(OCC=C)c2ccccc2)=O)ccc1
 Image:c1(ccccc1)C(=O)[C@@](O)(CCC)c2ccccc2
@@ -28290,7 +28290,7 @@ Checking noise
   5  9  1  0
   6  8  1  0
 M  END
-May 05, 2019 6:38:10 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:10 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:n1ccc(O)c2cc(C)ccc21
 Image:c1(ccnc2ccc(C)cc12)O
@@ -28350,7 +28350,7 @@ Image:C1C(CCC(OCCO)C1)C(C)(C2CCC(O)CC2)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008116961_18_chem.sdf
 --------------------------------
-May 05, 2019 6:38:10 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:10 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -28405,7 +28405,7 @@ Image:C(C(O)=O)c1cccc(CC(C)(C)O)c1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008101015_238_chem.sdf
 --------------------------------
-May 05, 2019 6:38:10 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:10 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 cleaning triples:0
 Looking for dashes:0
@@ -28466,7 +28466,7 @@ Image:c1(nnc(-c2ccncc2)o1)C(C(CC)N)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008231255_9_chem.sdf
 --------------------------------
-May 05, 2019 6:38:10 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:10 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Finding new bonds:0
 Looking for rings:0
@@ -28589,7 +28589,7 @@ Image:O([H])CC1OC2c3c(c(c(OC(CC/C=C\C/C=C\C/C=C\C/C=C\C/C=C\C/C=C\CC)=O)cc3C(=O)
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008056902_6_chem.sdf
 --------------------------------
-May 05, 2019 6:38:10 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:10 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -28635,7 +28635,7 @@ Image:C(OS(=O)(=O)C)C1(CC)COC1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008106016_158_chem.sdf
 --------------------------------
-May 05, 2019 6:38:10 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:10 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -28694,7 +28694,7 @@ Image:c1cc-2c(C(C(=O)c3c2cccc3)=O)cc1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008171589_3_chem.sdf
 --------------------------------
-May 05, 2019 6:38:11 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:11 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -28785,7 +28785,7 @@ Starting over...
  10 11  2  0
  10 32  1  0
 M  END
-May 05, 2019 6:38:11 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:11 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:n1cn(cc1C)-c2c(cc(C=C3CCCN(Cc4ccc(cc4)C(C)(C)C)C3=O)cc2)OC
 Image:C(c1ccc(C(C)(C)C)cc1)N2C(=O)\C(\CCC2)=C\c3cc(c(-n4cc(nc4)C)cc3)OC
@@ -28858,7 +28858,7 @@ Cleaning cages:0
   2 11  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:38:11 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:11 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C12CCC(CC2(O1)C)C3(CO3)C
 Image:CC1(C2CC3(OC3CC2)C)CO1
@@ -28953,7 +28953,7 @@ Image:CC1(C2CC3(OC3CC2)C)CO1
  10 11  1  0
   6 31  1  0
 M  END
-May 05, 2019 6:38:11 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:11 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(c1ccc(Cl)c(c1)OCCC2(CCC(c3sc4nc(ccc4n3)C(F)(F)F)CC2)N5CCOCC5)C(O)=O
 Image:c1cc(CC(O)=O)cc(OCCC2(CCC(CC2)c3nc4ccc(C(F)(F)F)nc4s3)N5CCOCC5)c1Cl
@@ -29036,7 +29036,7 @@ M  END
 Real:C1(CCNCC1)c2ccc(Nc3nc4ccsc4c(NC5CC5)n3)cc2
 Image:C1NCCC(C1)c2ccc(Nc3nc4c(scc4)c(NC5CC5)n3)cc2
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008013527_194_chem.tif:CORRECT_FULL_INCHI
-May 05, 2019 6:38:12 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:12 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008214599_10_chem.sdf
@@ -29107,7 +29107,7 @@ Image:C(OC(=O)C1C(C(OCC=C)=O)C2C(C)C1C3OC32)C(=C)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008013527_79_chem.sdf
 --------------------------------
-May 05, 2019 6:38:12 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:12 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -29196,7 +29196,7 @@ Cleaning cages:0
  25 26  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:38:12 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:12 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1cc(ccc1Nc2nnc(-c3c(ccs3)SCc4c5c(cccc5)ncc4)o2)OC(F)(F)F
 Image:n1c(Nc2ccc(cc2)OC(F)(F)F)oc(-c3c(ccs3)SCc4ccnc5c4cccc5)n1
@@ -29256,7 +29256,7 @@ Image:C1C=CCCC12CC(N(CC=C)C2=O)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008224763_22_chem.sdf
 --------------------------------
-May 05, 2019 6:38:12 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:12 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -29353,7 +29353,7 @@ Image:c1c(C(=O)O)ccc2c1C(=O)c3c(ccc(c3C2=O)Nc4ccc(C)cc4)Nc5ccc(cc5)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008247887_100_chem.sdf
 --------------------------------
-May 05, 2019 6:38:12 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:12 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -29455,7 +29455,7 @@ Image:c12nc([H]c3ccc(-c4ccc5c(C[N+]6(C5=O)C(O)(C(=O)O)C[H]6)c4)cc3)sc1cccc2
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008249834_82_chem.sdf
 --------------------------------
-May 05, 2019 6:38:12 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:12 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:38:12 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@5c79161 has 1 image; width=727.0 height=252.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=11.0
@@ -29507,7 +29507,7 @@ Image:C(C)(CC)C(C)CC
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008071559_3_chem.sdf
 --------------------------------
-May 05, 2019 6:38:12 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:12 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:38:12 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@f7fd865 has 1 image; width=508.0 height=272.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=16.0
@@ -29587,7 +29587,7 @@ Image:Cc1ccc(cc1)S(=O)(=O)Nc2ccccc2
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008255024_106_chem.sdf
 --------------------------------
-May 05, 2019 6:38:13 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:13 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 
@@ -29740,7 +29740,7 @@ Image:c1cc(cc2c1cc(-c3ccc(C4C(c5c6c(ccc5)cccc6C4=O)=O)cc3)cc2)\C=C\c7ccc8cc(ccc8
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008233378_113_chem.sdf
 --------------------------------
-May 05, 2019 6:38:13 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:13 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -29811,7 +29811,7 @@ Image:C(C)(CC(=O)c1ccc(cc1)-c2ccc(N)cn2)(C)C(O)OC
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008001854_24_chem.sdf
 --------------------------------
 Checking noise
-May 05, 2019 6:38:13 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:13 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -29890,7 +29890,7 @@ Cleaning cages:0
  23 26  1  0
  25 28  2  0
 M  END
-May 05, 2019 6:38:13 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:13 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(c2sccc2nc(n1)Nc3ccc(C4CN(C(C)=O)CCO4)cc3)NC5CC5
 Image:c1(ccc(cc1)Nc2nc(c3sccc3n2)NC4CC4)C5OCCN(C(C)=O)C5
@@ -29976,7 +29976,7 @@ Image:c1ccccc1N(c2ccc(C=C)cc2)c3ccc(cc3)-c4ccccc4
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008169374_22_chem.sdf
 --------------------------------
-May 05, 2019 6:38:14 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:14 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -30132,7 +30132,7 @@ Image:c1ccc(-c2cc(ncn2)N3CCN(CC3)c4ccncc4)cc1C#N
  20 21  1  0
   9 23  1  0
 M  END
-May 05, 2019 6:38:14 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:14 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1cc(N=Cc2ccc(OC)cc2)ccc1OC
 Image:c1(OC)c([H])c([H])c(c(c1[H])[H])\N=C(\c2c(c(c(OC)c([H])c2[H])[H])[H])/[H]
@@ -30140,7 +30140,7 @@ Image:c1(OC)c([H])c([H])c(c(c1[H])[H])\N=C(\c2c(c(c(OC)c([H])c2[H])[H])[H])/[H]
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008247887_306_chem.sdf
 --------------------------------
-May 05, 2019 6:38:14 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:14 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -30216,9 +30216,9 @@ M  END
 Real:c1(ccc(N=Nc2ccc(c(c2)S(O)(=O)=O)N)cc1)S(O)(=O)=O
 Image:c1(ccc(N=Nc2cc(c(cc2)N)S(=O)(O)=O)cc1)S(=O)(O)=O
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008169374_22_chem.tif:CORRECT_FULL_INCHI
-May 05, 2019 6:38:15 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:15 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
-May 05, 2019 6:38:15 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:15 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:38:15 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@5864a34d has 1 image; width=480.0 height=275.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=17.0
@@ -30312,7 +30312,7 @@ Cleaning cages:0
 M  END
 Real:n1(ncc(-c2cnc3ccc4ccc(CNS(=O)(=O)C)cc4c(c3c2)=O)c1)C
 Image:C=C.c1c(ccc2ccc3c(cc(-c4cnn(C)c4)cn3)c(=O)c12)CN[S@](=O)(=O)C
-May 05, 2019 6:38:15 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:15 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008156336_138_chem.tif:LARGEST_FRAGMENT_CORRECT_FULL_INCHI
 --------------------------------
@@ -30471,7 +30471,7 @@ Cleaning cages:0
  24 38  1  0
   2 53  2  0
 M  END
-May 05, 2019 6:38:15 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:15 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c12ccccc1n(c3ccccc3c2=O)-c4ccc(cc4)-c5ccc6c(c5)ccc(c6)C=Cc7cc8c(cc7)cc(cc8)-c9ccc(cc9)-n%10c%11ccccc%11c(=O)c%12c%10cccc%12
 Image:c1cc(cc2c1cc(-c3ccc(cc3)-n4c5c(c(=O)c6ccccc46)cccc5)cc2)\C=C\c7ccc8CC(C=Cc8c7)c9ccc(C%10c%11ccccc%11C(=O)c%12ccccc%10%12)cc9
@@ -30595,7 +30595,7 @@ Image:c1(nc(nc(n1)N(C)C)N(C)C)N(CC)C
   7 13  1  0
   4 14  1  0
   5 15  1  0
-M  ENDMay 05, 2019 6:38:15 PM gov.nih.ncats.molvec.Bitmap readtif
+M  ENDMay 05, 2019 6:38:15 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
 Real:C1(C2C3C(C2C(O1)=O)CC(OC3=O)=O)=O
@@ -30604,7 +30604,7 @@ Image:C1(C2C3C(C2C(O1)=O)C(OC(C3)=O)=O)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008088322_9_chem.sdf
 --------------------------------
-May 05, 2019 6:38:15 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:15 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:38:15 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@d9d7135 has 1 image; width=268.0 height=187.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=30.0
@@ -30666,7 +30666,7 @@ Image:C(=C)CSS(=O)(=O)O
 Assigning OCR:0
 cleaning triples:0
 Cleaning cages:0
-May 05, 2019 6:38:16 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:16 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918382D
@@ -30810,7 +30810,7 @@ INFO: TIFF image: bpp=1 channels=1
  41  1  1  6
  41  2  1  6
 M  END
-May 05, 2019 6:38:16 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:16 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1cccc(c1)N(c2ccc(C=CC=Cc3ccccc3)cc2)c4ccc(-c5ccc(N(c6ccccc6)c7ccc(C=CC=Cc8ccccc8)cc7)cc5)cc4
 Image:C12=C[C@]32[C@@H]1CC3.c1cccc(N(c2ccc(cc2)-c3ccc(N(c4ccccc4)c5ccc(cc5)\C=C\C=C\c6ccccc6)cc3)c7ccc(\C=C\C=C\c8ccccc8)cc7)c1
@@ -30900,7 +30900,7 @@ Cleaning cages:0
  18 21  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:38:16 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:16 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1ccccc1COC(C=2C(c3ccccc3C(C2c4ccccc4)=O)=O)=O
 Image:C1(=O)C(=C(C(=O)OOc2ccccc2)C(=O)c3ccccc31)c4ccccc4
@@ -30970,7 +30970,7 @@ Image:C1(CCC(CC1)O)C2CCC(CC2)O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008238710_3_chem.sdf
 --------------------------------
-May 05, 2019 6:38:17 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:17 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Assigning OCR:0
 cleaning triples:0
@@ -31034,7 +31034,7 @@ Image:O1c2cc(-c3nc(C(Cl)(Cl)Cl)nc(C(Cl)(Cl)Cl)n3)ccc2OC1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008149586_28_chem.sdf
 --------------------------------
-May 05, 2019 6:38:17 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:17 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -31047,7 +31047,7 @@ Checking if bond length looks okay:0
 Assigning OCR:0
 cleaning triples:0
 Cleaning cages:0
-May 05, 2019 6:38:18 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:18 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918382D
@@ -31143,7 +31143,7 @@ Image:C=Br[C@H](C)CBr
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008276225_7_chem.sdf
 --------------------------------
-May 05, 2019 6:38:19 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:19 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918382D
@@ -31201,7 +31201,7 @@ INFO: TIFF image: bpp=1 channels=1
  10 11  1  0
   9 21  1  0
 M  END
-May 05, 2019 6:38:19 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:19 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(C)cc(cc(c1C(P(c2ccccc2)(=O)c3ccccc3)=O)C)C
 Image:C=1[ClH]=2c3c(c(C)cc(C)c3)C(=O)P(C(=CC1)C2)(=O)c4ccccc4
@@ -31290,7 +31290,7 @@ Image:c1cc2c(cc1)S/C(=C/3\C(N(CC)C(=S)S3)=O)/[N+]2(C)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008063341_35_chem.sdf
 --------------------------------
-May 05, 2019 6:38:19 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:19 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918382D
@@ -31323,7 +31323,7 @@ Image:C1S(=O)(OCOS1(=O)=O)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008143913_63_chem.sdf
 --------------------------------
-May 05, 2019 6:38:19 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:19 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -31415,7 +31415,7 @@ Image:c1(c2c(cccc2)cc3c1cccc3)CP(OCC)OCC.C=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008016422_6_chem.sdf
 --------------------------------
-May 05, 2019 6:38:21 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:21 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918382D
@@ -31489,9 +31489,9 @@ Image:C(C)CCCCC.CC.C(C)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008135759_20_chem.sdf
 --------------------------------
-May 05, 2019 6:38:21 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:21 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
-May 05, 2019 6:38:21 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:21 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -31568,7 +31568,7 @@ Image:P(=O)(C)(O)OC
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008094847_388_chem.sdf
 --------------------------------
-May 05, 2019 6:38:22 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:22 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918382D
@@ -31612,7 +31612,7 @@ INFO: TIFF image: bpp=1 channels=1
   1 11  2  0
  10 11  1  0
 M  END
-May 05, 2019 6:38:22 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:22 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(ccc(Oc2ccc(C(=O)O)cc2)cc1)C(O)=O
 Image:c1(ccc(-c2ccc(C(O)=O)cc2)cc1)C(=O)O
@@ -31652,7 +31652,7 @@ Image:c1(ccncc1)C(C)(C)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008120794_50_chem.sdf
 --------------------------------
-May 05, 2019 6:38:22 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:22 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -31694,7 +31694,7 @@ Image:CC.CC.CC.CN.C(O)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008189659_419_chem.sdf
 --------------------------------
-May 05, 2019 6:38:22 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:22 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -31714,7 +31714,7 @@ Checking if bond length looks okay:0
 Assigning OCR:0
 cleaning triples:0
 Cleaning cages:0
-May 05, 2019 6:38:22 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:22 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918382D
@@ -31837,7 +31837,7 @@ Cleaning cages:0
  10 13  2  0
  10 12  1  0
 M  END
-May 05, 2019 6:38:23 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:23 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:O=C(c1ccc(CN2CCOCC2)cc1)Nc3c(N)ccc(-c4sccc4)c3
 Image:c1c2[N+](=O)([O-])=C(c3ccc(CN4CCOCC4)cc3)Nc2cc(-c5sccc5)c1
@@ -31919,7 +31919,7 @@ Image:C12OC1CC(C(=O)OCC3C(C)CC4OC4C3)C(C)C2
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008266294_44_chem.sdf
 --------------------------------
-May 05, 2019 6:38:24 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:24 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -31985,7 +31985,7 @@ Image:c1(cc(ccc1)C)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008026791_5_chem.sdf
 --------------------------------
-May 05, 2019 6:38:24 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:24 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Assigning OCR:0
 
@@ -32052,7 +32052,7 @@ Image:n1ccc(-c2c3cn[nH]c3ccc2-c4ccc(C(C)(N)C)cc4)cc1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008111122_32_chem.sdf
 --------------------------------
-May 05, 2019 6:38:24 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:24 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 cleaning triples:0
@@ -32144,7 +32144,7 @@ Image:C(C)O.C1[C@@H]2C[C@@]12C.C1C(C1)CC=O.CC.C=C.C(CCC)C.CC.CC.CC.CC.C(C)C.CC.C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008201756_10_chem.sdf
 --------------------------------
-May 05, 2019 6:38:24 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:24 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -32259,7 +32259,7 @@ Image:c1(c2nc(C)n(c2nc(C)c1)-c3c(cc(C)cc3C)C)NC(=O)CCl
   9 12  1  0
   7  8  1  0
 M  END
-May 05, 2019 6:38:25 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:25 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1(ccc(F)c(c1)OC)C(O)CN
 Image:c1(OC)cc(C(O)CN)ccc1F
@@ -32268,7 +32268,7 @@ Image:c1(OC)cc(C(O)CN)ccc1F
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008216773_9_chem.sdf
 --------------------------------
 cleaning triples:0
-May 05, 2019 6:38:25 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:25 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 Cleaning cages:0
 May 05, 2019 6:38:25 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
@@ -32383,7 +32383,7 @@ Image:CC(c1ccc(Oc2cc3C(=O)OC(=O)c3cc2)cc1)(C)c4ccc(Oc5ccc6c(C(=O)OC6=O)c5)cc4.Cl
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008247907_91_chem.sdf
 --------------------------------
-May 05, 2019 6:38:25 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:25 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:38:25 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@3a5b83a4 has 1 image; width=370.0 height=252.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=22.0
@@ -32409,7 +32409,7 @@ Checking if bond length looks okay:0
 Assigning OCR:0
 cleaning triples:0
 Cleaning cages:0
-May 05, 2019 6:38:25 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:25 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918382D
@@ -32563,7 +32563,7 @@ Cleaning cages:0
   1 23  1  0
  20 23  1  0
 M  END
-May 05, 2019 6:38:25 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:25 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:C(O)(c1c(Oc2cc(Cl)cc(c2)Cl)ccc(Nc3c4[nH]ccc4ncn3)c1)=O
 Image:C(=O)(O)c1cc(Nc2ncnc3cc[nH]c32)ccc1Oc4cc(cc(c4)Cl)Cl
@@ -32639,7 +32639,7 @@ Cleaning cages:0
   9 22  2  0
   8 11  1  0
 M  END
-May 05, 2019 6:38:25 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:25 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:O(c1c(CC)c(ccc1)C(c2cc(Cl)ccc2NC(C(C)(C)C)=O)=O)C
 Image:c1c(ccc(c1C(c2c(c(OC)ccc2)CC)=O)NC(C(C)(C)C)=O)Cl
@@ -32691,7 +32691,7 @@ Image:c1(sc(cn1)SCCN(C)C)N
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008145763_20_chem.sdf
 --------------------------------
-May 05, 2019 6:38:25 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:25 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -32761,7 +32761,7 @@ Image:c1c(N(C(c2cc3c(cccc3)cc2O)=O)[H])cc(cc1)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008133421_99_chem.sdf
 --------------------------------
-May 05, 2019 6:38:26 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:26 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -32824,7 +32824,7 @@ Image:OC(=O)c1c(ccs1)OCc2cc(ncc2)NC(C)=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008222580_134_chem.sdf
 --------------------------------
-May 05, 2019 6:38:27 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:27 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:38:27 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@78a56f34 has 1 image; width=288.0 height=319.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=28.0
@@ -32899,7 +32899,7 @@ Image:O(C)c1c(c(ccc1)C(O)c2cc(F)ccc2N)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008106016_165_chem.sdf
 --------------------------------
-May 05, 2019 6:38:27 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:27 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -32967,7 +32967,7 @@ M  END
 Real:c1(OC)ccc(c(C(=O)Nc2ccc(OC)cc2)c1)C(O)=O
 Image:C1(=CO=C(C=C1)NCc2cc(ccc2C)OC)OC
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008249753_12_chem.tif:INCORRECT
-May 05, 2019 6:38:28 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:28 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008250149_19_chem.sdf
@@ -33042,7 +33042,7 @@ Image:c1c(ccc(c1)C(=O)Cl)Oc2ccc(cc2)C(=O)Cl
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008115166_103_chem.sdf
 --------------------------------
 Looking for dashes:0
-May 05, 2019 6:38:28 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:28 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Assigning OCR:0
@@ -33129,9 +33129,9 @@ M  END
 Real:c12-c3c(C(C)(C)c2cc(N(c4ccc(C)cc4)c5ccc(C)cc5)cc1)cccc3
 Image:c1c(ccc(N(c2ccc(cc2)C)c3ccc4-c5ccccc5C(C)(c4c3)C)c1)C
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008216773_9_chem.tif:CORRECT_FULL_INCHI
-May 05, 2019 6:38:28 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:28 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
-May 05, 2019 6:38:28 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:28 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -33208,7 +33208,7 @@ Image:C12C3(CC(N(C3=O)CC=C)=O)CC4C(C14)=C2
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008143913_37_chem.sdf
 --------------------------------
-May 05, 2019 6:38:29 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:29 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -33274,7 +33274,7 @@ Image:n1n(c(nc1N)S)[H]
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008189554_37_chem.sdf
 --------------------------------
-May 05, 2019 6:38:30 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:30 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -33339,7 +33339,7 @@ Image:C(=O)(C(C(c1cc(OC)ccc1)=O)C)OC
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008184403_8_chem.sdf
 --------------------------------
-May 05, 2019 6:38:30 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:30 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918382D
@@ -33440,7 +33440,7 @@ INFO: TIFF image: bpp=1 channels=1
  27 28  2  0
  10 11  2  0
 M  END
-May 05, 2019 6:38:30 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:30 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1ccc2c3[nH]c(c2c1)nc4-c5ccccc5-c(n4)nc6[nH]c(nc7-c8ccccc8-c(n3)n7)c9c6cccc9
 Image:c1cccc2-c3nc(nc4[nH]c(nc5-c6ccccc6-c(n5)nc7[nH]c(c8c7cccc8)n3)c9c4cccc9)-c12.CC.CC
@@ -33523,7 +33523,7 @@ Cleaning cages:0
 M  END
 Real:C(C(OCCOC(=O)CCC(O)=O)=O)(=C)C
 Image:O=C(OCCOC(=O)CCC(O)=O)C(=C)C.S(=O)(C)(=O)C
-May 05, 2019 6:38:31 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:31 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008081672_16_chem.tif:LARGEST_FRAGMENT_CORRECT_FULL_INCHI
 --------------------------------
@@ -33617,7 +33617,7 @@ INFO: TIFF image: bpp=1 channels=1
  27 28  1  0
  10 11  1  0
 M  END
-May 05, 2019 6:38:31 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:31 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:O(c1c(O)ccc(c1)N=Nc2ccc(C(Nc3ccc(N=Nc4ccc(cc4)S(O)(=O)=O)cc3OC)=O)cc2)C
 Image:C(c1ccc(/N=N/c2cc(c(O)cc2)OC)cc1)(Nc3ccc(cc3OC)\N=N\c4ccc(cc4)S(=O)(=O)O)=O
@@ -33725,7 +33725,7 @@ Checking if bond length looks okay:0
   4 13  1  0
  14 22  1  0
 M  END
-May 05, 2019 6:38:31 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:31 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:O=S(C(c1c(F)ccc(F)c1)c2c(C)cc(C(NOC)=O)nc2)(c3ccc(F)cc3)=O
 Image:c1(c(ccc(c1)C)F)C(c2c(C)cc(nc2)C(NOC)=O)[N+3](c3ccc(F)cc3)(=O)=O
@@ -33828,7 +33828,7 @@ Image:c1(ccccc1)N(c2cc(c(cc2)C=NN(c3ccccc3)c4ccccc4)C)c5ccccc5
 Assigning OCR:0
 cleaning triples:0
 Cleaning cages:0
-May 05, 2019 6:38:32 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:32 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:38:32 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@7f68fcd6 has 1 image; width=385.0 height=375.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=21.0
@@ -33878,7 +33878,7 @@ May 05, 2019 6:38:32 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: sample model: nbands=1 class java.awt.image.PixelInterleavedSampleModel
 May 05, 2019 6:38:32 PM gov.nih.ncats.molvec.image.Grayscale createRaster
 INFO: ## range=255, min=0, max=255
-May 05, 2019 6:38:32 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:32 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1([nH]c(n(c2nc([nH]c12)Cl)CC(C)CCC)=O)=O
 Image:CC(CCC)Cn1c(=O)[nH]c(=O)c2c1nc(Cl)[nH]2
@@ -33928,7 +33928,7 @@ Image:C1CSC(SC1)=C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008285617_5_chem.sdf
 --------------------------------
-May 05, 2019 6:38:32 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:32 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -34026,7 +34026,7 @@ Image:c1c2OCCOc2c(cc1)C(c3c(ccc(Cl)c3)NC(OC(C)(C)C)=O)O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008033140_62_chem.sdf
 --------------------------------
-May 05, 2019 6:38:33 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:33 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
   Molvec0105051918382D
@@ -34115,7 +34115,7 @@ INFO: TIFF image: bpp=1 channels=1
  27 30  1  0
  25 26  1  0
 M  END
-May 05, 2019 6:38:33 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:33 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c12ccc(cc2C(C(O1)c3ccc(cc3)O)C(NCCCCNC(N)=N)=O)C=CC(NCCCCNC(N)=N)=O
 Image:c1c2c(C(C(c3ccc(O)cc3)O2)C(NCCCCNC(N)=N)=O)cc(c1)\C=C\C(NCCCCNC(=N)N)=O
@@ -34198,7 +34198,7 @@ Image:OCc1c2cn[nH]c2ccc1-c3ccc(C(N)(C)C)cc3
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008179650_82_chem.sdf
 --------------------------------
-May 05, 2019 6:38:33 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:33 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Assigning OCR:0
 cleaning triples:0
@@ -34251,9 +34251,9 @@ M  END
 Real:c1c(C(C(O)(C)C)=O)cccc1
 Image:c1(C(C(C)(C)O)=O)ccccc1
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008285617_5_chem.tif:CORRECT_FULL_INCHI
-May 05, 2019 6:38:34 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:34 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
-May 05, 2019 6:38:34 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:34 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -34323,7 +34323,7 @@ Image:c1c(C#N)c(O)cc(c1)-n2nccc2
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008247887_161_chem.sdf
 --------------------------------
-May 05, 2019 6:38:34 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:34 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Assigning OCR:0
 cleaning triples:0
@@ -34381,9 +34381,9 @@ Finding new bonds:0
 Looking for rings:0
 Removing bad edges:0
 Checking if bond length looks okay:0
-May 05, 2019 6:38:34 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:34 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
-May 05, 2019 6:38:34 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:34 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 May 05, 2019 6:38:34 PM gov.nih.ncats.molvec.image.ImageUtil decodeTiff
 INFO: com.sun.media.jai.codec.TIFFDirectory@c315434 has 1 image; width=476.0 height=56.0 xres=200.0in yres=200.0in bpp=8 photometric=3 rows=17.0
@@ -34466,7 +34466,7 @@ Removing bad edges:0
 Checking if bond length looks okay:0
 Removing bad edges:0
 Checking if bond length looks okay:0
-May 05, 2019 6:38:34 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:34 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Assigning OCR:0
 cleaning triples:0
@@ -34592,7 +34592,7 @@ Image:c1cc2cc(-c3ccc(cc3)Oc4ccccc4)ccc2cc1/C=C/c5ccc6c(c5)ccc(-c7ccc(Oc8ccccc8)c
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008250314_42_chem.sdf
 --------------------------------
 Assigning OCR:0
-May 05, 2019 6:38:34 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:34 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=8 channels=1
 cleaning triples:0
 Cleaning cages:0
@@ -34690,7 +34690,7 @@ Image:c1cc(Cl)cc2c1nc(N3CCC(CCSc4ccc(C(CC(=O)O)C)c(c4)C)CC3)s2
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008088167_303_chem.sdf
 --------------------------------
-May 05, 2019 6:38:35 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:35 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -34821,7 +34821,7 @@ Image:C[H](I)I(C(C)C)OC.C(=C(C)C)C.[ClH]([H]CCC)C.Cc1cc(ccc1C)NC(Nc2c3CCCc3nc4c2
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008133264_121_chem.sdf
 --------------------------------
-May 05, 2019 6:38:35 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:35 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 cleaning triples:0
 Cleaning cages:0
@@ -34914,7 +34914,7 @@ Image:O=C(Cc1cc(OCCC2(CCN(c3ncc(cn3)-c4ccoc4)CC2)N5CCOCC5)c(Cl)cc1)O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008106055_44_chem.sdf
 --------------------------------
-May 05, 2019 6:38:36 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:36 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -34996,7 +34996,7 @@ Looking for dashes:0
 Merging:0
 Finding new bonds:0
 Looking for rings:0
-May 05, 2019 6:38:37 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:37 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Assigning OCR:0
 cleaning triples:0
@@ -35119,7 +35119,7 @@ Assigning OCR:0
  27 29  1  0
  29 30  2  0
 M  END
-May 05, 2019 6:38:38 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:38 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Real:c1cccc(c1)-c2cccc(c2)N(c3cc(ccc3)C=Cc4ccccc4)c5cc(ccc5)-c6ccccc6
 Image:c1cccc(c1)-c2cccc(N(c3cc(ccc3)-c4ccccc4)c5cccc(c5)\C=C\c6ccccc6)c2
@@ -35182,7 +35182,7 @@ Image:C1NCC=C(c2c(C(F)(F)F)cccc2)C1
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008216999_10_chem.sdf
 --------------------------------
-May 05, 2019 6:38:38 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:38 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -35415,12 +35415,12 @@ Image:c1c(ccc2c1c(c[nH]2)CC(O)=O)O
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008106268_17_chem.sdf
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008216999_10_chem.tif:LARGEST_FRAGMENT_CORRECT_STEREO_INSENSITIVE_INCHI
---------------------------------May 05, 2019 6:38:38 PM gov.nih.ncats.molvec.Bitmap readtif
+--------------------------------May 05, 2019 6:38:38 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008074837_24_chem.sdf
 --------------------------------
-May 05, 2019 6:38:38 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:38 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -35500,7 +35500,7 @@ Image:c1cccc(c1C(OC)=O)COc2ccc(CC(=O)OC)cc2
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008019408_4_chem.sdf
 --------------------------------
-May 05, 2019 6:38:39 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:39 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Assigning OCR:0
@@ -35715,7 +35715,7 @@ Image:CC(C)(C)c1ccc(\C=C\c2ccc(cc2)N(c3ccc(-c4ccccc4)cc3)c5ccc(cc5)\C=C\c6ccc(N(
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008208139_31_chem.sdf
 --------------------------------
 Checking noise
-May 05, 2019 6:38:40 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:40 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 cleaning triples:0
 Cleaning cages:0
@@ -35757,7 +35757,7 @@ Image:C1(NC(\C(\S1)=C\C)=O)=S
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008226648_8_chem.sdf
 --------------------------------
-May 05, 2019 6:38:40 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:40 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Removing bad edges:0
 Checking if bond length looks okay:0
@@ -35902,7 +35902,7 @@ Image:C(C(COC(C=C)=O)OC(c1ccccc1C(=O)OCC(COc2ccc(C(c3ccc(OCC4OC4)cc3)(C)C)cc2)O)
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008160118_4_chem.sdf
 --------------------------------
-May 05, 2019 6:38:40 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:40 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Removing bad edges:0
 Checking if bond length looks okay:0
@@ -36085,7 +36085,7 @@ Image:c1ccc2n(c3ccccc3c2c1)-c4cccc(-c5cccc(-n6c7c(c8c6cccc8)cccc7)c5)c4.CCCC
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008021624_17_chem.sdf
 --------------------------------
-May 05, 2019 6:38:41 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:41 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -36200,7 +36200,7 @@ Image:C12(CCC)C(C3CC3C)C1C2.C(C123C45(C1C24)C36C5(C6)C)C.C(C1C2(C)C1C2CCCCCC)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008073993_3_chem.sdf
 --------------------------------
-May 05, 2019 6:38:42 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:42 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Starting over...
 Looking for dashes:0
@@ -36336,7 +36336,7 @@ Image:c1(cc2ccccc2cc1)N(c3c(cc(C)cc3)C)c4ccc(cc4)-c5ccc(cc5)-n6c7c(c8ccccc8cc7)c
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008133421_76_chem.sdf
 --------------------------------
-May 05, 2019 6:38:42 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:42 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Looking for dashes:0
 Merging:0
@@ -36552,7 +36552,7 @@ Image:N12C(c3c(c4cc5ccccc5cc4[nH]3)CC1C(=O)N(C)C2=S)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008091762_13_chem.sdf
 --------------------------------
-May 05, 2019 6:38:44 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:44 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Assigning OCR:0
 cleaning triples:0
@@ -36754,7 +36754,7 @@ Image:c1c2c(ccc1S(c3ccc4C(OC(=O)c4c3)=O)(=O)=O)C(=O)OC2=O
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008013527_148_chem.sdf
 --------------------------------
-May 05, 2019 6:38:46 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:46 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Looking for dashes:0
@@ -36832,7 +36832,7 @@ Looking for dashes:0
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008250228_19_chem.sdf
 --------------------------------
-May 05, 2019 6:38:46 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:46 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Merging:0
 Finding new bonds:0
@@ -36912,7 +36912,7 @@ Image:c1(ccc(cc1)Nc2nc(NCC(F)(F)F)c3c(ccs3)n2)N4CCOCC4
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008222622_4_chem.sdf
 --------------------------------
-May 05, 2019 6:38:46 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:46 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Checking noise
@@ -36985,7 +36985,7 @@ Image:C12(c3c(cc(cc3)OC)OC1c4c(OC2)cc(cc4)OC)O
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008239616_449_chem.sdf
 --------------------------------
 Assigning OCR:0
-May 05, 2019 6:38:47 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:47 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 cleaning triples:0
@@ -37150,7 +37150,7 @@ Image:c1cc(ccc1CN2CCN(C=34Sc5cc(Cl)ccc5[C@]64C3C6)CC2)CCC#N
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008095087_86_chem.sdf
 --------------------------------
-May 05, 2019 6:38:47 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:47 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Removing bad edges:0
@@ -37205,7 +37205,7 @@ Image:C(=C)(C(O)=O)C
 --------------------------------
 /home/tyler/workspace/molvec/target/test-classes/regressionTest/testSet1/2008120831_16_chem.sdf
 --------------------------------
-May 05, 2019 6:38:47 PM gov.nih.ncats.molvec.Bitmap readtif
+May 05, 2019 6:38:47 PM gov.nih.ncats.molvec.image.Bitmap readtif
 INFO: TIFF image: bpp=1 channels=1
 Checking noise
 Removing bad edges:0

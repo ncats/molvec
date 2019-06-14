@@ -1,12 +1,9 @@
 package gov.nih.ncats.molvec.pub;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 
-import javax.imageio.ImageIO;
-
-import gov.nih.ncats.molvec.Bitmap;
+import gov.nih.ncats.molvec.image.Bitmap;
 
 /**
  * Aides in creating figures for explaining thinning algorithm
