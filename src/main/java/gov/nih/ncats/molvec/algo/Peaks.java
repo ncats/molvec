@@ -81,7 +81,7 @@ public class Peaks {
             if (j > i+1)
                 right /= (j - i -1);
 
-            smoothed[i] = ((signal[i] - left) + (signal[i] - right))/2.;
+            smoothed[i] = ((signal[i] - left) + (signal[i] - right))/2D;
             avg += smoothed[i];
         }
 
@@ -97,7 +97,7 @@ public class Peaks {
         double thres = psr * std;
 
         // now locate peak candidates
-        List<Peak> peaks = new ArrayList<Peak>();
+        List<Peak> peaks = new ArrayList<>(smoothed.length);
         for (int i = 0; i < smoothed.length; ++i) {
             if ((smoothed[i] - avg) >= thres) {
                 peaks.add(new Peak (i, smoothed[i]));
@@ -117,34 +117,37 @@ public class Peaks {
 //        catch (Exception ex) {
 //            ex.printStackTrace();
 //        }
-        smoothed = null;
 
         // sort them in descending order
         Collections.sort(peaks);
 
         // extract peaks
         BitSet mask = new BitSet (signal.length);
-        List<Peak> removed = new ArrayList<Peak>();
-        for (Peak p : peaks) {
+
+        Iterator<Peak> iter= peaks.iterator();
+        while(iter.hasNext()){
+            Peak p = iter.next();
             if (mask.get(p.location)) {
-                removed.add(p);
+               iter.remove();
             }
             else {
                 // mask the left
                 for (int i = Math.max(p.location-window, 0); 
-                     i < p.location; ++i) 
+                     i < p.location; ++i) {
                     mask.set(i);
+                }
                 // mask the right
                 int end = Math.min(p.location+window, signal.length);
-                for (int i = p.location; i < end; ++i) 
+                for (int i = p.location; i < end; ++i) {
                     mask.set(i);
+                }
             }
         }
-        peaks.removeAll(removed);
 
         int[] locs = new int[peaks.size()];
-        for (int i = 0; i < peaks.size(); ++i) {
-            locs[i] = peaks.get(i).location;
+        int i=0;
+        for(Peak p : peaks){
+            locs[i++] = p.location;
         }
 
         return locs;

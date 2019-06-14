@@ -18,7 +18,7 @@ import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
 
 
-public class ImageUtil implements TiffTags {
+public class ImageUtil {
     private static final Logger logger = Logger.getLogger
 	(ImageUtil.class.getName());
 

@@ -1340,7 +1340,7 @@ public class StructureImageExtractor {
 		        .filter(p->!likelyOCRAll.contains(p))
 		        .map(s->Tuple.of(s,s.getCircleLikeScore()))
 		        .filter(t->t.v()>0.9)
-		        .peek(t->System.out.println("Cscore:" + t.v()))
+//		        .peek(t->System.out.println("Cscore:" + t.v()))
 		        .map(t->t.k())
 		        .map(s->s.growShapeBounds(2))
 		        .peek(s->realRescueOCRCandidates.add(s.getShape()))
@@ -5974,7 +5974,12 @@ public class StructureImageExtractor {
 	 * @return
 	 */
 	public List<Line2D> getLineSegments() {
-		return lines.stream().map(lw->lw.getLine()).collect(Collectors.toList());
+
+		List<Line2D> list = new ArrayList<>(lines.size());
+		for (LineWrapper lw : lines) {
+			list.add(lw.getLine());
+		}
+		return list;
 	}
 
 	/**
@@ -5983,7 +5988,11 @@ public class StructureImageExtractor {
 	 * @return
 	 */
 	public List<Line2D> getLineSegmentsJoined() {
-		return linesJoined.stream().map(lw->lw.getLine()).collect(Collectors.toList());
+		List<Line2D> list = new ArrayList<>(linesJoined.size());
+		for(LineWrapper lw : linesJoined){
+			list.add(lw.getLine());
+		}
+		return list;
 	}
 
 	
@@ -5992,12 +6001,12 @@ public class StructureImageExtractor {
 	}
 
 	public Map<Shape, List<Tuple<Character, Number>>> getOcrAttmept() {
-		return ocrAttempt
-				.entrySet()
-				.stream()
-				.map(Tuple::of)
-				.map(Tuple.kmap(s->s.getShape()))
-				.collect(Tuple.toMap());
+		Map<Shape, List<Tuple<Character, Number>>> map = new HashMap<>(2* ocrAttempt.size());
+		for(Map.Entry<ShapeWrapper, List<Tuple<Character, Number>>> entry : ocrAttempt.entrySet()){
+			map.put(entry.getKey().getShape(), entry.getValue());
+		}
+		return map;
+
 	}
 
 	/**

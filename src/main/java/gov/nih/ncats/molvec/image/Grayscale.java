@@ -13,7 +13,6 @@ import java.awt.image.BandedSampleModel;
 import java.awt.image.RescaleOp;
 
 import javax.imageio.ImageIO;
-import gov.nih.ncats.molvec.algo.Peaks;
 
 /**
  * 256 gray scale 
