@@ -4,7 +4,6 @@ import java.awt.image.Raster;
 import java.util.function.Consumer;
 
 import gov.nih.ncats.molvec.image.Bitmap;
-import gov.nih.ncats.molvec.image.Binarization;
 
 /*
  * Adaptive Threshold based on local pixel average Loosely based on Bradley

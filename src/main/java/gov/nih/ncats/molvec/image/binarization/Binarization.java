@@ -1,38 +1,35 @@
-package gov.nih.ncats.molvec.image;
+package gov.nih.ncats.molvec.image.binarization;
 
 import java.awt.image.Raster;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import gov.nih.ncats.molvec.image.binarization.ImageStats;
+import gov.nih.ncats.molvec.image.Bitmap;
 
 public interface Binarization {
     Bitmap binarize (Raster raster, ImageStats stats, Consumer<ImageStats> cons);
     
     default Binarization fallback(Binarization bb, Predicate<ImageStats> fallif){
     	Binarization _this=this;
-    	return new Binarization(){
+    	return ( raster, stats, statsConsumer)->{
 
-			@Override
-			public Bitmap binarize(Raster raster,ImageStats stats, Consumer<ImageStats> cc) {
 				ImageStats[] is = new ImageStats[]{null};
 				Bitmap bm=_this.binarize(raster, stats, ss->is[0]=ss);
 				
 				if(is[0]!=null){
 					if(fallif.test(is[0])){
-						return bb.binarize(raster,is[0], cc);
+						return bb.binarize(raster,is[0], statsConsumer);
 					}else{
-						cc.accept(is[0]);
+						statsConsumer.accept(is[0]);
 					}
 				}
 				return bm;
-			}
-    		
-    	};
+			};
+
     }
     
     
-    public static ImageStats computeImageStats(Raster inRaster){
+    static ImageStats computeImageStats(Raster inRaster){
 	    	int width = inRaster.getWidth();
 	    	int height = inRaster.getHeight();
 	    	ImageStats stats = new ImageStats();
@@ -73,11 +70,7 @@ public interface Binarization {
         	   stats.histogram[ni] +=fstats[i];
         	   stats.histogramRaw[i] = fstats[i];
            }
-           
-//           for(int i=0;i<stats.histogramRaw.length;i++){
-//        	   System.out.println(i + "\t" + stats.histogramRaw[i]);
-//           }
-//         
+
            stats.min=min;
            stats.max=max;
            stats.mean=mean;
@@ -86,9 +79,15 @@ public interface Binarization {
            stats.threshold=stats.mean;
            return stats;
     }
-    
 
-    public static void globalThreshold(Raster inRaster, Bitmap bm, double threshold){
+    /**
+     * For each coordinate in the given Raster, set all corresponding coordinates in the given
+     * BitMap that have values greater than or equal to the given threshold.
+     * @param inRaster the Raster to analyze.
+     * @param bm the Bitmap to modify.
+     * @param threshold the threshold to use.
+     */
+    static void globalThreshold(Raster inRaster, Bitmap bm, double threshold){
     	 double[] nd = new double[bm.width()];
          
          for (int y = 0; y < bm.height(); ++y) {

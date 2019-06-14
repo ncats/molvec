@@ -47,6 +47,7 @@ import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
 
+import gov.nih.ncats.molvec.image.binarization.Binarization;
 import gov.nih.ncats.molvec.util.CachedSupplier;
 import gov.nih.ncats.molvec.algo.StructureImageExtractor;
 import gov.nih.ncats.molvec.algo.Tuple;

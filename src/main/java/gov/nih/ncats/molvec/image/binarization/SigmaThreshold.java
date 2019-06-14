@@ -5,7 +5,6 @@ import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 import gov.nih.ncats.molvec.image.Bitmap;
-import gov.nih.ncats.molvec.image.Binarization;
 
 /*
  * Simple threshold based on full image mean and standard deviation. 

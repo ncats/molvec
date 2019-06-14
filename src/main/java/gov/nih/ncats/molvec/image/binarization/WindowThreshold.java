@@ -4,7 +4,6 @@ import java.awt.image.Raster;
 import java.util.function.Consumer;
 
 import gov.nih.ncats.molvec.image.Bitmap;
-import gov.nih.ncats.molvec.image.Binarization;
 
 /**
  * Simple threshold based on a constant cutoff

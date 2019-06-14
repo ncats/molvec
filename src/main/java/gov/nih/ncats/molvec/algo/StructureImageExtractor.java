@@ -42,7 +42,7 @@ import javax.imageio.ImageIO;
 import gov.nih.ncats.molvec.image.Bitmap;
 import gov.nih.ncats.molvec.image.Bitmap.WedgeInfo;
 import gov.nih.ncats.molvec.util.CachedSupplier;
-import gov.nih.ncats.molvec.image.Binarization;
+import gov.nih.ncats.molvec.image.binarization.Binarization;
 import gov.nih.ncats.molvec.image.binarization.LeastPopulatedThreshold;
 import gov.nih.ncats.molvec.image.binarization.SigmaThreshold;
 import gov.nih.ncats.molvec.ui.FontBasedRasterCosineSCOCR;
@@ -1354,7 +1354,7 @@ public class StructureImageExtractor {
 		        .filter(p->!likelyOCRAll.contains(p))
 		        .map(s->Tuple.of(s,s.getCircleLikeScore()))
 		        .filter(t->t.v()>0.9)
-		        .peek(t->System.out.println("Cscore:" + t.v()))
+//		        .peek(t->System.out.println("Cscore:" + t.v()))
 		        .map(t->t.k())
 		        .map(s->s.growShapeBounds(2))
 		        .peek(s->realRescueOCRCandidates.add(s.getShape()))
