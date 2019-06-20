@@ -74,9 +74,9 @@ public class AdaptiveThreshold implements Binarization {
         }
 
         for (int x = 0; x < width; ++x) {
-            sum += inRaster.getSampleDouble (x, y, 0);
-            sumSquare += inRaster.getSampleDouble (x, y, 0)
-                * inRaster.getSampleDouble (x, y, 0);
+            double sampleDouble = inRaster.getSampleDouble(x, y, 0);
+            sum += sampleDouble;
+            sumSquare += sampleDouble * sampleDouble;
             if (y == 0) {
                 intLine[x] = sum;
                 intSquareLine[x] = sumSquare;
@@ -90,7 +90,9 @@ public class AdaptiveThreshold implements Binarization {
 	@Override
 	public Bitmap binarize(Raster inRaster, ImageStats stats, Consumer<ImageStats> cons) {
 
-		if(stats==null)stats = Binarization.computeImageStats(inRaster);
+		if(stats==null){
+		    stats = Binarization.computeImageStats(inRaster);
+        }
 		
 		
         Bitmap bm = new Bitmap (inRaster.getWidth (), inRaster.getHeight ());
@@ -120,8 +122,8 @@ public class AdaptiveThreshold implements Binarization {
             int boxHeight = (y2 - y1 + 1);
             double[] topIntLine = null;
             double[] topSquareIntLine = null;
-            double[] bottomIntLine = null;
-            double[] bottomSquareIntLine = null;
+            double[] bottomIntLine;
+            double[] bottomSquareIntLine;
 
             if (y1 >= 2) {
                 if (boxHeight >= wsize * 2 + 1) {
@@ -157,10 +159,9 @@ public class AdaptiveThreshold implements Binarization {
                     sumSquare += topSquareIntLine[x1 - 1];
                 }
 
-                double mean = sum / ((double) count);
+                double mean = sum / count;
                 double stdDEV = Math.sqrt 
-                    (Math.abs (sumSquare / ((double) count)
-                                                     - mean * mean));
+                    (Math.abs (sumSquare / count- mean * mean));
                 double threshold = Math.min (mean + stdDEV * sigma, stats.min + range*absMax);
                 threshold = Math.max(threshold, stats.min+range*absMin);
                 double pel = dl[x];

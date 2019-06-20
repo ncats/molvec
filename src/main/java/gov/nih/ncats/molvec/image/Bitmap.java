@@ -26,18 +26,23 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Stack;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -53,6 +58,7 @@ import gov.nih.ncats.molvec.algo.StructureImageExtractor;
 import gov.nih.ncats.molvec.algo.Tuple;
 import gov.nih.ncats.molvec.image.binarization.AdaptiveThreshold;
 import gov.nih.ncats.molvec.image.binarization.ImageStats;
+import gov.nih.ncats.molvec.ui.RasterBasedCosineSCOCR.RasterChar;
 import gov.nih.ncats.molvec.util.GeomUtil;
 import gov.nih.ncats.molvec.util.GeomUtil.LineDistanceCalculator;
 import gov.nih.ncats.molvec.util.GeomUtil.LineWrapper;
@@ -61,7 +67,7 @@ import gov.nih.ncats.molvec.util.GeomUtil.ShapeWrapper;
 /**
  * A bitmap image
  */
-public class Bitmap implements Serializable, TiffTags {
+public class Bitmap implements Serializable {
     private static final long serialVersionUID = 0x5f1f54d8fed49ab3l;
     private static final Logger logger =
         Logger.getLogger (Bitmap.class.getName ());
@@ -217,10 +223,7 @@ public class Bitmap implements Serializable, TiffTags {
     	public int[][] ccount;
     	public List<int[]> xys;
     	public int tcount;
-    	
-    	
-    	
-    	
+
     	public static BitmapScaled of(Bitmap r, int DEF_WIDTH, int DEF_HEIGHT){
 	    	int twidth = r.width();
 			int theight = r.height();

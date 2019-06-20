@@ -25,53 +25,20 @@ public class LeastPopulatedThreshold implements Binarization {
     	return binarize(inRaster,(is)->{});
     }
     public Bitmap binarize (Raster inRaster, Consumer<ImageStats> cons) {
-        Bitmap bm = new Bitmap (inRaster.getWidth (), inRaster.getHeight ());
+
         
-        ImageStats stats = Binarization.computeImageStats(inRaster);
-        
-        
-        
-        double threshold = stats.mean;
-        
-        int stot = 0;
-        int mini = 55;
-        int minVal = Integer.MAX_VALUE;
-        for(int i=0;i<100;i++){
-        	stot+=stats.histogram[i];
-        	if(i>window){
-        		stot-=stats.histogram[i-window];
-        	}
-        	if(i>=window){
-        		if(stot<minVal){
-        			minVal = stot;
-        			mini=i;
-        		}
-        	}
-        }
-        
-        threshold = stats.min + (stats.max-stats.min)*(mini-window*0.5)/100.0;
-        stats.threshold=threshold;
-        
-        
-//        System.out.println("Threshold Num:" + mini);
-//        System.out.println("Threshold:" + threshold);
-        
-        Binarization.globalThreshold(inRaster,bm,threshold);
-        
-        cons.accept(stats);
-        
-        return bm;
+        return binarize(inRaster, null, cons);
     }
 
 	@Override
 	public Bitmap binarize(Raster inRaster, ImageStats stats, Consumer<ImageStats> cons) {
 		Bitmap bm = new Bitmap (inRaster.getWidth (), inRaster.getHeight ());
         
-		if(stats==null)stats= Binarization.computeImageStats(inRaster);
+		if(stats==null){
+		    stats= Binarization.computeImageStats(inRaster);
+        }
         
-        
-        
-        double threshold = stats.mean;
+
         
         int stot = 0;
         int mini = 55;
@@ -88,15 +55,14 @@ public class LeastPopulatedThreshold implements Binarization {
         		}
         	}
         }
-        
-        threshold = stats.min + (stats.max-stats.min)*(mini-window*0.5)/100.0;
-        stats.threshold=threshold;
+
+        stats.threshold=stats.min + (stats.max-stats.min)*(mini-window*0.5)/100D;
         
         
 //        System.out.println("Threshold Num:" + mini);
 //        System.out.println("Threshold:" + threshold);
         
-        Binarization.globalThreshold(inRaster,bm,threshold);
+        Binarization.globalThreshold(inRaster,bm,stats.threshold);
         
         cons.accept(stats);
         

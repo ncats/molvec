@@ -27,15 +27,15 @@ public class RangeFractionThreshold implements Binarization {
 	public Bitmap binarize(Raster inRaster, ImageStats stats, Consumer<ImageStats> cons) {
 		Bitmap bm = new Bitmap (inRaster.getWidth (), inRaster.getHeight ());
 	        
-		if(stats==null)stats = Binarization.computeImageStats(inRaster);
+		if(stats==null){
+		    stats = Binarization.computeImageStats(inRaster);
+        }
 	     
-		double threshold = stats.mean;
-	        
-        threshold = stats.min + (stats.max-stats.min)*pct;
-        stats.threshold=threshold;
+
+        stats.threshold=stats.min + (stats.max-stats.min)*pct;
         
         
-        Binarization.globalThreshold(inRaster, bm, threshold);
+        Binarization.globalThreshold(inRaster, bm, stats.threshold);
         
         cons.accept(stats);
         
