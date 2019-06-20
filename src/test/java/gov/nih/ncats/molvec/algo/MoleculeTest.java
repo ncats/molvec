@@ -111,7 +111,7 @@ public class MoleculeTest {
 	}
 
 
-	//@Test
+	@Test
 	public void testAsByteArray() throws Exception {
 		File f=getFile(spec.filePath);
 
