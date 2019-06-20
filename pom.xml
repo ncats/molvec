@@ -54,22 +54,17 @@
         <artifactId>commons-cli</artifactId>
         <version>1.4</version>
     </dependency>
- <dependency>
-        <groupId>gov.nih.ncats</groupId>
-        <artifactId>chemkit-api</artifactId>
-        <version>0.9.2</version>
-     <scope>test</scope>
-</dependency>
+
 <dependency>
         <groupId>gov.nih.ncats</groupId>
-        <artifactId>chemkit-cdk</artifactId>
-        <version>0.9.2</version>
+        <artifactId>molwitch-cdk</artifactId>
+        <version>1.0</version>
         <scope>test</scope>
 </dependency>
 <dependency>
         <groupId>gov.nih.ncats</groupId>
-        <artifactId>chemkit-renderer</artifactId>
-        <version>0.9.2</version>
+        <artifactId>molwitch-renderer</artifactId>
+        <version>1.0</version>
         <scope>test</scope>
 </dependency>
 <dependency>
