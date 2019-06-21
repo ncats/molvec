@@ -39,9 +39,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import gov.nih.ncats.molvec.CachedSupplier;
 import gov.nih.ncats.molvec.algo.Tuple;
-import gov.nih.ncats.molvec.util.GeomUtil.ShapeWrapper;
 
 
 public class GeomUtil {
@@ -2037,7 +2035,9 @@ public class GeomUtil {
 		}
 		
 		public LineWrapper process(){
-			if(process)return this;
+			if(process){
+			    return this;
+            }
 			vec=asVector(line);
 			len=l2Norm(vec);
 			center=GeomUtil.findCenterOfShape(line);

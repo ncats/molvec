@@ -7,11 +7,13 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 import gov.nih.ncats.molvec.algo.Tuple;
 
-public class StupidestPossibleSCOCRSansSerif extends RasterBasedCosineSCOCR{
+public class StupidestPossibleSCOCRSansSerif extends AbstractStupidestPossibleSCOCR{
 
 	private static String[] raw=new String[]{"+	MjB4MjAKNS4wMTU2MjV4NS4wMTU2MjUKMCwwLDAsMCwwLDAsMCwzLDYsOSw2LDMsMCwwLDAsMCwwLDAsMCwwCjAsMCwwLDAsMCwwLDAsMyw2LDksNiwzLDAsMCwwLDAsMCwwLDAsMAowLDAsMCwwLDAsMCwwLDMsNiw5LDYsMywwLDAsMCwwLDAsMCwwLDAKMCwwLDAsMCwwLDAsMCwzLDYsOSw2LDMsMCwwLDAsMCwwLDAsMCwwCjAsMCwwLDAsMCwwLDAsMyw2LDksNiwzLDAsMCwwLDAsMCwwLDAsMAowLDAsMCwwLDAsMCwwLDMsNiw5LDYsMywwLDAsMCwwLDAsMCwwLDAKMCwwLDAsMCwwLDAsMCwzLDYsOSw2LDMsMCwwLDAsMCwwLDAsMCwwCjMsMywzLDMsMywzLDMsNSw3LDksNyw1LDMsMywzLDMsMywzLDMsMwo2LDYsNiw2LDYsNiw2LDcsOCw5LDgsNyw2LDYsNiw2LDYsNiw2LDYKOSw5LDksOSw5LDksOSw5LDksOSw5LDksOSw5LDksOSw5LDksOSw5CjYsNiw2LDYsNiw2LDYsNyw4LDksOCw3LDYsNiw2LDYsNiw2LDYsNgozLDMsMywzLDMsMywzLDUsNyw5LDcsNSwzLDMsMywzLDMsMywzLDMKMCwwLDAsMCwwLDAsMCwzLDYsOSw2LDMsMCwwLDAsMCwwLDAsMCwwCjAsMCwwLDAsMCwwLDAsMyw2LDksNiwzLDAsMCwwLDAsMCwwLDAsMAowLDAsMCwwLDAsMCwwLDMsNiw5LDYsMywwLDAsMCwwLDAsMCwwLDAKMCwwLDAsMCwwLDAsMCwzLDYsOSw2LDMsMCwwLDAsMCwwLDAsMCwwCjAsMCwwLDAsMCwwLDAsMyw2LDksNiwzLDAsMCwwLDAsMCwwLDAsMAowLDAsMCwwLDAsMCwwLDMsNiw5LDYsMywwLDAsMCwwLDAsMCwwLDAKMCwwLDAsMCwwLDAsMCwzLDYsOSw2LDMsMCwwLDAsMCwwLDAsMCwwCjAsMCwwLDAsMCwwLDAsMyw2LDksNiwzLDAsMCwwLDAsMCwwLDAsMA==", 
 			"+	MjB4MjAKNS4wMTU2MjV4NS4wMTU2MjUKMCwwLDAsMCwwLDAsMCwzLDYsOSw2LDMsMCwwLDAsMCwwLDAsMCwwCjAsMCwwLDAsMCwwLDAsMyw2LDksNiwzLDAsMCwwLDAsMCwwLDAsMAowLDAsMCwwLDAsMCwwLDMsNiw5LDYsMywwLDAsMCwwLDAsMCwwLDAKMCwwLDAsMCwwLDAsMCwzLDYsOSw2LDMsMCwwLDAsMCwwLDAsMCwwCjAsMCwwLDAsMCwwLDAsMyw2LDksNiwzLDAsMCwwLDAsMCwwLDAsMAowLDAsMCwwLDAsMCwwLDMsNiw5LDYsMywwLDAsMCwwLDAsMCwwLDAKMCwwLDAsMCwwLDAsMCwzLDYsOSw2LDMsMCwwLDAsMCwwLDAsMCwwCjMsMywzLDMsMywzLDMsNSw3LDksNyw1LDMsMywzLDMsMywzLDMsMwo2LDYsNiw2LDYsNiw2LDcsOCw5LDgsNyw2LDYsNiw2LDYsNiw2LDYKOSw5LDksOSw5LDksOSw5LDksOSw5LDksOSw5LDksOSw5LDksOSw5CjYsNiw2LDYsNiw2LDYsNyw4LDksOCw3LDYsNiw2LDYsNiw2LDYsNgozLDMsMywzLDMsMywzLDUsNyw5LDcsNSwzLDMsMywzLDMsMywzLDMKMCwwLDAsMCwwLDAsMCwzLDYsOSw2LDMsMCwwLDAsMCwwLDAsMCwwCjAsMCwwLDAsMCwwLDAsMyw2LDksNiwzLDAsMCwwLDAsMCwwLDAsMAowLDAsMCwwLDAsMCwwLDMsNiw5LDYsMywwLDAsMCwwLDAsMCwwLDAKMCwwLDAsMCwwLDAsMCwzLDYsOSw2LDMsMCwwLDAsMCwwLDAsMCwwCjAsMCwwLDAsMCwwLDAsMyw2LDksNiwzLDAsMCwwLDAsMCwwLDAsMAowLDAsMCwwLDAsMCwwLDMsNiw5LDYsMywwLDAsMCwwLDAsMCwwLDAKMCwwLDAsMCwwLDAsMCwzLDYsOSw2LDMsMCwwLDAsMCwwLDAsMCwwCjAsMCwwLDAsMCwwLDAsMyw2LDksNiwzLDAsMCwwLDAsMCwwLDAsMA==", 
@@ -473,29 +475,19 @@ public class StupidestPossibleSCOCRSansSerif extends RasterBasedCosineSCOCR{
 			")	MjB4MjAKMTEuMHgzNi4wCjIsMiwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDEsMiwzLDMsMwo0LDMsMSwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwyLDQsNiw2LDYKMywyLDEsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMSwyLDMsMywzCjUsNSwzLDEsMCwwLDAsMCwwLDAsMCwwLDAsMCwxLDMsNSw2LDYsNgoyLDMsMiwxLDAsMCwwLDAsMCwwLDAsMCwwLDAsMSwyLDMsMywzLDMKNCw2LDQsMiwwLDAsMCwwLDAsMCwwLDAsMCwxLDMsNSw2LDUsNCwzCjIsMywyLDEsMCwwLDAsMCwwLDAsMCwwLDAsMSwyLDMsMywyLDEsMAozLDUsNSw0LDIsMSwwLDAsMCwwLDAsMCwwLDIsNCw2LDUsMywxLDAKMiw0LDYsNiw1LDMsMSwwLDAsMCwwLDEsMiw0LDUsNiw0LDIsMCwwCjIsNCw2LDYsNSwzLDEsMCwwLDAsMCwxLDIsNCw1LDYsNCwyLDAsMAoxLDMsNSw2LDYsNSw0LDMsMywzLDMsNCw1LDYsNiw1LDMsMSwwLDAKMCwxLDIsMywzLDMsMywzLDMsMywzLDMsMywzLDMsMiwxLDAsMCwwCjAsMSwyLDQsNSw2LDYsNiw2LDYsNiw2LDYsNiw1LDMsMSwwLDAsMAowLDAsMCwxLDIsMywzLDMsMywzLDMsMywzLDMsMiwxLDAsMCwwLDAKMCwwLDAsMSwzLDUsNiw2LDYsNiw2LDYsNSw0LDIsMSwwLDAsMCwwCjAsMCwwLDAsMSwyLDMsMywzLDMsMywzLDIsMSwwLDAsMCwwLDAsMAowLDAsMCwwLDEsMiw0LDUsNiw2LDUsNCwyLDEsMCwwLDAsMCwwLDAKMCwwLDAsMCwwLDAsMSwyLDMsMywyLDEsMCwwLDAsMCwwLDAsMCwwCjAsMCwwLDAsMCwwLDEsMiwzLDMsMiwxLDAsMCwwLDAsMCwwLDAsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDA="
 	
 	};
-	
-	
+
+private static final Pattern PREPROCESS_PATTERN = Pattern.compile("\t");
+
 	@Override
-	public void getBitmapsForChar(Character c, Consumer<RasterChar> rconsumer) {
-		if(readAhead.isEmpty())preprocess();
-		// TODO Auto-generated method stub
-		readAhead.getOrDefault(c.toString(), new ArrayList<RasterChar>())
-				 .forEach(rconsumer);
-		
+	protected void loadRasters(BiConsumer<String, RasterChar> consumer) {
+		Charset  cs = Charset.defaultCharset();
+
+		for(String s : raw) {
+			String l[] = PREPROCESS_PATTERN.split(s);
+			consumer.accept(l[0],RasterChar.parseFromString(new String(Base64.getDecoder().decode(l[1]), cs)));
+		}
 	}
-	
-	private Map<String, List<RasterChar>> readAhead = new HashMap<>();
-	
-	private void preprocess(){
-		readAhead =Arrays.stream(raw)
-		      .map(l->l.split("\t"))
-		      .map(l->Tuple.of(l[0],l[1]))
-		      .map(Tuple.vmap(base64->Base64.getDecoder().decode(base64)))
-		      .map(Tuple.vmap(bb->new String(bb, Charset.defaultCharset())))
-		      .map(Tuple.vmap(s->new RasterChar(null,null).readDataFromString(s)))
-		      .collect(Tuple.toGroupedMap());
-		
-	}
+
 	
 	
 	

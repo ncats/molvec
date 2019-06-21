@@ -4,10 +4,7 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.Shape;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Line2D;
-import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
+import java.awt.geom.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.ColorConvertOp;
 import java.awt.image.ColorModel;
@@ -42,10 +39,10 @@ import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
 
-import gov.nih.ncats.molvec.Bitmap;
-import gov.nih.ncats.molvec.Bitmap.WedgeInfo;
-import gov.nih.ncats.molvec.CachedSupplier;
-import gov.nih.ncats.molvec.image.Binarization;
+import gov.nih.ncats.molvec.image.Bitmap;
+import gov.nih.ncats.molvec.image.Bitmap.WedgeInfo;
+import gov.nih.ncats.molvec.util.CachedSupplier;
+import gov.nih.ncats.molvec.image.binarization.Binarization;
 import gov.nih.ncats.molvec.image.binarization.LeastPopulatedThreshold;
 import gov.nih.ncats.molvec.image.binarization.SigmaThreshold;
 import gov.nih.ncats.molvec.ui.FontBasedRasterCosineSCOCR;
@@ -280,12 +277,16 @@ public class StructureImageExtractor {
 	 * @return
 	 * @throws IOException
 	 */
-	public static StructureImageExtractor createFromImage(BufferedImage bufferedImage)throws Exception{
+	public static StructureImageExtractor createFromImage(BufferedImage bufferedImage)throws IOException{
 		BufferedImage img = bufferedImage;
 		if(BufferedImage.TYPE_BYTE_GRAY != bufferedImage.getType()){
 			img = toGrayScale(bufferedImage);
 		}
-		return new StructureImageExtractor(img.getRaster());
+		try {
+			return new StructureImageExtractor(img.getRaster());
+		}catch(InterruptedException e){
+			throw new IOException("interrupted", e);
+		}
 
 	}
 
@@ -312,10 +313,10 @@ public class StructureImageExtractor {
 	
 	/**
 	 * Create a new {@link StructureImageExtractor}, using a given {@link Raster}.
-	 * @param the raster to be processed
+	 * @param raster the raster to be processed
 	 * @throws Exception
 	 */
-	public StructureImageExtractor(Raster raster)throws Exception{
+	public StructureImageExtractor(Raster raster)throws IOException, InterruptedException{
 		this(raster, false);
 	}
 	
@@ -323,40 +324,51 @@ public class StructureImageExtractor {
 	 * Create a new {@link StructureImageExtractor}, using a given {@link Raster}, if debug is specified,
 	 * debug information will be printed to standard out, and the connection table steps will be preserved
 	 * which can be obtained via {@link #getCtabRaw()}.
-	 * @param the raster to be processed
-	 * @param if true, print debug information to standard out
+	 * @param raster the raster to be processed
+	 * @param debug if true, print debug information to standard out
 	 * @throws Exception
 	 */
-	public StructureImageExtractor(Raster raster, boolean debug )throws Exception{
+	public StructureImageExtractor(Raster raster, boolean debug )throws IOException{
 		this.DEBUG = debug;
-		
-		try{
-			load(Bitmap.createBitmap(raster,DEF_BINARIZATION).clean(), true);
-		}catch(ImageTooSmallException e){
-			File bi= stdResize(raster,3);
-			load(bitmap = Bitmap.read(bi,RESIZE_BINARIZATION).clean(),false);
-		}catch(ImageTooSpottyException e){
-			try{
-				load(Bitmap.createBitmap(raster,TOO_WASHED_BINARIZATION).clean(), false);
-			}catch(ImageTooSmallException ex){
-				File bi= stdResize(raster,3);
-				load(bitmap = Bitmap.read(bi,RESIZE_BINARIZATION).clean(),false);
+		try {
+			try {
+				load(Bitmap.createBitmap(raster, DEF_BINARIZATION).clean(), true);
+			} catch (ImageTooSmallException e) {
+				File bi = stdResize(raster, 3);
+				load(bitmap = Bitmap.read(bi, RESIZE_BINARIZATION).clean(), false);
+			} catch (ImageTooSpottyException e) {
+				try {
+					load(Bitmap.createBitmap(raster, TOO_WASHED_BINARIZATION).clean(), false);
+				} catch (ImageTooSmallException ex) {
+					File bi = stdResize(raster, 3);
+					load(bitmap = Bitmap.read(bi, RESIZE_BINARIZATION).clean(), false);
+				}
 			}
+		}catch(InterruptedException e){
+			throw new IOException("interrupted", e);
 		}
 	}
-	public StructureImageExtractor(byte[] file, boolean debug) throws Exception{
+	public StructureImageExtractor(byte[] file, boolean debug) throws IOException{
 		this.DEBUG=debug;
-		load(file);
+		try {
+			load(file);
+		}catch(InterruptedException e){
+			throw new IOException("interrupted", e);
+		}
 	}
-	public StructureImageExtractor(File file, boolean debug) throws Exception{
+	public StructureImageExtractor(File file, boolean debug) throws IOException{
 		this.DEBUG=debug;
-		load(file);
+		try{
+			load(file);
+		}catch(InterruptedException e){
+			throw new IOException("interrupted", e);
+		}
 	}
 	
-	public StructureImageExtractor(byte[] file) throws Exception{
+	public StructureImageExtractor(byte[] file) throws IOException{
 		this(file,false);
 	}
-	public StructureImageExtractor(File file) throws Exception{
+	public StructureImageExtractor(File file) throws IOException{
 		this(file,false);
 	}
 	
@@ -435,7 +447,7 @@ public class StructureImageExtractor {
 
 
 
-	private void processOCR(SCOCR socr, List<ShapeWrapper> polygons,Bitmap bitmap, Bitmap thin, BiConsumer<ShapeWrapper,List<Tuple<Character,Number>>> onFind) throws Exception{
+	private void processOCR(SCOCR socr, List<ShapeWrapper> polygons,Bitmap bitmap, Bitmap thin, BiConsumer<ShapeWrapper,List<Tuple<Character,Number>>> onFind) throws InterruptedException{
 		
 		boolean[] interupt=new boolean[]{false};
 		/*
@@ -621,7 +633,9 @@ public class StructureImageExtractor {
 			}
 		});
 		
-		if(interupt[0])throw new InterruptedException();
+		if(interupt[0]){
+			throw new InterruptedException();
+		}
 		
 		polygons.removeAll(toRemoveShapes);
 		polygons.addAll(toAddShapes);
@@ -818,19 +832,19 @@ public class StructureImageExtractor {
 	 * very small structure images.
 	 * @author tyler
 	 */
-	private class ImageTooSmallException extends Exception{}
+	private class ImageTooSmallException extends IOException{}
 	
 	/**
 	 * Thrown to signify that the supplied image has characteristics expected from 
 	 * a split/spotty thresholding or very washed image.
 	 * @author tyler
 	 */
-	private class ImageTooSpottyException extends Exception{}
+	private class ImageTooSpottyException extends IOException{}
 	
 	
 
 	
-	private void load(byte[] file) throws Exception{
+	private void load(byte[] file) throws IOException, InterruptedException{
 		try{
 			load(bitmap = Bitmap.read(file,DEF_BINARIZATION).clean(), true);
 		}catch(ImageTooSmallException e){
@@ -846,7 +860,7 @@ public class StructureImageExtractor {
 		}
 
 	}
-	private void load(File file) throws Exception{
+	private void load(File file) throws IOException, InterruptedException{
 		try{
 			load(bitmap = Bitmap.read(file,DEF_BINARIZATION).clean(),true);
 		}catch(ImageTooSmallException e){
@@ -1105,7 +1119,7 @@ public class StructureImageExtractor {
 			});
 	}
 
-	private void load(Bitmap aBitMap, boolean allowThresholdTooLowThrow) throws Exception{
+	private void load(Bitmap aBitMap, boolean allowThresholdTooLowThrow) throws IOException, InterruptedException{
 
 
 		List<Shape> realRescueOCRCandidates = Collections.synchronizedList(new ArrayList<>());
@@ -1128,17 +1142,17 @@ public class StructureImageExtractor {
 		thin = bitmap.thin();
 		boolean blurred=false;
 		
-		{
-			List<int[]> hollow =thin.findHollowPoints();
-			
-			if(hollow.size()> 0.002*thin.fractionPixelsOn()*thin.width()*thin.height()){
-				bitmap=new Bitmap.BitmapBuilder(bitmap).boxBlur(1).threshold(2).build();
-				thin=bitmap.thin();
-				blurred=true;
-			}
-			
-			
+
+		List<int[]> hollow =thin.findHollowPoints();
+
+		if(hollow.size()> 0.002*thin.fractionPixelsOn()*thin.width()*thin.height()){
+			bitmap=new Bitmap.BitmapBuilder(bitmap).boxBlur(1).threshold(2).build();
+			thin=bitmap.thin();
+			blurred=true;
 		}
+			
+			
+
 //		Bitmap bitmap2=new Bitmap.BitmapBuilder(bitmap).boxBlur(1).threshold(1).build();
 		polygons = bitmap.connectedComponents(Bitmap.Bbox.DoublePolygon)
 				.stream()
@@ -1238,7 +1252,7 @@ public class StructureImageExtractor {
 		// segments are generated for thinned bitmap only, since
 		//  it can quite noisy on normal bitmap!
 		if (isLarge) {
-			throw new IllegalStateException("Cannot support images with over 4000 polygons at this time");
+			throw new IOException("Cannot support images with over 4000 polygons at this time");
 		}
 
 		Set<ShapeWrapper> likelyOCR= Collections.synchronizedSet(new LinkedHashSet<>());
@@ -1340,7 +1354,7 @@ public class StructureImageExtractor {
 		        .filter(p->!likelyOCRAll.contains(p))
 		        .map(s->Tuple.of(s,s.getCircleLikeScore()))
 		        .filter(t->t.v()>0.9)
-		        .peek(t->System.out.println("Cscore:" + t.v()))
+//		        .peek(t->System.out.println("Cscore:" + t.v()))
 		        .map(t->t.k())
 		        .map(s->s.growShapeBounds(2))
 		        .peek(s->realRescueOCRCandidates.add(s.getShape()))
@@ -5762,22 +5776,30 @@ public class StructureImageExtractor {
 								offX+=ddx;
 								offY+=ddy;
 								offsum++;
-								Point2D pp1=at.inverseTransform(new Point2D.Double(px, py), null);
-								updates.add(Tuple.of(n,pp1));
+								try {
+									Point2D pp1 = at.inverseTransform(new Point2D.Double(px, py), null);
+									updates.add(Tuple.of(n, pp1));
+								}catch (NoninvertibleTransformException nit){
+									throw new IOException("error inverting point", nit);
+								}
 							}
 						}
 						
 						
 						if(updates.size()>5){
-							Point2D poff1=at.inverseTransform(new Point2D.Double(0, 0), null);
-							Point2D poff2=at.inverseTransform(new Point2D.Double(offX/offsum, offY/offsum), null);
-							double fudgex = poff2.getX()-poff1.getX();
-							double fudgey = poff2.getY()-poff1.getY();
-							
-							changeList.add(updates.stream()
-									.map(Tuple.vmap(p1->(Point2D)new Point2D.Double(p1.getX()+fudgex, p1.getY()+fudgey)))
-									.collect(Collectors.toList())
-									);
+							try{
+								Point2D poff1=at.inverseTransform(new Point2D.Double(0, 0), null);
+								Point2D poff2=at.inverseTransform(new Point2D.Double(offX/offsum, offY/offsum), null);
+								double fudgex = poff2.getX()-poff1.getX();
+								double fudgey = poff2.getY()-poff1.getY();
+
+								changeList.add(updates.stream()
+										.map(Tuple.vmap(p1->(Point2D)new Point2D.Double(p1.getX()+fudgex, p1.getY()+fudgey)))
+										.collect(Collectors.toList())
+										);
+							}catch (NoninvertibleTransformException nit){
+								throw new IOException("error inverting point", nit);
+							}
 						}
 					}
 					
@@ -5974,7 +5996,12 @@ public class StructureImageExtractor {
 	 * @return
 	 */
 	public List<Line2D> getLineSegments() {
-		return lines.stream().map(lw->lw.getLine()).collect(Collectors.toList());
+
+		List<Line2D> list = new ArrayList<>(lines.size());
+		for (LineWrapper lw : lines) {
+			list.add(lw.getLine());
+		}
+		return list;
 	}
 
 	/**
@@ -5983,7 +6010,11 @@ public class StructureImageExtractor {
 	 * @return
 	 */
 	public List<Line2D> getLineSegmentsJoined() {
-		return linesJoined.stream().map(lw->lw.getLine()).collect(Collectors.toList());
+		List<Line2D> list = new ArrayList<>(linesJoined.size());
+		for(LineWrapper lw : linesJoined){
+			list.add(lw.getLine());
+		}
+		return list;
 	}
 
 	
@@ -5992,12 +6023,12 @@ public class StructureImageExtractor {
 	}
 
 	public Map<Shape, List<Tuple<Character, Number>>> getOcrAttmept() {
-		return ocrAttempt
-				.entrySet()
-				.stream()
-				.map(Tuple::of)
-				.map(Tuple.kmap(s->s.getShape()))
-				.collect(Tuple.toMap());
+		Map<Shape, List<Tuple<Character, Number>>> map = new HashMap<>(2* ocrAttempt.size());
+		for(Map.Entry<ShapeWrapper, List<Tuple<Character, Number>>> entry : ocrAttempt.entrySet()){
+			map.put(entry.getKey().getShape(), entry.getValue());
+		}
+		return map;
+
 	}
 
 	/**

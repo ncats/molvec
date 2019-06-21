@@ -4,8 +4,7 @@ import java.awt.image.Raster;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
-import gov.nih.ncats.molvec.Bitmap;
-import gov.nih.ncats.molvec.image.Binarization;
+import gov.nih.ncats.molvec.image.Bitmap;
 
 /*
  * Simple threshold based on full image mean and standard deviation. 
@@ -47,7 +46,9 @@ public class SigmaThreshold implements Binarization {
 	public Bitmap binarize(Raster inRaster, ImageStats stats, Consumer<ImageStats> cons) {
 		 Bitmap bm = new Bitmap (inRaster.getWidth (), inRaster.getHeight ());
 	        
-	        if(stats==null)stats = Binarization.computeImageStats(inRaster);
+	        if(stats==null){
+	        	stats = Binarization.computeImageStats(inRaster);
+			}
 	        
 	        double countAbove=0;
 	        double countBelow=0;
@@ -69,12 +70,10 @@ public class SigmaThreshold implements Binarization {
 	        
 	        
 	        
-	        double meanTop = sumTop / (double)countAbove;
-	        double meanBottom = sumBottom / (double)countBelow;
-	        double threshold=stats.mean;
-	        
-	        
-	        threshold = stats.mean + stats.stdev * sigma;
+	        double meanTop = sumTop / countAbove;
+	        double meanBottom = sumBottom / countBelow;
+
+	        double threshold = stats.mean + stats.stdev * sigma;
 	        
 	        if(threshold>stats.max || threshold<stats.min){
 	        	//determine whether inverted

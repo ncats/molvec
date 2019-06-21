@@ -22,11 +22,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import gov.nih.ncats.molvec.Bitmap;
-import gov.nih.ncats.molvec.CachedSupplier;
+import gov.nih.ncats.molvec.image.Bitmap;
 import gov.nih.ncats.molvec.algo.Tuple;
 import gov.nih.ncats.molvec.algo.Tuple.KEqualityTuple;
-import gov.nih.ncats.molvec.util.ConnectionTable.Node;
 import gov.nih.ncats.molvec.util.GeomUtil.ShapeWrapper;
 
 public class ConnectionTable{

@@ -23,9 +23,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import javax.swing.tree.TreeNode;
-
-import gov.nih.ncats.molvec.CachedSupplier;
+import gov.nih.ncats.molvec.util.CachedSupplier;
 
 
 class BranchNode{

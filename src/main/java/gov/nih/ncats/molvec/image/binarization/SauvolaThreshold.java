@@ -4,8 +4,8 @@ import java.awt.image.Raster;
 import java.util.Arrays;
 import java.util.function.Consumer;
 
-import gov.nih.ncats.molvec.Bitmap;
-import gov.nih.ncats.molvec.image.Binarization;
+import gov.nih.ncats.molvec.image.Bitmap;
+
 /**
  * Implementation of Sauvola threshold. 
  * @author tyler
@@ -64,10 +64,21 @@ public class SauvolaThreshold implements Binarization{
 	            	int tot = (maxx-minx)*(maxy-miny);
 	            	
 	            	inRaster.getSamples(minx, miny, maxx-minx, maxy-miny, 0, vals);
-	            	
-	            	
-	            	double mean = Arrays.stream(vals).limit(tot).average().orElse(0);
-	            	double var = Arrays.stream(vals).limit(tot).map(d->mean-d).map(d->d*d).average().orElse(0);
+
+	            	double mean=0;
+	            	int seen=0;
+	            	for(int i=0; i< tot && i <vals.length; i++){
+	            		seen++;
+	            		mean+=vals[i];
+					}
+					mean /= seen;
+					double var = 0;
+					for(int i=0; i< tot && i <vals.length; i++){
+						var += Math.pow(mean - vals[i], 2);
+					}
+					var /= seen;
+//	            	double mean = Arrays.stream(vals).limit(tot).average().orElse(0);
+//	            	double var = Arrays.stream(vals).limit(tot).map(d->mean-d).map(d->d*d).average().orElse(0);
 	            	
 	            	isOn = pix > mean * (1 + ek * (Math.sqrt(var)/r-1.0));
             	}

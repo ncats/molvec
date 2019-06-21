@@ -11,21 +11,20 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-import gov.nih.ncats.chemkit.api.io.ChemFormat;
-import gov.nih.ncats.chemkit.api.util.stream.ThrowingStream;
-import gov.nih.ncats.chemkit.renderer.ChemicalRenderer;
-import gov.nih.ncats.chemkit.renderer.RendererOptions;
-import gov.nih.ncats.chemkit.renderer.RendererOptions.DrawOptions;
-import gov.nih.ncats.molvec.algo.StructureImageExtractor;
-import gov.nih.ncats.molvec.algo.Tuple;
+import gov.nih.ncats.common.functions.ThrowableConsumer;
+import gov.nih.ncats.common.stream.ThrowingStream;
+import gov.nih.ncats.molwitch.io.ChemFormat;
+import gov.nih.ncats.molwitch.renderer.ChemicalRenderer;
+import gov.nih.ncats.molwitch.renderer.RendererOptions;
+import gov.nih.ncats.molwitch.renderer.RendererOptions.DrawOptions;
 import org.junit.*;
 import gov.nih.ncats.molvec.Molvec;
 
 import org.junit.rules.TemporaryFolder;
 
-import gov.nih.ncats.chemkit.api.Chemical;
-import gov.nih.ncats.chemkit.api.ChemicalBuilder;
-import gov.nih.ncats.chemkit.api.inchi.Inchi;
+import gov.nih.ncats.molwitch.Chemical;
+import gov.nih.ncats.molwitch.ChemicalBuilder;
+import gov.nih.ncats.molwitch.inchi.Inchi;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -71,10 +70,10 @@ public class MoleculeTest {
 
 	public static class TestSpec{
 		private String filePath;
-		private ThrowingStream.ThrowingConsumer<Chemical, Exception> assertionConsumer;
+		private ThrowableConsumer<Chemical, Exception> assertionConsumer;
 
 		
-		public TestSpec(String filePath, ThrowingStream.ThrowingConsumer<Chemical, Exception> assertionConsumer) {
+		public TestSpec(String filePath, ThrowableConsumer<Chemical, Exception> assertionConsumer) {
 			this.filePath = filePath;
 			this.assertionConsumer = assertionConsumer;
 		}
@@ -111,7 +110,7 @@ public class MoleculeTest {
 	}
 
 
-	//@Test
+	@Test
 	public void testAsByteArray() throws Exception {
 		File f=getFile(spec.filePath);
 

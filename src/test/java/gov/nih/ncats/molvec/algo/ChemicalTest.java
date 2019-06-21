@@ -4,8 +4,8 @@ import java.io.IOException;
 
 import org.junit.Test;
 
-import gov.nih.ncats.chemkit.api.Chemical;
-import gov.nih.ncats.chemkit.api.ChemicalBuilder;
+import gov.nih.ncats.molwitch.Chemical;
+import gov.nih.ncats.molwitch.ChemicalBuilder;
 import static org.junit.Assert.*;
 public class ChemicalTest {
 

@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.imageio.ImageIO;
 
-import gov.nih.ncats.molvec.Bitmap;
+import gov.nih.ncats.molvec.image.Bitmap;
 
 public class DeprecatedFontBasedRasterCosineSCOCR implements SCOCR {
 	Set<Character> _alphabet;
