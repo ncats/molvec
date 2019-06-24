@@ -39,9 +39,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import gov.nih.ncats.molvec.CachedSupplier;
 import gov.nih.ncats.molvec.algo.Tuple;
-import gov.nih.ncats.molvec.util.GeomUtil.ShapeWrapper;
 
 
 public class GeomUtil {

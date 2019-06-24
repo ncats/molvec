@@ -59,13 +59,13 @@ import org.junit.Test;
 
 import com.mortennobel.imagescaling.ResampleOp;
 
-import gov.nih.ncats.chemkit.api.Atom;
-import gov.nih.ncats.chemkit.api.AtomCoordinates;
-import gov.nih.ncats.chemkit.api.Bond;
-import gov.nih.ncats.chemkit.api.Bond.Stereo;
-import gov.nih.ncats.chemkit.api.Chemical;
-import gov.nih.ncats.chemkit.api.ChemicalBuilder;
-import gov.nih.ncats.chemkit.api.inchi.Inchi;
+import gov.nih.ncats.molwitch.Atom;
+import gov.nih.ncats.molwitch.AtomCoordinates;
+import gov.nih.ncats.molwitch.Bond;
+import gov.nih.ncats.molwitch.Bond.Stereo;
+import gov.nih.ncats.molwitch.Chemical;
+import gov.nih.ncats.molwitch.ChemicalBuilder;
+import gov.nih.ncats.molwitch.inchi.Inchi;
 import gov.nih.ncats.molvec.Molvec;
 import gov.nih.ncats.molvec.algo.ShellCommandRunner.Monitor;
 import gov.nih.ncats.molvec.image.ImageUtil;

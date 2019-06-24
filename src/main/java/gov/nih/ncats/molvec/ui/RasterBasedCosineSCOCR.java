@@ -24,9 +24,9 @@ import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 
-import gov.nih.ncats.molvec.Bitmap;
-import gov.nih.ncats.molvec.Bitmap.BitmapScaled;
-import gov.nih.ncats.molvec.CachedSupplier;
+import gov.nih.ncats.molvec.image.Bitmap;
+import gov.nih.ncats.molvec.image.Bitmap.BitmapScaled;
+import gov.nih.ncats.molvec.util.CachedSupplier;
 import gov.nih.ncats.molvec.algo.Tuple;
 
 public abstract class RasterBasedCosineSCOCR implements SCOCR{

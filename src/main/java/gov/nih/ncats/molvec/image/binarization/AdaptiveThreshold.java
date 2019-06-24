@@ -3,8 +3,7 @@ package gov.nih.ncats.molvec.image.binarization;
 import java.awt.image.Raster;
 import java.util.function.Consumer;
 
-import gov.nih.ncats.molvec.Bitmap;
-import gov.nih.ncats.molvec.image.Binarization;
+import gov.nih.ncats.molvec.image.Bitmap;
 
 /*
  * Adaptive Threshold based on local pixel average Loosely based on Bradley

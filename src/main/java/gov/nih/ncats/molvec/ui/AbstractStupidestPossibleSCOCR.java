@@ -1,6 +1,5 @@
 package gov.nih.ncats.molvec.ui;
 
-import gov.nih.ncats.molvec.CachedSupplier;
 
 import java.util.ArrayList;
 import java.util.HashMap;
