@@ -10,13 +10,73 @@
   <version>0.9.3</version>
   <name>MolVec</name>
 
-  <!--<repositories>-->
-    <!--<repository>-->
-      <!--<id>jboss-repo</id>-->
-      <!--<url>https://repository.jboss.org/nexus/content/repositories/thirdparty-releases/</url>-->
-    <!--</repository>-->
-  <!--</repositories>-->
-  <properties>
+
+    <url>https://spotlite.nih.gov/ncats/molvec</url>
+    <description>NCATS (chemical) ocr
+        engine that can a way to vectorize
+        chemical images into Chemical objects preserving the 2D layout as much as
+        possible. </description>
+    <organization>
+        <name>NIH/NCATS</name>
+        <url>https://ncats.nih.gov</url>
+    </organization>
+    <licenses>
+        <license>
+            <name>Apache-2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+
+        <developer>
+            <id>peryeata</id>
+            <name>Tyler Peryea</name>
+            <email>tyler.peryea@nih.gov</email>
+            <roles>
+                <role>architect</role>
+                <role>developer</role>
+            </roles>
+            <timezone>America/New_York</timezone>
+        </developer>
+        <developer>
+            <id>nguyenda</id>
+            <name>Dac-Trung Nguyen</name>
+            <email>dactrung.nguyen@nih.gov</email>
+            <roles>
+                <role>architect</role>
+                <role>developer</role>
+            </roles>
+            <timezone>America/New_York</timezone>
+        </developer>
+        <developer>
+            <id>katzelda</id>
+            <name>Daniel Katzel</name>
+            <email>daniel.katzel@nih.gov</email>
+            <roles>
+                <role>developer</role>
+            </roles>
+            <timezone>America/New_York</timezone>
+        </developer>
+    </developers>
+
+    <scm>
+        <url>https://spotlite.nih.gov/ncats/ncats-common</url>
+    </scm>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
+
+    <properties>
     <java.version>1.8</java.version>
     <maven.compiler.plugin.version>2.3.2</maven.compiler.plugin.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -73,7 +133,17 @@
 </dependencies>
 
   <build>
-  
+      <resources>
+          <resource>
+              <directory>src/main/java</directory>
+              <includes>
+                  <include>**/*.html</include>
+                  <include>**/*.js</include>
+                  <include>**/*.css</include>
+                  <include>**/*.png</include>
+              </includes>
+          </resource>
+      </resources>
   	<finalName>${project.artifactId}-${project.version}</finalName>
     <outputDirectory>${deploy.dir}</outputDirectory>
     <plugins>
@@ -109,17 +179,70 @@
                </descriptorRefs>
             </configuration>
   </plugin>
-    </plugins>
-    <resources>
-        <resource>
-            <directory>src/main/java</directory>
-            <includes>
-                <include>**/*.html</include>
-				<include>**/*.js</include>
-				<include>**/*.css</include>
-				<include>**/*.png</include>
-            </includes>
-        </resource>
-    </resources>
-  </build>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.5.1</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.6.7</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <serverId>ossrh</serverId>
+                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>2.2.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.9.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <additionalparam>-Xdoclint:none</additionalparam>
+                        </configuration>
+
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.5</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>
