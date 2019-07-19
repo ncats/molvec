@@ -151,8 +151,9 @@ public class Grayscale {
 
     public static int grayscale (double[] rgb) {
     	if(rgb.length==4){
-    		
     		return (int) ((0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5) * (1-(1.0/255.0)*rgb[3]));
+    	}else if(rgb.length==1){
+    		return (int)rgb[0];
     	}else{
     		return (int) (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5);
     	}
