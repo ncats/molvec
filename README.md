@@ -1,8 +1,9 @@
 # MolVec
-NCATS (chemical) ocr
-engine that can a way to vectorize
+NCATS (chemical) ocr engine that can a way to vectorize
 chemical images into Chemical objects preserving the 2D layout as much as 
-possible. The code is still very raw in terms of utility. Please forward
+possible. The code is still very raw in terms of utility. Check
+out [https://molvec.ncats.io](https://molvec.ncats.io) for a
+demonstration of MolVec. Please forward
 questions and/or problems to tyler.peryea@nih.gov.
 
 #$ How To Build
