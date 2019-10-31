@@ -71,6 +71,8 @@ public class Grayscale {
         
         int maxAlpha=0;
         int minAlpha=255;
+        int moreAlphaCount=0;
+        int lessAlphaCount=0;
         
         //Assumes RGBA
         if(nband>=4) {
@@ -81,6 +83,9 @@ public class Grayscale {
         		    int pixel = row[i];
                     if (pixel > maxAlpha) maxAlpha = pixel;
                     if (pixel < minAlpha) minAlpha = pixel;
+                    if(pixel > 128) moreAlphaCount++;
+                    if(pixel <= 128) lessAlphaCount++;
+                    
         	    }
         	}
         }
@@ -109,6 +114,13 @@ public class Grayscale {
         			}else {
         				pp[3]=(pp[3]-minAlpha)/(maxAlpha-minAlpha);
         				pp[3]*=255;
+        				//assume that there's supposed to be more
+        				//transparent things than opaque things.
+        				//If that's not the case, invert the alpha
+        				//channel
+        				if(moreAlphaCount>lessAlphaCount) {
+        					pp[3]=255-pp[3];
+        				}
         			}
         		}
         		
