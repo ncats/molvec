@@ -3,10 +3,24 @@ NCATS (chemical) ocr engine that can a way to vectorize
 chemical images into Chemical objects preserving the 2D layout as much as 
 possible. The code is still very raw in terms of utility. Check
 out [https://molvec.ncats.io](https://molvec.ncats.io) for a
-demonstration of MolVec. Please forward
-questions and/or problems to daniel.katzel@nih.gov.
+demonstration of MolVec. 
 
-#$ How To Build
+## Molvec is on Maven Central
+
+The easiest way to start using Molvec is to include it as a dependency in your build tool of choice.
+For Maven:
+
+```
+<dependency>
+  <groupId>gov.nih.ncats</groupId>
+  <artifactId>molvec</artifactId>
+  <version>0.9.4</version>
+</dependency>
+```
+
+
+
+## How To Build
    
    You can build the whole project as a jar file with:
 
