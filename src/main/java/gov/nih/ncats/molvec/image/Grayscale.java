@@ -1,16 +1,16 @@
 package gov.nih.ncats.molvec.image;
 
+import java.awt.image.BandedSampleModel;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBuffer;
+import java.awt.image.Raster;
+import java.awt.image.RescaleOp;
+import java.awt.image.WritableRaster;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.logging.Logger;
-
-import java.awt.image.BufferedImage;
-import java.awt.image.DataBuffer;
-import java.awt.image.Raster;
-import java.awt.image.WritableRaster;
-import java.awt.image.BandedSampleModel;
-import java.awt.image.RescaleOp;
 
 import javax.imageio.ImageIO;
 
@@ -30,6 +30,7 @@ public class Grayscale {
 
     public Grayscale (Raster raster) {
         setRaster (raster);
+       
     }
 
     public void setRaster (Raster raster) {
@@ -67,18 +68,25 @@ public class Grayscale {
 
         max = 0;
         min = Integer.MAX_VALUE;
-        int[] row = new int[width];
-        for (int j = 0; j < height; ++j) {
-        	raster.getSamples(0, j, width, 1, 0, row);
-        	for (int i = 0; i < width; ++i) {
-    		    int pixel = row[i];
-                if (pixel > max) max = pixel;
-                if (pixel < min) min = pixel;
-    	    }
-    	}
-//        int range = max - min;
-//        logger.info("## range="+range+", min="+min+", max="+max);
-
+        
+        int maxAlpha=0;
+        int minAlpha=255;
+        
+        //Assumes RGBA
+        if(nband>=4) {
+        	int[] row = new int[width];
+            for (int j = 0; j < height; ++j) {
+            	raster.getSamples(0, j, width, 1, 3, row);
+            	for (int i = 0; i < width; ++i) {
+        		    int pixel = row[i];
+                    if (pixel > maxAlpha) maxAlpha = pixel;
+                    if (pixel < minAlpha) minAlpha = pixel;
+        	    }
+        	}
+        }
+        
+    
+        
         for (int i = 0; i < histogram.length; ++i)
             histogram[i] = 0;
 
@@ -95,7 +103,16 @@ public class Grayscale {
         		
         		double[] pp=Arrays.copyOfRange(sampleRow,x*nband,x*nband+nband);
         		
-                int s = grayscale (pp) & 0xff;
+        		if(pp.length==4 ) {
+        			if(maxAlpha<=minAlpha) {
+        				pp[3]=255;
+        			}else {
+        				pp[3]=(pp[3]-minAlpha)/(maxAlpha-minAlpha);
+        				pp[3]*=255;
+        			}
+        		}
+        		
+        		int s = grayscale (pp) & 0xff;
                 resultRow[x]=s;
                 ++histogram[s];
             }
@@ -111,6 +128,8 @@ public class Grayscale {
             if (p > 0) {
                 mean += p;
                 ++cnt;
+                max=i;
+                if(i<min)min=i;
             }
         }
         
@@ -125,6 +144,8 @@ public class Grayscale {
             }
             stddev = Math.sqrt(stddev/cnt);
         }
+        
+        
 
         return raster;
     }
@@ -151,7 +172,7 @@ public class Grayscale {
 
     public static int grayscale (double[] rgb) {
     	if(rgb.length==4){
-    		return (int) ((0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5) * (1-(1.0/255.0)*rgb[3]));
+    		return (int) ((0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5) * ((1.0/255.0)*rgb[3]));
     	}else if(rgb.length==1){
     		return (int)rgb[0];
     	}else{
