@@ -4,7 +4,7 @@ chemical images into Chemical objects preserving the 2D layout as much as
 possible. The code is still very raw in terms of utility. Check
 out [https://molvec.ncats.io](https://molvec.ncats.io) for a
 demonstration of MolVec. Please forward
-questions and/or problems to tyler.peryea@nih.gov.
+questions and/or problems to daniel.katzel@nih.gov.
 
 #$ How To Build
    
