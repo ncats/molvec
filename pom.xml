@@ -7,11 +7,11 @@
   <groupId>gov.nih.ncats</groupId>
   <artifactId>molvec</artifactId>
   <packaging>jar</packaging>
-  <version>0.9.5</version>
+  <version>0.9.6</version>
   <name>MolVec</name>
 
 
-    <url>https://spotlite.nih.gov/ncats/molvec</url>
+    <url>https://github.com/ncats/molvec</url>
     <description>NCATS (chemical) ocr
         engine that can a way to vectorize
         chemical images into Chemical objects preserving the 2D layout as much as
@@ -114,7 +114,7 @@
 <dependency>
         <groupId>gov.nih.ncats</groupId>
         <artifactId>molwitch-cdk</artifactId>
-        <version>1.0</version>
+        <version>1.0.1</version>
         <scope>test</scope>
 </dependency>
 <dependency>

@@ -139,7 +139,7 @@ public class RegressionTestIT {
 		Map<Atom,Atom> oldToNew = new HashMap<>();
 		
 		for(int i=0;i<c1.getAtomCount();i++){
-			Atom aa=nc.atomAt(i);
+			Atom aa=nc.getAtom(i);
 			AtomCoordinates ac=aa.getAtomCoordinates();
 			aa.setAtomCoordinates(AtomCoordinates.valueOf(ac.getX(), ac.getY(), ac.getZ().orElse(0)));
 		}
