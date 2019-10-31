@@ -14,7 +14,7 @@ For Maven:
 <dependency>
   <groupId>gov.nih.ncats</groupId>
   <artifactId>molvec</artifactId>
-  <version>0.9.4</version>
+  <version>0.9.5</version>
 </dependency>
 ```
 
