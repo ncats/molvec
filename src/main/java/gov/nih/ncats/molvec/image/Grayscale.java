@@ -25,6 +25,8 @@ public class Grayscale {
     private double mean, stddev;
     private int max, min;
 
+
+
     public Grayscale () {
     }
 
@@ -81,10 +83,18 @@ public class Grayscale {
             	raster.getSamples(0, j, width, 1, 3, row);
             	for (int i = 0; i < width; ++i) {
         		    int pixel = row[i];
-                    if (pixel > maxAlpha) maxAlpha = pixel;
-                    if (pixel < minAlpha) minAlpha = pixel;
-                    if(pixel > 128) moreAlphaCount++;
-                    if(pixel <= 128) lessAlphaCount++;
+                    if (pixel > maxAlpha) {
+                        maxAlpha = pixel;
+                    }
+                    if (pixel < minAlpha) {
+                        minAlpha = pixel;
+                    }
+                    if(pixel > 128) {
+                        moreAlphaCount++;
+                    }
+                    if(pixel <= 128) {
+                        lessAlphaCount++;
+                    }
                     
         	    }
         	}
@@ -95,10 +105,18 @@ public class Grayscale {
                 raster.getSamples(0, j, width, 1, 1, row);
                 for (int i = 0; i < width; ++i) {
                     int pixel = row[i];
-                    if (pixel > maxAlpha) maxAlpha = pixel;
-                    if (pixel < minAlpha) minAlpha = pixel;
-                    if(pixel > 128) moreAlphaCount++;
-                    if(pixel <= 128) lessAlphaCount++;
+                    if (pixel > maxAlpha){
+                        maxAlpha = pixel;
+                    }
+                    if (pixel < minAlpha){
+                        minAlpha = pixel;
+                    }
+                    if(pixel > 128){
+                        moreAlphaCount++;
+                    }
+                    if(pixel <= 128){
+                        lessAlphaCount++;
+                    }
 
                 }
             }
@@ -106,8 +124,9 @@ public class Grayscale {
         
     
         
-        for (int i = 0; i < histogram.length; ++i)
+        for (int i = 0; i < histogram.length; ++i) {
             histogram[i] = 0;
+        }
 
         WritableRaster outRaster = Raster.createWritableRaster
                 (new BandedSampleModel
@@ -212,12 +231,12 @@ public class Grayscale {
 
     public static int grayscale (double[] rgb) {
     	if(rgb.length==4){
-    		return (int) ((0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5) * ((1.0/255.0)*rgb[3]));
+    		return (int) ((0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5) * rgb[3]/255D);
     	}else if(rgb.length==1){
             return (int)rgb[0];
     	}else if(rgb.length==2){
 
-            return (int)(rgb[0] * ((1.0/255.0)*rgb[1]));
+            return (int)(rgb[0] * (rgb[1]/255D));
         }else{
     		return (int) (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5);
     	}
