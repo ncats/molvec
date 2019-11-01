@@ -12,7 +12,7 @@ public class Java11RegressionTest {
     public void canReadFileCorrectly() throws IOException {
         File f = new File(getClass().getResource("/moleculeTest/circleAromatic.png").getFile());
         String result = Molvec.ocr(f);
-        System.out.println(result);
+//        System.out.println(result);
 
         int numLines = result.split("\n").length;
         assertTrue("blank mol file? only " + numLines + " lines long", numLines > 5);
