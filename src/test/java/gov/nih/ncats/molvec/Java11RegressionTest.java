@@ -14,7 +14,19 @@ public class Java11RegressionTest {
         String result = Molvec.ocr(f);
 //        System.out.println(result);
 
+        assertMolFileNotBlank(result);
+    }
+
+    private void assertMolFileNotBlank(String result) {
         int numLines = result.split("\n").length;
         assertTrue("blank mol file? only " + numLines + " lines long", numLines > 5);
+    }
+
+    @Test
+    public void grayscaleImageWithoutAllBands() throws IOException{
+        File f = new File(getClass().getResource("/convertedGrayscale.png").getFile());
+        String result = Molvec.ocr(f);
+        System.out.println(result);
+        assertMolFileNotBlank(result);
     }
 }

@@ -88,6 +88,20 @@ public class Grayscale {
                     
         	    }
         	}
+        }else if(nband ==2){
+            //assume grayscale + alpha ?
+            int[] row = new int[width];
+            for (int j = 0; j < height; ++j) {
+                raster.getSamples(0, j, width, 1, 1, row);
+                for (int i = 0; i < width; ++i) {
+                    int pixel = row[i];
+                    if (pixel > maxAlpha) maxAlpha = pixel;
+                    if (pixel < minAlpha) minAlpha = pixel;
+                    if(pixel > 128) moreAlphaCount++;
+                    if(pixel <= 128) lessAlphaCount++;
+
+                }
+            }
         }
         
     
@@ -122,7 +136,21 @@ public class Grayscale {
         					pp[3]=255-pp[3];
         				}
         			}
-        		}
+        		}else if(pp.length ==2){
+                    if(maxAlpha<=minAlpha) {
+                        pp[1]=255;
+                    }else {
+                        pp[1]=(pp[1]-minAlpha)/(maxAlpha-minAlpha);
+                        pp[1]*=255;
+                        //assume that there's supposed to be more
+                        //transparent things than opaque things.
+                        //If that's not the case, invert the alpha
+                        //channel
+                        if(moreAlphaCount>lessAlphaCount) {
+                            pp[1]=255-pp[1];
+                        }
+                    }
+                }
         		
         		int s = grayscale (pp) & 0xff;
                 resultRow[x]=s;
@@ -186,8 +214,11 @@ public class Grayscale {
     	if(rgb.length==4){
     		return (int) ((0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5) * ((1.0/255.0)*rgb[3]));
     	}else if(rgb.length==1){
-    		return (int)rgb[0];
-    	}else{
+            return (int)rgb[0];
+    	}else if(rgb.length==2){
+
+            return (int)(rgb[0] * ((1.0/255.0)*rgb[1]));
+        }else{
     		return (int) (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5);
     	}
     }
