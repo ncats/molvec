@@ -19,18 +19,8 @@ For Maven:
 ```
 
 
-
-## How To Build
    
-   You can build the whole project as a jar file with:
-
-   `$ mvn clean pacakge`
-
-   Or install the project into your maven repository using:
-
-   `$ mvn install`
-   
-## Example Usage
+## Example Usage: convert image into mol file format
 ```java
     File image = ...
     String mol = Molvec.ocr(image);
@@ -38,7 +28,7 @@ For Maven:
     
 ## Async Support
 
-  New in 0.8 MolVec supports asynchronous calls
+  MolVec supports asynchronous calls
  ```java
     CompleteableFuture<String> future = Molvec.ocrAsync( image);
     String mol = future.get(5, TimeUnit.SECONDS);
@@ -113,3 +103,8 @@ For Maven:
   through each step of the structure recognition process
 
 ![Primitives](sample1.png)
+
+## How to Report Issues
+
+  You can report issues or feature requests either by creating issue tickets on our github page or
+   by forwarding questions and/or problems to daniel.katzel@nih.gov.
