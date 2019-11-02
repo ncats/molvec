@@ -20,7 +20,7 @@ public class CachedSupplier<T> implements Supplier<T>, Callable<T>{
 	
 
 	/**
-	 * Flag to signal all {{@link ix.core.util.CachedSupplier} instances
+	 * Flag to signal all {{@link gov.nih.ncats.molvec.util} instances
 	 * to regenerate from their suppliers on the next call.
 	 */
 	public static void resetAllCaches(){

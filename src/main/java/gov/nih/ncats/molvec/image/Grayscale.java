@@ -10,123 +10,183 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
 
 /**
- * 256 gray scale 
+ * Converts an image into a 256 gray scale image.
+ *
+ *
  */
 public class Grayscale {
     static final Logger logger = Logger.getLogger(Grayscale.class.getName());
 
     private Raster grayscale;
-    private int[] histogram = new int[256];
-    private double mean, stddev;
-    private int max, min;
 
 
+    /**
+     * Listener interface that accepts pixel values for each image.
+     * The order of method calls is:
+     * newImage()
+     * multipleCalls to accept()
+     * finishImage()
+     */
+    interface GrayscaleListener{
+        /**
+         * Begin listening to a new image.
+         * @param height the height of the new image.
+         * @param width the weight of the new image.
+         * @param nband the number of bands of the new image.
+         */
+        void newImage(int height, int width, int nband);
 
-    public Grayscale () {
+        /**
+         * accept the given pixel values in the current image.
+         * @param s the current pixel value.
+         */
+        void accept(int s);
+
+        /**
+         * The current image is finished.
+         */
+        void finishImage();
     }
 
-    public Grayscale (Raster raster) {
-        setRaster (raster);
-       
+    private enum NoOpGrayscaleListner implements GrayscaleListener{
+        INSTANCE;
+
+        @Override
+        public void newImage(int height, int width, int nband) {
+
+        }
+
+        @Override
+        public void accept(int s) {
+
+        }
+
+        @Override
+        public void finishImage() {
+
+        }
+
+
     }
 
-    public void setRaster (Raster raster) {
+    /**
+     * Listener that computes min, max, mean, stddev and a histogram
+     * of all pixel values.
+     */
+    public static class GrayscaleStats implements GrayscaleListener{
+
+        private int min, max;
+        private double mean, stddev;
+        private int[] histogram;
+        @Override
+        public void newImage(int height, int width, int nband) {
+            max = 0;
+            min = Integer.MAX_VALUE;
+            histogram = new int[256];
+        }
+
+        @Override
+        public void accept(int s) {
+            histogram[s]++;
+        }
+
+        @Override
+        public void finishImage() {
+            mean = 0;
+            stddev = 0;
+            int cnt = 0;
+            for (int i = 0; i < histogram.length; ++i) {
+                int p = histogram[i];
+                if (p > 0) {
+                    mean += p;
+                    ++cnt;
+                    max=i;
+                    if(i<min)min=i;
+                }
+            }
+
+            if (cnt > 0) {
+                mean /= cnt;
+                for (int i = 0; i < histogram.length; ++i) {
+                    int p = histogram[i];
+                    if (p > 0) {
+                        double x = p - mean;
+                        stddev += x*x;
+                    }
+                }
+                stddev = Math.sqrt(stddev/cnt);
+            }
+        }
+
+        public int getMin() {
+            return min;
+        }
+
+        public int getMax() {
+            return max;
+        }
+
+        public double getMean() {
+            return mean;
+        }
+
+        public double getStddev() {
+            return stddev;
+        }
+
+        public int[] getHistogram() {
+            return histogram;
+        }
+    }
+    public Grayscale (Raster raster){
+        this(raster, NoOpGrayscaleListner.INSTANCE);
+    }
+    public Grayscale (Raster raster, GrayscaleListener listener) {
         if (raster == null) {
             throw new IllegalArgumentException ("Input raster is null");
         }
-        grayscale = createRaster (raster);
+        grayscale = createRaster (raster, listener);
+       
     }
 
-    public Raster getRaster () { 
-        return getRaster (false);
+    public BufferedImage asNewBufferedImage(){
+        BufferedImage image = new BufferedImage(grayscale.getWidth(), grayscale.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
+        //this does a copy operation so it's safe
+        image.setData(grayscale);
+        return image;
+    }
+    public Raster getRaster () {
+        //TODO we never call method with isRescale == true ?
+//        return getRaster (false);
+        return grayscale;
     }
 
-    public Raster getRaster (boolean isRescale) { 
-        if (isRescale) {
-            // rescale to 8-bit
-            double scale = Math.max(256./(max-min+1),1);
-            RescaleOp rescale = new RescaleOp 
-                ((float)scale, -(float)scale*min, null);
-            Raster raster = rescale.filter(grayscale, null);
-            rescale = new RescaleOp (-1, 255, null);
-            return rescale.filter(raster, null);
-        }
-        return grayscale; 
-    }
 
-    /*
+    /**
      * convert rgb raster into grayscale
      */
-    protected Raster createRaster (Raster raster) {
+    private Raster createRaster (Raster raster, GrayscaleListener listener) {
         int height = raster.getHeight();
         int width = raster.getWidth();
         int nband = raster.getNumBands();
-        
 
-        max = 0;
-        min = Integer.MAX_VALUE;
-        
-        int maxAlpha=0;
-        int minAlpha=255;
-        int moreAlphaCount=0;
-        int lessAlphaCount=0;
-        
-        //Assumes RGBA
-        if(nband>=4) {
-        	int[] row = new int[width];
-            for (int j = 0; j < height; ++j) {
-            	raster.getSamples(0, j, width, 1, 3, row);
-            	for (int i = 0; i < width; ++i) {
-        		    int pixel = row[i];
-                    if (pixel > maxAlpha) {
-                        maxAlpha = pixel;
-                    }
-                    if (pixel < minAlpha) {
-                        minAlpha = pixel;
-                    }
-                    if(pixel > 128) {
-                        moreAlphaCount++;
-                    }
-                    if(pixel <= 128) {
-                        lessAlphaCount++;
-                    }
-                    
-        	    }
-        	}
-        }else if(nband ==2){
-            //assume grayscale + alpha ?
-            int[] row = new int[width];
-            for (int j = 0; j < height; ++j) {
-                raster.getSamples(0, j, width, 1, 1, row);
-                for (int i = 0; i < width; ++i) {
-                    int pixel = row[i];
-                    if (pixel > maxAlpha){
-                        maxAlpha = pixel;
-                    }
-                    if (pixel < minAlpha){
-                        minAlpha = pixel;
-                    }
-                    if(pixel > 128){
-                        moreAlphaCount++;
-                    }
-                    if(pixel <= 128){
-                        lessAlphaCount++;
-                    }
+        Grayscaler grayscaler = Grayscaler.getFor(raster);
 
-                }
-            }
-        }
-        
+        listener.newImage(height, width, nband);
+//        max = 0;
+//        min = Integer.MAX_VALUE;
+
     
-        
-        for (int i = 0; i < histogram.length; ++i) {
-            histogram[i] = 0;
-        }
+        Optional<AlphaInfo> alphaInfo = grayscaler.computeAlphaInfo(raster);
+//        for (int i = 0; i < histogram.length; ++i) {
+//            histogram[i] = 0;
+//        }
 
         WritableRaster outRaster = Raster.createWritableRaster
                 (new BandedSampleModel
@@ -140,69 +200,42 @@ public class Grayscale {
         	for (int x = 0; x < width; x++) {
         		
         		double[] pp=Arrays.copyOfRange(sampleRow,x*nband,x*nband+nband);
-        		
-        		if(pp.length==4 ) {
-        			if(maxAlpha<=minAlpha) {
-        				pp[3]=255;
-        			}else {
-        				pp[3]=(pp[3]-minAlpha)/(maxAlpha-minAlpha);
-        				pp[3]*=255;
-        				//assume that there's supposed to be more
-        				//transparent things than opaque things.
-        				//If that's not the case, invert the alpha
-        				//channel
-        				if(moreAlphaCount>lessAlphaCount) {
-        					pp[3]=255-pp[3];
-        				}
-        			}
-        		}else if(pp.length ==2){
-                    if(maxAlpha<=minAlpha) {
-                        pp[1]=255;
-                    }else {
-                        pp[1]=(pp[1]-minAlpha)/(maxAlpha-minAlpha);
-                        pp[1]*=255;
-                        //assume that there's supposed to be more
-                        //transparent things than opaque things.
-                        //If that's not the case, invert the alpha
-                        //channel
-                        if(moreAlphaCount>lessAlphaCount) {
-                            pp[1]=255-pp[1];
-                        }
-                    }
-                }
-        		
-        		int s = grayscale (pp) & 0xff;
+        		grayscaler.adjustAlpha(pp, alphaInfo);
+
+        		int s = grayscaler.grayscaleValue (pp) & 0xff;
                 resultRow[x]=s;
-                ++histogram[s];
+                listener.accept(s);
+
             }
         	outRaster.setSamples(0, y, width, 1, 0, resultRow);
         }
         raster = outRaster;
 
-        mean = 0;
-        stddev = 0;
-        int cnt = 0;
-        for (int i = 0; i < histogram.length; ++i) {
-            int p = histogram[i];
-            if (p > 0) {
-                mean += p;
-                ++cnt;
-                max=i;
-                if(i<min)min=i;
-            }
-        }
-        
-        if (cnt > 0) {
-            mean /= cnt;
-            for (int i = 0; i < histogram.length; ++i) {
-                int p = histogram[i];
-                if (p > 0) {
-                    double x = p - mean;
-                    stddev += x*x;
-                }
-            }
-            stddev = Math.sqrt(stddev/cnt);
-        }
+        listener.finishImage();
+//        mean = 0;
+//        stddev = 0;
+//        int cnt = 0;
+//        for (int i = 0; i < histogram.length; ++i) {
+//            int p = histogram[i];
+//            if (p > 0) {
+//                mean += p;
+//                ++cnt;
+//                max=i;
+//                if(i<min)min=i;
+//            }
+//        }
+//
+//        if (cnt > 0) {
+//            mean /= cnt;
+//            for (int i = 0; i < histogram.length; ++i) {
+//                int p = histogram[i];
+//                if (p > 0) {
+//                    double x = p - mean;
+//                    stddev += x*x;
+//                }
+//            }
+//            stddev = Math.sqrt(stddev/cnt);
+//        }
         
         
 
@@ -221,9 +254,9 @@ public class Grayscale {
         return img;
     }
 
-    public int[] histogram () { return histogram; }
-    public double mean () { return mean; }
-    public double stddev () { return stddev; }
+//    public int[] histogram () { return histogram; }
+//    public double mean () { return mean; }
+//    public double stddev () { return stddev; }
 
     public void write (OutputStream out) throws IOException {
         ImageIO.write(getImage (), "png", out);
@@ -240,5 +273,121 @@ public class Grayscale {
         }else{
     		return (int) (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5);
     	}
+    }
+
+
+    private enum Grayscaler{
+        RGBA(3){
+            @Override
+            protected int grayscaleValue(double[] rgb) {
+                return (int) ((0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5) * rgb[3]/255D);
+            }
+
+        },
+        RGB{
+            @Override
+            protected int grayscaleValue(double[] rgb) {
+                return (int) (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5);
+            }
+        },
+        GRAY{
+            @Override
+            protected int grayscaleValue(double[] rgb) {
+                return (int) rgb[0];
+            }
+
+        },
+        GRAY_ALPHA(1){
+            @Override
+            protected int grayscaleValue(double[] rgb) {
+                return (int)(rgb[0] * (rgb[1]/255D));
+            }
+
+        }
+        ;
+
+        private final int alphaBand;
+        Grayscaler(){
+            this(-1);
+        }
+        Grayscaler(int alphaBand){
+            this.alphaBand = alphaBand;
+        }
+
+        protected abstract int grayscaleValue(double[] rgb);
+
+        protected int getAlphaBand(){
+            return alphaBand;
+        }
+
+        protected Optional<AlphaInfo> computeAlphaInfo(Raster raster){
+            if(alphaBand == -1){
+                return Optional.empty();
+            }
+            int width = raster.getWidth();
+            int height = raster.getHeight();
+            int[] row = new int[width];
+            AlphaInfo info = new AlphaInfo();
+            for (int j = 0; j < height; ++j) {
+                raster.getSamples(0, j, width, 1, getAlphaBand(), row);
+                for (int i = 0; i < width; ++i) {
+                    info.accept(row[i]);
+                }
+            }
+            return Optional.of(info);
+        }
+
+        public static Grayscaler getFor(Raster raster){
+            int nbands = raster.getNumBands();
+            switch(nbands){
+                case 1: return Grayscaler.GRAY;
+                case 2 :  return Grayscaler.GRAY_ALPHA;
+                case 3 : return Grayscaler.RGB;
+                default : return Grayscaler.RGBA;
+            }
+        }
+
+
+        public void adjustAlpha(double[] pp, Optional<AlphaInfo> alphaInfo){
+            if(!alphaInfo.isPresent()){
+                return;
+            }
+            AlphaInfo info = alphaInfo.get();
+
+            if(info.maxAlpha<=info.minAlpha) {
+                pp[alphaBand]=255;
+            }else {
+                pp[alphaBand]=(pp[alphaBand]-info.minAlpha)/(info.maxAlpha-info.minAlpha);
+                pp[alphaBand]*=255;
+                //assume that there's supposed to be more
+                //transparent things than opaque things.
+                //If that's not the case, invert the alpha
+                //channel
+                if(info.moreAlphaCount>info.lessAlphaCount) {
+                    pp[alphaBand]=255-pp[alphaBand];
+                }
+            }
+        }
+    }
+    private static class AlphaInfo{
+        private int maxAlpha=0;
+        private int minAlpha=255;
+        private int moreAlphaCount=0;
+        private int lessAlphaCount=0;
+
+        public void accept(int pixel){
+            if (pixel > maxAlpha) {
+                maxAlpha = pixel;
+            }
+            if (pixel < minAlpha) {
+                minAlpha = pixel;
+            }
+            if(pixel > 128) {
+                moreAlphaCount++;
+            }
+            if(pixel <= 128) {
+                lessAlphaCount++;
+            }
+        }
     }
 }

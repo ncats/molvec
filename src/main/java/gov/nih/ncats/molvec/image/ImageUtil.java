@@ -10,7 +10,9 @@ import java.awt.image.IndexColorModel;
 import java.awt.image.Raster;
 import java.awt.image.RescaleOp;
 import java.io.*;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
@@ -25,27 +27,30 @@ public class ImageUtil {
 
     private static BufferedImage toRGBColorModel(BufferedImage bi2){
 		
-		int nwidth=(int) (bi2.getWidth());
-		int nheight=(int) (bi2.getHeight());
+		int nwidth=bi2.getWidth();
+		int nheight=bi2.getHeight();
 		
         // creates output image
-        BufferedImage outputImage = new BufferedImage(nwidth,
-                nheight,ColorModel.BITMASK);
+        BufferedImage outputImage = new BufferedImage(nwidth, nheight,ColorModel.BITMASK);
  
         // scales the input image to the output image
         Graphics2D g2d = outputImage.createGraphics();
         
         g2d.drawImage(bi2, 0, 0, nwidth, nheight, null);
         g2d.dispose();
-        
+        Map<Integer, Integer> rgbConverterMap = new HashMap<>();
         for (int x = 0; x < outputImage.getWidth(); x++) {
             for (int y = 0; y < outputImage.getHeight(); y++) {
                 int rgba = outputImage.getRGB(x, y);
-                Color col = new Color(rgba, true);
-                col = new Color(255 - col.getRed(),
-                                255 - col.getGreen(),
-                                255 - col.getBlue());
-                outputImage.setRGB(x, y, col.getRGB());
+                int newValue = rgbConverterMap.computeIfAbsent(rgba, k->{
+                    Color col = new Color(rgba, true);
+                    col = new Color(255 - col.getRed(),
+                            255 - col.getGreen(),
+                            255 - col.getBlue());
+                    return col.getRGB();
+                });
+
+                outputImage.setRGB(x, y, newValue);
             }
         }
         
@@ -105,12 +110,7 @@ public class ImageUtil {
     }
     public static BufferedImage grayscale (BufferedImage bi) {
         Grayscale grayscale = new Grayscale (bi.getData());
-    	Raster raster = grayscale.getRaster();
-    	BufferedImage image = new BufferedImage 
-    	    (raster.getWidth(), raster.getHeight(), 
-    	     BufferedImage.TYPE_BYTE_GRAY);
-    	image.setData(raster);
-        return image;
+    	return grayscale.asNewBufferedImage();
     }
 
 
@@ -218,12 +218,4 @@ public class ImageUtil {
 	return Math.max(r, Math.max(g, b));
     }
 
-    public static void main (String[] argv) throws Exception {
-	if (argv.length == 0) {
-	    System.out.println("Usage: ImageUtil IMAGE.tif");
-	    System.exit(1);
-	}
-
-	BufferedImage img = decode (new File (argv[0]));
-    }
 }
