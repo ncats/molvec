@@ -1,18 +1,9 @@
 package gov.nih.ncats.molvec.ui;
 
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.regex.Pattern;
-
-import gov.nih.ncats.molvec.algo.Tuple;
-import gov.nih.ncats.molvec.ui.RasterBasedCosineSCOCR.RasterChar;
 
 public class StupidestPossibleSCOCRSerif extends AbstractStupidestPossibleSCOCR{
 	

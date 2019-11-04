@@ -3,7 +3,7 @@ package gov.nih.ncats.molvec.pub;
 import java.io.IOException;
 import java.util.Arrays;
 
-import gov.nih.ncats.molvec.image.Bitmap;
+import gov.nih.ncats.molvec.internal.image.Bitmap;
 
 /**
  * Aides in creating figures for explaining thinning algorithm

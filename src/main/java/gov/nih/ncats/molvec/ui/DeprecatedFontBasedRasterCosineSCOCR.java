@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.imageio.ImageIO;
 
-import gov.nih.ncats.molvec.image.Bitmap;
+import gov.nih.ncats.molvec.internal.image.Bitmap;
 
 public class DeprecatedFontBasedRasterCosineSCOCR implements SCOCR {
 	Set<Character> _alphabet;
@@ -202,7 +202,8 @@ public class DeprecatedFontBasedRasterCosineSCOCR implements SCOCR {
 			AtomicInteger ai = new AtomicInteger(0);
 			double rat=WH_RATIO.get(ch);
 			
-			charVal.get(ch).stream()
+			charVal.get(ch)
+//                    .stream()
 	                        .forEach(data->{
 	                        	int i=ai.getAndIncrement();
 	                        	try{

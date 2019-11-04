@@ -24,10 +24,10 @@ import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 
-import gov.nih.ncats.molvec.image.Bitmap;
-import gov.nih.ncats.molvec.image.Bitmap.BitmapScaled;
-import gov.nih.ncats.molvec.util.CachedSupplier;
-import gov.nih.ncats.molvec.algo.Tuple;
+import gov.nih.ncats.molvec.internal.image.Bitmap;
+import gov.nih.ncats.molvec.internal.image.Bitmap.BitmapScaled;
+import gov.nih.ncats.molvec.internal.util.CachedSupplier;
+import gov.nih.ncats.molvec.internal.algo.Tuple;
 
 public abstract class RasterBasedCosineSCOCR implements SCOCR{
 	Set<Character> _alphabet;
@@ -126,7 +126,8 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 			
 
 			
-			charVal.get(ch).stream()
+			charVal.get(ch)
+//                    .stream()
 	                        .forEach(rc->{
 	                        		Rectangle2D rat=rc.rect;
 	                    			String recSTR=rat.getWidth() + "x" + rat.getHeight();
