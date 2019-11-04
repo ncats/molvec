@@ -1845,7 +1845,6 @@ public class ConnectionTable{
 		return getEdgeBetweenNodes(this.nodes.get(n1),this.nodes.get(n2));
 	}
 	public void draw(Graphics2D g2) {
-		int sx=1;
 		Stroke old = g2.getStroke();
 		
 		Stroke dashed = new BasicStroke(3, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{3}, 0);
@@ -1854,7 +1853,7 @@ public class ConnectionTable{
 		
 		nodes.stream().map(n->n.point)
 		.forEach(p->{
-			g2.draw(new Ellipse2D.Double((p.getX()-2f/sx), (p.getY()-2f/sx), 4f/sx, 4f/sx));
+			g2.draw(new Ellipse2D.Double((p.getX()-2D), (p.getY()-2D), 4D, 4D));
 		});
 		
 		edges.forEach(l->{
