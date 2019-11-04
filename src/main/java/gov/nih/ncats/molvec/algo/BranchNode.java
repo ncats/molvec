@@ -961,10 +961,12 @@ class BranchNode{
 			  .filter(t->t.v()!=null)
 			  .map(b->Tuple.of(b.v(),b.k()))
 			  .map(t->{
-				  String retcalc = t.k().v();
+
 				  if(returnAs!=null){
 					  return Tuple.of(t.k().k(),returnAs);
-				  }else if(retcalc!=null){
+				  }
+                  String retcalc = t.k().v();
+				  if(retcalc!=null){
 					  return Tuple.of(t.k().k(),retcalc);
 				  }else{
 					  return Tuple.of(t.k().k(),t.v().stream().map(tok->tok.getTokenPreferredStyle()).collect(Collectors.joining()));
@@ -1871,23 +1873,24 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 
 			@Override
 			public Optional<Tuple<BranchNode, String>> parse(TokenTree tt) {
-				List<List<Token>> tlist = tt.getAllTokenPathsWhichAllMatch(t->{
-					return numericSet.contains(t);
-				});
-				if(tlist.isEmpty())return Optional.empty();
-				if(tlist.size()>0){
-					String num=tlist.stream()
-					.map(t->t.stream().map(t1->t1.getTokenPreferredStyle()).collect(Collectors.joining()))
-					.findFirst()
-					.orElse("");
-					
-					int r= Integer.parseInt(num);
-					if(r>0 && r<20){
-						BranchNode repNode=new BranchNode("?");
-						repNode.setRepeat(r);
-						return Optional.of(Tuple.of(repNode, num));
-					}
-				}
+				List<List<Token>> tlist = tt.getAllTokenPathsWhichAllMatch(numericSet::contains);
+
+				if(tlist.isEmpty()){
+				    return Optional.empty();
+                }
+
+                String num=tlist.stream()
+                .map(t->t.stream().map(t1->t1.getTokenPreferredStyle()).collect(Collectors.joining()))
+                .findFirst()
+                .orElse("");
+
+                int r= Integer.parseInt(num);
+                if(r>0 && r<20){
+                    BranchNode repNode=new BranchNode("?");
+                    repNode.setRepeat(r);
+                    return Optional.of(Tuple.of(repNode, num));
+                }
+
 				return Optional.empty();
 			}
 		});		
