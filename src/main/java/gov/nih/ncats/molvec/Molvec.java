@@ -7,7 +7,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
-import gov.nih.ncats.molvec.algo.StructureImageExtractor;
+import gov.nih.ncats.molvec.internal.algo.StructureImageExtractor;
 
 /**
  *

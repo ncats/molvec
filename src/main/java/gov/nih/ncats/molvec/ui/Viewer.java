@@ -44,14 +44,14 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import gov.nih.ncats.molvec.image.Bitmap;
-import gov.nih.ncats.molvec.algo.CentroidEuclideanMetric;
-import gov.nih.ncats.molvec.algo.NearestNeighbors;
-import gov.nih.ncats.molvec.algo.StructureImageExtractor;
-import gov.nih.ncats.molvec.algo.Tuple;
-import gov.nih.ncats.molvec.image.binarization.RangeFractionThreshold;
-import gov.nih.ncats.molvec.util.ConnectionTable;
-import gov.nih.ncats.molvec.util.GeomUtil;
+import gov.nih.ncats.molvec.internal.image.Bitmap;
+import gov.nih.ncats.molvec.internal.algo.CentroidEuclideanMetric;
+import gov.nih.ncats.molvec.internal.algo.NearestNeighbors;
+import gov.nih.ncats.molvec.internal.algo.StructureImageExtractor;
+import gov.nih.ncats.molvec.internal.algo.Tuple;
+import gov.nih.ncats.molvec.internal.image.binarization.RangeFractionThreshold;
+import gov.nih.ncats.molvec.internal.util.ConnectionTable;
+import gov.nih.ncats.molvec.internal.util.GeomUtil;
 
 
 public class Viewer extends JPanel 
