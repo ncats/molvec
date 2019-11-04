@@ -3805,7 +3805,7 @@ public class StructureImageExtractor {
 							int gnum=groupNumber.incrementAndGet();
 							pnode.markGroup(gnum);
 							
-							Map<BranchNode,Node> parentNodes = new HashMap<BranchNode,Node>();
+							Map<BranchNode,Node> parentNodes = new HashMap<>();
 
 							parentNodes.put(actual, pnode);
 
@@ -3871,7 +3871,7 @@ public class StructureImageExtractor {
 									
 									AffineTransform att=GeomUtil.getTransformFromLineToLine(oldLine, newLine, flip);
 									
-									parentNodes.values().stream().forEach(pn->{
+									parentNodes.values().forEach(pn->{
 										pn.setPoint(att.transform(pn.getPoint(),null));
 									});
 								}

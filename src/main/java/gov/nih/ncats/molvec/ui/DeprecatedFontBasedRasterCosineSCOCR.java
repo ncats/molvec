@@ -202,7 +202,8 @@ public class DeprecatedFontBasedRasterCosineSCOCR implements SCOCR {
 			AtomicInteger ai = new AtomicInteger(0);
 			double rat=WH_RATIO.get(ch);
 			
-			charVal.get(ch).stream()
+			charVal.get(ch)
+//                    .stream()
 	                        .forEach(data->{
 	                        	int i=ai.getAndIncrement();
 	                        	try{

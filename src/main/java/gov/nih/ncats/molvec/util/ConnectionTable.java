@@ -1003,7 +1003,7 @@ public class ConnectionTable{
 							})
 							.stream()
 							.filter(nl->nl.size()>=2)
-							.collect(Collectors.toList())
+//							.collect(Collectors.toList())
 							.forEach(ml->{
 								List<Integer> nindexs = ml.stream().map(n->n.getIndex()).collect(Collectors.toList());
 								//System.out.println("NIA:" + nindexs);
@@ -1234,7 +1234,8 @@ public class ConnectionTable{
 	
 	public ConnectionTable mergeNodesExtendingTo(Collection<ShapeWrapper> shapes,double maxAvgBondRatio, double maxTotalAvgBondRatio){
 		double avg = this.getAverageBondLength();
-		edges.stream()
+		edges
+//                .stream()
 		     //.filter(e->e.getBondLength()<avg)
 		     .forEach(e->{
 		    	 boolean term = (e.getRealNode1().getEdgeCount()==1) ||
@@ -1337,7 +1338,8 @@ public class ConnectionTable{
 		         .mapToObj(i->i)
 		         .collect(Collectors.toMap(i->i, i->i));
 		
-		List<LinkedHashSet<Integer>> mergeNodes=GeomUtil.groupMultipleBonds(edgeMap.keySet().stream().map(l-> GeomUtil.LineWrapper.of(l)).collect(Collectors.toList()),5*Math.PI/180, 2, .8, 0)
+//		List<LinkedHashSet<Integer>> mergeNodes=
+                GeomUtil.groupMultipleBonds(edgeMap.keySet().stream().map(l-> GeomUtil.LineWrapper.of(l)).collect(Collectors.toList()),5*Math.PI/180, 2, .8, 0)
 		.stream()
 		.filter(l->l.size()>1)
 		.map(l->{
@@ -1381,9 +1383,10 @@ public class ConnectionTable{
 		})
 		.flatMap(l->l.stream())
 		.filter(l->l.size()>1)
-		.collect(Collectors.toList());
-		
-		mergeNodes.forEach(ls->{
+//		.collect(Collectors.toList());
+//
+//		mergeNodes
+                .forEach(ls->{
 			List<Integer> toMerge=ls.stream().map(i->oldToNewMap.get(i)).collect(Collectors.toList());
 			
 			Point2D keeper=this.nodes.get(toMerge.get(0)).point;
@@ -2033,7 +2036,7 @@ public class ConnectionTable{
 
 	public ConnectionTable fixBondOrders(Collection<Shape> likelyOCR, double shortestRealBondRatio, Consumer<Edge> edgeCons) {
 		this.edges
-		    .stream()
+//		    .stream()
 		    .forEach(e->{
 		    	Shape s1=GeomUtil.getClosestShapeTo(likelyOCR,e.getPoint1());
 		    	Shape s2=GeomUtil.getClosestShapeTo(likelyOCR,e.getPoint2());

@@ -126,7 +126,8 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 			
 
 			
-			charVal.get(ch).stream()
+			charVal.get(ch)
+//                    .stream()
 	                        .forEach(rc->{
 	                        		Rectangle2D rat=rc.rect;
 	                    			String recSTR=rat.getWidth() + "x" + rat.getHeight();

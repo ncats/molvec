@@ -404,9 +404,12 @@ class BranchNode{
 	
 	private void forEachBranchNode(BiConsumer<BranchNode,BranchNode> cons, BranchNode parent){
 		cons.accept(parent, this);
-		this.getChildren()
-		.stream()
-		.collect(Collectors.toList())
+		//TODO this iteration order is extremely important for some reason
+		//for some reason we need to make this a new List
+        //if we forEach on the original children list 80+ tests fail!
+		//I think one of the callers of this method modifies the children list
+		//in it's consumer so we must copy the list first
+		new ArrayList<>(this.getChildren())
 		.forEach(child->{
 			child.forEachBranchNode(cons,this);
 		});
@@ -416,13 +419,13 @@ class BranchNode{
 		forEachBranchNode(parentAndChild,null);
 	}
 	
-	public static interface Token{
-		public String getTokenName();
-		public String getTokenPreferredStyle();
-		public List<Token> getToken(String q);
-		public String[] getForms();
+	public interface Token{
+		String getTokenName();
+		String getTokenPreferredStyle();
+		List<Token> getToken(String q);
+		String[] getForms();
 		
-		public static Token groupedToken(String tname,List<Token> tlist){
+		static Token groupedToken(String tname,List<Token> tlist){
 			Map<String,List<Token>> tokensForForms = new LinkedHashMap<String, List<Token>>();
 			String[] forms = tlist.stream()
 				 .map(tt->Tuple.of(tt,tt.getForms()))
@@ -470,9 +473,9 @@ class BranchNode{
 				
 			};
 		}
-		public default List<Tuple<Token, String>> getFirstMatchingTokens(String s){
+		default List<Tuple<Token, String>> getFirstMatchingTokens(String s){
 			String[] forms = this.getForms();
-			Map<String,List<Token>> tokensForForms = new LinkedHashMap<String, List<Token>>();
+			Map<String,List<Token>> tokensForForms = new LinkedHashMap<>();
 			for(String f:forms){
 				tokensForForms.computeIfAbsent(f, k->new ArrayList<>())
 				.addAll(getToken(f));
@@ -489,7 +492,7 @@ class BranchNode{
 			return found;
 		}
 		
-		public default Token compoundToken(Token t2){
+		default Token compoundToken(Token t2){
 			String[] forms1 =this.getForms();
 			String[] forms2 =t2.getForms();
 			List<String> nformsCombined = new ArrayList<String>();
@@ -874,9 +877,8 @@ class BranchNode{
 		AtomicBoolean foundany = new AtomicBoolean(false);
 		
 		masterTokenList.forEach((s,tt)->{
-			List<Tuple<Token,String>> parsed = tt.getFirstMatchingTokens(t);
-			parsed.stream()
-			.forEach(tup->{
+			tt.getFirstMatchingTokens(t)
+                    .forEach(tup->{
 				foundany.set(true);
 				Token ftok=tup.k();
 				
