@@ -672,7 +672,7 @@ public class StructureImageExtractor {
 			//even after filtering...
 			//the rest of the time char lookups just look for contains without worrying about order
 			Character[] best =new Character[1]; //this is done to set it in a lambda
-			char[] asciiCache = new char[128]; // we only check against ASCII values
+			boolean[] asciiCache = new boolean[128]; // we only check against ASCII values
 
 			Bitmap cropped = bitmap.getLazyCrop(sTest.getShape());
 			
@@ -702,19 +702,19 @@ public class StructureImageExtractor {
 						}
 						char c = t.k();
 						if(c < 128){
-							asciiCache[c]=1;
+							asciiCache[c]=true;
 						}
 					})
 					.collect(Collectors.toList());
 
-			if(asciiCache['N']==1 || asciiCache['S']==1|| asciiCache['s']==1){
+			if(asciiCache['N'] || asciiCache['S']|| asciiCache['s']){
 
 
 				//this usually means it's not a real "N" or S
 				boolean alreadyFiltered=false;
 				if(areaRealDivByAreaBox.get() <0.5){
-					if(asciiCache['\\']==1 || asciiCache['X']==1 || asciiCache['K']==1 ||
-							asciiCache['k']==1 || asciiCache['-']==1){
+					if(asciiCache['\\'] || asciiCache['X'] || asciiCache['K'] ||
+							asciiCache['k'] || asciiCache['-']){
 						potential = potential.stream()
 								.filter(t->!t.k().equals('N') && !t.k().equals('S') && !t.k().equals('s'))
 								.collect(Collectors.toList());
@@ -732,7 +732,7 @@ public class StructureImageExtractor {
 				}
 				
 				//This is the least justified tweak, just a strange thing about N+ that I've noticed
-			}else if(asciiCache['M']==1 && asciiCache['m']==1 && (asciiCache['P']==1 || (asciiCache['K']==1 && asciiCache['-']==1))){
+			}else if(asciiCache['M'] && asciiCache['m'] && (asciiCache['P'] || (asciiCache['K'] && asciiCache['-']))){
 
 				boolean goodEnough=potential.stream().filter(t->t.v().doubleValue()>0.4).findAny().isPresent();
 				boolean badEnough=potential.stream().filter(t->t.v().doubleValue()>0.3).findAny().isPresent();
@@ -742,8 +742,8 @@ public class StructureImageExtractor {
 						potential.add(0,Tuple.of('?',0.7));
 					}
 				}
-			}else if((asciiCache['9']==1 && asciiCache['p']==1 && asciiCache['b']==1 && asciiCache['3']==1 ) ||
-					 (asciiCache['9']==1 && asciiCache['I']==1 && asciiCache['i']==1 && asciiCache['3']==1 )
+			}else if((asciiCache['9'] && asciiCache['p'] && asciiCache['b'] && asciiCache['3'] ) ||
+					 (asciiCache['9'] && asciiCache['I'] && asciiCache['i'] && asciiCache['3'] )
 					 ){
 
 				boolean goodEnough=potential.stream().filter(t->t.v().doubleValue()>0.4).findAny().isPresent();
@@ -754,7 +754,7 @@ public class StructureImageExtractor {
 						potential.add(0,Tuple.of(')',0.7));
 					}
 				}
-			}else if(asciiCache['C']==1 && asciiCache['c']==1 && asciiCache['6']==1 && (asciiCache['0']==1 )){
+			}else if(asciiCache['C'] && asciiCache['c'] && asciiCache['6'] && (asciiCache['0'] )){
 
 				boolean goodEnough=potential.stream().filter(t->t.v().doubleValue()>0.45).findAny().isPresent();
 				boolean badEnough=potential.stream().filter(t->t.v().doubleValue()>0.3).findAny().isPresent();
@@ -776,7 +776,7 @@ public class StructureImageExtractor {
 							.collect(Collectors.toList());
 				}
 			}
-			if(asciiCache['K']==1  && asciiCache['X']==1){
+			if(asciiCache['K']  && asciiCache['X']){
 				if(areaRealDivByAreaBox.get() <0.5){
 
 					potential = potential.stream()
@@ -786,7 +786,7 @@ public class StructureImageExtractor {
 				}
 			}
 
-			if(asciiCache['S']==1  && asciiCache['s']==1 && asciiCache['8']==1){
+			if(asciiCache['S']  && asciiCache['s'] && asciiCache['8']){
 				//It's probably an S in this case, slightly adjust numbers for those
 				potential = potential.stream()
 						.map(t->{
@@ -800,7 +800,7 @@ public class StructureImageExtractor {
 						.collect(Collectors.toList());
 			}
 
-			if(asciiCache['D']==1 && (asciiCache['U']==1 ||asciiCache['u']==1)){
+			if(asciiCache['D'] && (asciiCache['U'] ||asciiCache['u'])){
 
 				if(best[0] != null && (best[0].equals('D') || best[0].equals('U') || best[0].equals('u'))){
 					//It's probably an O, just got flagged wrong
@@ -809,7 +809,7 @@ public class StructureImageExtractor {
 							.collect(Collectors.toList());
 				}
 			}
-			if(asciiCache['H']==1 && (asciiCache['a']==1 )){
+			if(asciiCache['H'] && (asciiCache['a'] )){
 				if(best[0] != null && (best[0].equals('a'))){
 					//'a' characters are usually 'H' characters, provided H is above cutoff
 					if(potential.get(1).k().charValue()=='H'){
