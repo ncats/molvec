@@ -501,10 +501,135 @@ public class Bitmap implements Serializable {
     /**
      * bounding box shape
      */
-    public static enum Bbox {
-        Rectangular,
-            Polygon,
-            DoublePolygon
+    public enum Bbox {
+        Rectangular{
+            @Override
+            List<Shape> computeConnectedComponentShapes(short[] eqvtab, short[][] labels) {
+                Map<Short, Rectangle> ltab = new LinkedHashMap<Short, Rectangle> ();
+                List<Shape> comps = new ArrayList<Shape> ();
+//labels = new short[height][width + 1];
+                int height = labels.length;
+                int width = labels[0].length -1;
+                for (int y = 0; y < height; ++y) {
+                    //TODO is this an off by 1 error since label array goes +1 ?
+                    for (int x = 0; x < width; ++x) {
+                        short label = labels[y][x];
+                        if (label != 0) {
+                            short l = label;
+                            /* find equivalence class */
+                            while (eqvtab[l] > 0)
+                                l = eqvtab[l];
+
+                            labels[y][x] = l;
+                    /* create bounding box for each class and make
+                       sure that it does not go outside of the image
+                       boundary */
+                            Rectangle r = ltab.get(l);
+                            if (r == null) {
+                                ltab.put(l, r = new Rectangle(x, y, 1, 1));
+                                comps.add(r);
+                            }
+                            int x0 = Math.min(r.x, x);
+                            int y0 = Math.min(r.y, y);
+                            int x1 = Math.min(width, Math.max(r.x + r.width, x + 1));
+                            int y1 = Math.min(height, Math.max(r.y + r.height, y + 1));
+                            r.setBounds(x0, y0, x1 - x0, y1 - y0);
+                        }
+                    }
+                }
+                return comps;
+            }
+        },
+            Polygon{
+                @Override
+                List<Shape> computeConnectedComponentShapes(short[] eqvtab, short[][] labels) {
+                    Map<Short, List<Point>> coords = new LinkedHashMap<Short, List<Point>> ();
+                    //labels = new short[height][width + 1];
+                    int height = labels.length;
+                    int width = labels[0].length -1;
+                    for (int y = 0; y < height; ++y)
+                        for (int x = 0; x < width; ++x) {
+                            short label = labels[y][x];
+                            if (label != 0) {
+                                short l = label;
+                                /* find equivalence class */
+                                while (eqvtab[l] > 0)
+                                    l = eqvtab[l];
+
+                                labels[y][x] = l;
+
+                                List<Point> pts = coords.get (l);
+                                if (pts == null) {
+                                    coords.put (l, pts = new ArrayList<Point> ());
+                                }
+                                pts.add (new Point (x, y));
+                            }
+                        }
+
+                    List<Shape> comps = new ArrayList<Shape> ();
+                    for (List<Point> pts : coords.values ()) {
+                        Polygon hull = GeomUtil.convexHullOldIntPrecision (pts.toArray (new Point[0]));
+                        comps.add (hull);
+                    }
+
+                    return comps;
+                }
+            },
+        /**
+         * Double Precision Polygon ?
+         */
+            DoublePolygon{
+                @Override
+                List<Shape> computeConnectedComponentShapes(short[] eqvtab, short[][] labels) {
+                    Map<Short, List<Point>> coords = new LinkedHashMap<Short, List<Point>> ();
+                    //labels = new short[height][width + 1];
+                    int height = labels.length;
+                    int width = labels[0].length -1;
+                    for (int y = 0; y < height; ++y)
+                        for (int x = 0; x < width; ++x) {
+                            short label = labels[y][x];
+                            if (label != 0) {
+                                short l = label;
+                                /* find equivalence class */
+                                while (eqvtab[l] > 0)
+                                    l = eqvtab[l];
+
+                                labels[y][x] = l;
+
+                                List<Point> pts = coords.get (l);
+                                if (pts == null) {
+                                    coords.put (l, pts = new ArrayList<Point> ());
+                                }
+                                pts.add (new Point (x, y));
+                            }
+                        }
+
+                    List<Shape> comps = new ArrayList<Shape> ();
+                    for (List<Point> pts : coords.values ()) {
+                        Point2D[] ptsadjusted=pts.stream()
+                                .flatMap(pt->{
+                                    return Stream.of(new Point2D.Double(pt.getX(),pt.getY()));
+
+//	    	    	return Stream.of(new Point2D.Double(pt.getX()-0.5,pt.getY()-0.5)
+//	    	    					 ,new Point2D.Double(pt.getX()-0.5,pt.getY()+0.5)
+//	    	    					 ,new Point2D.Double(pt.getX()+0.5,pt.getY()-0.5)
+//	    	    					 ,new Point2D.Double(pt.getX()+0.5,pt.getY()+0.5)
+//	    	    			);
+                                })
+                                .toArray(i->new Point2D[i]);
+                        Shape hull = GeomUtil.convexHull2 (ptsadjusted);
+
+                        comps.add (hull);
+                    }
+
+                    return comps;
+                }
+            }
+        ;
+
+        abstract List<Shape> computeConnectedComponentShapes(short[] eqvtab, short[][] labels);
+
+
             }
 
     static final int[] MASK = new int[]{
@@ -2070,19 +2195,7 @@ public class Bitmap implements Serializable {
             }
 
 
-            List<Shape> comps;
-            switch (shape) {
-            case Polygon:
-                comps = connectedComponentPolygonShapes (eqvtab[0], labels);
-                break;
-            case DoublePolygon:
-                comps = connectedComponentDoublePrecisionPolygonShapes (eqvtab[0], labels);
-                break;
-
-            case Rectangular:
-            default:
-                comps = connectedComponentRectangularShapes (eqvtab[0], labels);
-            }
+            List<Shape> comps = ss.computeConnectedComponentShapes(eqvtab[0], labels);
 
             if (DEBUG) {
                 System.err.println ("merged labels...");
@@ -2102,116 +2215,6 @@ public class Bitmap implements Serializable {
 
     }
 
-
-    List<Shape> connectedComponentPolygonShapes
-        (short[] eqvtab, short[][] labels) {
-
-        Map<Short, List<Point>> coords = new LinkedHashMap<Short, List<Point>> ();
-        for (int y = 0; y < height; ++y)
-            for (int x = 0; x < width; ++x) {
-                short label = labels[y][x];
-                if (label != 0) {
-                    short l = label;
-                    /* find equivalence class */
-                    while (eqvtab[l] > 0)
-                        l = eqvtab[l];
-
-                    labels[y][x] = l;
-
-                    List<Point> pts = coords.get (l);
-                    if (pts == null) {
-                        coords.put (l, pts = new ArrayList<Point> ());
-                    }
-                    pts.add (new Point (x, y));
-                }
-            }
-
-        List<Shape> comps = new ArrayList<Shape> ();
-        for (List<Point> pts : coords.values ()) {
-            Polygon hull = GeomUtil.convexHullOldIntPrecision (pts.toArray (new Point[0]));
-            comps.add (hull);
-        }
-
-        return comps;
-    }
-    List<Shape> connectedComponentDoublePrecisionPolygonShapes
-	    (short[] eqvtab, short[][] labels) {
-	
-	    Map<Short, List<Point>> coords = new LinkedHashMap<Short, List<Point>> ();
-	    for (int y = 0; y < height; ++y)
-	        for (int x = 0; x < width; ++x) {
-	            short label = labels[y][x];
-	            if (label != 0) {
-	                short l = label;
-	                /* find equivalence class */
-	                while (eqvtab[l] > 0)
-	                    l = eqvtab[l];
-	
-	                labels[y][x] = l;
-	
-	                List<Point> pts = coords.get (l);
-	                if (pts == null) {
-	                    coords.put (l, pts = new ArrayList<Point> ());
-	                }
-	                pts.add (new Point (x, y));
-	            }
-	        }
-	
-	    List<Shape> comps = new ArrayList<Shape> ();
-	    for (List<Point> pts : coords.values ()) {
-	    	Point2D[] ptsadjusted=pts.stream()
-	    	    .flatMap(pt->{
-	    	    	return Stream.of(new Point2D.Double(pt.getX(),pt.getY()));
-	    	    	
-//	    	    	return Stream.of(new Point2D.Double(pt.getX()-0.5,pt.getY()-0.5)
-//	    	    					 ,new Point2D.Double(pt.getX()-0.5,pt.getY()+0.5)
-//	    	    					 ,new Point2D.Double(pt.getX()+0.5,pt.getY()-0.5)
-//	    	    					 ,new Point2D.Double(pt.getX()+0.5,pt.getY()+0.5)
-//	    	    			);
-	    	    })
-	    	    .toArray(i->new Point2D[i]);
-	    	Shape hull = GeomUtil.convexHull2 (ptsadjusted);
-	    	
-	        comps.add (hull);
-	    }
-	
-	    return comps;
-	}
-
-    List<Shape> connectedComponentRectangularShapes
-        (short[] eqvtab, short[][] labels) {
-
-        Map<Short, Rectangle> ltab = new LinkedHashMap<Short, Rectangle> ();
-        List<Shape> comps = new ArrayList<Shape> ();
-
-        for (int y = 0; y < height; ++y)
-            for (int x = 0; x < width; ++x) {
-                short label = labels[y][x];
-                if (label != 0) {
-                    short l = label;
-                    /* find equivalence class */
-                    while (eqvtab[l] > 0)
-                        l = eqvtab[l];
-
-                    labels[y][x] = l;
-                    /* create bounding box for each class and make
-                       sure that it does not go outside of the image
-                       boundary */
-                    Rectangle r = ltab.get (l);
-                    if (r == null) {
-                        ltab.put (l, r = new Rectangle (x, y, 1, 1));
-                        comps.add (r);
-                    }
-                    int x0 = Math.min (r.x, x);
-                    int y0 = Math.min (r.y, y);
-                    int x1 = Math.min (width, Math.max (r.x + r.width, x + 1));
-                    int y1 = Math.min (height, Math.max (r.y + r.height, y + 1));
-                    r.setBounds (x0, y0, x1 - x0, y1 - y0);
-                }
-            }
-
-        return comps;
-    }
 
     static EnumSet<ChainCode> getNeighbors (Bitmap b, int x, int y) {
         EnumSet<ChainCode> Nb = EnumSet.noneOf (ChainCode.class);
