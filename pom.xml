@@ -7,7 +7,7 @@
   <groupId>gov.nih.ncats</groupId>
   <artifactId>molvec</artifactId>
   <packaging>jar</packaging>
-  <version>0.9.6-SNAPSHOT</version>
+  <version>0.9.7-SNAPSHOT</version>
   <name>MolVec</name>
 
 
@@ -33,7 +33,7 @@
         <developer>
             <id>peryeata</id>
             <name>Tyler Peryea</name>
-            <email>tyler.peryea@nih.gov</email>
+            <email>tyler.peryea@fda.hhs.gov</email>
             <roles>
                 <role>architect</role>
                 <role>developer</role>
