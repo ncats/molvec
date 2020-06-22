@@ -855,7 +855,7 @@ public class StructureImageExtractor {
 				load(Bitmap.read(file,TOO_WASHED_BINARIZATION).clean(), false);
 			}catch(ImageTooSmallException ex){
 				File bi= stdResize(file,3);
-				load(bitmap = Bitmap.read(file,RESIZE_BINARIZATION).clean(),false);
+				load(bitmap = Bitmap.read(bi,RESIZE_BINARIZATION).clean(),false);
 			}
 		}
 
