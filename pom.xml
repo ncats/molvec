@@ -104,7 +104,11 @@
         <artifactId>imageio-tiff</artifactId>
         <version>3.4.1</version>
     </dependency>
-
+    <dependency>
+        <groupId>gov.nih.ncats</groupId>
+        <artifactId>ncats-common</artifactId>
+        <version>0.3.3</version>
+    </dependency>
     <dependency>
         <groupId>gov.nih.ncats</groupId>
         <artifactId>ncats-common-cli</artifactId>
