@@ -177,8 +177,12 @@ public class Main {
                         return false;
                     }
                     String ext = name.substring(extOffset+1);
-                    return "png".equalsIgnoreCase(ext) || "jpg".equalsIgnoreCase(ext) || "jpeg".equalsIgnoreCase(ext)
-                            || "tiff".equalsIgnoreCase(ext);
+                    return ("png".equalsIgnoreCase(ext)
+                            || "jpg".equalsIgnoreCase(ext)
+                            || "jpeg".equalsIgnoreCase(ext)
+                            || "tiff".equalsIgnoreCase(ext)
+                            || "tif".equalsIgnoreCase(ext)
+                            || "gif".equalsIgnoreCase(ext));
                 });
                 if(files ==null || files.length ==0){
                     System.out.println("No image files found");
