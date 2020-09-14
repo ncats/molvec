@@ -18,7 +18,7 @@ public interface Binarization {
 				
 				if(is[0]!=null){
 					if(fallif.test(is[0])){
-						System.out.println("Falling back");
+//						System.out.println("Falling back");
 						return bb.binarize(raster,is[0], statsConsumer);
 					}else{
 						statsConsumer.accept(is[0]);
