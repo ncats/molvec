@@ -667,6 +667,7 @@ class BranchNode{
 		specialSet.add(SimpleToken.of("PLUS","+", "+"));
 		specialSet.add(SimpleToken.of("OPEN","(", "("));
 		specialSet.add(SimpleToken.of("CLOSE",")", ")"));
+		specialSet.add(SimpleToken.of("TMS","TMS", "TMS", "TMs","tMs"));
 		
 		specialSet.forEach(tt->registerToken(tt,false));
 		registerToken(Token.groupedToken("Special", specialSet),true);
@@ -1406,7 +1407,13 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 		//BOC	[<B><O><C>]	Boc
 		//BOC_2N	[<BOC><2><N>]	Boc2N
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("BOC", "Boc", "[<B><O><C>]",bocMaker));
-		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("NHBOC", "Boc", "[<N><H><B><O><C>]",()->{
+		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("NHBOC", "NHBoc", "[<N><H><B><O><C>]",()->{
+			BranchNode b1=bocMaker.get();
+			BranchNode bn = new BranchNode("N");
+			bn.addChild(b1);
+			return bn;
+		}));
+		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("BOCHN", "BocHN", "[<B><O><C><H><N>]",()->{
 			BranchNode b1=bocMaker.get();
 			BranchNode bn = new BranchNode("N");
 			bn.addChild(b1);
@@ -1505,6 +1512,19 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 			BranchNode ben=parseBranchNode("Bn").get().k();
 			ox.addChild(ben);
 			return carb;
+		}));
+		
+		
+		//techically done as trimethyl silane
+		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("TRI_METHYL_SILANE", "TMS", "[<TMS>]", ()->{
+			BranchNode si=new BranchNode("Si");
+			
+			si.addChild(new BranchNode("C"));
+			si.addChild(new BranchNode("C"));
+			si.addChild(new BranchNode("C"));
+			//si.addChild(new BranchNode("C"));
+			
+			return si;
 		}));
 		
 		//TERT_BUTYL
@@ -2667,6 +2687,7 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 													.removeHydrogens()
 													.setAlias(b.v())
 													);
+					
 					_cache.put(s, bn);
 				}
 			}

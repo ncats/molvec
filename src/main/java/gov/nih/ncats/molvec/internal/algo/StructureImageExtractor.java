@@ -5863,11 +5863,19 @@ public class StructureImageExtractor {
 						    	n.setPoint(new Point2D.Double(n.getPoint().getX(),d));
 						    });
 					});
+				
+				
+				
+				
 				ignoreNodes.forEach(n->{
 					n.setInvented(false);
 				});
 			
 			if(DEBUG)logState(56,"minor adjustments to layout for rings and terminal groups");
+			
+			
+		
+			
 		}
 		
 //		ctab.mergeNodesCloserThan(1);
@@ -5925,6 +5933,30 @@ public class StructureImageExtractor {
 		    });
 		
 		if(DEBUG)logState(59,"attempt to rescue ocr shapes which are around a node but may have been disconnected due to internal or external thresholding");
+		
+		ctab.getNodes()
+			.stream()
+			.filter(n->n.getSymbol().equals("B"))
+			.filter(n->n.getEdgeCount()==1)
+			.filter(n->n.getEdges().stream().anyMatch(e->e.getWedge() || e.getDashed()))
+			.forEach(n->n.setSymbol("H"));
+		
+		//bottom part of i in Si sometimes taken as double bond. Fix suspicious ones
+		ctab.getNodes()
+			.stream()
+			.filter(n->n.getSymbol().equals("Si"))
+			.forEach(n->{
+				n.getEdges()
+				 .stream()
+				 .filter(e->e.getOrder()>1)
+				 .map(e->Tuple.of(e,e.getOtherNode(n)))
+				 .filter(t->!t.v().getSymbol().equals("O"))
+				 .filter(t->t.v().getPoint().getX()>n.getPoint().getX())
+				 .forEach(t->{
+					 t.k().setOrder(1);
+				 });				 
+			});
+	
 		
 		
 		//Make aromatic bonds
