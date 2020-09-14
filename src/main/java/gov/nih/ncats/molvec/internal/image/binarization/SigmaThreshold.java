@@ -16,8 +16,8 @@ public class SigmaThreshold implements Binarization {
     
     
 
-    public static final double DEFAULT_MIN_THRESHOLD_RATIO = 0.1;
-    public static final double DEFAULT_MAX_THRESHOLD_RATIO = 0.9;
+    public static final double DEFAULT_MIN_THRESHOLD_RATIO = 0.05;
+    public static final double DEFAULT_MAX_THRESHOLD_RATIO = 0.95;
     
     private double minThresholdRation = DEFAULT_MIN_THRESHOLD_RATIO;
     private double maxThresholdRation = DEFAULT_MAX_THRESHOLD_RATIO;

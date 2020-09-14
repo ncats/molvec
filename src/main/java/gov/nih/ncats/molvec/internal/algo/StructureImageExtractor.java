@@ -223,7 +223,7 @@ public class StructureImageExtractor {
 //
 //	//By default, find the least populated section of the histogram with a 10 percent window, and use that as the threshold
 //	//however, fallback to sigma-based threshold if the best threshold is near the extremes or has significant uncertainty
-	public static Binarization DEF_BINARIZATION = new LeastPopulatedThreshold(10).fallback(new SigmaThreshold(THRESH_STDEV), (is)->{
+	public static Binarization DEF_BINARIZATION = new LeastPopulatedThreshold(10).fallback(new SigmaThreshold(THRESH_STDEV_RESIZE), (is)->{
 		double ptc=is.getPercentageThreshold();
 		if((ptc>80) || (ptc < 20)){
 			return true; //edge effect

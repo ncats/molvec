@@ -584,11 +584,11 @@ class BranchNode{
 		atomicSet.add(SimpleToken.of("Al", "Al", "Al", "A1", "At", "AI"));
 		atomicSet.add(SimpleToken.of("F", "F", "F", "f"));
 		atomicSet.add(SimpleToken.of("Cl", "Cl", "Cl", "CT", "Ct", "C)", "CI", "C1","cl", "cT", "ct", "c)", "cI", "c1"));
-		atomicSet.add(SimpleToken.of("Br", "Br", "Br", "Sr", "sr", "8r", "BT"));
+		atomicSet.add(SimpleToken.of("Br", "Br", "Br","8t", "Sr", "sr", "8r", "BT"));
 		atomicSet.add(SimpleToken.of("Na", "Na", "Na"));
 		atomicSet.add(SimpleToken.of("I", "I", "t","1"));
-		atomicSet.add(SimpleToken.of("B", "B", "B"));
-		atomicSet.add(SimpleToken.of("Si", "Si", "Si", "SI", "Sl", "S1", "St", "si", "sI", "sl", "s1", "st", "8i", "8I", "8l", "81", "8t"));
+		atomicSet.add(SimpleToken.of("B", "B", "B" , "8"));
+		atomicSet.add(SimpleToken.of("Si", "Si", "Si", "SI", "Sl", "S1", "St", "si", "sI", "sl", "s1", "st", "8i", "8I", "8l", "81"));
 		atomicSet.add(SimpleToken.of("Hg", "Hg", "Hg", "ttg", "1tg", "t1g", "I1g", "t4g", "11g"));
 		atomicSet.add(SimpleToken.of("D", "D", "D"));
 		
@@ -1406,6 +1406,12 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 		//BOC	[<B><O><C>]	Boc
 		//BOC_2N	[<BOC><2><N>]	Boc2N
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("BOC", "Boc", "[<B><O><C>]",bocMaker));
+		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("NHBOC", "Boc", "[<N><H><B><O><C>]",()->{
+			BranchNode b1=bocMaker.get();
+			BranchNode bn = new BranchNode("N");
+			bn.addChild(b1);
+			return bn;
+		}));
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("BOC_2N", "Boc2N", "[<B><O><C><2><N>]",()->{
 			BranchNode b1=bocMaker.get();
 			BranchNode b2=bocMaker.get();
@@ -2527,7 +2533,7 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 			return nn1;
 		}else if(s.equals("Sl") || s.equals("SI")){
 			return new BranchNode("Si");
-		}else if(s.equals("Sr") || s.equals("sr")|| s.equals("8r") || s.equals("BT")){
+		}else if(s.equals("Sr") || s.equals("sr")|| s.equals("8r") || s.equals("8t") || s.equals("BT")){
 			return new BranchNode("Br");
 		}
 		
