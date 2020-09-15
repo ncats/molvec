@@ -1572,6 +1572,14 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 		
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("PHENYL", "Ph", "[<Ph>]", phenSupplier));
 		
+		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("P_TRIPHENYL", "PPh3", "[<P><Ph><3>]", ()->{
+			BranchNode bn = new BranchNode("P");
+			bn.addChild(parseBranchNode("Ph").get().k());
+			bn.addChild(parseBranchNode("Ph").get().k());
+			bn.addChild(parseBranchNode("Ph").get().k());
+			return bn;
+		}));
+		
 		//PARA_TOLUENE	[<pTol>]	p-tol
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("PARA_TOLUENE", "p-tol", "[<pTol>]", ()->{
 			BranchNode bn = new BranchNode("C").thetaOffset(1);
@@ -1621,6 +1629,7 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("METHOXY_F1", "CH3O", "[<C><H><3><O>]", ()->{
 			return parseBranchNode("OCH3").get().k();
 		}));
+		
 		
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("METHOXY_F2", "OCH3", "[<O><C><H><3>]", ()->{
 			return new BranchNode("O").addChild(new BranchNode("C"));
@@ -1719,6 +1728,7 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("REVERSE_TRIPHENYL", "Ph3C", "[<P><H><3><C>]", ()->{
 			return parseBranchNode("CPh3").get().k();
 		}));
+		
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("REVERSE_TERM_ALCOHOL", "HOH2C", "[<H><O><H><2><C>]", ()->{
 			return parseBranchNode("C2HOH").get().k();
 		}));

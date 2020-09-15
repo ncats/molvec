@@ -4294,7 +4294,17 @@ public class StructureImageExtractor {
 			
 			if(DEBUG)logState(32,"very short non-intersection-derived edges are either removed, or their neighbors are merged based on the resulting fidelity to ABL");
 			
-			
+			boolean highValCarbon = ctab.getNodes()
+										.stream()
+										.filter(n -> n.getEdgeCount() > 4)
+										.filter(n -> n.getSymbol().equals("C"))
+										.findAny()
+										.isPresent();
+
+			if (highValCarbon) {
+				ctab.mergeNodesCloserThan(ctab.getAverageBondLength() * .3);
+				ctab.standardCleanEdges();
+			}
 			
 			List<Node> toRemoveNodesCage = new ArrayList<>();
 			
@@ -4321,7 +4331,7 @@ public class StructureImageExtractor {
 //			    		.forEach(s->{
 //			    			realRescueOCRCandidates.add(s);
 //			    		});
-			    		
+//			    		
 			    		//realRescueOCRCandidates
 			    		
 			    		if(neigh.stream().filter(nn->toRemoveNodesCage.contains(nn)).findAny().isPresent()){
@@ -4330,7 +4340,7 @@ public class StructureImageExtractor {
 			    		List<List<Node>> pairs=GeomUtil.groupThings(neigh, (t1)->{
 			    			Line2D nline = new Line2D.Double(t1.k().getPoint(),t1.v().getPoint());
 			    			Point2D pp=GeomUtil.projectPointOntoLine(nline,n.getPoint());
-			    			if(pp.distance(n.getPoint())< ctab.getAverageBondLength()*0.06){
+			    			if(pp.distance(n.getPoint())< ctab.getAverageBondLength()*0.11){
 			    				return true;
 			    			}
 			    			return false;
@@ -5878,8 +5888,7 @@ public class StructureImageExtractor {
 			
 		}
 		
-//		ctab.mergeNodesCloserThan(1);
-//		ctab.standardCleanEdges();
+		
 	//finally, it's worth a review of the skeleton to see if anything was missed
 		
 		double expectedOCRarea = likelyOCRNonBond.stream()
