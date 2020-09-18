@@ -70,7 +70,6 @@ public class Grayscale {
 
         }
 
-
     }
 
     /**
@@ -272,20 +271,64 @@ public class Grayscale {
     		return (int) (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5);
     	}
     }
+    
+    public static double[] hsv (double[] rgb) {
+    	
+    	if(rgb.length>=3){
+    		double rp = rgb[0]/255;
+        	double gp = rgb[1]/255;
+        	double bp = rgb[2]/255;
+        	double cmax= Math.max(Math.max(rp, gp),bp);
+        	double cmin= Math.max(Math.min(rp, gp),bp);
+        	double delta=cmax-cmin;
+        	
+        	double s = 0;
+        	if(cmax>0){
+        		s=delta/cmax;
+        	}
+        	double v = cmax;
+        	
+        	double h=0;
+        	if(rp>gp && rp>bp){
+        		h=60*(gp-bp)/delta;
+        		if(h<0){
+        			h=360+h;
+        		}
+        	}else if(gp>rp && gp>bp){
+        		h=60*((bp-rp)/delta+2);
+        	}else if(bp>gp && bp>rp){
+        		h=60*((rp-gp)/delta+4);
+        	}
+        		
+        	return new double[]{h,s,v};
+    	}
+    	return new double[]{0,0,rgb[0]};
+    }
 
 
     private enum Grayscaler{
         RGBA(3){
             @Override
             protected int grayscaleValue(double[] rgb) {
-                return (int) ((0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5) * rgb[3]/255D);
+            	double[] hsv1=hsv(rgb);
+            	
+
+            	int start=(int) ((0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5) );
+            	int vstart=(int) ((hsv1[2])*255);
+            	
+            	return (int)(((3*vstart+start)/4)* rgb[3]/255D);
             }
 
         },
         RGB{
             @Override
             protected int grayscaleValue(double[] rgb) {
-                return (int) (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5);
+            	double[] hsv1=hsv(rgb);
+            	
+            	int start=(int) (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5);
+            	int vstart=(int) ((hsv1[2])*255);
+            	
+            	return (3*vstart+start)/4;
             }
         },
         GRAY{
@@ -301,7 +344,7 @@ public class Grayscale {
                 return (int)(rgb[0] * (rgb[1]/255D));
             }
 
-        }
+        }        
         ;
 
         private final int alphaBand;

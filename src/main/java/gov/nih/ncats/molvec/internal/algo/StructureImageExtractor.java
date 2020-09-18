@@ -4331,7 +4331,7 @@ public class StructureImageExtractor {
 //			    		.forEach(s->{
 //			    			realRescueOCRCandidates.add(s);
 //			    		});
-//			    		
+//			    		 	
 			    		//realRescueOCRCandidates
 			    		
 			    		if(neigh.stream().filter(nn->toRemoveNodesCage.contains(nn)).findAny().isPresent()){
@@ -5614,7 +5614,7 @@ public class StructureImageExtractor {
 		        	 
 		        	 Point2D np=GeomUtil.intersection(nl, de.getLine());
 		        	 if(np!=null){
-		        		 if(np.distance(cpt)< ctab.getAverageBondLength()*0.5){
+		        		 if(np.distance(cpt)< ctab.getAverageBondLength()*0.35){
 		        			 rn.setPoint(np);
 		        		 }
 		        	 }
@@ -5622,7 +5622,7 @@ public class StructureImageExtractor {
 				
 			});
 			
-			
+			if(DEBUG)logState(56,"Dash clean up");
 			
 			ctab.getRings()
 			    .stream()
@@ -5686,7 +5686,7 @@ public class StructureImageExtractor {
 				ctab.simpleClean();
 				
 				
-				
+				if(DEBUG)logState(57,"5 member clean up");
 	
 	
 				
@@ -5881,7 +5881,7 @@ public class StructureImageExtractor {
 					n.setInvented(false);
 				});
 			
-			if(DEBUG)logState(56,"minor adjustments to layout for rings and terminal groups");
+			if(DEBUG)logState(58,"minor adjustments to layout for rings and terminal groups");
 			
 			
 		
@@ -5978,7 +5978,7 @@ public class StructureImageExtractor {
 				       .forEach(Edge::setToAromatic);
 		       });
 		
-		if(DEBUG)logState(57,"set aromatic bonds");		
+		if(DEBUG)logState(60,"set aromatic bonds");		
 	}
 	
 	

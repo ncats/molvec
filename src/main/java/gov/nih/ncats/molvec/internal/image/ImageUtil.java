@@ -8,6 +8,7 @@ import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
 import java.awt.image.IndexColorModel;
 import java.awt.image.Raster;
+import java.awt.image.RenderedImage;
 import java.awt.image.RescaleOp;
 import java.io.*;
 import java.util.HashMap;
@@ -96,6 +97,13 @@ public class ImageUtil {
         raster = rescale.filter(scaled, null);
 
         Grayscale grayscale = new Grayscale (raster);
+//        File outputfile = new File("saved.png");
+//        try {
+//			ImageIO.write((RenderedImage)grayscale.getImage(), "png", outputfile);
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
     	return grayscale.getImage();
     }
     private static boolean isTiff(byte[] f) throws IOException{
