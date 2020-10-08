@@ -277,6 +277,18 @@ public class Grayscale {
     	}
     	return new double[]{0,0,rgb[0]};
     }
+    
+    public static int sOnly255 (double[] rgb) {
+    	
+    	if(rgb.length>=3){
+    		double rp = rgb[0];
+        	double gp = rgb[1];
+        	double bp = rgb[2];
+        	double cmax= Math.max(Math.max(rp, gp),bp);
+        	return (int)cmax;
+    	}
+    	return (int)rgb[0];
+    }
 
     private enum Grayscaler{
     	//USES hard-coded ratios for going to grey
@@ -300,18 +312,20 @@ public class Grayscale {
         RGBA_V(3){
             @Override
             protected int grayscaleValue(double[] rgb) {
-            	double[] hsv1=hsv(rgb);
-            	int vstart=(int) ((hsv1[2])*255);
-            	return (int)(vstart* rgb[3]/255D);
+//            	double[] hsv1=hsv(rgb);
+//            	int vstart=(int) ((hsv1[2])*255);
+//            	return (int)(vstart* rgb[3]/255D);
+            	return (int)(sOnly255(rgb)* rgb[3]/255D);
             }
 
         },
         RGB_V{
             @Override
             protected int grayscaleValue(double[] rgb) {
-            	double[] hsv1=hsv(rgb);
-            	int vstart=(int) ((hsv1[2])*255);
-            	return vstart;
+//            	double[] hsv1=hsv(rgb);
+//            	int vstart=(int) ((hsv1[2])*255);
+//            	return vstart;
+            	return sOnly255(rgb);
             }
         },
         GRAY{
