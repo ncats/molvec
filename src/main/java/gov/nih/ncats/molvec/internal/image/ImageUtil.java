@@ -97,13 +97,6 @@ public class ImageUtil {
         raster = rescale.filter(scaled, null);
 
         Grayscale grayscale = new Grayscale (raster);
-//        File outputfile = new File("saved.png");
-//        try {
-//			ImageIO.write((RenderedImage)grayscale.getImage(), "png", outputfile);
-//		} catch (IOException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
     	return grayscale.getImage();
     }
     private static boolean isTiff(byte[] f) throws IOException{

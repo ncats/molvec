@@ -1057,6 +1057,7 @@ public class RegressionTestIT {
 		testSet("maybridge", adapted);
 		testSet("testSet1", adapted);		
 		testSet("usan", adapted);
+		testSet("clef2012", adapted);
 		testSet("usan", adapted.scale(0.5).interpolation(Interpolation.BICUBIC));
 	}
 	
@@ -1153,6 +1154,7 @@ public class RegressionTestIT {
 	public void test1() throws FileNotFoundException{
 		
 //		testSet("usan",Method.MOLVEC.adapt());
+//		testSet("clef2012", Method.MOLVEC.adapt().suffix("TEST"));
 		
 //		testSet("usan", Method.MOLVEC.adapt().suffix("TEST"));
 //		

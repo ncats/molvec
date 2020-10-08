@@ -408,7 +408,7 @@ public class MoleculeTest {
 		
 		//colorproble.jpg
 				list.add(new Object[]{"colorproblem", new TestSpec("moleculeTest/colorproblem.jpg", c->{
-					Chemical cReal=ChemicalBuilder.createFromMol("\n" + 
+					String ss="\n" + 
 							"   JSDraw209182014462D\n" + 
 							"\n" + 
 							" 30 32  0  0  1  0              0 V2000\n" + 
@@ -474,7 +474,8 @@ public class MoleculeTest {
 							" 25 27  1  0  0  0  0\n" + 
 							"  2 11  1  1  0  0  0\n" + 
 							" 25 30  1  6  0  0  0\n" + 
-							"M  END", Charset.defaultCharset()).build();
+							"M  END";
+					Chemical cReal=ChemicalBuilder.createFromMol(ss, Charset.defaultCharset()).build();
 
 					String keyReal=Inchi.asStdInchi(cReal).getKey();
 					String keyGot=Inchi.asStdInchi(c).getKey();

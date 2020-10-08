@@ -339,7 +339,7 @@ public class Viewer extends JPanel
         this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         try {
             sie = new StructureImageExtractor(file, true);
-
+            sie = new StructureImageExtractor(file, true);
 
             bitmap = sie.getBitmap();
             thin = sie.getThin();
