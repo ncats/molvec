@@ -21,6 +21,7 @@ import javax.imageio.ImageIO;
 public class Grayscale {
     static final Logger logger = Logger.getLogger(Grayscale.class.getName());
 
+    
     private Raster grayscale;
 
 
@@ -69,7 +70,6 @@ public class Grayscale {
         public void finishImage() {
 
         }
-
 
     }
 
@@ -210,30 +210,6 @@ public class Grayscale {
         raster = outRaster;
 
         listener.finishImage();
-//        mean = 0;
-//        stddev = 0;
-//        int cnt = 0;
-//        for (int i = 0; i < histogram.length; ++i) {
-//            int p = histogram[i];
-//            if (p > 0) {
-//                mean += p;
-//                ++cnt;
-//                max=i;
-//                if(i<min)min=i;
-//            }
-//        }
-//
-//        if (cnt > 0) {
-//            mean /= cnt;
-//            for (int i = 0; i < histogram.length; ++i) {
-//                int p = histogram[i];
-//                if (p > 0) {
-//                    double x = p - mean;
-//                    stddev += x*x;
-//                }
-//            }
-//            stddev = Math.sqrt(stddev/cnt);
-//        }
         
         
 
@@ -252,10 +228,6 @@ public class Grayscale {
         return img;
     }
 
-//    public int[] histogram () { return histogram; }
-//    public double mean () { return mean; }
-//    public double stddev () { return stddev; }
-
     public void write (OutputStream out) throws IOException {
         ImageIO.write(getImage (), "png", out);
     }
@@ -272,20 +244,74 @@ public class Grayscale {
     		return (int) (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5);
     	}
     }
-
+    
+    public static double[] hsv (double[] rgb) {
+    	
+    	if(rgb.length>=3){
+    		double rp = rgb[0]/255;
+        	double gp = rgb[1]/255;
+        	double bp = rgb[2]/255;
+        	double cmax= Math.max(Math.max(rp, gp),bp);
+        	double cmin= Math.max(Math.min(rp, gp),bp);
+        	double delta=cmax-cmin;
+        	
+        	double s = 0;
+        	if(cmax>0){
+        		s=delta/cmax;
+        	}
+        	double v = cmax;
+        	
+        	double h=0;
+        	if(rp>gp && rp>bp){
+        		h=60*(gp-bp)/delta;
+        		if(h<0){
+        			h=360+h;
+        		}
+        	}else if(gp>rp && gp>bp){
+        		h=60*((bp-rp)/delta+2);
+        	}else if(bp>gp && bp>rp){
+        		h=60*((rp-gp)/delta+4);
+        	}
+        		
+        	return new double[]{h,s,v};
+    	}
+    	return new double[]{0,0,rgb[0]};
+    }
 
     private enum Grayscaler{
-        RGBA(3){
+    	//USES hard-coded ratios for going to grey
+        RGBA_G(3){
             @Override
             protected int grayscaleValue(double[] rgb) {
-                return (int) ((0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5) * rgb[3]/255D);
+            	int start=(int) ((0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + 0.5) );
+            	return (int)(start * rgb[3]/255D);
             }
 
         },
-        RGB{
+        RGB_G{
             @Override
             protected int grayscaleValue(double[] rgb) {
-                return (int) (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] + .5);
+            	int start=(int) (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]+0.5);
+            	return start;
+            }
+        },
+        
+        //Uses HSV model with "V" component
+        RGBA_V(3){
+            @Override
+            protected int grayscaleValue(double[] rgb) {
+            	double[] hsv1=hsv(rgb);
+            	int vstart=(int) ((hsv1[2])*255);
+            	return (int)(vstart* rgb[3]/255D);
+            }
+
+        },
+        RGB_V{
+            @Override
+            protected int grayscaleValue(double[] rgb) {
+            	double[] hsv1=hsv(rgb);
+            	int vstart=(int) ((hsv1[2])*255);
+            	return vstart;
             }
         },
         GRAY{
@@ -301,7 +327,7 @@ public class Grayscale {
                 return (int)(rgb[0] * (rgb[1]/255D));
             }
 
-        }
+        }        
         ;
 
         private final int alphaBand;
@@ -340,8 +366,8 @@ public class Grayscale {
             switch(nbands){
                 case 1: return Grayscaler.GRAY;
                 case 2 :  return Grayscaler.GRAY_ALPHA;
-                case 3 : return Grayscaler.RGB;
-                default : return Grayscaler.RGBA;
+                case 3 : return Grayscaler.RGB_V;
+                default : return Grayscaler.RGBA_V;
             }
         }
 

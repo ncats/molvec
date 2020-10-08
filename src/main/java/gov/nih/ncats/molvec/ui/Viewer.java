@@ -38,6 +38,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.logging.Logger;
 
 import javax.swing.*;
@@ -338,7 +339,7 @@ public class Viewer extends JPanel
         this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         try {
             sie = new StructureImageExtractor(file, true);
-
+            sie = new StructureImageExtractor(file, true);
 
             bitmap = sie.getBitmap();
             thin = sie.getThin();
@@ -1279,6 +1280,7 @@ public class Viewer extends JPanel
             String cmd = e.getActionCommand();
             AbstractButton ab = (AbstractButton)e.getSource();
             boolean show = ab.isSelected();
+		
 
             if (cmd.equalsIgnoreCase("load")) {
                 File file = null;

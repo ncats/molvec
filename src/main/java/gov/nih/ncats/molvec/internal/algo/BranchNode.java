@@ -584,11 +584,11 @@ class BranchNode{
 		atomicSet.add(SimpleToken.of("Al", "Al", "Al", "A1", "At", "AI"));
 		atomicSet.add(SimpleToken.of("F", "F", "F", "f"));
 		atomicSet.add(SimpleToken.of("Cl", "Cl", "Cl", "CT", "Ct", "C)", "CI", "C1","cl", "cT", "ct", "c)", "cI", "c1"));
-		atomicSet.add(SimpleToken.of("Br", "Br", "Br", "Sr", "sr", "8r", "BT"));
+		atomicSet.add(SimpleToken.of("Br", "Br", "Br","8t", "Sr", "sr", "8r", "BT"));
 		atomicSet.add(SimpleToken.of("Na", "Na", "Na"));
 		atomicSet.add(SimpleToken.of("I", "I", "t","1"));
-		atomicSet.add(SimpleToken.of("B", "B", "B"));
-		atomicSet.add(SimpleToken.of("Si", "Si", "Si", "SI", "Sl", "S1", "St", "si", "sI", "sl", "s1", "st", "8i", "8I", "8l", "81", "8t"));
+		atomicSet.add(SimpleToken.of("B", "B", "B" , "8"));
+		atomicSet.add(SimpleToken.of("Si", "Si", "Si", "SI", "Sl", "S1", "St", "si", "sI", "sl", "s1", "st", "8i", "8I", "8l", "81"));
 		atomicSet.add(SimpleToken.of("Hg", "Hg", "Hg", "ttg", "1tg", "t1g", "I1g", "t4g", "11g"));
 		atomicSet.add(SimpleToken.of("D", "D", "D"));
 		
@@ -667,6 +667,7 @@ class BranchNode{
 		specialSet.add(SimpleToken.of("PLUS","+", "+"));
 		specialSet.add(SimpleToken.of("OPEN","(", "("));
 		specialSet.add(SimpleToken.of("CLOSE",")", ")"));
+		specialSet.add(SimpleToken.of("TMS","TMS", "TMS", "TMs","tMs"));
 		
 		specialSet.forEach(tt->registerToken(tt,false));
 		registerToken(Token.groupedToken("Special", specialSet),true);
@@ -1406,6 +1407,18 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 		//BOC	[<B><O><C>]	Boc
 		//BOC_2N	[<BOC><2><N>]	Boc2N
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("BOC", "Boc", "[<B><O><C>]",bocMaker));
+		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("NHBOC", "NHBoc", "[<N><H><B><O><C>]",()->{
+			BranchNode b1=bocMaker.get();
+			BranchNode bn = new BranchNode("N");
+			bn.addChild(b1);
+			return bn;
+		}));
+		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("BOCHN", "BocHN", "[<B><O><C><H><N>]",()->{
+			BranchNode b1=bocMaker.get();
+			BranchNode bn = new BranchNode("N");
+			bn.addChild(b1);
+			return bn;
+		}));
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("BOC_2N", "Boc2N", "[<B><O><C><2><N>]",()->{
 			BranchNode b1=bocMaker.get();
 			BranchNode b2=bocMaker.get();
@@ -1501,6 +1514,19 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 			return carb;
 		}));
 		
+		
+		//techically done as trimethyl silane
+		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("TRI_METHYL_SILANE", "TMS", "[<TMS>]", ()->{
+			BranchNode si=new BranchNode("Si");
+			
+			si.addChild(new BranchNode("C"));
+			si.addChild(new BranchNode("C"));
+			si.addChild(new BranchNode("C"));
+			//si.addChild(new BranchNode("C"));
+			
+			return si;
+		}));
+		
 		//TERT_BUTYL
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("TERT_BUTYL", "t-Bu", "[<tBu>]", ()->{
 			BranchNode bn = new BranchNode("C");
@@ -1545,6 +1571,14 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 		}));
 		
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("PHENYL", "Ph", "[<Ph>]", phenSupplier));
+		
+		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("P_TRIPHENYL", "PPh3", "[<P><Ph><3>]", ()->{
+			BranchNode bn = new BranchNode("P");
+			bn.addChild(parseBranchNode("Ph").get().k());
+			bn.addChild(parseBranchNode("Ph").get().k());
+			bn.addChild(parseBranchNode("Ph").get().k());
+			return bn;
+		}));
 		
 		//PARA_TOLUENE	[<pTol>]	p-tol
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("PARA_TOLUENE", "p-tol", "[<pTol>]", ()->{
@@ -1595,6 +1629,7 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("METHOXY_F1", "CH3O", "[<C><H><3><O>]", ()->{
 			return parseBranchNode("OCH3").get().k();
 		}));
+		
 		
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("METHOXY_F2", "OCH3", "[<O><C><H><3>]", ()->{
 			return new BranchNode("O").addChild(new BranchNode("C"));
@@ -1693,6 +1728,7 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("REVERSE_TRIPHENYL", "Ph3C", "[<P><H><3><C>]", ()->{
 			return parseBranchNode("CPh3").get().k();
 		}));
+		
 		parsingRules.add(TemplateTokenParsingRule.fromTokenShorthand("REVERSE_TERM_ALCOHOL", "HOH2C", "[<H><O><H><2><C>]", ()->{
 			return parseBranchNode("C2HOH").get().k();
 		}));
@@ -2527,7 +2563,7 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 			return nn1;
 		}else if(s.equals("Sl") || s.equals("SI")){
 			return new BranchNode("Si");
-		}else if(s.equals("Sr") || s.equals("sr")|| s.equals("8r") || s.equals("BT")){
+		}else if(s.equals("Sr") || s.equals("sr")|| s.equals("8r") || s.equals("8t") || s.equals("BT")){
 			return new BranchNode("Br");
 		}
 		
@@ -2661,6 +2697,7 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 													.removeHydrogens()
 													.setAlias(b.v())
 													);
+					
 					_cache.put(s, bn);
 				}
 			}
