@@ -5,14 +5,9 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Shape;
 import java.awt.Stroke;
-import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
-import java.text.NumberFormat;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
@@ -552,7 +547,7 @@ public class ConnectionTable{
 		.collect(Collectors.toList());
 	}
 	public String toMol(){
-		return DEFAULT_OPTIONS.computeResult(this).getMol().get();
+		return DEFAULT_OPTIONS.computeResult(this).getMolfile().get();
 	}
 
 	private static final MolvecOptions DEFAULT_OPTIONS = new MolvecOptions();

@@ -214,12 +214,12 @@ public class Main {
                     //run in serial
                     if(cli.hasOption("outSdf")){
                         //write out as single sdf file
-                        String lineSep = System.lineSeparator();
                         try (PrintWriter writer = new PrintWriter(directoryProcessor.getSdfOut())) {
                             for (File f : files) {
                                 try {
-                                    String mol = Molvec.ocr(f);
-                                    writer.println(mol + lineSep +"$$$$");
+                                    String name = getBaseNameFor(f.getName());
+                                    MolvecResult mol = Molvec.ocr(f, new MolvecOptions().setName(name));
+                                    writer.println(mol.getSDfile().get());
                                 } catch (Throwable t) {
                                     System.err.println("error processing file " + f.getName());
                                     t.printStackTrace();
@@ -229,10 +229,12 @@ public class Main {
                     }else {
                         for (File f : files) {
                             try {
-                                String mol = Molvec.ocr(f);
+                                String name = getBaseNameFor(f.getName());
+                                MolvecResult mol = Molvec.ocr(f, new MolvecOptions().setName(name));
                                 File out = new File(outputDir, f.getName() + ".mol");
                                 try (PrintWriter writer = new PrintWriter(out)) {
-                                    writer.println(mol);
+
+                                    writer.println(mol.getMolfile().get());
                                 }
                             } catch (Throwable t) {
                                 System.err.println("error processing file " + f.getName());
@@ -271,7 +273,7 @@ public class Main {
                                 executorService.submit(new MolVecRunnable(f, latch,
                                         mol -> {
                                             try {
-                                                blockingQueue.put(mol + lineSep  +"$$$$"+lineSep);
+                                                blockingQueue.put(mol.getSDfile().get() + lineSep);
                                             } catch (InterruptedException e) {
                                                 e.printStackTrace();
                                             }
@@ -320,8 +322,8 @@ public class Main {
     private static class MolVecRunnable implements Callable<Void>{
         File f;
         CountDownLatch latch;
-        ThrowableConsumer<String, IOException> molConsumer;
-        MolVecRunnable(File f, CountDownLatch latch, ThrowableConsumer<String, IOException> molConsumer){
+        ThrowableConsumer<MolvecResult, IOException> molConsumer;
+        MolVecRunnable(File f, CountDownLatch latch, ThrowableConsumer<MolvecResult, IOException> molConsumer){
             this.f =f;
             this.latch = latch;
             this.molConsumer = molConsumer;
@@ -330,10 +332,10 @@ public class Main {
         @Override
         public Void call() throws Exception{
             try {
-                System.out.println(" .."+f.getName());
+//                System.out.println(" .."+f.getName());
                 String name = getBaseNameFor(f.getName());
                 MolvecResult mol = Molvec.ocr(f, new MolvecOptions().setName(name));
-                molConsumer.accept(mol.getMol().get());
+                molConsumer.accept(mol);
 
                 return null;
             }finally{
@@ -342,12 +344,13 @@ public class Main {
             }
         }
 
-        private static String getBaseNameFor(String fileName){
-            int index = fileName.lastIndexOf('.');
-            if(index >0){
-                return fileName.substring(0, index);
-            }
-            return fileName;
+
+    }
+    private static String getBaseNameFor(String fileName){
+        int index = fileName.lastIndexOf('.');
+        if(index >0){
+            return fileName.substring(0, index);
         }
+        return fileName;
     }
 }

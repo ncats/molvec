@@ -23,7 +23,7 @@ public final class Molvec {
 	 * @throws NullPointerException if image is null.
 	 */
 	public static String ocr(File image) throws IOException{
-		return ocr(image, DEFAULT_OPTIONS).getMol().get();
+		return ocr(image, DEFAULT_OPTIONS).getMolfile().get();
 		
 	}
 
@@ -61,7 +61,7 @@ public final class Molvec {
 	 * @throws NullPointerException if image is null.
 	 */
 	public static String ocr(byte[] image) throws IOException{
-		return ocr(image, DEFAULT_OPTIONS).getMol().get();
+		return ocr(image, DEFAULT_OPTIONS).getMolfile().get();
 
 	}
 
@@ -97,7 +97,7 @@ public final class Molvec {
 	 * @throws NullPointerException if image is null.
 	 */
 	public static String ocr(BufferedImage image) throws IOException{
-		return ocr(image, DEFAULT_OPTIONS).getMol().get();
+		return ocr(image, DEFAULT_OPTIONS).getMolfile().get();
 		
 	}
 	/**

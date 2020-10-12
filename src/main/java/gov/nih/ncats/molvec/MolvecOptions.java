@@ -45,7 +45,7 @@ public class MolvecOptions {
     public MolvecResult computeResult(ConnectionTable ct){
         String mol= toMol(ct);
 
-        return new Result(mol, CachedSupplier.of(()-> ct.getNodes()
+        return new Result(mol, name, CachedSupplier.of(()-> ct.getNodes()
                                                     .stream()
                                                     .map(n->n.getPoint())
                                                     .collect(GeomUtil.convexHull())
@@ -296,16 +296,33 @@ public class MolvecOptions {
     private static class Result implements MolvecResult{
         private final String mol;
         private final CachedSupplier<Rectangle2D> boundsSupplier;
+        private String name;
 
-
-        public Result(String mol, CachedSupplier<Rectangle2D> boundsSupplier) {
+        public Result(String mol, String name, CachedSupplier<Rectangle2D> boundsSupplier) {
             this.mol = mol;
+            this.name = name;
             this.boundsSupplier = boundsSupplier;
         }
 
         @Override
-        public Optional<String> getMol() {
+        public Optional<String> getMolfile() {
             return Optional.of(mol);
+        }
+
+        @Override
+        public Optional<String> getSDfile() {
+            if(name ==null){
+                //according to sdfile spec
+                //If the SDfile only contains structures, there can be no blank line between the last "M END"
+                //and the $$$$ delimiter line.
+                return Optional.of(mol +System.lineSeparator()+"$$$$");
+            }
+            return Optional.of( new StringBuilder(mol.length()+name.length()+26)
+                                        .append(mol).append(System.lineSeparator())
+                                        .append(">  <Molecule name>").append(System.lineSeparator())
+                    .append(name).append(System.lineSeparator()).append(System.lineSeparator())
+                    .append("$$$$")
+                    .toString());
         }
 
         @Override

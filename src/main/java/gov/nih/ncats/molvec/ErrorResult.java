@@ -13,7 +13,7 @@ class ErrorResult implements MolvecResult{
     }
 
     @Override
-    public Optional<String> getMol() {
+    public Optional<String> getMolfile() {
         return Optional.empty();
     }
 
