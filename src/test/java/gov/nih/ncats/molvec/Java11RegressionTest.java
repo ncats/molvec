@@ -19,7 +19,7 @@ public class Java11RegressionTest {
 
     private void assertMolFileNotBlank(String result) {
         int numLines = result.split("\n").length;
-        assertTrue("blank mol file? only " + numLines + " lines long", numLines > 5);
+        assertTrue("blank mol file? only " + numLines + " lines long\n"+result, numLines > 5);
     }
 
     @Test

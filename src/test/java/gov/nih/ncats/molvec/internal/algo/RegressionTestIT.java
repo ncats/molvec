@@ -55,6 +55,7 @@ import javax.imageio.ImageWriter;
 import javax.imageio.plugins.jpeg.JPEGImageWriteParam;
 import javax.imageio.stream.FileImageOutputStream;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.mortennobel.imagescaling.ResampleOp;
@@ -70,7 +71,7 @@ import gov.nih.ncats.molvec.Molvec;
 import gov.nih.ncats.molvec.internal.algo.ShellCommandRunner.Monitor;
 import gov.nih.ncats.molvec.internal.image.ImageUtil;
 import gov.nih.ncats.molvec.internal.util.GeomUtil;
-
+@Ignore
 public class RegressionTestIT {
 	
 	public static Map<String,AtomicInteger> elementCounts = new ConcurrentHashMap<String, AtomicInteger>();
