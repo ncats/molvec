@@ -1,6 +1,7 @@
 package gov.nih.ncats.molvec;
 
 import java.awt.geom.Rectangle2D;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -19,19 +20,13 @@ public interface MolvecResult {
      * Returns a SDfile ( structure-data file)  of the chemical structure.
      * @return an Optional containing the SDfile as String or Empty Optional if there was an error.
      */
-    default Optional<String> getSDfile(){
-        Optional<String> molfile = getMolfile();
-        if(!molfile.isPresent()){
-            return molfile;
-        }
-        //according to sdfile spec
-        //If the SDfile only contains structures, there can be no blank line between the last "M END"
-        //and the $$$$ delimiter line.
-        String mol = molfile.get();
-        StringBuilder builder = new StringBuilder(mol.length() + 6);
-        return Optional.of(builder.append(mol).append(System.lineSeparator())
-                            .append("$$$$").toString());
-    }
+    Optional<String> getSDfile();
+    /**
+     * Returns a SDfile ( structure-data file)  of the chemical structure with the given properties.
+     * @param properties a mapping of properties to include in the formatted SDfile. If null, then no properties are included.
+     * @return an Optional containing the SDfile as String or Empty Optional if there was an error.
+     */
+    Optional<String> getSDfile(Map<String,String> properties);
     /**
      * Get the bounding box for the found atoms in the original coordinate
      * system of the processed image.  The returned bounding box may not

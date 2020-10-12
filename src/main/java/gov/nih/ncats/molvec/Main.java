@@ -8,6 +8,8 @@ import gov.nih.ncats.molvec.ui.Viewer;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.*;
 
 import static gov.nih.ncats.common.cli.CliSpecification.*;
@@ -272,8 +274,12 @@ public class Main {
                                 String lineSep = System.lineSeparator();
                                 executorService.submit(new MolVecRunnable(f, latch,
                                         mol -> {
+                                    System.out.println(".." + f.getName());
                                             try {
-                                                blockingQueue.put(mol.getSDfile().get() + lineSep);
+                                                Map<String, String> props = new HashMap<>();
+                                                props.put("Molecule Name", getBaseNameFor(f.getName()));
+                                                props.put("File Name", f.getName());
+                                                blockingQueue.put(mol.getSDfile(props).get() + lineSep);
                                             } catch (InterruptedException e) {
                                                 e.printStackTrace();
                                             }

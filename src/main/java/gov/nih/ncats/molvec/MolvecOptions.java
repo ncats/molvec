@@ -282,6 +282,7 @@ public class MolvecOptions {
 
     private static DateTimeFormatter MOL_DATETIME_FORMATTER = DateTimeFormatter.ofPattern("MMddyyHHmm");
 
+    private static StringBuilder EMPTY_STRING_BUILDER = new StringBuilder();
     private static ThreadLocal<NumberFormat> MOL_FLOAT_FORMAT = ThreadLocal.withInitial(()->{
         NumberFormat nf = NumberFormat.getNumberInstance(Locale.ENGLISH);
         nf.setMinimumIntegerDigits(1);
@@ -298,6 +299,7 @@ public class MolvecOptions {
         private final CachedSupplier<Rectangle2D> boundsSupplier;
         private String name;
 
+        private static final String lineSep = System.lineSeparator();
         public Result(String mol, String name, CachedSupplier<Rectangle2D> boundsSupplier) {
             this.mol = mol;
             this.name = name;
@@ -315,14 +317,33 @@ public class MolvecOptions {
                 //according to sdfile spec
                 //If the SDfile only contains structures, there can be no blank line between the last "M END"
                 //and the $$$$ delimiter line.
-                return Optional.of(mol +System.lineSeparator()+"$$$$");
+                return getSDfile(null);
             }
-            return Optional.of( new StringBuilder(mol.length()+name.length()+26)
-                                        .append(mol).append(System.lineSeparator())
-                                        .append(">  <Molecule name>").append(System.lineSeparator())
-                    .append(name).append(System.lineSeparator()).append(System.lineSeparator())
-                    .append("$$$$")
-                    .toString());
+            return getSDfile(Collections.singletonMap("Molecule Name", name));
+        }
+
+        @Override
+        public Optional<String> getSDfile(Map<String, String> properties) {
+            StringBuilder propertiesBuilder = formatProperties(properties);
+            StringBuilder sdBuilder = new StringBuilder(mol.length()+propertiesBuilder.length() + 5);
+            sdBuilder.append(mol).append(lineSep)
+                    .append(propertiesBuilder)
+                    .append("$$$$");
+
+            return Optional.of(sdBuilder.toString());
+        }
+
+        private StringBuilder formatProperties(Map<String, String> properties){
+            if(properties==null || properties.isEmpty()){
+                return EMPTY_STRING_BUILDER;
+            }
+
+            StringBuilder builder = new StringBuilder(2000);
+            for(Map.Entry<String, String> entry: properties.entrySet()){
+                builder.append(">  <").append(entry.getKey()).append('>').append(lineSep)
+                        .append(entry.getValue()).append(lineSep).append(lineSep);
+            }
+            return builder;
         }
 
         @Override
