@@ -1,5 +1,5 @@
 # MolVec
-NCATS (chemical) ocr engine that can a way to vectorize
+NCATS (chemical) ocr engine that can vectorize
 chemical images into Chemical objects preserving the 2D layout as much as 
 possible. The code is still very raw in terms of utility. Check
 out [https://molvec.ncats.io](https://molvec.ncats.io) for a
@@ -37,16 +37,16 @@ For Maven:
 ## Commandline interface
   The Molvec jar has a runnable Main class with the following options
   
-    usage: molvec ([-gui],[[(-f <path> [-o <path>]) | (-dir <path> [-outDir <path>],[-parallel <count>])]],[-scale <value>],[-h])
-    
+    usage: molvec ([-gui],[[(-f <path> [-o <path>]) | (-dir <path> [[-outDir <path> | -outSdf <path>]],[-parallel <count>])]],[-scale
+                  <value>],[-h])
     Image to Chemical Structure Extractor Analyzes the given image and tries to find the chemical structure drawn and
     convert it into a Mol format.
     
     options:
-         -dir <path>         path to a directory of image files to process. Supported formats include png, jpeg, tiff. Each
-                             image file found will be attempted to be processed. If -out or -outDir is not specified then
-                             each processed mol will be put in the same directory and named $filename.molThis option or -f
-                             is required if not using -gui
+         -dir <path>         path to a directory of image files to process. Supported formats include png, jpeg, tiff and
+                             svg. Each image file found will be attempted to be processed. If -out or -outDir is not
+                             specified then each processed mol will be put in the same directory and named
+                             $filename.molThis option or -f is required if not using -gui
     
          -f,--file <path>    path of image file to process. Supported formats include png, jpeg, tiff.  This option or -dir
                              is required if not using -gui
@@ -60,6 +60,8 @@ For Maven:
     
          -outDir <path>      path to output directory to put processed mol files. If this path does not exist it will e
                              created
+    
+         -outSdf <path>      Write output to a single sdf formatted file instead of individual mol files
     
          -parallel <count>   Number of images to process simultaneously, if not specified defaults to 1
     
@@ -81,6 +83,16 @@ For Maven:
        serially parse all the image files inside the given directory and write out a new mol file for each image named
        $image.file.mol the new files will be put in the directory specified by outDir
     
+          $molvec -dir /path/to/directory -outSdf /path/to/output.sdf
+    
+       serially parse all the image files inside the given directory and write out a new sdf file to the given path that
+       contains all the structures from the input image directory
+    
+          $molvec -dir /path/to/directory -outSdf /path/to/output.sdf -parallel 4
+    
+       parse in 4 concurrent parallel thread all the image files inside the given directory and write out a new sdf file to
+       the given path that contains all the structures from the input image directory
+    
           $molvec -dir /path/to/directory -parallel 4
     
        parse in 4 concurrent parallel threads all the image files inside the given directory and write out a new mol file for
@@ -97,7 +109,9 @@ For Maven:
           $molvec -gui -f /path/to/image.file -scale 2.0
     
        open the Molvec Graphical User interface  with the given image file preloaded zoomed in/out to the given scale
-                       
+    
+    Developed by NIH/NCATS
+                    
 ### GUI
   Molvec Comes with a Swing Viewer you can use to step
   through each step of the structure recognition process
