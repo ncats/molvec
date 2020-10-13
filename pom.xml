@@ -7,7 +7,7 @@
   <groupId>gov.nih.ncats</groupId>
   <artifactId>molvec</artifactId>
   <packaging>jar</packaging>
-  <version>0.9.8</version>
+  <version>0.9.8-SNAPSHOT</version>
   <name>MolVec</name>
 
 
@@ -115,7 +115,7 @@
         <version>0.9.2</version>
     </dependency>
 
-<dependency>
+    <dependency>
         <groupId>gov.nih.ncats</groupId>
         <artifactId>molwitch-cdk</artifactId>
         <version>1.0.1</version>

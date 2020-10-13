@@ -1844,7 +1844,8 @@ public class ConnectionTable{
 		double avg=this.getAverageBondLength();
 		List<ShapeWrapper> addShapes=likelyOCR.stream() 
 		         .map(oc->Tuple.of(getClosestNodeToShape(oc),oc))
-		         .filter(t->t.k().v()>avg*mIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL)
+		        .filter(t->t.k()!=null && t.k().v() !=null)
+				.filter(t->t.k().v()>avg*mIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL)
 				 .filter(t->t.k().v()<avg*mAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL)
 				 .map(t->t.v())
 				 .collect(Collectors.toList());

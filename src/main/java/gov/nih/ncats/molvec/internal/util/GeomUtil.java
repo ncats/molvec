@@ -170,7 +170,9 @@ public class GeomUtil {
                                         + i + "=(" + pi.getX () + "," + pi.getY ()
                                         + ") ccw=" + dir);
                 }
-                if (dir >= 0.) { // push back
+                //this is really a check to make sure dir >=0
+                //but because of floating point math we have to have a delta
+                if (dir >= -0.02) { // push back
                     stack.push (p2);
                     break;
                 }
