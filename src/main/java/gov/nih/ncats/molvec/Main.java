@@ -256,13 +256,25 @@ public class Main {
 
                         executorService.submit(()-> {
                             try (PrintWriter sdfWriter = new PrintWriter(directoryProcessor.getSdfOut())) {
-
+                                StringBuilder buffer = new StringBuilder(100_000);
+                                int currentCount=0;
                                 while (true) {
                                     String nextRecord = blockingQueue.take();
                                     if (nextRecord == POISON_PILL) {
                                         break;
                                     }
-                                    sdfWriter.print(nextRecord);
+                                    buffer.append(nextRecord);
+                                    currentCount++;
+                                    if(currentCount==100){
+                                        sdfWriter.print(buffer.toString());
+                                        currentCount=0;
+                                        buffer.setLength(0);
+                                    }
+                                }
+                                if(buffer.length() >0){
+                                    //write any remaining records
+                                    sdfWriter.print(buffer.toString());
+
                                 }
                             } catch (Exception e) {
                                 e.printStackTrace();
