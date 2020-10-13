@@ -5,14 +5,9 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Shape;
 import java.awt.Stroke;
-import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
-import java.text.NumberFormat;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
@@ -22,6 +17,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import gov.nih.ncats.molvec.MolvecOptions;
 import gov.nih.ncats.molvec.internal.image.Bitmap;
 import gov.nih.ncats.molvec.internal.algo.Tuple;
 import gov.nih.ncats.molvec.internal.algo.Tuple.KEqualityTuple;
@@ -551,245 +547,11 @@ public class ConnectionTable{
 		.collect(Collectors.toList());
 	}
 	public String toMol(){
-		return toMol(1, true, true);
-	}
-	public String toMol(double averageBondLength, boolean center , boolean includeSgroups){
-		AffineTransform at = new AffineTransform();
-		double blcur = Math.max(this.getAverageBondLength(),1);
-
-		double scale = averageBondLength/blcur;
-
-
-
-		at.scale(scale, scale);
-		if(center){
-			if(this.getNodes().size()>0){
-				Rectangle2D rect=this.getNodes().stream().map(n->n.getPoint()).collect(GeomUtil.convexHull()).getBounds2D();
-				at.translate(-rect.getCenterX(), -rect.getCenterY());
-			}
-		}
-
-
-
-		String newLine = System.lineSeparator();
-		String header = new StringBuilder(80)
-						.append(newLine)
-//		IIPPPPPPPPMMDDYYHHmmddSSssssssssssEEEEEEEEEEEERRRRRR
-//				(FORTRAN: A2<--A8--><---A10-->A2I2<--F10.5-><---F12.5--><-I6-> )
-						.append("  Molvec01")
-				//date/time (M/D/Y,H:m)
-						.append(MOL_DATETIME_FORMATTER.format(LocalDateTime.now()))
-						.append("2D") //always write out 2D coords
-						.append(newLine).append(newLine)
-						.toString();
-
-		String countsLine = new StringBuilder(80)
-						.append(writeMolInt(getNodes().size(), 3))
-						.append(writeMolInt(edges.size(), 3))
-				//TODO for now mark eveything as chiral
-				//CDK sets this to 1 only if there's a tetrahedral stereo in molecule
-						.append("  0  0  0  0  0  0  0  0999 V2000")
-					.append(newLine)
-						.toString();
-
-		StringBuilder atomBlockBuilder = makeAtomBlock(at, newLine);
-
-		StringBuilder bondBuilder = makeBondBlock(newLine);
-		
-		StringBuilder sgroupBuilder =new StringBuilder(0);
-		if(includeSgroups){
-			sgroupBuilder = makeSGroupBlock(at, newLine, true);
-		}
-
-		
-
-		String mol= new StringBuilder(header.length() + countsLine.length() + atomBlockBuilder.length() + bondBuilder.length() +sgroupBuilder.length())
-				.append(header)
-					.append(countsLine)
-				.append(atomBlockBuilder)
-				.append(bondBuilder)
-				.append(sgroupBuilder)
-				.append("M  END")
-						.toString();
-		return mol;
+		return DEFAULT_OPTIONS.computeResult(this).getMolfile().get();
 	}
 
-	private StringBuilder makeBondBlock(String newLine){
-		StringBuilder bondBuilder = new StringBuilder(edges.size() *6);
-		boolean useSingle=true;
+	private static final MolvecOptions DEFAULT_OPTIONS = new MolvecOptions();
 
-		for(Edge e : edges){
-			int order = e.getOrder();
-			if(e.isAromatic()){
-				order =4;
-//				order =useSingle? 1: 2;
-//				useSingle = !useSingle;
-			}else if(order <1 || order > 4){
-				order =1;
-			}
-			int bondStereo=0;
-			if(e.getOrder() ==1){
-				if(e.getWedge()){
-					bondStereo =1; // up
-				}else if(e.getDashed()){
-					bondStereo=6; //down
-				}
-			}
-
-			bondBuilder.append(writeMolInt(e.n1+1, 3))
-					.append(writeMolInt(e.n2+1, 3))
-					.append(writeMolInt(order, 3))
-					.append(writeMolInt(bondStereo, 3))
-					.append(newLine);
-
-		}
-		return bondBuilder;
-	}
-	private StringBuilder makeAtomBlock(AffineTransform at, String newLine){
-		StringBuilder atomBlockBuilder = new StringBuilder(82* nodes.size());
-		for(Node n : this.nodes){
-			Point2D np = at.transform(n.getPoint(), null);
-
-			String sym = n.symbol;
-			int massDifference = 0;
-			if(n.symbol.equals("D")){
-				sym="H";
-				massDifference=1;
-			}
-
-			
-			atomBlockBuilder.append(writeMolDouble(np.getX(), 10))
-					.append(writeMolDouble(-np.getY(), 10))
-					.append(writeMolDouble(Double.NaN, 10))	//only write 2d coords
-					.append(' ')
-					.append(leftPaddWithSpaces(sym, 3))		//TODO should we check to make sure sym is always < 3 chars?
-					.append(writeMolInt(massDifference, 2))
-					.append(writeMolInt(computeMolCharge(n.charge), 3))
-							.append("  0  0  0  0  0  0  0  0  0  0")		//TODO really compute charge
-			.append(newLine);
-		}
-		return atomBlockBuilder;
-	}
-	
-	private StringBuilder makeSGroupBlock(AffineTransform at, String newLine, boolean onlyIfTooClose){
-		StringBuilder sgroupBlockBuilder = new StringBuilder();
-		Map<Integer, List<Node>> groups = new HashMap<>();
-		
-		Map<Edge,Integer> bindex = new HashMap<Edge,Integer>();
-		for(int i=0;i<this.edges.size();i++){
-			bindex.put(this.edges.get(i), i+1);
-		}
-		Set<Integer> dontDo = new HashSet<>();
-		
-		for(Node n : this.nodes){
-			if(n.getGroup()!=0){
-				groups.computeIfAbsent(n.getGroup(), k->new ArrayList<>()).add(n);
-				if(onlyIfTooClose){
-					if(!n.isTooClose())dontDo.add(n.getGroup());
-				}
-			}
-		}
-		
-		
-		groups.forEach((g,al)->{
-			if(dontDo.contains(g))return;
-			Node aNode = al.stream()
-			.filter(n->n.getAlias()!=null)
-			.findFirst()
-			.orElse(null);
-			if(aNode==null)return;
-			
-			List<Edge> me = al.stream()
-							  .flatMap(n->n.getEdges().stream().filter(e->!e.isInventedBond()))
-							  .distinct()
-							  .collect(Collectors.toList());
-			String l1 = "M  STY  1" +rightPaddWithSpaces(g+"", 4) + " SUP";
-			String l2 = "M  SLB  1" +rightPaddWithSpaces(g+"", 4) + rightPaddWithSpaces(g+"", 4);
-			String la = al.stream().map(n->n.getIndex()+1)
-					   .map(i->rightPaddWithSpaces(i+"", 4))
-					   .collect(Collectors.joining());
-			String bl = me.stream().map(e->bindex.get(e))
-					   .map(i->rightPaddWithSpaces(i+"", 4))
-					   .collect(Collectors.joining());
-			
-			String l3 = "M  SAL" + rightPaddWithSpaces(g+"", 4) +rightPaddWithSpaces(al.size()+"", 3) + la;
-			String l4 = "M  SBL" + rightPaddWithSpaces(g+"", 4) +rightPaddWithSpaces(me.size()+"", 3) + bl;
-			String l5 = "M  SMT" + rightPaddWithSpaces(g+"", 4) + " " +aNode.getAlias();
-			//String l6 = "M  SBV" + leftPaddWithSpaces(g+"", 4) + " " +aNode.getAlias();
-			sgroupBlockBuilder.append(l1).append(newLine);
-			sgroupBlockBuilder.append(l2).append(newLine);
-			sgroupBlockBuilder.append(l3).append(newLine);
-			sgroupBlockBuilder.append(l4).append(newLine);
-			sgroupBlockBuilder.append(l5).append(newLine);
-			
-		});
-		
-		return sgroupBlockBuilder;
-	}
-
-	private static int computeMolCharge(int charge){
-		switch(charge){
-			case -3: return 7;
-			case -2: return 6;
-			case -1: return 5;
-			case 0: return 0;
-			case 1: return 3;
-			case 2: return 2;
-			case 3: return 1;
-			default: return 0;
-		}
-	}
-
-	private static ThreadLocal<NumberFormat> MOL_FLOAT_FORMAT = ThreadLocal.withInitial(()->{
-		NumberFormat nf = NumberFormat.getNumberInstance(Locale.ENGLISH);
-		nf.setMinimumIntegerDigits(1);
-		nf.setMaximumIntegerDigits(4);
-		nf.setMinimumFractionDigits(4);
-		nf.setMaximumFractionDigits(4);
-		nf.setGroupingUsed(false);
-
-		return nf;
-	});
-
-	private static String writeMolInt(int value, int numDigits){
-		String s = Integer.toString(value);
-		if(s.length()>numDigits){
-			s="0";
-		}
-		return rightPaddWithSpaces(s, numDigits);
-	}
-
-	private static String writeMolDouble(double d, int width) {
-		String value;
-		if (Double.isNaN(d) || Double.isInfinite(d)){
-			value = "0.0000";
-		}else{
-			value = MOL_FLOAT_FORMAT.get().format(d);
-		}
-		return rightPaddWithSpaces(value, width);
-	}
-
-	private static String rightPaddWithSpaces(String value, int numDigits) {
-		int padd = numDigits - value.length();
-		StringBuilder builder = new StringBuilder(numDigits);
-		for(int i=0; i< padd; i++){
-			builder.append(' ');
-		}
-		builder.append(value);
-		return builder.toString();
-	}
-	private static String leftPaddWithSpaces(String value, int numDigits) {
-		int padd = numDigits - value.length();
-		StringBuilder builder = new StringBuilder(numDigits);
-		builder.append(value);
-		for(int i=0; i< padd; i++){
-			builder.append(' ');
-		}
-
-		return builder.toString();
-	}
-
-	private static DateTimeFormatter MOL_DATETIME_FORMATTER = DateTimeFormatter.ofPattern("MMddyyHHmm");
 
 
 	public ConnectionTable mergeNodesAverage(int n1, int n2){
@@ -1691,7 +1453,12 @@ public class ConnectionTable{
 			this.n2=n2;
 			this.setOrder(o);
 		}
-		
+		public int getNode1Offset(){
+			return n1;
+		}
+		public int getNode2Offset(){
+			return n2;
+		}
 		public Stream<Node> streamNodes(){
 			return Stream.of(this.getRealNode1(),this.getRealNode2());
 		}
@@ -2077,7 +1844,8 @@ public class ConnectionTable{
 		double avg=this.getAverageBondLength();
 		List<ShapeWrapper> addShapes=likelyOCR.stream() 
 		         .map(oc->Tuple.of(getClosestNodeToShape(oc),oc))
-		         .filter(t->t.k().v()>avg*mIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL)
+		        .filter(t->t.k()!=null && t.k().v() !=null)
+				.filter(t->t.k().v()>avg*mIN_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL)
 				 .filter(t->t.k().v()<avg*mAX_BOND_TO_AVG_BOND_RATIO_FOR_NOVEL)
 				 .map(t->t.v())
 				 .collect(Collectors.toList());

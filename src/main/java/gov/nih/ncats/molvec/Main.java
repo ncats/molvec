@@ -3,14 +3,14 @@ package gov.nih.ncats.molvec;
 import gov.nih.ncats.common.cli.Cli;
 import gov.nih.ncats.common.cli.CliSpecification;
 import gov.nih.ncats.common.cli.CliValidationException;
+import gov.nih.ncats.common.functions.ThrowableConsumer;
 import gov.nih.ncats.molvec.ui.Viewer;
 
 import java.io.*;
 import java.nio.file.Files;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.*;
 
 import static gov.nih.ncats.common.cli.CliSpecification.*;
 /**
@@ -21,7 +21,7 @@ public class Main {
     private static class DirectoryProcessor{
         private int numThreads =1;
 
-        private File dir, outputDir;
+        private File dir, outputDir, sdfOut;
 
         public int getNumThreads() {
             return numThreads;
@@ -32,6 +32,18 @@ public class Main {
                 throw new CliValidationException("num of threads must be >=1");
             }
             this.numThreads = numThreads;
+        }
+
+        public File getSdfOut() {
+            return sdfOut;
+        }
+
+        public void setSdfOut(File sdfOut) throws IOException{
+            this.sdfOut = sdfOut;
+            File parent = sdfOut.getParentFile();
+            if(parent !=null){
+                Files.createDirectories(parent.toPath());
+            }
         }
 
         public File getDir() {
@@ -84,14 +96,20 @@ public class Main {
                                         "This option or -f is required if not using -gui")
                                 .setToFile(directoryProcessor::setDir)
                                 .setRequired(true),
-                                option("outDir")
-                                    .argName("path")
-                                        .setToFile(directoryProcessor::setOutputDir)
-                                    .description("path to output directory to put processed mol files. If this path does not exist it will e created"),
+                            radio(option("outDir")
+                                            .argName("path")
+                                            .setToFile(directoryProcessor::setOutputDir)
+                                            .description("path to output directory to put processed mol files. If this path does not exist it will e created"),
+                                    option("outSdf")
+                                            .argName("path")
+                                            .setToFile(directoryProcessor::setSdfOut)
+                                            .description("Write output to a single sdf formatted file instead of individual mol files")
+                            ),
                                 option("parallel")
                                         .argName("count")
                                         .setToInt(directoryProcessor::setNumThreads)
                                         .description("Number of images to process simultaneously, if not specified defaults to 1")
+
 
 
 
@@ -113,8 +131,13 @@ public class Main {
                         "a new mol file for each image named $image.file.mol the new files will be put in the input directory")
         .example("-dir /path/to/directory -outDir /path/to/outputDir", "serially parse all the image files inside the given directory and write out " +
                         "a new mol file for each image named $image.file.mol the new files will be put in the directory specified by outDir")
+        .example("-dir /path/to/directory -outSdf /path/to/output.sdf", "serially parse all the image files inside the given directory and write out " +
+                "a new sdf file to the given path that contains all the structures from the input image directory ")
+        .example("-dir /path/to/directory -outSdf /path/to/output.sdf -parallel 4", "parse in 4 concurrent parallel thread all the image files inside the given directory and write out " +
+                "a new sdf file to the given path that contains all the structures from the input image directory ")
+
         .example("-dir /path/to/directory -parallel 4", "parse in 4 concurrent parallel threads all the image files inside the given directory and write out " +
-                        "a new mol file for each image named $image.file.mol the new files will be put in the directory specified by outDir")
+                "a new mol file for each image named $image.file.mol the new files will be put in the directory specified by outDir")
 
         .example("-gui", "open the Molvec Graphical User interface without any image preloaded")
         .example("-gui -f /path/to/image.file", "open the Molvec Graphical User interface  with the given image file preloaded")
@@ -169,7 +192,6 @@ public class Main {
                 if(outputDir ==null){
                     outputDir = dir;
                 }
-                ExecutorService executorService = Executors.newFixedThreadPool(directoryProcessor.getNumThreads());
                 File files[] =dir.listFiles( f->{
                     String name = f.getName();
                     int extOffset = name.lastIndexOf('.');
@@ -188,12 +210,121 @@ public class Main {
                     System.out.println("No image files found");
                     return;
                 }
-                CountDownLatch latch = new CountDownLatch(files.length);
-                for(File f : files){
-                    executorService.submit(new MolVecRunnable(f, outputDir, latch));
+
+                int numThreads = directoryProcessor.getNumThreads();
+                if(numThreads ==1){
+                    //run in serial
+                    if(cli.hasOption("outSdf")){
+                        //write out as single sdf file
+                        try (PrintWriter writer = new PrintWriter(directoryProcessor.getSdfOut())) {
+                            for (File f : files) {
+                                try {
+                                    String name = getBaseNameFor(f.getName());
+                                    MolvecResult mol = Molvec.ocr(f, new MolvecOptions().setName(name));
+                                    writer.println(mol.getSDfile().get());
+                                } catch (Throwable t) {
+                                    System.err.println("error processing file " + f.getName());
+                                    t.printStackTrace();
+                                }
+                            }
+                        }
+                    }else {
+                        for (File f : files) {
+                            try {
+                                String name = getBaseNameFor(f.getName());
+                                MolvecResult mol = Molvec.ocr(f, new MolvecOptions().setName(name));
+                                File out = new File(outputDir, f.getName() + ".mol");
+                                try (PrintWriter writer = new PrintWriter(out)) {
+
+                                    writer.println(mol.getMolfile().get());
+                                }
+                            } catch (Throwable t) {
+                                System.err.println("error processing file " + f.getName());
+                                t.printStackTrace();
+                            }
+                        }
+                    }
+                }else {
+                    ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+
+                    CountDownLatch latch = new CountDownLatch(files.length);
+
+                    if(cli.hasOption("outSdf")){
+                        //write everything to one sdf file.
+                        BlockingQueue<String> blockingQueue = new ArrayBlockingQueue<String>(16);
+                        String POISON_PILL = "END_OF_WRITING";
+
+                        executorService.submit(()-> {
+                            try (PrintWriter sdfWriter = new PrintWriter(directoryProcessor.getSdfOut())) {
+                                StringBuilder buffer = new StringBuilder(100_000);
+                                int currentCount=0;
+                                while (true) {
+                                    String nextRecord = blockingQueue.take();
+                                    if (nextRecord == POISON_PILL) {
+                                        break;
+                                    }
+                                    buffer.append(nextRecord);
+                                    currentCount++;
+                                    if(currentCount==100){
+                                        sdfWriter.print(buffer.toString());
+                                        currentCount=0;
+                                        buffer.setLength(0);
+                                    }
+                                }
+                                if(buffer.length() >0){
+                                    //write any remaining records
+                                    sdfWriter.print(buffer.toString());
+
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        });
+
+
+                            for (File f : files) {
+                                String lineSep = System.lineSeparator();
+                                executorService.submit(new MolVecRunnable(f, latch,
+                                        mol -> {
+                                    System.out.println(".." + f.getName());
+                                            try {
+                                                Map<String, String> props = new HashMap<>();
+                                                props.put("Molecule Name", getBaseNameFor(f.getName()));
+                                                props.put("File Name", f.getName());
+                                                blockingQueue.put(mol.getSDfile(props).get() + lineSep);
+                                            } catch (InterruptedException e) {
+                                                e.printStackTrace();
+                                            }
+                                        }
+
+
+                                ));
+                            }
+
+                            latch.await();
+                            //when we get here we've written out all of our records
+                        blockingQueue.put(POISON_PILL);
+                        executorService.shutdown();
+
+                    }else {
+                        //we have to do this to make the compiler happy to use this inside a lambda
+                        //since outputDir can be set a few different ways.
+                        final File effectivelyFinalOutputDir = outputDir;
+                        for (File f : files) {
+                            executorService.submit(new MolVecRunnable(f, latch,
+                                    mol -> {
+                                        File out = new File(effectivelyFinalOutputDir, f.getName() + ".mol");
+                                        try (PrintWriter writer = new PrintWriter(out)) {
+                                            writer.println(mol);
+                                        }
+                                    }
+                            ));
+                        }
+                        executorService.shutdown();
+                        latch.await();
+                    }
+
                 }
-                executorService.shutdown();
-                latch.await();
             }else{
                 //invalid
                 throw new CliValidationException("gui mode or file not specified");
@@ -208,28 +339,36 @@ public class Main {
 
     private static class MolVecRunnable implements Callable<Void>{
         File f;
-        File outDir;
         CountDownLatch latch;
-        MolVecRunnable(File f, File outDir, CountDownLatch latch){
+        ThrowableConsumer<MolvecResult, IOException> molConsumer;
+        MolVecRunnable(File f, CountDownLatch latch, ThrowableConsumer<MolvecResult, IOException> molConsumer){
             this.f =f;
-            this.outDir = outDir;
             this.latch = latch;
+            this.molConsumer = molConsumer;
         }
 
         @Override
         public Void call() throws Exception{
             try {
-                System.out.println(" .."+f.getName());
-                String mol = Molvec.ocr(f);
-                File out = new File(outDir, f.getName() + ".mol");
-                try (PrintWriter writer = new PrintWriter(out)) {
-                    writer.println(mol);
-                }
+//                System.out.println(" .."+f.getName());
+                String name = getBaseNameFor(f.getName());
+                MolvecResult mol = Molvec.ocr(f, new MolvecOptions().setName(name));
+                molConsumer.accept(mol);
+
                 return null;
             }finally{
                 //wait until the end to decrement latch
                 latch.countDown();
             }
         }
+
+
+    }
+    private static String getBaseNameFor(String fileName){
+        int index = fileName.lastIndexOf('.');
+        if(index >0){
+            return fileName.substring(0, index);
+        }
+        return fileName;
     }
 }

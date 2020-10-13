@@ -1610,7 +1610,8 @@ public class StructureImageExtractor {
 			double[] lDistOCRToLine=likelyOCR.stream()
 					.map(s->Tuple.of(s,s.centerOfBounds()))
 					.map(Tuple.vmap(p->Tuple.of(p,GeomUtil.findClosestPoint(verts, p))))
-					.map(Tuple.vmap(t->t.k().distance(t.v())))
+					.filter(p->p.k() !=null && p.v().v() !=null)
+                    .map(Tuple.vmap(t->t.k().distance(t.v())))
 					.mapToDouble(t->t.v())
 					.sorted()
 					.toArray();

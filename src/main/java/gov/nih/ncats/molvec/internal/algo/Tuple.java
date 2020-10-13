@@ -163,7 +163,7 @@ public class Tuple<K,V> implements Comparable<Tuple<K,V>>{
 	
 	@Override
 	public String toString(){
-	    return "<" + this.k.toString() + "," + this.v.toString() + ">";
+	    return "<" + k + "," + v + ">";
 	}
 	
 	public static interface ThrowableBiConsumer<K,V> extends BiConsumer<K,V>{
