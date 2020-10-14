@@ -79,7 +79,7 @@ public class RegressionTestIT {
 	private static boolean DO_ALIGN = false;
 	private static boolean EXPORT_CORRECT = false;
 	
-	private static String exportDir = "/home/tyler/workspace/results";
+	private static String exportDir = "results";
 	
 
 	public static enum Result{
@@ -1317,7 +1317,7 @@ public class RegressionTestIT {
 		
 		
 		
-		try(PrintWriter pw1 = new PrintWriter("/home/tyler/workspace/molvec/reports/" + set + "_" +  meth.toString() + "_" +
+		try(PrintWriter pw1 = new PrintWriter("reports/" + set + "_" +  meth.toString() + "_" +
 				LocalDate.now().format( DateTimeFormatter.ofPattern("YYYYMMdd")) + 				
 				".txt")){
 			
