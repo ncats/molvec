@@ -79,7 +79,7 @@ public class StructureImageExtractor {
 		VerticalBondLikely,
 	}
 	
-	private static final SCOCR OCR_DEFAULT=new StupidestPossibleSCOCRSansSerif();
+	public static SCOCR OCR_DEFAULT=new StupidestPossibleSCOCRSansSerif();
 	//static final SCOCR OCR_DEFAULT=new FontBasedRasterCosineSCOCR(FontBasedRasterCosineSCOCR.SANS_SERIF_FONTS());
 	//static final SCOCR OCR_BACKUP=new FontBasedRasterCosineSCOCR(FontBasedRasterCosineSCOCR.SERIF_FONTS())
 	private static final SCOCR OCR_BACKUP=new StupidestPossibleSCOCRSerif()
@@ -163,11 +163,13 @@ public class StructureImageExtractor {
 	private final double maxRatioForIntersection = 1.10;
 	private final double maxPerLineDistanceRatioForIntersection = 1.6;
 	private final double minPerLineDistanceRatioForIntersection = 0.7;
-	private final double OCR_TO_BOND_MAX_DISTANCE=3.0;
-	private final double maxCandidateRatioForIntersection = 1.5;
+	public static double OCR_TO_BOND_MAX_DISTANCE=3.0;
+	
+	public static double maxCandidateRatioForIntersection = 1.5;
 	private final double maxCandidateRatioForIntersectionWithNeighbor = 1.3; 
+	
 	private final double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL = 0.6;
-	private final double MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS = 6;
+	public static double MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS = 6;
 	private final double MAX_BOND_TO_AVG_BOND_RATIO_FOR_INTERSECTION= 0.8;
 
 	private final double MAX_ANGLE_FOR_JOINING_SEGMENTS=25 * Math.PI/180.0;
@@ -182,7 +184,7 @@ public class StructureImageExtractor {
 
 	//This number is likely one of the most important to adjust.
 	//It may have to have some changes done to the algorithm using it too
-	private final double MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.28;
+	public static double MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.28;
 	
 	private final double MAX_BOND_RATIO_FOR_LINES_CONSIDERED_FOR_POSITIONING_OCR=MAX_BOND_RATIO_FOR_MERGING_TO_OCR;
 
@@ -208,7 +210,7 @@ public class StructureImageExtractor {
 	
 	
 	//This is a newish feature, and it slows things down. Turn off if speed is needed.
-	private final boolean PRE_RESCUE_OCR = true;
+	public static boolean PRE_RESCUE_OCR = true;
 
 	//This feature tends to make very minor aesthetic adjustments and may not be necessary
 	private final boolean DO_HEX_GRID_MICRO_ALIGNMENT = true;
@@ -217,6 +219,13 @@ public class StructureImageExtractor {
 	public static double THRESH_STDEV = 1.2;
 	private static double THRESH_STDEV_RESIZE = 1.9;
 	private static double TOO_WASHED_STDEV = -1.0;
+	
+	
+	public static boolean ATTEMPT_CROP = true;
+	public static boolean KEEP_ALL_LINES = false;
+	public static boolean FORCE_FINAL_MERGE = false;
+	public static boolean PREFER_OXYGENS = false;
+	
 	
 //	public static Binarization DEF_BINARIZATION = new SauvolaThreshold();
 //	
@@ -277,7 +286,18 @@ public class StructureImageExtractor {
 	 * @return
 	 * @throws IOException
 	 */
-	public static StructureImageExtractor createFromImage(BufferedImage bufferedImage)throws IOException{
+	public static StructureImageExtractor createFromImage(BufferedImage createFromImage)throws IOException{
+		return createFromImage(createFromImage, false);
+
+	}
+
+	/**
+	 * Create a new extractor from the given bufferedImage.
+	 * @param bufferedImage
+	 * @return
+	 * @throws IOException
+	 */
+	public static StructureImageExtractor createFromImage(BufferedImage bufferedImage, boolean debug)throws IOException{
 		BufferedImage img = bufferedImage;
 		if(BufferedImage.TYPE_BYTE_GRAY != bufferedImage.getType()){
 			img = toGrayScale(bufferedImage);
@@ -289,7 +309,6 @@ public class StructureImageExtractor {
 		}
 
 	}
-
 
 	
 	
@@ -356,6 +375,7 @@ public class StructureImageExtractor {
 			throw new IOException("interrupted", e);
 		}
 	}
+	
 	public StructureImageExtractor(File file, boolean debug) throws IOException{
 		this.DEBUG=debug;
 		try{
@@ -428,6 +448,7 @@ public class StructureImageExtractor {
 				"K".equalsIgnoreCase(t) ||
 				"Y".equalsIgnoreCase(t) ||
 				"W".equalsIgnoreCase(t) ||
+				"A".equalsIgnoreCase(t) ||
 				"\\".equalsIgnoreCase(t)
 				){
 			return CharType.BondLikely;
@@ -436,7 +457,7 @@ public class StructureImageExtractor {
 				"2".equalsIgnoreCase(t) ||
 				"3".equalsIgnoreCase(t) ||
 				"4".equalsIgnoreCase(t) ||
-				"5".equalsIgnoreCase(t) ||
+//				"5".equalsIgnoreCase(t) ||
 				"6".equalsIgnoreCase(t) ||
 				"7".equalsIgnoreCase(t) ||
 				"9".equalsIgnoreCase(t)){
@@ -671,7 +692,7 @@ public class StructureImageExtractor {
 			//we only really care about the "best" character and never update that value
 			//even after filtering...
 			//the rest of the time char lookups just look for contains without worrying about order
-			Character[] best =new Character[1]; //this is done to set it in a lambda
+			Character[] best =new Character[2]; //this is done to set it in a lambda
 			boolean[] asciiCache = new boolean[128]; // we only check against ASCII values
 
 			Bitmap cropped = bitmap.getLazyCrop(sTest.getShape());
@@ -699,6 +720,8 @@ public class StructureImageExtractor {
 					.peek(t->{
 						if(best[0] ==null){
 							best[0] = t.k();
+						}else if(best[1] == null){
+							best[1] = t.k();
 						}
 						char c = t.k();
 						if(c < 128){
@@ -765,8 +788,23 @@ public class StructureImageExtractor {
 					}
 				}
 			}
+			else if(asciiCache['c'] && asciiCache['o']){
+				if(PREFER_OXYGENS){
+					boolean isO=potential.stream()
+							.filter(t->t.k().equals('O') || t.k().equals('o'))
+							.filter(t->t.v().doubleValue()>0.89)
+							.findFirst()
+							.isPresent();
+					if(isO){
+						potential.add(0,Tuple.of('O',0.95));
+					}
+				}
+						
+			}
 
-			if(Character.valueOf('L').equals(best[0])){
+			if(Character.valueOf('L').equals(best[0]) 
+					&& !Character.valueOf('C').equals(best[1])
+					){
 				Rectangle2D rbox = inputShape.getBounds();
 				if(rbox.getWidth()>rbox.getHeight()*0.6){
 					//Too wide for an L, but since it's the highest confidence, it's
@@ -1598,7 +1636,7 @@ public class StructureImageExtractor {
 
 
 			smallLines=smallLines.stream()
-					.filter(l->l.length()>MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS)
+					.filter(l->KEEP_ALL_LINES || l.length()>MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS)
 					.collect(Collectors.toList());
 
 
@@ -2095,7 +2133,6 @@ public class StructureImageExtractor {
 						maxTotalRatio = Math.max(maxTotalRatioInitial, maxlen/ctab.getAverageBondLength());
 					}
 				}
-
 				ctab.mergeNodesExtendingTo(likelyOCR,maxRatio,maxTotalRatio);
 				ctab.removeOrphanNodes();
 				
@@ -2914,7 +2951,13 @@ public class StructureImageExtractor {
 						val=val.replace("$", "O2");
 					}
 					if(val.contains("!")){
-						val=val.replace("!", "H3");
+						if(!val.contains("N")){
+							val=val.replace("!", "H3");
+						}else{
+							val=val.replace("!", "H2");	
+						}
+						
+//						System.out.println(val);
 					}
 					
 					//This is pretty hacky
@@ -2922,12 +2965,20 @@ public class StructureImageExtractor {
 						if(val.contains("``")){
 							val=val.replace("``","`");
 						}
-						
+						if(val.contains("`t")){
+							val=val.replace("`t","H");
+						}
 						val=val.replace("`", "HO");
+						
+//						val=val.replace("`", "");
 						
 					}
 					if(val.contains("%")){
 						val=val.replace("%", "OC");
+					}
+					
+					if(val.contains("?")){
+						val=val.replace("?", "Br");
 					}
 					
 					
@@ -4028,70 +4079,70 @@ public class StructureImageExtractor {
 			}
 			
 			
-			
-			List<ConnectionTable> ctabs=ctab.getDisconnectedComponents();
-			if(ctabs.size()>1){
-				//it could be that the components are supposed to be merged 
-				
-				
-				Tuple<ConnectionTable,Shape> ctshape = ctabs
-				    .stream()
-				    .map(ct->Tuple.of(ct,ct.getConvexHull()))
-				    .map(Tuple.vmap(h->Tuple.of(h,-GeomUtil.area(h)).withVComparator()))
-				    .map(t->t.withVComparator())
-				    .sorted()
-				    .limit(1)
-				    .map(Tuple.vmap(t->t.k()))
-				    .findFirst()
-				    .orElse(null);
-				if(ctshape!=null){
-					
-					double bestbond=ctshape.k().getAverageBondLength();
+			if(ATTEMPT_CROP){
+				List<ConnectionTable> ctabs=ctab.getDisconnectedComponents();
+				if(ctabs.size()>1){
+					//it could be that the components are supposed to be merged 
 					
 					
-					Shape crop=ctabs
+					Tuple<ConnectionTable,Shape> ctshape = ctabs
 					    .stream()
-					    .filter(ct->ct.getAverageBondLength()<0.7*bestbond || ct.getAverageBondLength()>1.42*bestbond)
-					    .map(ct->ct.getAreaAround(bestbond))
-					    .filter(a->a!=null)
-					    .collect(GeomUtil.union())
+					    .map(ct->Tuple.of(ct,ct.getConvexHull()))
+					    .map(Tuple.vmap(h->Tuple.of(h,-GeomUtil.area(h)).withVComparator()))
+					    .map(t->t.withVComparator())
+					    .sorted()
+					    .limit(1)
+					    .map(Tuple.vmap(t->t.k()))
+					    .findFirst()
 					    .orElse(null);
-					
-					Shape keep=ctabs
+					if(ctshape!=null){
+						
+						double bestbond=ctshape.k().getAverageBondLength();
+						
+						
+						Shape crop=ctabs
 						    .stream()
-						    .filter(ct->ct.getAverageBondLength()>=0.7*bestbond && ct.getAverageBondLength()<=1.42*bestbond)
+						    .filter(ct->ct.getAverageBondLength()<0.7*bestbond || ct.getAverageBondLength()>1.42*bestbond)
 						    .map(ct->ct.getAreaAround(bestbond))
+						    .filter(a->a!=null)
 						    .collect(GeomUtil.union())
 						    .orElse(null);
-					
-					//rescueOCRShapes.add(crop);
-					if(crop!=null && keep!=null){
-						polygons.stream()
-								.filter(s->!likelyOCR.contains(s))
-								.map(s->Tuple.of(s,s.centerOfBounds()))
-								.filter(t->!keep.contains(t.v()))
-						        .filter(t->crop.contains(t.v()))
-						        .map(t->t.k())
-						        .forEach(p->{
-						        	likelyOCR.remove(p);
-									likelyOCRNumbers.remove(p);
-									likelyOCRNonBond.remove(p);
-									likelyOCRAll.remove(p);
-									likelyOCRIgnore.add(p.growShapeNPoly(2, 16));
-									//realRescueOCRCandidates.add(GeomUtil.growShapeNPoly(p, 2, 16));
-									foundNewOCR[0]=true;
-						        });
+						
+						Shape keep=ctabs
+							    .stream()
+							    .filter(ct->ct.getAverageBondLength()>=0.7*bestbond && ct.getAverageBondLength()<=1.42*bestbond)
+							    .map(ct->ct.getAreaAround(bestbond))
+							    .collect(GeomUtil.union())
+							    .orElse(null);
+						
+						//rescueOCRShapes.add(crop);
+						if(crop!=null && keep!=null){
+							polygons.stream()
+									.filter(s->!likelyOCR.contains(s))
+									.map(s->Tuple.of(s,s.centerOfBounds()))
+									.filter(t->!keep.contains(t.v()))
+							        .filter(t->crop.contains(t.v()))
+							        .map(t->t.k())
+							        .forEach(p->{
+							        	likelyOCR.remove(p);
+										likelyOCRNumbers.remove(p);
+										likelyOCRNonBond.remove(p);
+										likelyOCRAll.remove(p);
+										likelyOCRIgnore.add(p.growShapeNPoly(2, 16));
+										//realRescueOCRCandidates.add(GeomUtil.growShapeNPoly(p, 2, 16));
+										foundNewOCR[0]=true;
+							        });
+						}
 					}
+					//realRescueOCRCandidates.add(crop);
 				}
-				//realRescueOCRCandidates.add(crop);
+				if(DEBUG)logState(29,"crop out sections of the image which make disconnected connection tables that have incompatible ABLs, if any are found, restart from beginning");
+				
+				
+				if(foundNewOCR[0] && repeats<MAX_OCR_FULL_REPEATS){
+					continue;
+				}
 			}
-			if(DEBUG)logState(29,"crop out sections of the image which make disconnected connection tables that have incompatible ABLs, if any are found, restart from beginning");
-			
-			
-			if(foundNewOCR[0] && repeats<MAX_OCR_FULL_REPEATS){
-				continue;
-			}
-			
 			
 
 			//Now get all the nodes with 2 edges which have shorter than average bond length,
@@ -4830,12 +4881,14 @@ public class StructureImageExtractor {
 											}
 											
 											n1.getBondTo(n2).ifPresent(ee->{
-												if(ee.getOrder()!=1){
-													ee.setOrder(1);
-												}
-												if(!ee.getDashed()){
-													ee.setDashed(true);
-													centerOfExplicitDashes.add(ee.getCenterPoint());
+												if(ee.getOrder()!=3){
+													if(ee.getOrder()!=1){
+														ee.setOrder(1);
+													}
+													if(!ee.getDashed()){
+														ee.setDashed(true);
+														centerOfExplicitDashes.add(ee.getCenterPoint());
+													}
 												}
 											});
 										
@@ -4900,7 +4953,7 @@ public class StructureImageExtractor {
 						ctab.mergeNodes(nm.stream().map(n->n.getIndex()).collect(Collectors.toList()), pl->pl.stream().collect(GeomUtil.averagePoint()));		
 					});
 				}catch(Exception e){
-					e.printStackTrace();
+//					e.printStackTrace();
 				}
 				ctab.standardCleanEdges();
 			}
@@ -4935,6 +4988,7 @@ public class StructureImageExtractor {
 			List<Tuple<Edge,WedgeInfo>> winfo=(List<Tuple<Edge, WedgeInfo>>) ctab.getEdges()
 					.stream()
 					.filter(e->!e.isInventedBond())
+					.filter(e->e.getOrder()!=3)
 					.map(e->{
 						LineWrapper useLine=GeomUtil.getLinesNotInsideSW(e.getLine(), growLikelyOCR)
 								.stream()
@@ -5135,10 +5189,13 @@ public class StructureImageExtractor {
 			
 			
 
+
 			GeomUtil.eachCombination(ctab.getNodes().stream().filter(n->!n.isInvented()).collect(Collectors.toList()))
 					.filter(t->t.k().distanceTo(t.v())<1.5*ctab.getAverageBondLength())
 					.filter(t->!t.k().getBondTo(t.v()).isPresent())
+					.filter(t->!t.k().getSymbol().equals("H") && !t.v().getSymbol().equals("H") )
 					.forEach(t1->{
+						
 						Line2D l2 = new Line2D.Double(t1.k().getPoint(),t1.v().getPoint());
 						LineWrapper useLine=GeomUtil.getLinesNotInsideSW(l2, growLikelyOCR)
 								.stream()
@@ -5370,6 +5427,7 @@ public class StructureImageExtractor {
 		if(Thread.currentThread().isInterrupted()){
 			throw new InterruptedException();
 		}
+		
 		rescueOCRShapes=realRescueOCRCandidates;
 		
 		
@@ -6061,7 +6119,10 @@ public class StructureImageExtractor {
 				       .filter(e->e.isRingEdge())
 				       .forEach(Edge::setToAromatic);
 		       });
-		
+		if(FORCE_FINAL_MERGE){
+			ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*0.2);
+			ctab.standardCleanEdges();	
+		}
 		if(DEBUG)logState(60,"set aromatic bonds");		
 	}
 	

@@ -26,7 +26,21 @@ import java.util.stream.Collectors;
 import gov.nih.ncats.molvec.internal.util.CachedSupplier;
 
 
-class BranchNode{
+public class BranchNode{
+	
+	private static Function<String,String> stringInterceptor = (s)->s;
+
+	
+	public static void setStringInterceptor(Function<String,String> intercept){
+		stringInterceptor=intercept;
+	}
+	
+	public static void clearStringInterceptor(){
+		stringInterceptor = (s)->s;
+	}
+	
+	
+	
 	private final static HashSet<String> accept = CachedSupplier.of(()->{
 		HashSet<String> keepers=new HashSet<String>();
 		keepers.add("C");
@@ -54,8 +68,6 @@ class BranchNode{
 		
 	    return keepers;
 	}).get();
-	
-	
 	
 	private static Map<String,Optional<BranchNode>> _cache = new ConcurrentHashMap<>();
 	
@@ -571,10 +583,14 @@ class BranchNode{
 	private static List<Token> numericSet = new ArrayList<>();
 	private static void initializeTokenSet(){
 		
+
 		atomicSet.add(SimpleToken.of("C", "C", "C","c"));
-		atomicSet.add(SimpleToken.of("O", "O", "O", "()", "0", "o"));
-		atomicSet.add(SimpleToken.of("N", "N", "N", "1O"));
-		atomicSet.add(SimpleToken.of("H", "H", "H", "tt", "1t", "t1", "I1", "t4", "11"));
+		
+		//TEST
+		
+		atomicSet.add(SimpleToken.of("O", "O", "O", "()", "0", "o","o9", "4o", "c4t", "OI"));
+		atomicSet.add(SimpleToken.of("N", "N", "N", "1O", "rg3","rg"));
+		atomicSet.add(SimpleToken.of("H", "H", "H", "tt", "1t", "t1", "I1", "t4", "11", "It"));
 		atomicSet.add(SimpleToken.of("S", "S", "S", "s"));
 		atomicSet.add(SimpleToken.of("P", "P", "P", "p"));
 		atomicSet.add(SimpleToken.of("Pt", "Pt", "Pt", "pt"));
@@ -582,16 +598,18 @@ class BranchNode{
 		atomicSet.add(SimpleToken.of("As", "As", "As", "AS", "A8"));
 		atomicSet.add(SimpleToken.of("Au", "Au", "Au", "AU"));
 		atomicSet.add(SimpleToken.of("Al", "Al", "Al", "A1", "At", "AI"));
-		atomicSet.add(SimpleToken.of("F", "F", "F", "f"));
-		atomicSet.add(SimpleToken.of("Cl", "Cl", "Cl", "CT", "Ct", "C)", "CI", "C1","cl", "cT", "ct", "c)", "cI", "c1"));
-		atomicSet.add(SimpleToken.of("Br", "Br", "Br","8t", "Sr", "sr", "8r", "BT"));
+		atomicSet.add(SimpleToken.of("F", "F", "F", "f", "r"));
+		atomicSet.add(SimpleToken.of("Cl", "Cl", "Cl", "CT", "Ct", "C)", "CI", "C1","cl", "cT", "ct", "c)", "cI", "c1", "rI", "LI"));
+		atomicSet.add(SimpleToken.of("Br", "Br", "Br","8t", "Sr", "sr", "8r", "BT", "e"));
 		atomicSet.add(SimpleToken.of("Na", "Na", "Na"));
-		atomicSet.add(SimpleToken.of("I", "I", "t","1"));
+		atomicSet.add(SimpleToken.of("I", "I", "t","1" , ")"));
 		atomicSet.add(SimpleToken.of("B", "B", "B" , "8"));
 		atomicSet.add(SimpleToken.of("Si", "Si", "Si", "SI", "Sl", "S1", "St", "si", "sI", "sl", "s1", "st", "8i", "8I", "8l", "81"));
 		atomicSet.add(SimpleToken.of("Hg", "Hg", "Hg", "ttg", "1tg", "t1g", "I1g", "t4g", "11g"));
-		atomicSet.add(SimpleToken.of("D", "D", "D"));
 		
+		
+
+		atomicSet.add(SimpleToken.of("D", "D", "D"));
 		atomicSet.forEach(tt->registerToken(tt,false));
 		
 		registerToken(Token.groupedToken("Atomic", atomicSet),true);
@@ -2047,11 +2065,11 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 	public static Optional<Tuple<BranchNode, String>> parseBranchNodeInit(String p){
 //		System.out.println("Parsing:" + p);
 		Optional<Tuple<BranchNode,String>> bns=parseBranchNode(p);
-		if(bns.isPresent()){
+//		if(bns.isPresent()){
 //			System.out.println("Found:" +bns.get().k().toString() + " as " + bns.get().v());
-		}else{
+//		}else{
 //			System.out.println("Not found:" + p);
-		}
+//		}
 		return bns;
 	}
 	
@@ -2680,6 +2698,7 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 	public int getWedgeType(){
 		return this.wedgeToParent;
 	}
+	
 
 	private static BranchNode interpretOCRStringAsAtom(String s){
 		try{
@@ -2692,7 +2711,10 @@ NUMERIC_SYMBOL	[<Numeric>+]	???
 					bn=Optional.ofNullable(interpretOCRStringAsAtom(s,false));
 					_cache.put(s, bn);
 				}else{
+//					System.out.println(s);
 				//new way
+					s=stringInterceptor.apply(s);
+					
 					bn=parseBranchNodeInit(s).map(b->b.k()
 													.removeHydrogens()
 													.setAlias(b.v())

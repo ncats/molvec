@@ -335,7 +335,7 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 
 	@Override
 	public void setAlphabet(Set<Character> charSet) {
-		_alphabet = charSet;
+		_alphabet = charSet.stream().collect(Collectors.toSet());
 		
 		//hacky control chars
 		_alphabet.add('~');
@@ -345,6 +345,7 @@ public abstract class RasterBasedCosineSCOCR implements SCOCR{
 		_alphabet.add('`');
 		_alphabet.add('(');
 		_alphabet.add(')');
+//		_alphabet.add('?');
 		makeAlphabetMaps();
 	}
 

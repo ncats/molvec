@@ -1,6 +1,24 @@
 package gov.nih.ncats.molvec.ui;
 
-import java.awt.*;
+import java.awt.AlphaComposite;
+import java.awt.BasicStroke;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Composite;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.FileDialog;
+import java.awt.Font;
+import java.awt.Frame;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.RenderingHints;
+import java.awt.Shape;
+import java.awt.Stroke;
+import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
@@ -26,7 +44,11 @@ import java.awt.image.WritableRaster;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
-import java.io.*;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -38,18 +60,35 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.logging.Logger;
 
-import javax.swing.*;
+import javax.swing.AbstractButton;
+import javax.swing.Box;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JSpinner;
+import javax.swing.JToolBar;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import gov.nih.ncats.molvec.internal.image.Bitmap;
 import gov.nih.ncats.molvec.internal.algo.CentroidEuclideanMetric;
 import gov.nih.ncats.molvec.internal.algo.NearestNeighbors;
 import gov.nih.ncats.molvec.internal.algo.StructureImageExtractor;
 import gov.nih.ncats.molvec.internal.algo.Tuple;
+import gov.nih.ncats.molvec.internal.algo.experimental.ImageCleaner;
+import gov.nih.ncats.molvec.internal.algo.experimental.ModifiedMolvecPipeline;
+import gov.nih.ncats.molvec.internal.image.Bitmap;
+import gov.nih.ncats.molvec.internal.image.ImageUtil;
 import gov.nih.ncats.molvec.internal.image.binarization.RangeFractionThreshold;
 import gov.nih.ncats.molvec.internal.util.ConnectionTable;
 import gov.nih.ncats.molvec.internal.util.GeomUtil;
@@ -97,6 +136,22 @@ public class Viewer extends JPanel
 //    		Color.ORANGE
         //Color.red, Color.blue, Color.black
     };
+    public static boolean MODIFIED_PIPE=false; 
+    
+    static{
+    	//here for debugging purposes
+    	if(MODIFIED_PIPE){
+    		ModifiedMolvecPipeline.setup();
+    	}
+    }
+    
+    public static void setExperimentalClean(boolean b){
+    	MODIFIED_PIPE=b;
+    	if(b){
+    		ModifiedMolvecPipeline.setup();
+    	}
+    }
+    		
 
     HistogramChart lineHistogram;
 
@@ -338,8 +393,14 @@ public class Viewer extends JPanel
         available = ALL;
         this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         try {
-            sie = new StructureImageExtractor(file, true);
-            sie = new StructureImageExtractor(file, true);
+        	if(MODIFIED_PIPE){
+	        	RenderedImage ri = ImageUtil.decode(file);
+	    		BufferedImage biIn= convertRenderedImage(ri);
+	        	BufferedImage bii=ImageCleaner.preCleanImageResize(biIn, 2, true, true);
+	            sie = StructureImageExtractor.createFromImage(bii,true);
+        	}else{
+        		sie = new StructureImageExtractor(file,true);
+        	}
 
             bitmap = sie.getBitmap();
             thin = sie.getThin();

@@ -16,9 +16,16 @@ public abstract class AbstractStupidestPossibleSCOCR extends RasterBasedCosineSC
     private final Map<String, List<RasterChar>> readAhead = new HashMap<>();
 
     AbstractStupidestPossibleSCOCR(){
-        loadRasters( (k, v)-> readAhead.computeIfAbsent(k, newKey -> new ArrayList<>()).add(v));
-
+    	initialize();
     }
+    
+    
+    public void initialize(){
+    	readAhead.clear();
+    	charVal.clear();    	
+    	loadRasters( (k, v)-> readAhead.computeIfAbsent(k, newKey -> new ArrayList<>()).add(v));
+    }
+    
     @Override
     public void getBitmapsForChar(Character c, Consumer<RasterChar> rconsumer) {
 //        if(readAhead.isEmpty()){
@@ -31,4 +38,5 @@ public abstract class AbstractStupidestPossibleSCOCR extends RasterBasedCosineSC
     }
 
     protected abstract void loadRasters(BiConsumer<String, RasterChar> consumer);
+    
 }

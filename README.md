@@ -14,9 +14,11 @@ For Maven:
 <dependency>
   <groupId>gov.nih.ncats</groupId>
   <artifactId>molvec</artifactId>
-  <version>0.9.8</version>
+  <version>0.9.7</version>
 </dependency>
-``` 
+```
+
+
    
 ## Example Usage: convert image into mol file format
 ```java
@@ -27,32 +29,11 @@ For Maven:
 ## Async Support
 
   MolVec supports asynchronous calls
-```java
+ ```java
     CompleteableFuture<String> future = Molvec.ocrAsync( image);
     String mol = future.get(5, TimeUnit.SECONDS);
 ```
   
-## Support for producing molfile and SDfiles
-  Since version 0.9.8, Molvec has a more robust API that allows for creating both molfiles and SDfiles and adding properties to the SDfiles.
-  
-```java
-MolvecOptions options = new MolvecOptions()
-                                    .setName(name)
-                                    .center(true)
-                                    .averageBondLength(2);
-
-MolvecResult result = Molvec.ocr(f, options);
-
-//write out a SDfile without any properties
-String sdfile = result.getSDfile().get());
-
-//create a map of key-value pairs and include as properties in an SDfile
-Map<String, String> props = new HashMap<>();
- 
-props.put("File Name", f.getName());
-
-String sdfileWithProperties = result.getSDfile(props).get();
-```
 ## Commandline interface
   The Molvec jar has a runnable Main class with the following options
   
@@ -137,12 +118,7 @@ String sdfileWithProperties = result.getSDfile(props).get();
 
 ![Primitives](sample1.png)
 
-## Publications that Mention Molvec
-* [Rajan, K., Brinkhaus, H.O., Zielesny, A. et al. A review of optical chemical structure recognition tools.
- J Cheminform 12, 60 (2020).](https://doi.org/10.1186/s13321-020-00465-0)
- 
- 
 ## How to Report Issues
 
   You can report issues or feature requests either by creating issue tickets on our github page or
-   by forwarding questions and/or problems to [daniel.katzel@nih.gov](mailto:daniel.katzel@nih.gov)
+   by forwarding questions and/or problems to daniel.katzel@nih.gov.

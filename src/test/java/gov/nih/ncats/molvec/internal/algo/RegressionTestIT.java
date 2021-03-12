@@ -5,8 +5,12 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.awt.image.BufferedImageOp;
 import java.awt.image.ColorModel;
+import java.awt.image.ConvolveOp;
+import java.awt.image.Kernel;
 import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
 import java.io.File;
@@ -55,23 +59,27 @@ import javax.imageio.ImageWriter;
 import javax.imageio.plugins.jpeg.JPEGImageWriteParam;
 import javax.imageio.stream.FileImageOutputStream;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.mortennobel.imagescaling.ResampleOp;
 
+import gov.nih.ncats.molvec.Molvec;
+import gov.nih.ncats.molvec.MolvecOptions;
+import gov.nih.ncats.molvec.MolvecResult;
+import gov.nih.ncats.molvec.internal.algo.ShellCommandRunner.Monitor;
+import gov.nih.ncats.molvec.internal.algo.experimental.ChemFixer;
+import gov.nih.ncats.molvec.internal.algo.experimental.ModifiedMolvecPipeline;
+import gov.nih.ncats.molvec.internal.image.ImageUtil;
+import gov.nih.ncats.molvec.internal.util.GeomUtil;
 import gov.nih.ncats.molwitch.Atom;
 import gov.nih.ncats.molwitch.AtomCoordinates;
 import gov.nih.ncats.molwitch.Bond;
 import gov.nih.ncats.molwitch.Bond.Stereo;
 import gov.nih.ncats.molwitch.Chemical;
 import gov.nih.ncats.molwitch.ChemicalBuilder;
+import gov.nih.ncats.molwitch.ChemkitException;
 import gov.nih.ncats.molwitch.inchi.Inchi;
-import gov.nih.ncats.molvec.Molvec;
-import gov.nih.ncats.molvec.internal.algo.ShellCommandRunner.Monitor;
-import gov.nih.ncats.molvec.internal.image.ImageUtil;
-import gov.nih.ncats.molvec.internal.util.GeomUtil;
-@Ignore
+//@Ignore
 public class RegressionTestIT {
 	
 	public static Map<String,AtomicInteger> elementCounts = new ConcurrentHashMap<String, AtomicInteger>();
@@ -79,7 +87,7 @@ public class RegressionTestIT {
 	private static boolean DO_ALIGN = false;
 	private static boolean EXPORT_CORRECT = false;
 	
-	private static String exportDir = "results";
+	private static String exportDir = "/home/tyler/workspace/results";
 	
 
 	public static enum Result{
@@ -231,7 +239,7 @@ public class RegressionTestIT {
 		
 		File imageFile = File.createTempFile(fname, ".png");
 		File molFile = File.createTempFile(fname, ".mol");
-		imageFile=stdResize(f, imageFile, 1, Interpolation.NEAREST_NEIGHBOR,1);
+		imageFile=stdResize(f, imageFile, 1, Interpolation.NEAREST_NEIGHBOR,1,false,false);
 				
 		String tmpFileNameImage = imageFile.getAbsolutePath();
 		String tmpFileNameMol = molFile.getAbsolutePath();
@@ -684,22 +692,72 @@ public class RegressionTestIT {
 		  });
 		return c1;
 	}
-	private static File stdResize(File f, File imageFile, double scale, Interpolation terp, double quality) throws IOException{
-		
+	public static BufferedImage rotateCw( BufferedImage img ){
+	    int         width  = img.getWidth();
+	    int         height = img.getHeight();
+	    BufferedImage   newImage = new BufferedImage( height, width, img.getType() );
 
-		
+	    for( int i=0 ; i < width ; i++ )
+	        for( int j=0 ; j < height ; j++ )
+	            newImage.setRGB( height-1-j, i, img.getRGB(i,j) );
 
+	    return newImage;
+	}
+	private static File stdResize(File f, File imageFile, double scale, Interpolation terp, double quality, boolean qblur, boolean rotate) throws IOException{
 
 		RenderedImage ri = ImageUtil.decode(f);
-		
-		int nwidth=(int) (ri.getWidth() *scale);
-		int nheight=(int) (ri.getHeight() *scale);
+		BufferedImage biIn= convertRenderedImage(ri);
+		if(ri.getWidth()<ri.getHeight()){
+//			System.out.println("Rotate test");
+			rotate=!rotate;
+		}
+		if(rotate){
+			biIn=rotateCw(biIn);
+		}
+		 
+		if(qblur){
+	
+		    float[] matrix = {
+		            0.25f, 0.25f, 
+		            0.25f, 0.25f, 
+		             
+		        };
+	
+	
+	
+	
+	        BufferedImageOp op = new ConvolveOp( new Kernel(2, 2, matrix) );
+	        BufferedImage biIn2= new BufferedImage(biIn.getWidth(),
+	        		biIn.getHeight(),BufferedImage.TYPE_3BYTE_BGR);
+	        
+	        biIn2 = op.filter(biIn, biIn2);
+	        biIn=biIn2;
+	        {
+		        for (int x = 0; x < biIn.getWidth(); x++) {
+		            for (int y = 0; y < biIn.getHeight(); y++) {
+		                int rgba = biIn.getRGB(x, y);
+		                Color col = new Color(rgba, false);
+		                col = new Color(col.getRed(),
+		                		col.getRed(),
+		                		col.getRed());
+		                if(col.getRed()>253 || x<3||y<3||x>biIn.getWidth()-3||y>biIn.getHeight()-3){
+		                	biIn.setRGB(x, y, Color.WHITE.getRGB());	
+		                }else{
+		                	biIn.setRGB(x, y, Color.BLACK.getRGB());
+		                }
+		            }
+		        }
+	        }
+		}
+        
+		int nwidth=(int) (biIn.getWidth() *scale);
+		int nheight=(int) (biIn.getHeight() *scale);
 		BufferedImage outputImage=null;
 		
 		if(Interpolation.SINC.equals(terp)){
 			
 			ResampleOp resizeOp = new ResampleOp(nwidth, nheight);
-			outputImage = resizeOp.filter(convertRenderedImage(ri), null);
+			outputImage = resizeOp.filter(biIn, null);
 			
 		}else{
 			
@@ -724,7 +782,7 @@ public class RegressionTestIT {
 		        	       RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
 	        }
 	        g2d.scale(scale, scale);
-	        g2d.drawImage(convertRenderedImage(ri), 0, 0,null);
+	        g2d.drawImage(biIn, 0, 0,null);
 	        g2d.dispose();
 
 	        for (int x = 0; x < outputImage.getWidth(); x++) {
@@ -739,6 +797,7 @@ public class RegressionTestIT {
 	            }
 	        }
 		}
+		
   
 		if(quality<1 && quality>0){
 			JPEGImageWriteParam jpegParams = new JPEGImageWriteParam(null);
@@ -758,7 +817,8 @@ public class RegressionTestIT {
 				return tfile;
 			}
 		}
-		
+
+        ImageIO.write(outputImage, "png", new File(f.getName() + ".2.png"));
 		ImageIO.write(outputImage, "png", imageFile);
 		
 		return imageFile;
@@ -1148,18 +1208,77 @@ public class RegressionTestIT {
 			
 	}
 	
-	
-	
-	
 	@Test
-	public void test1() throws FileNotFoundException{
+	public void bmsInChITest() throws IOException, ChemkitException{
+
+		char[] hex="0123456789abcdef".toCharArray();
 		
+		String rand = hex[(int)(Math.random()*16)] + 
+					  hex[(int)(Math.random()*16)] +
+					  hex[(int)(Math.random()*16)] + "";
+		
+		String pref=rand;
+		
+		
+		String pathToBMS="/home/tyler/Downloads/BMS MolVec/bms-molecular-translation";
+		
+		Map<String, String> inchiAnswers = Files.lines((new File(pathToBMS + "/train_labels.csv")).toPath())
+				.filter(l->l.startsWith(pref))
+				.map(l->new String[]{l.split(",")[0],l.substring(13).replace("\"", "")})
+				.collect(Collectors.toMap(l->l[0], l->l[1]));
+		char[] cc= pref.toCharArray();
+		File dir1 = new File(pathToBMS + "/train/" +cc[0] + "/" + cc[1] + "/" + cc[2]);
+	
+			double tavg=Files.walk(dir1.toPath())
+				  .filter(Files::isRegularFile)
+				  .map(p->p.toFile())
+				  
+				  .filter(f->f.getName().endsWith(".png"))
+			      .filter(f->f.getName().startsWith(pref))
+			      
+			      .limit(1000)
+			      
+			      .parallel()
+			      .map(f->{
+			    	  String inchi="InChI=1S/C12H24N2O/c1-13-12-4-2-11(3-5-12)10-14-6-8-15-9-7-14/h11-13H,2-10H2,1H3";
+			    	  String type="fake";
+			    	  String n=f.getName().replace(".png","");
+			    	  try {
+			    		  MolvecResult mvr= ModifiedMolvecPipeline.process(f, new MolvecOptions());
+			    		  Chemical mc = Chemical.parse(mvr.getMolfile().get());
+	//		    		  System.out.println(mc.toMol());
+			    		  String tinchi=mc.toInchi().getInchi();
+			    		  inchi=tinchi;
+			    		  type="real";
+			    	  } catch (Exception e1) {
+			    		  // TODO Auto-generated catch block
+	//		    		   e1.printStackTrace();
+			    		  type="null";
+			    	  }
+	
+			    	  String rinchi=inchiAnswers.get(n);
+			    	  int g=EditDistance.calculate(rinchi, inchi);
+	
+			    	  System.out.println(n +"\t" +type+ "\t" +g +"\t" + inchi + "\t" + rinchi);
+			    	  return g;
+			      })
+			      .mapToDouble(i->i)
+			      .average()
+			      .getAsDouble();
+			System.out.println(tavg);
+		
+		}
+	
+    
+//	@Test
+	public void test1() throws IOException, ChemkitException{
+
 //		testSet("usan",Method.MOLVEC.adapt());
 //		testSet("clef2012", Method.MOLVEC.adapt().suffix("TEST"));
 		
 //		testSet("usan", Method.MOLVEC.adapt().suffix("TEST"));
 //		
-		doAllIdentityDataSetTests(Method.MOLVEC.adapt().suffix("RE_EVALUATE"));
+//		doAllIdentityDataSetTests(Method.MOLVEC.adapt().suffix("RE_EVALUATE"));
 //		doAllRMSEDataSetTests(Method.MOLVEC.adapt());
 //		
 //		doAllScaleQualityTestsFor("trec",Method.MOLVEC.adapt());
@@ -1172,10 +1291,7 @@ public class RegressionTestIT {
 		
 		
 //		doAllIdentityDataSetTests(Method.EXACT.adapt().suffix("with2D"));
-		
-//		elementCounts.forEach((s,i)->{
-//			System.out.println(s + "\t" + i);
-//		});
+
 		
 		
 	}
@@ -1235,6 +1351,9 @@ public class RegressionTestIT {
 		boolean RMSE = false;
 		String suffix =""; 
 		double wiggleRatio=0;
+		boolean blur=false;
+		boolean rotate=false;
+		boolean rotatewidest=true;
 		
 		
 		
@@ -1274,6 +1393,15 @@ public class RegressionTestIT {
 			this.max=l;
 			return this;
 		}
+
+		public MethodAdapted blur(boolean b){
+			this.blur=b;
+			return this;
+		}
+		public MethodAdapted rotate(boolean b){
+			this.rotate=b;
+			return this;
+		}
 		public MethodAdapted rmse(boolean rmse){
 			this.RMSE=rmse;
 			return this;
@@ -1289,12 +1417,27 @@ public class RegressionTestIT {
 		
 		public Chemical getChem(File f) throws Exception{
 			File imageFile = File.createTempFile("tmpStr" + UUID.randomUUID().toString() +"_scale_" +  scale + "x" , ".png");
-			imageFile=stdResize(f, imageFile, scale, terp, this.quality);
+			imageFile=stdResize(f, imageFile, scale, terp, this.quality,blur, rotate);
 			return method.getChem(imageFile);
 		}
 		
 		public static MethodAdapted from(Method m){
 			return new MethodAdapted(m);
+		}
+		
+		public MethodAdapted clone(){
+			MethodAdapted mm = from(this.method);
+			mm.blur=this.blur;
+			mm.max=this.max;
+			mm.quality=this.quality;
+			mm.RMSE=this.RMSE;
+			mm.rotate=this.rotate;
+			mm.rotatewidest=this.rotatewidest;
+			mm.scale=this.scale;
+			mm.suffix=this.suffix;
+			mm.terp=this.terp;
+			mm.wiggleRatio=this.wiggleRatio;
+			return mm;
 		}
 		
 		public String toString(){
@@ -1317,7 +1460,7 @@ public class RegressionTestIT {
 		
 		
 		
-		try(PrintWriter pw1 = new PrintWriter("reports/" + set + "_" +  meth.toString() + "_" +
+		try(PrintWriter pw1 = new PrintWriter("/home/tyler/workspace/molvec/reports/" + set + "_" +  meth.toString() + "_" +
 				LocalDate.now().format( DateTimeFormatter.ofPattern("YYYYMMdd")) + 				
 				".txt")){
 			

@@ -4,6 +4,7 @@ import gov.nih.ncats.common.cli.Cli;
 import gov.nih.ncats.common.cli.CliSpecification;
 import gov.nih.ncats.common.cli.CliValidationException;
 import gov.nih.ncats.common.functions.ThrowableConsumer;
+import gov.nih.ncats.molvec.internal.algo.experimental.ModifiedMolvecPipeline;
 import gov.nih.ncats.molvec.ui.Viewer;
 
 import java.io.*;
@@ -18,6 +19,9 @@ import static gov.nih.ncats.common.cli.CliSpecification.*;
  */
 public class Main {
 
+	private static boolean USE_MOD_PIPELINE = false;
+	
+	
     private static class DirectoryProcessor{
         private int numThreads =1;
 
@@ -68,6 +72,14 @@ public class Main {
             this.outputDir = outputDir;
         }
     }
+    
+    public static MolvecResult getResult(File f, String name) throws IOException{
+    	if(USE_MOD_PIPELINE){
+    		return ModifiedMolvecPipeline.process(f, new MolvecOptions().setName(name));
+    	}else{
+    		return Molvec.ocr(f, new MolvecOptions().setName(name));
+    	}
+    }
 
     public static void main(String[] args) throws Exception{
 
@@ -76,6 +88,8 @@ public class Main {
         CliSpecification spec = CliSpecification.createWithHelp(
                 option("gui").isFlag(true)
                                     .description("Run Molvec in GUI mode. file and scale option may be set to preload file"),
+                option("xclean").isFlag(true)
+                                    .description("Set experimental \"clean mode\" to rescue small spotty images"),                    
                 radio(
                 group(option("f").longName("file")
                         .argName("path")
@@ -154,6 +168,10 @@ public class Main {
         }
         try {
             Cli cli =spec.parse(args);
+            if(cli.hasOption("xclean")){
+            	USE_MOD_PIPELINE=true;
+            	Viewer.setExperimentalClean(true);
+            }
 
             if(cli.hasOption("gui")){
                 //file and scale
@@ -170,8 +188,8 @@ public class Main {
                 }
             }else if(cli.hasOption("f")){
 
-
-                String mol = Molvec.ocr(new File(cli.getOptionValue("f")));
+            	MolvecResult mvr=getResult(new File(cli.getOptionValue("f")),"");
+            	String mol = mvr.getMolfile().get();
                 if(cli.hasOption("o")){
                     File outputFile = new File(cli.getOptionValue("o"));
                     File parent = outputFile.getParentFile();
@@ -220,7 +238,7 @@ public class Main {
                             for (File f : files) {
                                 try {
                                     String name = getBaseNameFor(f.getName());
-                                    MolvecResult mol = Molvec.ocr(f, new MolvecOptions().setName(name));
+                                    MolvecResult mol = getResult(f, name);
                                     writer.println(mol.getSDfile().get());
                                 } catch (Throwable t) {
                                     System.err.println("error processing file " + f.getName());
@@ -232,7 +250,7 @@ public class Main {
                         for (File f : files) {
                             try {
                                 String name = getBaseNameFor(f.getName());
-                                MolvecResult mol = Molvec.ocr(f, new MolvecOptions().setName(name));
+                                MolvecResult mol = getResult(f, name);
                                 File out = new File(outputDir, f.getName() + ".mol");
                                 try (PrintWriter writer = new PrintWriter(out)) {
 
@@ -352,7 +370,9 @@ public class Main {
             try {
 //                System.out.println(" .."+f.getName());
                 String name = getBaseNameFor(f.getName());
-                MolvecResult mol = Molvec.ocr(f, new MolvecOptions().setName(name));
+                MolvecResult mol= getResult(f, name);
+                
+                
                 molConsumer.accept(mol);
 
                 return null;

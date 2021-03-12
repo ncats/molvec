@@ -149,7 +149,7 @@ public final class Molvec {
 			try{
 				return ocr(image);
 			}catch(Exception e){
-				e.printStackTrace();
+//				e.printStackTrace();
 				return null;
 			}
 		});
