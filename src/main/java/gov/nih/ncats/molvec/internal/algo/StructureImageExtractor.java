@@ -226,6 +226,10 @@ public class StructureImageExtractor {
 	public static boolean FORCE_FINAL_MERGE = false;
 	public static boolean PREFER_OXYGENS = false;
 	
+	public static boolean ADD_ORPHANS = false;
+	
+	
+	
 	
 //	public static Binarization DEF_BINARIZATION = new SauvolaThreshold();
 //	
@@ -1500,7 +1504,8 @@ public class StructureImageExtractor {
 
 		double[] ignoreTooSmall=new double[]{0.0};
 		
-		
+
+		List<ShapeWrapper> ocrMeaningfulT = null;
 		
 		while(foundNewOCR[0] && repeats<MAX_OCR_FULL_REPEATS){
 			
@@ -1581,7 +1586,7 @@ public class StructureImageExtractor {
 					.collect(Collectors.toList()));
 
 
-
+			
 			Predicate<Line2D> isInOCRShape = (l)->{
 				if(likelyOCR.isEmpty())return false;
 				Optional<Tuple<ShapeWrapper,Double>> shape1=GeomUtil.findClosestShapeWTo(likelyOCRNonBond, l.getP1());
@@ -3154,7 +3159,8 @@ public class StructureImageExtractor {
 					.stream()
 					.filter(s->BranchNode.interpretOCRStringAsAtom2(bestGuessOCR.get(s))!=null)
 					.collect(Collectors.toList());
-
+			ocrMeaningfulT=ocrMeaningful;
+			
 			//ctab.removeOrphanNodes();
 
 			Set<Node> alreadyFixedNodes = new HashSet<Node>();
@@ -6119,6 +6125,43 @@ public class StructureImageExtractor {
 				       .filter(e->e.isRingEdge())
 				       .forEach(Edge::setToAromatic);
 		       });
+		
+
+		
+		if(ADD_ORPHANS){
+			double avg=ctab.getAverageBondLength();
+			
+			ocrMeaningfulT.stream()
+			.map(s->Tuple.of(s,s))
+			.map(Tuple.vmap(ss->ctab.getNodes().stream()
+							.map(n->Tuple.of(n,ss.distanceTo(n.getPoint())).withVComparator())
+							.min(Comparator.naturalOrder())
+							.get()
+							)
+					)
+			.filter(t->t.v().v()<avg*1.5)
+			.forEach(t->{
+				String s=bestGuessOCR.get(t.k());
+				
+	//			System.out.println("Miss:"+ s);
+				BranchNode bn=BranchNode.interpretOCRStringAsAtom2(s);
+				
+				if(bn.isRealNode()){
+					if(t.v().v()>avg*0.6){
+						Node n=ctab.addNode(t.k().centerOfBounds());
+						n.setSymbol(bn.getSymbol());
+						rescueOCRShapes.add(t.k().getShape());	
+					}else {
+	
+						//todo
+					}
+				}
+	
+				
+			});
+		}
+		
+		
 		if(FORCE_FINAL_MERGE){
 			ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*0.2);
 			ctab.standardCleanEdges();	

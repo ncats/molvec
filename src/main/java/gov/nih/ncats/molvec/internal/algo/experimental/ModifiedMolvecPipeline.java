@@ -167,6 +167,9 @@ public class ModifiedMolvecPipeline {
 //		StructureImageExtractor.OCR_TO_BOND_MAX_DISTANCE=5.0;					//~21.78 -> ~21.54 if commented 
 		StructureImageExtractor.MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.31;         //~21.54 -> ~21.64 if commented
 		StructureImageExtractor.PREFER_OXYGENS=true;							//~21.78 -> ~21.81 if commented
+		
+		StructureImageExtractor.ADD_ORPHANS=true;
+		
 	}
 	
 	public static MolvecResult process(File f, MolvecOptions op) throws IOException{
@@ -179,6 +182,7 @@ public class ModifiedMolvecPipeline {
 		BufferedImage nbi=ImageCleaner.preCleanImageResize(biIn, 2, true, true);
 		
 		MolvecResult mol = Molvec.ocr(nbi, op);
+//		System.out.println("Got first OCR");
 		Chemical ct = Chemical.parse(mol.getSDfile().get());
 		
 		Rectangle2D bon = ChemFixer.bounds(ct);
@@ -188,8 +192,10 @@ public class ModifiedMolvecPipeline {
 		if(bon.getHeight()>0.8*bon.getWidth()){
 
 			BufferedImage nbi2=ImageCleaner.preCleanImageResize(biIn, 2, true, false);
-			
+
+//			System.out.println("try 2 OCR");
 			MolvecResult mol2 = Molvec.ocr(nbi2, op);
+//			System.out.println("got 2 ORC");
 			Chemical ct2 = Chemical.parse(mol.getSDfile().get());
 			
 			long hetero2 = ct2.atoms().filter(at->hetset.contains(at.getSymbol())).count()
@@ -203,9 +209,7 @@ public class ModifiedMolvecPipeline {
 			
 		}
 		MolvecResult mresult=mol;
-		   
 		ChemFixResult cfr=ChemFixer.fixChemical(ct.copy());
-		
 		Chemical[] t = new Chemical[]{
 				ct
 		};

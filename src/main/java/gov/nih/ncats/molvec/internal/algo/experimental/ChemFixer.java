@@ -3,6 +3,7 @@ package gov.nih.ncats.molvec.internal.algo.experimental;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -301,6 +302,7 @@ public class ChemFixer {
 		{
 			List<Atom> rem = c.atoms()
 					.filter(at->at.getSymbol().equals("I"))
+					.filter(a->a.getBondCount()>=1)
 					.filter(at->{
 						Atom n1=at.getNeighbors().get(0);
 						if(!n1.getSymbol().equals("C"))return true;
@@ -446,8 +448,6 @@ public class ChemFixer {
 				});
 			});
 		}
-
-
 
 
 		{
@@ -868,118 +868,154 @@ public class ChemFixer {
 				}
 		});
 	}
+	
+	public static Tuple<Chemical,Boolean> stitchChemical(Chemical cf){
+		double avg= cf.bonds().mapToDouble(b->b.getBondLength())
+				.average().getAsDouble();
+		boolean stitched=false;
+		for(int li=0;li<20;li++){
+			Chemical c=cf.copy();
+			c.setAtomMapToPosition();
+			
+//			System.out.println("loop");
+			List<Chemical> comps = StreamUtil.forIterable(c.getConnectedComponents())
+					.collect(Collectors.toList());
+			if(comps.size()>1){
+				List<Tuple<Bond,Bond>> intesecting = getOverlappingBonds(c);
+				boolean tryit=true;
+				if(intesecting.size()>0){
 
-	public static ChemFixResult fixChemical(Chemical c){
+					Chemical cc=c;
+					intesecting.forEach(t->{
+						Point2D pi=GeomUtil.segmentIntersection(wrapB(t.k()).v(),wrapB(t.v()).v()).get();
+						Atom na=cc.addAtom("C", pi.getX(), pi.getY());
+						cc.removeBond(t.k());
+						cc.removeBond(t.v());
+						cc.addBond(t.k().getAtom1(),na, BondType.SINGLE);
+						cc.addBond(t.k().getAtom2(),na, BondType.SINGLE);
+						cc.addBond(t.v().getAtom1(),na, BondType.SINGLE);
+						cc.addBond(t.v().getAtom2(),na, BondType.SINGLE);
+					});
+					comps = StreamUtil.forIterable(c.getConnectedComponents())
+							.collect(Collectors.toList());
+					if(comps.size()==1){
+						tryit=false;
+					}
+				}
+				if(tryit){
+					int mini=-1;
+					int minj=-1;
+					double mind=9999;
+					for(int i=0;i<comps.size();i++){
+						Chemical c1 = comps.get(i);
+
+						for(int j=i+1;j<comps.size();j++){
+							Chemical c2 = comps.get(j);
+							Tuple<int[],Double> pair=closestAtoms(c1,c2);
+
+							if(pair.v()<mind){
+								mini=c1.getAtom(pair.k()[0]).getAtomToAtomMap().getAsInt()-1;
+								minj=c2.getAtom(pair.k()[1]).getAtomToAtomMap().getAsInt()-1;
+								mind=pair.v();
+							}
+						}
+					}
+					//							System.out.println("mini:" + mini);
+					//							System.out.println("minj:" + minj);
+					Atom a1=c.getAtom(mini);
+					Atom a2=c.getAtom(minj);
+					boolean addBond=true;
+					if(a1.getAtomCoordinates().distanceSquaredTo(a2.getAtomCoordinates()) < avg*avg*0.5*0.5){
+						//probably incomplete extension
+						if(!a1.getSymbol().equals("C") && a2.getSymbol().equals("C")){
+							Atom t=a1;
+							a1=a2;
+							a2=t;
+						}
+						if(a1.getSymbol().equals("C") && !a2.getSymbol().equals("C")){
+							addBond=false;
+						}
+					}
+
+					if(addBond){
+						c.addBond(a1,a2,BondType.SINGLE);
+						a1.setImplicitHCount(null);
+						a2.setImplicitHCount(null);
+					}else{
+						Bond ob=a1.getBonds().get(0);
+						Atom na =ob.getOtherAtom(a1);
+						c.removeAtom(a1);
+
+						c.addBond(a2,na,ob.getBondType());
+						na.setImplicitHCount(null);
+						a2.setImplicitHCount(null);
+					}
+					stitched=true;
+//					res.type=FixType.MERGED;
+				}
+				cf=c;
+			}else{
+
+
+				break;
+			}
+		}
+		return Tuple.of(cf,stitched);
+		
+	}
+
+	public static ChemFixResult fixChemical(Chemical cf){
 		ChemFixResult res = new ChemFixResult();
 
 		try {
-			dumbClean(c);	
-			c.setAtomMapToPosition();
-			double avg= c.bonds().mapToDouble(b->b.getBondLength())
-					.average().getAsDouble();
-
-			while(true){
-				List<Chemical> comps = StreamUtil.forIterable(c.getConnectedComponents())
-						.collect(Collectors.toList());
-				if(comps.size()>1){
-					List<Tuple<Bond,Bond>> intesecting = getOverlappingBonds(c);
-					boolean tryit=true;
-					if(intesecting.size()>0){
-
-						Chemical cc=c;
-						intesecting.forEach(t->{
-							Point2D pi=GeomUtil.segmentIntersection(wrapB(t.k()).v(),wrapB(t.v()).v()).get();
-							Atom na=cc.addAtom("C", pi.getX(), pi.getY());
-							cc.removeBond(t.k());
-							cc.removeBond(t.v());
-							cc.addBond(t.k().getAtom1(),na, BondType.SINGLE);
-							cc.addBond(t.k().getAtom2(),na, BondType.SINGLE);
-							cc.addBond(t.v().getAtom1(),na, BondType.SINGLE);
-							cc.addBond(t.v().getAtom2(),na, BondType.SINGLE);
-
-						});
-						comps = StreamUtil.forIterable(c.getConnectedComponents())
-								.collect(Collectors.toList());
-						if(comps.size()==1){
-							tryit=false;
-						}
-					}
-					if(tryit){
-						int mini=-1;
-						int minj=-1;
-						double mind=9999;
-						for(int i=0;i<comps.size();i++){
-							Chemical c1 = comps.get(i);
-
-							for(int j=i+1;j<comps.size();j++){
-								Chemical c2 = comps.get(j);
-								Tuple<int[],Double> pair=closestAtoms(c1,c2);
-
-								if(pair.v()<mind){
-									mini=c1.getAtom(pair.k()[0]).getAtomToAtomMap().getAsInt()-1;
-									minj=c2.getAtom(pair.k()[1]).getAtomToAtomMap().getAsInt()-1;
-									mind=pair.v();
-								}
-							}
-						}
-						//							System.out.println("mini:" + mini);
-						//							System.out.println("minj:" + minj);
-						Atom a1=c.getAtom(mini);
-						Atom a2=c.getAtom(minj);
-						boolean addBond=true;
-						if(a1.getAtomCoordinates().distanceSquaredTo(a2.getAtomCoordinates()) < avg*avg*0.5*0.5){
-							//probably incomplete extension
-							if(!a1.getSymbol().equals("C") && a2.getSymbol().equals("C")){
-								Atom t=a1;
-								a1=a2;
-								a2=t;
-							}
-							if(a1.getSymbol().equals("C") && !a2.getSymbol().equals("C")){
-								addBond=false;
-							}
-						}
-
-						if(addBond){
-							c.addBond(a1,a2,BondType.SINGLE);
-							a1.setImplicitHCount(null);
-							a2.setImplicitHCount(null);
-						}else{
-							Bond ob=a1.getBonds().get(0);
-							Atom na =ob.getOtherAtom(a1);
-							c.removeAtom(a1);
-
-							c.addBond(a2,na,ob.getBondType());
-							na.setImplicitHCount(null);
-							a2.setImplicitHCount(null);
-						}
-
-						res.type=FixType.MERGED;
-					}
-				}else{
-
-
-					break;
-				}
+			
+			
+			dumbClean(cf);	
+			Tuple<Chemical, Boolean> tup=stitchChemical(cf);
+			cf=tup.k();
+			if(tup.v()){
+				res.type=FixType.MERGED;
 			}
-			setHStereo(c);
+			
+			setHStereo(cf);
 
-			String[] lines=c.toMol().split("\n");
+			String[] lines=cf.toMol().split("\n");
 			for(int ii=4;ii<4+Integer.parseInt(lines[3].substring(0,3).trim());ii++){
 				lines[ii]=lines[ii].substring(0,33) + "  0  0  0  0  0  0  0  0  0  0  0  0";
 			}
 			String mm = Arrays.stream(lines).collect(Collectors.joining("\n"));
-			c= Chemical.parse(mm);
-			res.c=c;
-			c.clearAtomMaps();
+			cf= Chemical.parse(mm);
+			res.c=cf;
+			cf.clearAtomMaps();
 
 
 
 
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			//			e.printStackTrace();
+//						e.printStackTrace();
 			return null;
 		}
 		return res;
 	}
+	
+	public static String atFeat(Atom a, int r){
+		if(r==0){
+			return a.getSymbol();
+		}
+		return a.getSymbol() + a.getNeighbors().stream().map(n->n.bondTo(a).get().getBondType().getSymbol() + atFeat(n,r-1)).sorted().collect(Collectors.joining(","));
+	}
+	
+//	public static void main(String[] h){
+//		try {
+//			Chemical cc= Chemical.parse("CO(C(F)(N))C");
+//			cc.atoms().forEach(at->{
+//				System.out.println(atFeat(at,1));
+//			});
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//	}
+	
 }
