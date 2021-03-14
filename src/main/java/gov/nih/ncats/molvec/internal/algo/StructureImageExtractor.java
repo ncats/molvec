@@ -94,6 +94,7 @@ public class StructureImageExtractor {
 
 
 	private static final SCOCR OCR_ALL=new FontBasedRasterCosineSCOCR();
+	
 
 	static{
 		Set<Character> alpha=SCOCR.SET_COMMON_CHEM_ALL();
@@ -227,7 +228,7 @@ public class StructureImageExtractor {
 	public static boolean PREFER_OXYGENS = false;
 	
 	public static boolean ADD_ORPHANS = false;
-	
+	public static boolean PHENOL_TO_CL = false;
 	
 	
 	
@@ -6134,6 +6135,7 @@ public class StructureImageExtractor {
 			ocrMeaningfulT.stream()
 			.map(s->Tuple.of(s,s))
 			.map(Tuple.vmap(ss->ctab.getNodes().stream()
+//					.filter(n->!n.isInvented())
 							.map(n->Tuple.of(n,ss.distanceTo(n.getPoint())).withVComparator())
 							.min(Comparator.naturalOrder())
 							.get()
@@ -6152,13 +6154,53 @@ public class StructureImageExtractor {
 						n.setSymbol(bn.getSymbol());
 						rescueOCRShapes.add(t.k().getShape());	
 					}else {
-	
+						if(t.v().v()<avg*0.4){
+							if(bn.getSymbol().equals("N") || bn.getSymbol().equals("H")){
+								if(t.v().k().getSymbol().equals("C") && t.v().k().getEdgeCount()==1 &&
+										t.v().k().getEdges().get(0).getOrder()==3){
+									t.v().k().setSymbol("N");
+								}
+							}	
+						}
+						
 						//todo
 					}
 				}
 	
 				
 			});
+		}
+		
+		if(PHENOL_TO_CL){
+			List<ShapeWrapper> ocrMeaningfulp=ocrMeaningfulT;
+			ctab.getNodes().stream()
+				.filter(n->!n.isInvented())
+				.filter(n->n.getSymbol().equals("O"))
+				.filter(n->n.getEdgeCount()==1)
+				.filter(n->n.getEdges().get(0).getOrder()==1)
+				.map(n->Tuple.of(n,n.getNeighborNodes().get(0).k()))
+				.filter(t->t.v().isInRing(7))
+				.filter(t->t.v().getSymbol().equals("C"))
+				.filter(t->t.v().getValanceTotal()==4)
+				.map(t->t.k())
+				.forEach(oat->{
+//					System.out.println(oat.getAlias());
+					//phenol-like
+					ocrMeaningfulp.stream().filter(qs->qs.contains(oat.getPoint()))
+					.findAny()
+					.ifPresent(ss->{
+						String m = bestGuessOCR.get(ss);
+						BranchNode bnn=BranchNode.interpretOCRStringAsAtom2(m);
+						if(
+								!bnn.getAlias().contains("O") || 
+								!bnn.getAlias().contains("H")
+								){
+							oat.setSymbol("Cl");
+						}
+					});;
+					
+				});
+				;
 		}
 		
 		

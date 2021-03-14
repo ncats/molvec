@@ -3,7 +3,7 @@ package gov.nih.ncats.molvec.internal.algo.experimental;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -370,21 +370,21 @@ public class ChemFixer {
 					});
 
 				}
-				if(fs.size()==2 && at.getNeighbors().get(0).getImplicitHCount()==1){
-					Atom ca=at.getNeighbors().get(0);
-					fs.forEach(att->{
-						att.setAtomicNumber(9);	
-						att.setImplicitHCount(null);
-					});
-					Atom an=c.addAtom("F", ca.getAtomCoordinates().getX()+1,ca.getAtomCoordinates().getY());
-					c.addBond(ca,an, BondType.SINGLE);
-
-				}else if(fs.size()==2 && at.getNeighbors().get(0).getImplicitHCount()==0){
-					//							Atom ca=at.getNeighbors().get(0);
-					fs.forEach(att->{
-						att.setAtomicNumber(9);	
-						att.setImplicitHCount(null);
-					});
+				if(fs.size()==2){
+					if((at.getNeighbors().get(0).getImplicitHCount()==1 && at.getNeighbors().get(0).getNeighbors().stream().filter(nn->nn.getSymbol().equals("O")).count()==0)){
+						Atom ca=at.getNeighbors().get(0);
+						fs.forEach(att->{
+							att.setAtomicNumber(9);	
+							att.setImplicitHCount(null);
+						});
+						Atom an=c.addAtom("F", ca.getAtomCoordinates().getX()+1,ca.getAtomCoordinates().getY());
+						c.addBond(ca,an, BondType.SINGLE);
+					}else{
+						fs.forEach(att->{
+							att.setAtomicNumber(9);	
+							att.setImplicitHCount(null);
+						});	
+					}
 
 				}
 
@@ -429,6 +429,19 @@ public class ChemFixer {
 				at.setImplicitHCount(null);
 			});
 		}
+		{
+			long fcount=c.atoms().filter(at->at.getSymbol().equals("F")).count();
+			if(fcount>0){
+				c.atoms()
+				.filter(at->at.getSymbol().equals("I"))
+				.filter(at->at.getBondCount()==0 || at.getNeighbors().get(0).getBonds().stream().filter(bb->bb.getBondType().getOrder()==2).count()>0)
+				.forEach(at->{
+					at.setAtomicNumber(9);
+				});
+			}
+
+		}
+
 		{
 			c.atoms()
 			.filter(at->at.getSymbol().equals("H"))
@@ -495,9 +508,9 @@ public class ChemFixer {
 				}
 			});
 		}
-		
-		
-		
+
+
+
 		{
 
 			c.atoms()
@@ -519,6 +532,15 @@ public class ChemFixer {
 					na.setAtomicNumber(6);
 					na.setImplicitHCount(null);
 				}
+			});
+		}
+		{
+			c.atoms()
+			.filter(at->at.getSymbol().equals("B"))
+			.filter(at->at.getBondCount()==1)
+			.filter(at->at.getNeighbors().get(0).isInRing() && at.getNeighbors().get(0).getSmallestRingSize()==6)
+			.forEach(na->{
+				na.setAtomicNumber(9);
 			});
 		}
 		//!@@@@@@@@@@@@@@
@@ -768,12 +790,14 @@ public class ChemFixer {
 
 		{
 			double avg= c.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
-
+			Set<Bond> obond = getOverlappingBonds(c).stream().flatMap(t->Stream.of(t.k(),t.v())).collect(Collectors.toSet());
 			c.bonds()
 			.filter(b->b.getBondLength()>avg*1.3)
 			.filter(b->b.isInRing())
 			.filter(b->b.getAtom1().getSmallestRingSize()==5 && b.getAtom2().getSmallestRingSize()==5 )
 			.filter(b->b.getAtom1().getSymbol().equals("C") && b.getAtom2().getSymbol().equals("C") )
+			.filter(b->b.getAtom1().getSymbol().equals("C") && b.getAtom2().getSymbol().equals("C") )
+			.filter(b->!obond.contains(b))
 			.forEach(b->{
 				double fy=(b.getAtom1().getAtomCoordinates().getY()+b.getAtom2().getAtomCoordinates().getY())/2;
 				double fx=(b.getAtom1().getAtomCoordinates().getX()+b.getAtom2().getAtomCoordinates().getX())/2;
@@ -868,7 +892,7 @@ public class ChemFixer {
 				}
 		});
 	}
-	
+
 	public static Tuple<Chemical,Boolean> stitchChemical(Chemical cf){
 		double avg= cf.bonds().mapToDouble(b->b.getBondLength())
 				.average().getAsDouble();
@@ -876,30 +900,32 @@ public class ChemFixer {
 		for(int li=0;li<20;li++){
 			Chemical c=cf.copy();
 			c.setAtomMapToPosition();
-			
-//			System.out.println("loop");
+
+			//			System.out.println("loop");
 			List<Chemical> comps = StreamUtil.forIterable(c.getConnectedComponents())
 					.collect(Collectors.toList());
 			if(comps.size()>1){
-				List<Tuple<Bond,Bond>> intesecting = getOverlappingBonds(c);
 				boolean tryit=true;
-				if(intesecting.size()>0){
+				if(li==0){
+					List<Tuple<Bond,Bond>> intesecting = getOverlappingBonds(c);
+					if(intesecting.size()>0 && intesecting.size()<3){
 
-					Chemical cc=c;
-					intesecting.forEach(t->{
-						Point2D pi=GeomUtil.segmentIntersection(wrapB(t.k()).v(),wrapB(t.v()).v()).get();
-						Atom na=cc.addAtom("C", pi.getX(), pi.getY());
-						cc.removeBond(t.k());
-						cc.removeBond(t.v());
-						cc.addBond(t.k().getAtom1(),na, BondType.SINGLE);
-						cc.addBond(t.k().getAtom2(),na, BondType.SINGLE);
-						cc.addBond(t.v().getAtom1(),na, BondType.SINGLE);
-						cc.addBond(t.v().getAtom2(),na, BondType.SINGLE);
-					});
-					comps = StreamUtil.forIterable(c.getConnectedComponents())
-							.collect(Collectors.toList());
-					if(comps.size()==1){
-						tryit=false;
+						Chemical cc=c;
+						intesecting.forEach(t->{
+							Point2D pi=GeomUtil.segmentIntersection(wrapB(t.k()).v(),wrapB(t.v()).v()).get();
+							Atom na=cc.addAtom("C", pi.getX(), pi.getY());
+							cc.removeBond(t.k());
+							cc.removeBond(t.v());
+							cc.addBond(t.k().getAtom1(),na, BondType.SINGLE);
+							cc.addBond(t.k().getAtom2(),na, BondType.SINGLE);
+							cc.addBond(t.v().getAtom1(),na, BondType.SINGLE);
+							cc.addBond(t.v().getAtom2(),na, BondType.SINGLE);
+						});
+						comps = StreamUtil.forIterable(c.getConnectedComponents())
+								.collect(Collectors.toList());
+						if(comps.size()==1){
+							tryit=false;
+						}
 					}
 				}
 				if(tryit){
@@ -951,7 +977,7 @@ public class ChemFixer {
 						a2.setImplicitHCount(null);
 					}
 					stitched=true;
-//					res.type=FixType.MERGED;
+					//					res.type=FixType.MERGED;
 				}
 				cf=c;
 			}else{
@@ -961,22 +987,22 @@ public class ChemFixer {
 			}
 		}
 		return Tuple.of(cf,stitched);
-		
+
 	}
 
 	public static ChemFixResult fixChemical(Chemical cf){
 		ChemFixResult res = new ChemFixResult();
 
 		try {
-			
-			
+
+
 			dumbClean(cf);	
 			Tuple<Chemical, Boolean> tup=stitchChemical(cf);
 			cf=tup.k();
 			if(tup.v()){
 				res.type=FixType.MERGED;
 			}
-			
+
 			setHStereo(cf);
 
 			String[] lines=cf.toMol().split("\n");
@@ -993,29 +1019,72 @@ public class ChemFixer {
 
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-//						e.printStackTrace();
+			//						e.printStackTrace();
 			return null;
 		}
 		return res;
 	}
-	
+
 	public static String atFeat(Atom a, int r){
 		if(r==0){
 			return a.getSymbol();
 		}
 		return a.getSymbol() + a.getNeighbors().stream().map(n->n.bondTo(a).get().getBondType().getSymbol() + atFeat(n,r-1)).sorted().collect(Collectors.joining(","));
 	}
-	
-//	public static void main(String[] h){
-//		try {
-//			Chemical cc= Chemical.parse("CO(C(F)(N))C");
-//			cc.atoms().forEach(at->{
-//				System.out.println(atFeat(at,1));
-//			});
-//		} catch (IOException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//	}
-	
+
+	public static List<String> getAllFeats(Chemical c, int r){
+		return c.atoms().map(a->atFeat(a,r)).sorted().collect(Collectors.toList());
+	}
+
+	public static List<String> compareFeats(Chemical c1, Chemical c2, int r){
+		List<String> f1= getAllFeats(c1,r);
+		List<String> f2= getAllFeats(c2,r);
+
+
+		return getDiffs(f1,f2);
+
+	}
+
+	public static List<String> getDiffs(List<String> f1, List<String> f2){
+		List<String> diff = new ArrayList<String>();
+
+		int i=0;
+		int j=0;
+		while(true){
+			if(i>=f1.size() && j<f2.size()){
+				diff.add("+" + f2.get(j));
+				j++;
+			}else if(j>=f2.size() && i<f1.size()){
+				diff.add("-" + f1.get(i));
+				i++;
+			}else if(j<f2.size() && i<f1.size()){
+				String sf1=f1.get(i);
+				String sf2=f2.get(j);
+				int kk=sf1.compareTo(sf2);
+				if(kk<0){
+					diff.add("-" + sf1);
+					i++;
+				}else if(kk>0){
+					diff.add("+" + sf2);
+					j++;
+				}else{
+					j++;
+					i++;
+				}
+			}else{
+				break;
+			}
+
+		}
+		return diff;
+
+	}
+
+	public static void main(String[] h){
+		List<String> l1=Arrays.stream("A,B,C,D,E,F,F,G".split(",")).sorted().collect(Collectors.toList());
+		List<String> l2=Arrays.stream("A,B,C,D,D,E,F,G,G".split(",")).sorted().collect(Collectors.toList());
+		getDiffs(l1,l2)
+		.forEach(c->System.out.println(c));
+	}
+
 }
