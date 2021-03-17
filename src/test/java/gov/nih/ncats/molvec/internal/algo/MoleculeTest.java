@@ -33,6 +33,8 @@ import javax.imageio.ImageIO;
 public class MoleculeTest {
 	private static boolean debug=false;
 	
+	
+	
 
 //	static File writeToFolder = new File("testResults");
 

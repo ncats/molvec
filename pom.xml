@@ -60,6 +60,8 @@
             <timezone>America/New_York</timezone>
         </developer>
     </developers>
+    
+
 
     <scm>
         <url>https://spotlite.nih.gov/ncats/ncats-common</url>
@@ -118,7 +120,7 @@
     <dependency>
         <groupId>gov.nih.ncats</groupId>
         <artifactId>molwitch-cdk</artifactId>
-        <version>1.0.1</version>
+        <version>1.0.6-SNAPSHOT</version>
 </dependency>
 <dependency>
         <groupId>gov.nih.ncats</groupId>

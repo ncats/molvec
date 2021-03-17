@@ -67,6 +67,7 @@ import gov.nih.ncats.molvec.Molvec;
 import gov.nih.ncats.molvec.MolvecOptions;
 import gov.nih.ncats.molvec.MolvecResult;
 import gov.nih.ncats.molvec.internal.algo.ShellCommandRunner.Monitor;
+import gov.nih.ncats.molvec.internal.algo.experimental.ChemFixer;
 import gov.nih.ncats.molvec.internal.algo.experimental.ModifiedMolvecPipeline;
 import gov.nih.ncats.molvec.internal.image.ImageUtil;
 import gov.nih.ncats.molvec.internal.util.GeomUtil;
@@ -76,7 +77,6 @@ import gov.nih.ncats.molwitch.Bond;
 import gov.nih.ncats.molwitch.Bond.Stereo;
 import gov.nih.ncats.molwitch.Chemical;
 import gov.nih.ncats.molwitch.ChemicalBuilder;
-import gov.nih.ncats.molwitch.ChemkitException;
 import gov.nih.ncats.molwitch.inchi.Inchi;
 //@Ignore
 public class RegressionTestIT {
@@ -1208,98 +1208,140 @@ public class RegressionTestIT {
 	}
 	
 	@Test
-	public void bmsInChITest() throws IOException, ChemkitException{
-		int s=0x890;
-		int e=0x890 +0x100;
-		long rstart=System.currentTimeMillis();
-		
+	public void bmsInChITest() throws IOException{
+
 		String finchi="InChI=1S/C12H24N2O/c1-13-12-4-2-11(3-5-12)10-14-6-8-15-9-7-14/h11-13H,2-10H2,1H3";
 		String pathToBMS="/home/tyler/Downloads/BMS MolVec/bms-molecular-translation";
-		String dir="test";
+
+		String dir="train";
 		String out = pathToBMS + "/out";
+		
 		Map<String, String> inchiAnswers = Files.lines((new File(pathToBMS + "/train_labels.csv")).toPath())
 				.filter(l->dir.equals("train"))
-//				.filter(l->l.startsWith(pref))
+//				.filter(l->l.startsWith("e2f"))
 				.map(l->new String[]{l.split(",")[0],l.substring(13).replace("\"", "")})
 				.collect(Collectors.toMap(l->l[0], l->l[1]));
 		
+		int s=(int)(Math.random()*0xfff);
+
+//		int s=0x002;
+		int e=s +0x1;
+		long rstart=System.currentTimeMillis();
 		
-		IntStream.range(s, e)
-		.parallel()
-		.forEach(k->{
-			long str=System.currentTimeMillis();
-			String tk = "000" +Integer.toHexString( k);
-			String ph=tk.substring(tk.length()-3);
-			try( PrintWriter pw = new PrintWriter(out+"/"+dir+ph+".txt")){
-				
-//				char[] hex="0123456789abcdef".toCharArray();
-//	
-//				String rand = hex[(int)(Math.random()*16)] + 
-//						hex[(int)(Math.random()*16)] +
-//						hex[(int)(Math.random()*16)] + "";
-//	
-				String pref=ph;
-	
-	
-	
-	
-				char[] cc= pref.toCharArray();
-				File dir1 = new File(pathToBMS + "/" + dir + "/" +cc[0] + "/" + cc[1] + "/" + cc[2]);
-	
-				DoubleSummaryStatistics dss=Files.walk(dir1.toPath())
-						.filter(Files::isRegularFile)
-						.map(p->p.toFile())
-	
-						.filter(f->f.getName().endsWith(".png"))
-						.filter(f->f.getName().startsWith(pref))
-	
-						//				      .limit(1000)
-	
-										      .parallel()
-						.map(f->{
-							String inchi=finchi;
-							String type="fake";
-							String n=f.getName().replace(".png","");
-							try {
-								MolvecResult mvr= ModifiedMolvecPipeline.process(f, new MolvecOptions());
-								Chemical mc = Chemical.parse(mvr.getMolfile().get());
-								//				    		  System.out.println(mc.toMol());
-								String tinchi=mc.toInchi().getInchi();
-								inchi=tinchi;
-								type="real";
-							} catch (Exception e1) {
-								// TODO Auto-generated catch block
-								//		    		   e1.printStackTrace();
-								type="null";
-							}
-	
-							String rinchi=inchiAnswers.get(n);
-							if(rinchi==null){
-								rinchi=finchi;
-							}
-							int g=EditDistance.calculate(rinchi, inchi);
-	
-							pw.println(n + "\t" + inchi  +"\t" +type+ "\t" +g + "\t" + rinchi);
-							return g;
-						})
-						.collect(Collectors.summarizingDouble(d->d));
-	
-				//				      
-				//				      .average()
-				//				      .getAsDouble();
-	
-				System.out.println(ph + "\t" + dss.getCount() + "\t" + dss.getAverage() + "\t" + dss.getMax() + "\t" + dss.getMin() + "\t" + (System.currentTimeMillis()-str) + "\t" + (System.currentTimeMillis()-rstart));		
-			}catch(Exception ee){
-				ee.printStackTrace();
+
+		
+		
+		
+		for(int feat=-1;feat<32;feat++){
+ 
+			//turn all on
+			ModifiedMolvecPipeline.bs.set(0,50);
+			ModifiedMolvecPipeline.reset();
+			
+			String[] prefi= new String[]{"A"};
+			
+			int ff=feat;
+			if(feat>=0){
+				prefi[0]="B";
+				ModifiedMolvecPipeline.bs.clear(feat);
 			}
-		});
+			IntStream.range(s, e)
+//			.parallel()
+			.forEach(k->{
+				long str=System.currentTimeMillis();
+				String tk = "000" +Integer.toHexString( k);
+				String ph=tk.substring(tk.length()-3);
+				try( PrintWriter pw = new PrintWriter(out+"/"+dir+ph+"HYP" +prefi[0] + ff+ ".txt")){
+					
+	//				char[] hex="0123456789abcdef".toCharArray();
+	//	
+	//				String rand = hex[(int)(Math.random()*16)] + 
+	//						hex[(int)(Math.random()*16)] +
+	//						hex[(int)(Math.random()*16)] + "";
+	//	
+					String pref=ph;
 		
 		
+		
+		
+					char[] cc= pref.toCharArray();
+					File dir1 = new File(pathToBMS + "/" + dir + "/" +cc[0] + "/" + cc[1] + "/" + cc[2]);
+		
+					List<File> flist=Files.walk(dir1.toPath())
+							.filter(Files::isRegularFile)
+							.map(p->p.toFile())
+		
+							.filter(f->f.getName().endsWith(".png"))
+							.filter(f->f.getName().startsWith(pref))
+							.collect(Collectors.toList());
+					
+					DoubleSummaryStatistics dss=IntStream.range(0, flist.size())
+						      .parallel()
+							.mapToObj(ii->flist.get(ii))
+							.map(f->{
+								
+								String inchi=finchi;
+								String type="fake";
+								String n=f.getName().replace(".png","");
+								String difff="?";
+								Chemical mci=null;
+	//							System.out.println(n);
+								try {
+									MolvecResult mvr= ModifiedMolvecPipeline.process(f, new MolvecOptions());
+									Chemical mc = Chemical.parse(mvr.getMolfile().get());
+	//												    		  System.out.println(mc.toMol());
+									
+									String tinchi=mc.toInchi().getInchi();
+									mci=Inchi.toChemical(tinchi);
+									
+									inchi=tinchi;
+									tinchi=mci.toInchi().getInchi();
+									type="real";
+								} catch (Exception e1) {
+									// TODO Auto-generated catch block
+//											    		   e1.printStackTrace();
+									type="null";
+								}
+		
+								String rinchi=inchiAnswers.get(n);
+								if(rinchi==null){
+									rinchi=finchi;
+								}else{
+									try{
+										Chemical ic=Inchi.toChemical(rinchi);
+										difff="'" + ChemFixer.compareBondFeats(mci, ic)
+										.stream().collect(Collectors.joining("|"))
+										;
+										
+									}catch(Exception ee){
+										
+									}
+								}
+								int g=EditDistance.calculate(rinchi, inchi);
+		
+								pw.println(n + "\t" + inchi  +"\t" +type+ "\t" +g + "\t" + rinchi + "\t" + difff + "\t" + prefi[0]+ff);
+	
+	//							System.out.println(n + "\t" + inchi  +"\t" +type+ "\t" +g + "\t" + rinchi + "\t" + difff);
+								return g;
+							})
+							.collect(Collectors.summarizingDouble(d->d));
+		
+					//				      
+					//				      .average()
+					//				      .getAsDouble();
+		
+					System.out.println(prefi[0]+ff + "\t" + ph + "\t" + dss.getCount() + "\t" + dss.getAverage() + "\t" + dss.getMax() + "\t" + dss.getMin() + "\t" + (System.currentTimeMillis()-str) + "\t" + (System.currentTimeMillis()-rstart));		
+				}catch(Exception ee){
+					ee.printStackTrace();
+				}
+			});
+			
+			}
 		}
 	
     
 //	@Test
-	public void test1() throws IOException, ChemkitException{
+	public void test1() throws IOException{
 
 //		testSet("usan",Method.MOLVEC.adapt());
 //		testSet("clef2012", Method.MOLVEC.adapt().suffix("TEST"));

@@ -89,7 +89,9 @@ public class Main {
                 option("gui").isFlag(true)
                                     .description("Run Molvec in GUI mode. file and scale option may be set to preload file"),
                 option("xclean").isFlag(true)
-                                    .description("Set experimental \"clean mode\" to rescue small spotty images"),                    
+                                    .description("Set experimental \"clean mode\" to rescue small spotty images"),
+                option("noresize").isFlag(true)
+                                    .description("Do not resize to clean images in xclean"),    
                 radio(
                 group(option("f").longName("file")
                         .argName("path")
@@ -171,6 +173,10 @@ public class Main {
             if(cli.hasOption("xclean")){
             	USE_MOD_PIPELINE=true;
             	Viewer.setExperimentalClean(true);
+            }
+            
+            if(cli.hasOption("noresize")){
+            	ModifiedMolvecPipeline.RESIZE=false;
             }
 
             if(cli.hasOption("gui")){

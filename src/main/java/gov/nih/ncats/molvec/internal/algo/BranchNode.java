@@ -57,7 +57,9 @@ public class BranchNode{
 		keepers.add("D");
 		keepers.add("Hg");
 		//keepers.add("I");
-		keepers.add("Na");
+		
+//		keepers.add("Na");
+		
 		keepers.add("B"); //(not sure I want to confirm that yet, it's so rare)
 		keepers.add("Br");
 		keepers.add("Cl");
@@ -69,7 +71,7 @@ public class BranchNode{
 	    return keepers;
 	}).get();
 	
-	private static Map<String,Optional<BranchNode>> _cache = new ConcurrentHashMap<>();
+	public static Map<String,Optional<BranchNode>> _cache = new ConcurrentHashMap<>();
 	
 	//TODO
 	//Need clone mechanism, but there is a lot of embedded state / links to other things
@@ -589,9 +591,9 @@ public class BranchNode{
 		//TEST
 		
 		atomicSet.add(SimpleToken.of("O", "O", "O", "()", "0", "o","o9", "4o", "c4t", "OI"));
-		atomicSet.add(SimpleToken.of("N", "N", "N", "1O", "rg3","rg"));
+		atomicSet.add(SimpleToken.of("N", "N", "N", "1O", "rg3","rg", "rI", "rl", "r1"));
 		atomicSet.add(SimpleToken.of("H", "H", "H", "tt", "1t", "t1", "I1", "t4", "11", "It"));
-		atomicSet.add(SimpleToken.of("S", "S", "S", "s"));
+		atomicSet.add(SimpleToken.of("S", "S", "S", "s", "b"));
 		atomicSet.add(SimpleToken.of("P", "P", "P", "p"));
 		atomicSet.add(SimpleToken.of("Pt", "Pt", "Pt", "pt"));
 		atomicSet.add(SimpleToken.of("K", "K", "K", "k"));
@@ -601,7 +603,9 @@ public class BranchNode{
 		atomicSet.add(SimpleToken.of("F", "F", "F", "f", "r"));
 		atomicSet.add(SimpleToken.of("Cl", "Cl", "Cl", "CT", "Ct", "C)", "CI", "C1","cl", "cT", "ct", "c)", "cI", "c1", "rI", "LI"));
 		atomicSet.add(SimpleToken.of("Br", "Br", "Br","8t", "Sr", "sr", "8r", "BT", "e"));
-		atomicSet.add(SimpleToken.of("Na", "Na", "Na"));
+		
+//		atomicSet.add(SimpleToken.of("Na", "Na", "Na"));
+		
 		atomicSet.add(SimpleToken.of("I", "I", "t","1" , ")"));
 		atomicSet.add(SimpleToken.of("B", "B", "B" , "8"));
 		atomicSet.add(SimpleToken.of("Si", "Si", "Si", "SI", "Sl", "S1", "St", "si", "sI", "sl", "s1", "st", "8i", "8I", "8l", "81"));

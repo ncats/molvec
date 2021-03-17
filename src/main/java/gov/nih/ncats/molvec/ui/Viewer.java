@@ -85,6 +85,7 @@ import gov.nih.ncats.molvec.internal.algo.CentroidEuclideanMetric;
 import gov.nih.ncats.molvec.internal.algo.NearestNeighbors;
 import gov.nih.ncats.molvec.internal.algo.StructureImageExtractor;
 import gov.nih.ncats.molvec.internal.algo.Tuple;
+import gov.nih.ncats.molvec.internal.algo.experimental.ChemFixer;
 import gov.nih.ncats.molvec.internal.algo.experimental.ImageCleaner;
 import gov.nih.ncats.molvec.internal.algo.experimental.ModifiedMolvecPipeline;
 import gov.nih.ncats.molvec.internal.image.Bitmap;
@@ -92,6 +93,7 @@ import gov.nih.ncats.molvec.internal.image.ImageUtil;
 import gov.nih.ncats.molvec.internal.image.binarization.RangeFractionThreshold;
 import gov.nih.ncats.molvec.internal.util.ConnectionTable;
 import gov.nih.ncats.molvec.internal.util.GeomUtil;
+import gov.nih.ncats.molwitch.Chemical;
 
 
 public class Viewer extends JPanel 
@@ -1383,7 +1385,17 @@ public class Viewer extends JPanel
                 }
             }else if (cmd.equalsIgnoreCase("Copy Mol to Clipboard")) {
                 Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-                Transferable transferable = new StringSelection(viewer.ctab.toMol());
+                String mol=viewer.ctab.toMol();
+                if(MODIFIED_PIPE){
+                	try {
+						mol=ChemFixer.fixChemical(Chemical.parse(mol))
+						.c.toMol();
+					} catch (Exception e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+                }
+                Transferable transferable = new StringSelection(mol);
                 clipboard.setContents(transferable, null);
             }else  if (cmd.equalsIgnoreCase("reload")) {
             	File file = null;

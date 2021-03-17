@@ -80,6 +80,8 @@ public class StructureImageExtractor {
 	}
 	
 	public static SCOCR OCR_DEFAULT=new StupidestPossibleSCOCRSansSerif();
+	
+	public static SCOCR OCR_COPY=OCR_DEFAULT;
 	//static final SCOCR OCR_DEFAULT=new FontBasedRasterCosineSCOCR(FontBasedRasterCosineSCOCR.SANS_SERIF_FONTS());
 	//static final SCOCR OCR_BACKUP=new FontBasedRasterCosineSCOCR(FontBasedRasterCosineSCOCR.SERIF_FONTS())
 	private static final SCOCR OCR_BACKUP=new StupidestPossibleSCOCRSerif()
@@ -94,6 +96,8 @@ public class StructureImageExtractor {
 
 
 	private static final SCOCR OCR_ALL=new FontBasedRasterCosineSCOCR();
+
+	
 	
 
 	static{
@@ -153,7 +157,7 @@ public class StructureImageExtractor {
 
 	private final double OCRcutoffCosine=0.65;
 	private final double OCRcutoffCosineRescueInitial=0.55;
-	private final double OCRcutoffCosineRescue=0.50;
+	public static double OCRcutoffCosineRescue=0.50;
 	
 
 	private final double WEDGE_LIKE_PEARSON_SCORE_CUTOFF=.60;
@@ -226,9 +230,33 @@ public class StructureImageExtractor {
 	public static boolean KEEP_ALL_LINES = false;
 	public static boolean FORCE_FINAL_MERGE = false;
 	public static boolean PREFER_OXYGENS = false;
+	public static boolean PREFER_FLOURINE = false;
+	
 	
 	public static boolean ADD_ORPHANS = false;
+	
 	public static boolean PHENOL_TO_CL = false;
+	public static boolean HEMI_ACE_TO_CARB = false;
+	public static boolean EXPLICIT_METHYL_CHANGE_TO_PEPTIDE_ENOL = false;
+
+	public static boolean EXPLICIT_METHYL_TO_CL = false;
+	public static boolean EXPLICIT_ALKENE_TO_CARBONYL = false;
+	
+	public static boolean ADD_DETECTED_CHILDREN = true;
+
+	public static boolean ELEVATE_NITROGENS = false;
+	public static boolean ELEVATE_OXYGENS = false;
+	public static boolean ELEVATE_FLOURINE = false;
+
+	public static boolean GREEDY_ADD_EDGES = true;
+	public static boolean AGGRESSIVE_REMOVE_SHORT_OCR = false;
+	public static boolean FIX_HALOGENS = true;
+	public static boolean FORCE_MERGE_SMALL_RINGS = false;
+	public static boolean TURN_SMALL_DOUBLE_BOND_TO_N = false;
+	public static boolean AGGRESSIVE_CONNECT_ATOMS = true;
+	
+	public static double MAX_AREA_TO_STITCH_OCR_SHAPE = 100;
+	public static double MAX_DISTANCE_BETWEEN_OCR_SHAPES_TO_STITCH = 3;
 	
 	
 	
@@ -308,7 +336,7 @@ public class StructureImageExtractor {
 			img = toGrayScale(bufferedImage);
 		}
 		try {
-			return new StructureImageExtractor(img.getRaster());
+			return new StructureImageExtractor(img.getRaster(),debug );
 		}catch(InterruptedException e){
 			throw new IOException("interrupted", e);
 		}
@@ -352,7 +380,7 @@ public class StructureImageExtractor {
 	 * @param debug if true, print debug information to standard out
 	 * @throws Exception
 	 */
-	public StructureImageExtractor(Raster raster, boolean debug )throws IOException{
+	public StructureImageExtractor(Raster raster, boolean debug )throws IOException, InterruptedException{
 		this.DEBUG = debug;
 		try {
 			try {
@@ -452,6 +480,7 @@ public class StructureImageExtractor {
 				"/".equalsIgnoreCase(t) ||
 				"K".equalsIgnoreCase(t) ||
 				"Y".equalsIgnoreCase(t) ||
+				"V".equalsIgnoreCase(t) ||
 				"W".equalsIgnoreCase(t) ||
 				"A".equalsIgnoreCase(t) ||
 				"\\".equalsIgnoreCase(t)
@@ -802,6 +831,19 @@ public class StructureImageExtractor {
 							.isPresent();
 					if(isO){
 						potential.add(0,Tuple.of('O',0.95));
+					}
+				}
+						
+			}
+			else if(asciiCache['I'] && asciiCache['F']){
+				if(PREFER_FLOURINE){
+					boolean isO=potential.stream()
+							.filter(t->t.k().equals('F'))
+							.filter(t->t.v().doubleValue()>0.71)
+							.findFirst()
+							.isPresent();
+					if(isO){
+						potential.add(0,Tuple.of('F',0.95));
 					}
 				}
 						
@@ -1164,7 +1206,8 @@ public class StructureImageExtractor {
 
 	private void load(Bitmap aBitMap, boolean allowThresholdTooLowThrow) throws IOException, InterruptedException{
 
-
+		boolean killsmallocr=AGGRESSIVE_REMOVE_SHORT_OCR;
+	
 		List<Shape> realRescueOCRCandidates = Collections.synchronizedList(new ArrayList<>());
 		
 		
@@ -1226,10 +1269,10 @@ public class StructureImageExtractor {
 			List<Shape> combined=polygons.stream()
 			 .map(p->Tuple.of(p,p))
 			 .map(Tuple.vmap(p->p.getArea()))
-			 .filter(t->t.v()<100)
+			 .filter(t->t.v()<MAX_AREA_TO_STITCH_OCR_SHAPE)
 			 .map(t->t.k())
 			 .collect(GeomUtil.groupThings(t->{
-				 return GeomUtil.distance(t.k(), t.v()) < 3;
+				 return GeomUtil.distance(t.k(), t.v()) < MAX_DISTANCE_BETWEEN_OCR_SHAPES_TO_STITCH;
 			 }))
 			 .stream()
 			 .filter(sl->sl.size()>1)
@@ -1298,6 +1341,12 @@ public class StructureImageExtractor {
 			throw new IOException("Cannot support images with over 4000 polygons at this time");
 		}
 
+		boolean startloop=true;
+		
+		while(startloop){
+			ocrAttempt.clear();
+			startloop=false;
+		
 		Set<ShapeWrapper> likelyOCR= Collections.synchronizedSet(new LinkedHashSet<>());
 		Set<ShapeWrapper> likelyOCRNumbers= Collections.synchronizedSet(new LinkedHashSet<>());
 		Set<ShapeWrapper> likelyOCRNonBond= Collections.synchronizedSet(new LinkedHashSet<>());
@@ -1390,6 +1439,18 @@ public class StructureImageExtractor {
 		            	  likelyOCRNumbers.remove(s);
 		            	  likelyOCRAll.remove(s);
 		              });
+		boolean[] killed =new boolean[]{false};
+		if(killsmallocr){
+			likelyOCR.stream()
+					.filter(s->s.getHeight()<averageHeightOCR1*0.65)
+					.collect(Collectors.toList())
+					.forEach(loc->{
+						likelyOCR.remove(loc);
+						likelyOCRNonBond.remove(loc);
+						killed[0]=true;
+					});
+					;
+		}
 		
 		
 
@@ -1725,10 +1786,12 @@ public class StructureImageExtractor {
 					);
 
 			
+			double lbb=largestBond;
 			List<Shape> growLines = linesOrder.stream()
 											  .map(t->t.k())
-											  .map(l->GeomUtil.growLine(l, 5))
+											  .map(l->GeomUtil.growLine(l, lbb*0.07))
 											  .collect(Collectors.toList());
+//			realRescueOCRCandidates.addAll(growLines);
 			
 
 			List<Shape> rescueOCRCandidates = new ArrayList<>();
@@ -3545,60 +3608,62 @@ public class StructureImageExtractor {
 			});
 			
 
-			edgesToMake.stream()
-						.filter(t->{
-							return taken.addAll(t.k());   
-						})
-						.forEach(t->{
-			
-							List<Edge> crossingEdges=ctab.getBondsThatCross(t.v().k(),t.v().v());
-							if(!crossingEdges.isEmpty())return;
-			
-							Line2D nline = new Line2D.Double(t.v().k().getPoint(),t.v().v().getPoint());
-							
-							List<Line2D> k = t.k().stream().filter(l->GeomUtil.cosTheta(nline, l)> Math.cos(45*Math.PI/180)).collect(Collectors.toList());
-							
-							if(k.isEmpty())return;
-							//don't add cross bonds
-			
-							int order=GeomUtil.groupThings(k, tlines->{
-								Line2D l1=tlines.k(); 
-								Line2D l2=tlines.v();
-								if(GeomUtil.cosTheta(l1, l2) > Math.cos(10*Math.PI/180)){
-									return true;
-								}
-								return false;
+			if(GREEDY_ADD_EDGES){
+				edgesToMake.stream()
+							.filter(t->{
+								return taken.addAll(t.k());   
 							})
-									.stream()
-									.map(l->GeomUtil.getLineOffsetsToLongestLine(l))
-									.map(l->{
-										OptionalDouble opdoff=l.stream()
-													 .filter(tb->Math.abs(tb.v())>ctab.getAverageBondLength()*0.1)
-													 .mapToDouble(tb->tb.v())
-													 .min();
-										if(!opdoff.isPresent()){
-											return l.stream().map(l1->l1.k()).limit(1).collect(Collectors.toList());
-										}
-										double doff=opdoff.getAsDouble();
-										
-										List<Line2D> nlines= l.stream()
-											 .map(Tuple.vmap(d->(int)Math.round(d/doff)))
-											 .map(tb->tb.swap())
-											 .collect(Tuple.toGroupedMap())
-											 .entrySet()
-											 .stream()
-											 .map(Tuple::of)
-											 .map(Tuple.vmap(v1->GeomUtil.getPairOfFarthestPoints(GeomUtil.vertices(v1))))
-											 .map(Tuple.vmap(v1->new Line2D.Double(v1[0], v1[1])))
-											 .map(tb->tb.v())
-											 .collect(Collectors.toList());
-										
-										return nlines;
-									})
-									.mapToInt(ll->ll.size())
-									.max().getAsInt();
-							ctab.addEdge(t.v().k().getIndex(), t.v().v().getIndex(), order);
-						});
+							.forEach(t->{
+				
+								List<Edge> crossingEdges=ctab.getBondsThatCross(t.v().k(),t.v().v());
+								if(!crossingEdges.isEmpty())return;
+				
+								Line2D nline = new Line2D.Double(t.v().k().getPoint(),t.v().v().getPoint());
+								
+								List<Line2D> k = t.k().stream().filter(l->GeomUtil.cosTheta(nline, l)> Math.cos(45*Math.PI/180)).collect(Collectors.toList());
+								
+								if(k.isEmpty())return;
+								//don't add cross bonds
+				
+								int order=GeomUtil.groupThings(k, tlines->{
+									Line2D l1=tlines.k(); 
+									Line2D l2=tlines.v();
+									if(GeomUtil.cosTheta(l1, l2) > Math.cos(10*Math.PI/180)){
+										return true;
+									}
+									return false;
+								})
+										.stream()
+										.map(l->GeomUtil.getLineOffsetsToLongestLine(l))
+										.map(l->{
+											OptionalDouble opdoff=l.stream()
+														 .filter(tb->Math.abs(tb.v())>ctab.getAverageBondLength()*0.1)
+														 .mapToDouble(tb->tb.v())
+														 .min();
+											if(!opdoff.isPresent()){
+												return l.stream().map(l1->l1.k()).limit(1).collect(Collectors.toList());
+											}
+											double doff=opdoff.getAsDouble();
+											
+											List<Line2D> nlines= l.stream()
+												 .map(Tuple.vmap(d->(int)Math.round(d/doff)))
+												 .map(tb->tb.swap())
+												 .collect(Tuple.toGroupedMap())
+												 .entrySet()
+												 .stream()
+												 .map(Tuple::of)
+												 .map(Tuple.vmap(v1->GeomUtil.getPairOfFarthestPoints(GeomUtil.vertices(v1))))
+												 .map(Tuple.vmap(v1->new Line2D.Double(v1[0], v1[1])))
+												 .map(tb->tb.v())
+												 .collect(Collectors.toList());
+											
+											return nlines;
+										})
+										.mapToInt(ll->ll.size())
+										.max().getAsInt();
+								ctab.addEdge(t.v().k().getIndex(), t.v().v().getIndex(), order);
+							});
+			}
 
 			ctab.standardCleanEdges();
 			if(DEBUG)logState(22,"add missing non-crossing bonds if there is line support, assign order based on number of reasonable lines between nodes. Also remove/update bonds with little line support");
@@ -3885,89 +3950,108 @@ public class StructureImageExtractor {
 							if(actual.getAlias()!=null){
 								pnode.setAlias(actual.getAlias());
 							}
-							actual.generateCoordinates();
-							AffineTransform at = new AffineTransform();
-							at.translate(ppoint.getX(), ppoint.getY());
-							at.scale(fbondlength, fbondlength);
-							if(pnode.getEdges().size()>0){
-								Point2D otherPoint =pnode.getEdges().stream().map(e->e.getOtherNode(pnode)).map(n->n.getPoint()).collect(GeomUtil.averagePoint());
-								double ang=GeomUtil.angle(ppoint, otherPoint);
-								at.rotate(ang+Math.PI);
-							}
-							actual.applyTransform(at);
-
-							int gnum=groupNumber.incrementAndGet();
-							pnode.markGroup(gnum);
-							
-							Map<BranchNode,Node> parentNodes = new HashMap<>();
-
-							parentNodes.put(actual, pnode);
-
-							actual.forEachBranchNode((parN,curN)->{
-								if(parN==null) return;
-								Node mpnode=pnode;
-								if(parN!=null){
-									mpnode=parentNodes.get(parN);
+							if(!ADD_DETECTED_CHILDREN){
+								if(actual.getAlias()!=null){
+								//TODO: More rules
+								if(pnode.getAlias().equals("FI") ){
+									pnode.setSymbol("H");
+									pnode.setAlias("H");
 								}
-
-								Node n= ctab.addNode(curN.getSuggestedPoint())
-										    .setSymbol(curN.getSymbol())
-										    .setCharge(curN.getCharge())
-										    .markGroup(gnum)
-										    .setInvented(true);
-								
-								Edge e=ctab.addEdge(mpnode.getIndex(), n.getIndex(), curN.getOrderToParent());
-								if(curN.getWedgeType()==1){
-									 e.setWedge(true);
-								}else if(curN.getWedgeType()==-1){
-									 e.setDashed(true);
+								if(pnode.getAlias().equals("OFI") ){
+									pnode.setSymbol("O");
+									pnode.setAlias("OH");
+								}
+								if(pnode.getAlias().equals("FHO") ){
+									pnode.setSymbol("N");
+									pnode.setAlias("N");
+								}
 								}
 								
-								curN.getRingBond().ifPresent(t->{
-									Node rn=parentNodes.get(t.k());
-									ctab.addEdge(rn.getIndex(), n.getIndex(), t.v());
-								});
+							}else{
+								actual.generateCoordinates();
+								AffineTransform at = new AffineTransform();
+								at.translate(ppoint.getX(), ppoint.getY());
+								at.scale(fbondlength, fbondlength);
+								if(pnode.getEdges().size()>0){
+									Point2D otherPoint =pnode.getEdges().stream().map(e->e.getOtherNode(pnode)).map(n->n.getPoint()).collect(GeomUtil.averagePoint());
+									double ang=GeomUtil.angle(ppoint, otherPoint);
+									at.rotate(ang+Math.PI);
+								}
+								actual.applyTransform(at);
+	
+								int gnum=groupNumber.incrementAndGet();
+								pnode.markGroup(gnum);
 								
-								parentNodes.put(curN, n);
-							});
-							
-							//might be a chain
-							if(actual.canBeChain()){
-								if(lneigh!=null&&rneigh!=null){
-									Node l=lneigh;
-									Node r=rneigh;
-									Node nl=parentNodes.get(actual.getLeftBranchNode());
-									Node nr=parentNodes.get(actual.getRightBranchNode());
-									pnode.getNeighborNodes().stream()
-															.filter(t->t.k()==l || t.k()==r)
-															.collect(Collectors.toList())
-									                        .forEach(t->{
-									                        	Edge e=t.v();
-									                        	Node on = t.k();
-									                        	Node nn = (on==l)?nr:nl;
-									                        	ctab.removeEdge(e);
-									                        	ctab.addEdge(on.getIndex(), nn.getIndex(), e.getOrder());
-									                        });		
-									Line2D oldLine = new Line2D.Double(nl.getPoint(), nr.getPoint());
-									Point2D[] far = s.getPairOfFarthestPoints();
-								
-									double minx = Math.min(far[0].getX(),far[1].getX());
-									double maxx = Math.max(far[0].getX(),far[1].getX());
+								Map<BranchNode,Node> parentNodes = new HashMap<>();
+	
+								parentNodes.put(actual, pnode);
+	
+								actual.forEachBranchNode((parN,curN)->{
+									if(parN==null) return;
+									Node mpnode=pnode;
+									if(parN!=null){
+										mpnode=parentNodes.get(parN);
+									}
+	
+									Node n= ctab.addNode(curN.getSuggestedPoint())
+											    .setSymbol(curN.getSymbol())
+											    .setCharge(curN.getCharge())
+											    .markGroup(gnum)
+											    .setInvented(true);
 									
-									Line2D newLine = new Line2D.Double(maxx-averageWidthOCR/2,pnode.getPoint().getY(),minx+averageWidthOCR/2,pnode.getPoint().getY());
-									
-									
-									Point2D navg=Stream.of(l.getPoint(),r.getPoint()).collect(GeomUtil.averagePoint());
-									boolean flip=false;
-									if(navg.getY()>newLine.getY1()){
-										flip=true;
+									Edge e=ctab.addEdge(mpnode.getIndex(), n.getIndex(), curN.getOrderToParent());
+									if(curN.getWedgeType()==1){
+										 e.setWedge(true);
+									}else if(curN.getWedgeType()==-1){
+										 e.setDashed(true);
 									}
 									
-									AffineTransform att=GeomUtil.getTransformFromLineToLine(oldLine, newLine, flip);
-									
-									parentNodes.values().forEach(pn->{
-										pn.setPoint(att.transform(pn.getPoint(),null));
+									curN.getRingBond().ifPresent(t->{
+										Node rn=parentNodes.get(t.k());
+										ctab.addEdge(rn.getIndex(), n.getIndex(), t.v());
 									});
+									
+									parentNodes.put(curN, n);
+								});
+								
+								//might be a chain
+								if(actual.canBeChain()){
+									if(lneigh!=null&&rneigh!=null){
+										Node l=lneigh;
+										Node r=rneigh;
+										Node nl=parentNodes.get(actual.getLeftBranchNode());
+										Node nr=parentNodes.get(actual.getRightBranchNode());
+										pnode.getNeighborNodes().stream()
+																.filter(t->t.k()==l || t.k()==r)
+																.collect(Collectors.toList())
+										                        .forEach(t->{
+										                        	Edge e=t.v();
+										                        	Node on = t.k();
+										                        	Node nn = (on==l)?nr:nl;
+										                        	ctab.removeEdge(e);
+										                        	ctab.addEdge(on.getIndex(), nn.getIndex(), e.getOrder());
+										                        });		
+										Line2D oldLine = new Line2D.Double(nl.getPoint(), nr.getPoint());
+										Point2D[] far = s.getPairOfFarthestPoints();
+									
+										double minx = Math.min(far[0].getX(),far[1].getX());
+										double maxx = Math.max(far[0].getX(),far[1].getX());
+										
+										Line2D newLine = new Line2D.Double(maxx-averageWidthOCR/2,pnode.getPoint().getY(),minx+averageWidthOCR/2,pnode.getPoint().getY());
+										
+										
+										Point2D navg=Stream.of(l.getPoint(),r.getPoint()).collect(GeomUtil.averagePoint());
+										boolean flip=false;
+										if(navg.getY()>newLine.getY1()){
+											flip=true;
+										}
+										
+										AffineTransform att=GeomUtil.getTransformFromLineToLine(oldLine, newLine, flip);
+										
+										parentNodes.values().forEach(pn->{
+											pn.setPoint(att.transform(pn.getPoint(),null));
+										});
+									}
 								}
 							}
 						}
@@ -5196,6 +5280,7 @@ public class StructureImageExtractor {
 			
 			
 
+			if(AGGRESSIVE_CONNECT_ATOMS){
 
 			GeomUtil.eachCombination(ctab.getNodes().stream().filter(n->!n.isInvented()).collect(Collectors.toList()))
 					.filter(t->t.k().distanceTo(t.v())<1.5*ctab.getAverageBondLength())
@@ -5238,6 +5323,7 @@ public class StructureImageExtractor {
 						}
 					});
 			if(DEBUG)logState(44,"add dashed bond to nodes that are close enough and have 2 or more small shapes along the line between them");
+			}
 			
 			ctab.getEdges()
 			    .stream()
@@ -5329,6 +5415,14 @@ public class StructureImageExtractor {
 			    		if(maybeDouble!=null){
 			    			
 			    			if(maybeDouble.getRealNode1().getValanceTotal()==4 || maybeDouble.getRealNode2().getValanceTotal()==4){
+			    				return;
+			    			}
+			    			if(maybeDouble.getRealNode1().getValanceTotal()==3 && maybeDouble.getRealNode1().getSymbol().equals("N")){
+			    			
+			    				return;
+			    			}
+			    			if(maybeDouble.getRealNode2().getValanceTotal()==3 && maybeDouble.getRealNode2().getSymbol().equals("N")){
+			    				
 			    				return;
 			    			}
 			    			
@@ -5453,7 +5547,12 @@ public class StructureImageExtractor {
 				    	return costheta>0.9;
 				    }))
 				    .forEach(n->{
+				    	if(ELEVATE_NITROGENS){
+				    		n.setSymbol("N");
+				    	}else{
 				    		n.setSymbol("C");
+				    	}
+				    		
 				    });
 		
 		//fix bad OCR for H which was probably N
@@ -5477,26 +5576,27 @@ public class StructureImageExtractor {
 
 
 		
-		//Fix bad halogen bonds		
-		ctab.getNodes().stream()
-			    .filter(n->n.getSymbol().equals("Cl") || n.getSymbol().equals("F") || n.getSymbol().equals("I") || n.getSymbol().equals("Br"))
-			    .filter(n->n.getValanceTotal()>=2)
-			    .collect(Collectors.toList())
-			    .forEach(n->{
-			    		n.getNeighborNodes()
-			    		 .stream()
-			    		 .filter(t->{
-			    			 return likelyOCRNonBond.stream()
-			    					 .filter(s->s.contains(t.k().getPoint()))
-			    					 .findAny()
-			    					 .isPresent();
-			    		 })
-			    		 .forEach(t->{
-			    			 ctab.removeEdge(t.v());
-			    		 });
-			    });
-		if(DEBUG)logState(51,"remove erroneous bonds to halogens if there are more bonds than there should be");
-		
+		if(FIX_HALOGENS){
+			//Fix bad halogen bonds		
+			ctab.getNodes().stream()
+				    .filter(n->n.getSymbol().equals("Cl") || n.getSymbol().equals("F") || n.getSymbol().equals("I") || n.getSymbol().equals("Br"))
+				    .filter(n->n.getValanceTotal()>=2)
+				    .collect(Collectors.toList())
+				    .forEach(n->{
+				    		n.getNeighborNodes()
+				    		 .stream()
+				    		 .filter(t->{
+				    			 return likelyOCRNonBond.stream()
+				    					 .filter(s->s.contains(t.k().getPoint()))
+				    					 .findAny()
+				    					 .isPresent();
+				    		 })
+				    		 .forEach(t->{
+				    			 ctab.removeEdge(t.v());
+				    		 });
+				    });
+			if(DEBUG)logState(51,"remove erroneous bonds to halogens if there are more bonds than there should be");
+		}
 
 		//fix bad Sulfurs
 		ctab.getNodes().stream()
@@ -6097,6 +6197,7 @@ public class StructureImageExtractor {
 			.filter(n->n.getSymbol().equals("B"))
 			.filter(n->n.getEdgeCount()==1)
 			.filter(n->n.getEdges().stream().anyMatch(e->e.getWedge() || e.getDashed()))
+			.filter(n->n.getNeighborNodes().stream().map(k->k.k()).flatMap(b->b.getEdges().stream()).filter(e->e.getOrder()!=1).count()==0)
 			.forEach(n->n.setSymbol("H"));
 		
 		//bottom part of i in Si sometimes taken as double bond. Fix suspicious ones
@@ -6195,6 +6296,140 @@ public class StructureImageExtractor {
 								!bnn.getAlias().contains("O") || 
 								!bnn.getAlias().contains("H")
 								){
+							if(oat.getAlias()!=null && oat.getAlias().contains("O")){
+								
+							}else{
+								oat.setSymbol("Cl");	
+							}
+							
+						}
+					});;
+					
+				});
+				;
+		}
+		
+		if(HEMI_ACE_TO_CARB){
+			List<ShapeWrapper> ocrMeaningfulp=ocrMeaningfulT;
+			ctab.getNodes().stream()
+				.filter(n->!n.isInvented())
+				.filter(n->n.getSymbol().equals("O"))
+				.filter(n->n.getEdgeCount()==1)
+				.filter(n->n.getEdges().get(0).getOrder()==1)
+				.map(n->Tuple.of(n,n.getNeighborNodes().get(0).k()))
+				.filter(t->t.v().getSymbol().equals("C"))
+				.filter(t->t.v().getValanceTotal()==3)
+				.filter(t->t.v().getNeighborNodes().stream().map(tn->tn.k()).filter(nn->nn.getSymbol().equals("O")).count()==2)
+				.map(t->t.k())
+				.forEach(oat->{
+					ocrMeaningfulp.stream().filter(qs->qs.contains(oat.getPoint()))
+					.findAny()
+					.ifPresent(ss->{
+						String m = bestGuessOCR.get(ss);
+						BranchNode bnn=BranchNode.interpretOCRStringAsAtom2(m);
+						if(
+								!bnn.getAlias().contains("O") || 
+								!bnn.getAlias().contains("H")
+								){
+							oat.getEdges().get(0).setOrder(2);
+						}
+					});;
+					
+				});
+				;
+		}
+		
+		if(EXPLICIT_METHYL_CHANGE_TO_PEPTIDE_ENOL){
+			ctab.getNodes().stream()
+				.filter(n->!n.isInvented())
+				.filter(n->n.getSymbol().equals("C"))
+				.filter(n->n.getEdgeCount()==1)
+				.filter(n->n.getEdges().get(0).getOrder()==1)
+				.map(n->Tuple.of(n,n.getNeighborNodes().get(0).k()))
+				.filter(t->t.v().getSymbol().equals("C"))
+				.filter(t->t.v().getValanceTotal()==4)
+				.filter(t->t.v().getNeighborNodes().stream().filter(tn->tn.v().getOrder()==2).map(tn->tn.k()).filter(nn->nn.getSymbol().equals("N")).count()==1)
+				.map(t->t.k())
+				.forEach(oat->{
+					bestGuessOCR.keySet()
+							.stream().filter(qs->qs.contains(oat.getPoint()))
+					.findAny()
+					.ifPresent(ss->{
+						String m = bestGuessOCR.get(ss);
+						if(m.equals("\\")|| m.equals("/")){
+							return;
+						}
+						BranchNode bnn=BranchNode.interpretOCRStringAsAtom2(m);
+//						if(
+////								!bnn.getAlias().contains("O") || 
+//								!bnn.getAlias().contains("H")
+//								){
+						if(m.contains("O") || m.contains("o") || bnn == null || bnn.getAlias().contains("O")){
+							oat.setSymbol("O");
+						}
+//						}
+					});;
+					
+				});
+				;
+		}
+		
+		if(EXPLICIT_ALKENE_TO_CARBONYL){
+			ctab.getNodes().stream()
+				.filter(n->!n.isInvented())
+				.filter(n->n.getSymbol().equals("C"))
+				.filter(n->n.getEdgeCount()==1)
+				.filter(n->n.getEdges().get(0).getOrder()==2)
+				.map(n->Tuple.of(n,n.getNeighborNodes().get(0).k()))
+				.filter(t->t.v().getSymbol().equals("C"))
+				.filter(t->t.v().getValanceTotal()==4)
+				.filter(t->t.v().getNeighborNodes().stream().filter(tn->tn.v().getOrder()==1).map(tn->tn.k()).filter(nn->nn.getSymbol().equals("O")).count()==1) //esters and COOH
+				.map(t->t.k())
+				.forEach(oat->{
+					bestGuessOCR.keySet()
+							.stream().filter(qs->qs.growShapeNPoly(ctab.getAverageBondLength()*0.2, 6).contains(oat.getPoint()))
+					.findAny()
+					.ifPresent(ss->{
+						String m = bestGuessOCR.get(ss);
+						if(m.equals("\\")|| m.equals("/")){
+							return;
+						}
+						
+						BranchNode bnn=BranchNode.interpretOCRStringAsAtom2(m);
+						if(m.contains("O") || m.contains("o") || bnn == null || bnn.getAlias().contains("O")){
+							oat.setSymbol("O");
+						}
+					});;
+					
+				});
+				;
+		}
+		
+
+		if(EXPLICIT_METHYL_TO_CL){
+			ctab.getNodes().stream()
+				.filter(n->!n.isInvented())
+				.filter(n->n.getSymbol().equals("C"))
+				.filter(n->n.getEdgeCount()==1)
+				.filter(n->n.getEdges().get(0).getOrder()==1)
+				.map(n->Tuple.of(n,n.getNeighborNodes().get(0).k()))
+				.filter(t->t.v().getSymbol().equals("C"))
+				.filter(t->t.v().getValanceTotal()==4)
+				.filter(t->t.v().getNeighborNodes().stream().filter(tn->tn.v().getOrder()==2).map(tn->tn.k()).filter(nn->nn.getSymbol().equals("C")).count()==1)
+				.map(t->t.k())
+				.forEach(oat->{
+					bestGuessOCR.keySet()
+							.stream().filter(qs->qs.contains(oat.getPoint()))
+					.findAny()
+					.ifPresent(ss->{
+						String m = bestGuessOCR.get(ss);
+						if(m.equals("\\")|| m.equals("/")){
+							return;
+						}
+						BranchNode bnn=BranchNode.interpretOCRStringAsAtom2(m);
+						if( (bnn!=null && bnn.getSymbol().equals("C") && (bnn.getAlias()==null || !bnn.getAlias().contains("H")) ) ||
+							(bnn==null && (m.contains("C") || m.contains("c") ) )	
+								){
 							oat.setSymbol("Cl");
 						}
 					});;
@@ -6203,12 +6438,206 @@ public class StructureImageExtractor {
 				;
 		}
 		
+		if(ELEVATE_NITROGENS){
+			ctab.getNodes().stream()
+//				.filter(n->!n.isInvented())
+				.filter(n->n.getSymbol().equals("C"))
+				.filter(n->n.getValanceTotal()<=3)
+				.forEach(oat->{
+					bestGuessOCR.keySet()
+							.stream().filter(qs->qs.growShapeNPoly(ctab.getAverageBondLength()*0.1, 6).contains(oat.getPoint()))
+							.filter(ss->ss.getArea()> (ctab.getAverageBondLength()*0.15)*(ctab.getAverageBondLength()*0.15))
+					.forEach(ss->{
+						
+						String m = bestGuessOCR.get(ss);
+						if(m.contains("M") || m.contains("N") || m.contains("h") || m.contains("H")|| m.contains("g")|| (m.contains("r") && m.length()>1) || m.contains("e")){
+							if((m.contains("O") || m.contains("o")) && oat.getValanceTotal()<2){
+								
+							}else{
+								oat.setSymbol("N");
+							}
+						}
+					});;
+					
+				});
+			
+			ctab.getNodes().stream()
+//			.filter(n->!n.isInvented())
+			.filter(n->n.getSymbol().equals("F"))
+			.filter(n->n.getValanceTotal()>1)
+			.forEach(oat->{
+				bestGuessOCR.keySet()
+						.stream().filter(qs->qs.growShapeNPoly(ctab.getAverageBondLength()*0.1, 6).contains(oat.getPoint()))
+				.forEach(ss->{
+					String m = bestGuessOCR.get(ss);
+					if(m.contains("M") || m.contains("N") || m.contains("1")){
+							oat.setSymbol("N");
+					}
+				});;
+				
+			});
+				;
+		}
+		
+//		ctab.getRings()
+//		.stream()
+//		.filter(r->ShapeWrapper.of(r.getConvexHull()).getArea()<ctab.getAverageBondLength())
+		
+		
+		if(ELEVATE_OXYGENS){
+			ctab.getNodes().stream()
+//				.filter(n->!n.isInvented())
+				.filter(n->n.getSymbol().equals("C"))
+				.filter(n->n.getValanceTotal()<=2)
+				.forEach(oat->{
+					bestGuessOCR.keySet()
+							.stream().filter(qs->qs.growShapeNPoly(ctab.getAverageBondLength()*0.3, 6).contains(oat.getPoint()))
+					.forEach(ss->{
+						String m = bestGuessOCR.get(ss);
+						BranchNode bnn=BranchNode.interpretOCRStringAsAtom2(m);
+						
+						if((bnn!=null && bnn.getSymbol().equals("O")) || m.contains("O") || m.contains("o") || m.contains("`")){
+//							System.out.println("Setting OH");
+							oat.setSymbol("O");
+						}
+					});;
+					
+				});
+				;
+		}
+		if(killsmallocr){
+			ConnectionTable ct=ctab.cloneTab();
+			
+			ct.mergeNodesCloserThan(ctab.getAverageBondLength()*0.5);
+			if(ct.getNodes().size()<ctab.getNodes().size()){
+				killsmallocr=false;
+				startloop=true;
+			}
+			
+			
+		}
+	
+		if(FORCE_MERGE_SMALL_RINGS){
+			
+			ctab.getRings()
+		    .stream()
+		    .filter(r->r.size()<5)
+		    .forEach(r->{
+		    	ShapeWrapper actualRing = ShapeWrapper.of(r.getConvexHull());
+		    	
+		    	Point2D center=actualRing.centerOfMass();
+		    	Shape p=GeomUtil.convexHull2(GeomUtil.makeNPolyCenteredAt(new Point2D.Double(0,0), r.size(), 100));
+		    	//Shape p2=GeomUtil.convexHull2(GeomUtil.makeNPolyCenteredAt(center, 6, ctab.getAverageBondLength()));
+		    	Point2D anchor = r.getNodes().stream()
+		    			          .map(n->Tuple.of(n, n.getPoint().distanceSq(center)).withVComparator())
+		    			          .max(Comparator.naturalOrder())
+		    			          .map(t->t.k().getPoint())
+		    			          .orElse(null);
+		    	Line2D nline = new Line2D.Double(center,anchor);
+		    	AffineTransform at=GeomUtil.getTransformFromLineToLine(new Line2D.Double(new Point2D.Double(0,0),new Point2D.Double(100,0)),nline,false);
+		    	Shape ns=at.createTransformedShape(p);
+		    	
+	//	    	double ll=GeomUtil.length(nline)*0.02;
+		    	
+		    	double tol=ctab.getAverageBondLength()*0.2;
+		    	
+		    	
+		    	Point2D[] verts2 = GeomUtil.vertices(ns);
+		    	
+		    	boolean looksbad = r.getNodes()
+		    	 .stream()
+		    	 .map(n->{
+		    		double dd=Arrays.stream(verts2)
+		    		      .map(v->Tuple.of(v, v.distanceSq(n.getPoint())).withVComparator())
+		    		      .min(Comparator.naturalOrder())
+		    		      .map(t->t.v())
+		    		      .orElse(0.0);
+		    		return dd;
+		    	 })
+		    	 .filter(d->d<tol)
+		    	 .findAny()
+		    	 .isPresent();
+		    	
+		    	if(looksbad){
+		    		//idk?
+//		    		System.out.println("Looks bad!!!");
+		    		ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*0.2);
+					ctab.standardCleanEdges();	
+		    	}
+		    	
+		    				    	
+		    });
+		}
+		
+		if(ELEVATE_FLOURINE){
+			double avg=ctab.getAverageBondLength();
+			ctab.getEdges()
+			.stream()
+			.filter(e->e.getEdgeLength()<avg*0.8)
+			.filter(e->!e.isRingEdge())
+			.filter(e->e.getNeighborEdges().stream().filter(ee->ee.isRingEdge()).findAny().isPresent())
+			.flatMap(e->e.streamNodes().filter(n->n.getEdgeCount()==1))
+			.filter(n->n.getSymbol().equals("C"))
+			.forEach(n->{
+//				System.out.println("FOUND");
+				//small terminal methyl, probably missing a link to something
+				bestGuessOCR.keySet()
+				.stream().filter(qs->qs.growShapeNPoly(ctab.getAverageBondLength()*0.5, 6).contains(n.getPoint()))
+				.map(bs->bestGuessOCR.get(bs))
+				.filter(bs->!bs.contains("\\"))
+				.filter(bs->!bs.contains("-"))
+				.filter(bs->!bs.contains("/"))
+				.findFirst()
+				.ifPresent(oo->{
+//					System.out.println("Found shape");
+					if(ELEVATE_FLOURINE){
+						BranchNode bnn=BranchNode.interpretOCRStringAsAtom2(oo);
+						String alt = "";
+						if(bnn!=null){
+							alt=bnn.getSymbol()+bnn.getAlias();
+						}
+						
+						if(oo.contains("I") || oo.contains("F") || alt.contains("F") || alt.contains("I")){
+							n.setSymbol("F");
+						}
+						
+					}
+				});
+				;
+				
+			});
+			
+			;
+			
+		}
+		
+		if(TURN_SMALL_DOUBLE_BOND_TO_N){
+			double avg=ctab.getAverageBondLength();
+			ctab.getEdges()
+			.stream()
+			.filter(e->e.getEdgeLength()<avg*0.4)
+			.filter(e->e.getOrder()==2)
+			.filter(e->e.streamNodes().filter(n->n.getSymbol().equals("C")).count()==2)
+			.filter(e->e.streamNodes().filter(n->n.getEdgeCount()<3).count()==2)
+			.flatMap(e->e.streamNodes().filter(n->n.getEdgeCount()==1))
+			.collect(Collectors.toList())
+			.forEach(n->{
+				//probably an N
+				n.getNeighborNodes().get(0).k().setSymbol("N");
+				ctab.removeNodeAndEdges(n);
+			});
+			ctab.standardCleanEdges();
+			
+		}
 		
 		if(FORCE_FINAL_MERGE){
-			ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*0.2);
+			ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*0.05);
 			ctab.standardCleanEdges();	
 		}
+		
+		
 		if(DEBUG)logState(60,"set aromatic bonds");		
+		}
 	}
 	
 	

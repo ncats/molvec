@@ -7,6 +7,10 @@ import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.DoubleSummaryStatistics;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Optional;
@@ -21,6 +25,8 @@ import gov.nih.ncats.molvec.MolvecResult;
 import gov.nih.ncats.molvec.internal.algo.BranchNode;
 import gov.nih.ncats.molvec.internal.algo.StructureImageExtractor;
 import gov.nih.ncats.molvec.internal.algo.experimental.ChemFixer.ChemFixResult;
+import gov.nih.ncats.molvec.internal.algo.experimental.ChemFixer.FixType;
+import gov.nih.ncats.molvec.internal.algo.experimental.ChemFixer.KnownMissingBond;
 import gov.nih.ncats.molvec.internal.image.ImageUtil;
 import gov.nih.ncats.molvec.ui.SCOCR;
 import gov.nih.ncats.molvec.ui.StupidestPossibleSCOCRSansSerif;
@@ -28,6 +34,7 @@ import gov.nih.ncats.molwitch.Chemical;
 
 public class ModifiedMolvecPipeline {
 
+	public static boolean RESIZE=true;
 	private static Set<String> hetset = Stream.of("N", "Br", "F").collect(Collectors.toSet());
 	private static Set<String> badset = Stream.of("B").collect(Collectors.toSet());
 	
@@ -36,9 +43,14 @@ public class ModifiedMolvecPipeline {
 
 				.replace("ONN", "OH")
 				.replace("OH2", "CH2")
-				.replace("OI", "Cl")
-				.replace("Ol", "Cl")
 				.replace("Fa", "HN")
+				.replace("FA", "HN")
+				.replace("lg3", "HO")
+				.replace("Ig3", "HO")
+				
+
+				.replace("lg", "N")
+				.replace("Ig", "N")
 
 				.replace("c4t", "OH")
 				.replace("oIt", "OH")
@@ -66,6 +78,7 @@ public class ModifiedMolvecPipeline {
 				.replace("IH3", "HO")
 				.replace("O83", "HO")
 				.replace("oI", "OH")
+				.replace("r3H", "OH")
 				.replace("Io", "HO")
 				.replace("NF", "NH")
 				.replace("l1", "H")
@@ -79,6 +92,7 @@ public class ModifiedMolvecPipeline {
 				.replace("ot", "OH")
 				.replace("o1", "OH")
 				.replace("BP", "Br")
+				.replace("u", "O")
 
 				.replace("r4I", "NH2")
 				.replace("r4l", "NH2")
@@ -101,8 +115,24 @@ public class ModifiedMolvecPipeline {
 				.replace("oN", "OH")
 				.replace("Hc", "HO")
 				.replace("cH", "OH")
-				.replace("c3", "Cl")
+				.replace("3N3", "HO")
 				.replace("c8t", "OH")
+				.replace("rat", "OH")
+				.replace("OOI", "OH")
+				.replace("OOl", "OH")
+				.replace("orI", "OH")
+				.replace("orl", "OH")
+				.replace("c3", "Cl")
+				.replace("OI", "Cl")
+				.replace("Ol", "Cl")
+				.replace("Ng", "N")
+				.replace("FH3", "HO")
+				.replace("Mt", "NH2")
+				.replace("vo", "NH2")
+				.replace("h5", "NH2")
+				.replace("7g", "N")
+				.replace("NO", "HO")	
+				.replace("FI", "H")
 				.replace("5", "S");
 	};
 	
@@ -145,6 +175,15 @@ public class ModifiedMolvecPipeline {
 			"S	MjB4MjAKMTIuMHgxNC4wCjYsNCw0LDQsNCw0LDQsNCw0LDQsNiw0LDIsMCwwLDAsMiwyLDIsMAo2LDQsNCw0LDQsNCw0LDQsNCw0LDYsNCwyLDAsMCwwLDIsMiwyLDAKMywyLDIsMiwyLDIsMiwyLDIsMiwzLDIsMSwwLDAsMCwxLDEsMSwwCjYsNCw0LDQsNCw0LDQsNCw0LDQsNiw0LDIsMCwwLDAsMiwyLDIsMAo2LDQsNCwzLDMsMiwzLDMsNCw0LDYsNCwyLDAsMCwwLDEsMSwxLDAKNiw0LDQsMywzLDIsMywzLDQsNCw2LDQsMiwwLDAsMCwxLDEsMSwwCjYsNCw0LDIsMiwwLDIsMiw0LDQsNiw0LDIsMCwwLDAsMCwwLDAsMAozLDIsMiwxLDEsMCwxLDEsMiwyLDMsMiwxLDAsMCwwLDAsMCwwLDAKNiw0LDQsMiwyLDAsMiwyLDQsNCw2LDQsMywyLDIsMSwwLDAsMCwwCjYsNCw0LDIsMiwwLDIsMiw0LDQsNiw0LDQsNCw0LDIsMCwwLDAsMAo2LDQsNCwyLDIsMCwyLDIsNCw0LDYsNCw0LDQsNCwyLDAsMCwwLDAKNiw0LDQsMiwyLDAsMiwyLDQsNCw2LDQsNCw0LDQsMywyLDIsMSwwCjMsMiwyLDEsMSwwLDEsMSwyLDIsMywyLDIsMiwyLDIsMiwyLDEsMAo1LDQsNCwyLDIsMCwyLDIsNCw0LDYsNCw0LDQsNCw0LDQsNCwyLDAKMiwyLDIsMSwxLDAsMSwxLDIsMiwzLDIsMyw0LDQsNCw0LDQsMiwwCjIsMiwyLDEsMSwwLDEsMSwyLDIsMywyLDMsNCw0LDQsNCw0LDIsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwyLDQsNCw0LDQsNCwyLDAKMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMSwyLDIsMiwyLDIsMSwwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDEsMiwyLDIsMiwyLDEsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDA",
 			"e	MjB4MjAKMjIuMHgxOC4wCjMsNiw5LDksOSw5LDksNiw2LDYsOSw5LDksOSw5LDgsNyw0LDIsMAo1LDcsOSw5LDksOSw5LDYsNiw1LDcsNiw2LDcsOCw5LDksNiwzLDAKNyw4LDksOSw5LDksOSw2LDYsNCw1LDMsMyw1LDcsOSw5LDYsMywwCjksOSw4LDcsNyw4LDksNiw2LDMsMywwLDAsMyw2LDksOSw2LDMsMAo4LDksNyw1LDUsNyw5LDYsNiwzLDMsMCwwLDMsNiw5LDksNiwzLDAKNiw4LDcsNSw1LDcsOSw2LDYsNCw1LDMsMyw1LDcsOSw5LDYsMywwCjQsNyw4LDcsNyw4LDksNiw2LDUsNyw2LDYsNyw4LDksOSw2LDMsMAozLDYsOSw5LDksOSw5LDYsNiw2LDksOSw5LDksOSw5LDksNiwzLDAKMyw2LDksOSw5LDksOSw2LDYsNiw5LDksOSw5LDksOSw5LDYsMywwCjIsNCw2LDYsNiw2LDYsNCw0LDUsOCw5LDksOCw3LDYsNiw0LDIsMAoxLDIsMywzLDQsNSw2LDQsNCw1LDgsOSw5LDgsNyw2LDYsNCwyLDAKMCwwLDAsMCwyLDQsNiw0LDQsNSw4LDksOSw4LDcsNiw2LDQsMiwwCjAsMCwwLDAsMyw2LDksNiw2LDYsOSw5LDksOSw5LDksOSw2LDMsMAowLDAsMCwwLDMsNiw5LDYsNiw2LDksOSw5LDksOSw5LDksNiwzLDAKMCwwLDEsMiw1LDcsOSw2LDYsNSw3LDYsNiw2LDYsNiw2LDQsMiwwCjAsMCwyLDQsNyw4LDksNiw2LDQsNSwzLDMsMywzLDMsMywyLDEsMAowLDAsMyw2LDksOSw4LDUsNCwyLDIsMCwwLDAsMCwwLDAsMCwwLDAKMCwwLDMsNiw5LDksNyw0LDIsMSwxLDAsMCwwLDAsMCwwLDAsMCwwCjAsMCwzLDYsOSw5LDYsMywwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMAowLDAsMyw2LDksOSw2LDMsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDA",
 			"e	MjB4MjAKMjAuMHgxNi4wCjksOSw2LDYsNiw5LDksNiw2LDYsOSw5LDYsNiw2LDksOSw2LDMsMAo5LDksNiw2LDYsOSw5LDYsNiw2LDksOSw2LDYsNiw5LDksNiwzLDAKOSw5LDYsNSw0LDcsOCw2LDYsNiw4LDcsNCw0LDQsNiw2LDQsMiwwCjksOSw2LDQsMiw1LDcsNiw2LDYsNyw1LDIsMiwyLDMsMywyLDEsMAo5LDksNiw0LDIsNSw3LDYsNiw2LDYsMywwLDEsMiwzLDMsMiwxLDAKOSw5LDYsNSw0LDcsOCw2LDYsNiw2LDMsMCwyLDQsNiw2LDQsMiwwCjksOSw2LDYsNiw5LDksNiw2LDYsNyw1LDIsNCw2LDksOSw2LDMsMAo4LDksNiw2LDYsOSw5LDYsNiw2LDgsNyw0LDUsNiw5LDksNiwzLDAKNSw2LDQsNCw0LDYsNiw0LDUsNiw5LDksNiw2LDYsOCw3LDQsMiwwCjIsMywyLDIsMiwzLDMsMiw0LDYsOSw5LDYsNiw2LDcsNSwyLDEsMAowLDAsMCwxLDIsMywzLDIsNCw2LDksOSw2LDYsNiw3LDUsMiwxLDAKMCwwLDAsMiw0LDYsNiw0LDUsNiw5LDksNiw2LDYsOCw3LDQsMiwwCjAsMCwwLDMsNiw5LDksNiw2LDYsOSw5LDYsNiw2LDksOSw2LDMsMAowLDAsMCwzLDYsOSw5LDYsNiw2LDksOSw2LDYsNiw5LDksNiwzLDAKMCwwLDAsMyw2LDksOSw2LDUsNCw2LDYsNCw0LDQsNiw2LDQsMiwwCjAsMCwwLDMsNiw5LDksNiw0LDIsMywzLDIsMiwyLDMsMywyLDEsMAowLDAsMCwzLDYsOSw5LDYsMywwLDAsMCwwLDAsMCwwLDAsMCwwLDAKMCwwLDAsMyw2LDksOSw2LDMsMCwwLDAsMCwwLDAsMCwwLDAsMCwwCjAsMCwwLDMsNiw5LDksNiwzLDAsMCwwLDAsMCwwLDAsMCwwLDAsMAowLDAsMCwzLDYsOSw5LDYsMywwLDAsMCwwLDAsMCwwLDAsMCwwLDA",
+			"N	MjB4MjAKMTQuMHgzMi4wCjksOSw5LDksOSw5LDksOSw5LDksOSw5LDksOSw5LDksOSw5LDksOQo2LDYsNiw2LDYsNiw2LDYsNiw2LDYsNiw2LDYsNiw2LDYsNiw2LDYKNiw2LDYsNiw2LDYsNiw2LDYsNiw2LDYsNiw2LDYsNiw2LDYsNiw2CjQsNSw2LDYsNSw0LDMsMyw0LDUsNiw2LDYsNSw0LDMsMywzLDMsMwo0LDUsNiw2LDUsNCwzLDMsNCw1LDYsNiw2LDUsNCwzLDMsMywzLDMKMiw0LDYsNiw0LDIsMCwwLDIsNCw2LDYsNiw0LDIsMCwwLDAsMCwwCjEsMiwzLDMsMiwxLDAsMCwxLDIsNCw1LDYsNSw0LDIsMSwwLDAsMAoxLDIsMywzLDIsMSwwLDAsMSwyLDQsNSw2LDUsNCwyLDEsMCwwLDAKMCwwLDAsMCwwLDAsMCwwLDAsMCwyLDQsNiw2LDYsNCwyLDAsMCwwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMSwyLDMsNCw1LDUsNCwzLDMsMwowLDAsMCwwLDAsMCwwLDAsMCwwLDEsMiwzLDUsNyw4LDcsNiw2LDYKMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwyLDQsNiw2LDYsNiw2CjAsMCwwLDAsMCwwLDEsMiwyLDIsMiwzLDMsNCw1LDYsNiw2LDYsNgowLDAsMCwwLDAsMCwxLDMsMyw0LDQsNiw2LDYsNiw2LDYsNiw2LDYKMCwwLDAsMCwwLDAsMSwzLDMsNCw0LDYsNiw2LDYsNiw2LDYsNiw2CjAsMCwwLDAsMCwwLDAsMSwxLDMsNCw2LDYsNiw2LDYsNiw2LDYsNgozLDMsMywzLDMsMywzLDMsMiwzLDQsNiw2LDYsNiw2LDYsNiw2LDYKMywzLDMsMywzLDMsMywzLDIsMyw0LDYsNiw2LDYsNiw2LDYsNiw2CjMsMywzLDMsMywzLDMsMywyLDIsMiwzLDMsMywzLDMsMywzLDMsMwowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDA",
+			"\\	MjB4MjAKMTYuMHgyMi4wCjksOSw5LDksOSw5LDksNyw1LDMsMywzLDMsMywyLDEsMCwwLDAsMAo5LDksOSw5LDksOSw5LDgsNyw2LDYsNiw2LDYsNCwyLDAsMCwwLDAKNiw2LDYsNiw2LDYsNiw2LDYsNiw2LDYsNiw2LDQsMiwwLDAsMCwwCjMsMywzLDMsMywzLDMsNCw1LDYsNiw2LDYsNiw0LDIsMCwwLDAsMAowLDAsMCwwLDAsMCwwLDIsNCw2LDYsNiw2LDYsNCwyLDAsMCwwLDAKMCwwLDAsMCwwLDAsMCwyLDQsNiw2LDYsNyw4LDcsNSwyLDEsMCwwCjAsMCwwLDAsMCwwLDAsMSwyLDMsMywzLDUsNyw4LDcsNCwyLDAsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwyLDQsNiw2LDQsMiwwLDAKMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMiw0LDYsNiw0LDIsMCwwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDIsNCw2LDYsNCwyLDAsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwzLDYsOSw5LDYsMywwLDAKMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMyw2LDksOSw2LDMsMCwwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDIsNCw2LDYsNCwyLDAsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwxLDIsNCw1LDUsNCwzLDMKMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDIsNCw2LDYsNiw2CjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwzLDYsOSw5LDksOQowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMyw2LDksOSw5LDkKMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDIsNCw2LDYsNiw2CjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwxLDIsMywzLDMsMwowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDA",
+			"\\	MjB4MjAKMTQuMHgxNi4wCjksOSw2LDYsNiw5LDksNiw2LDYsOSw5LDYsMywwLDAsMCwwLDAsMAo2LDYsNCw0LDQsNiw2LDQsNCw0LDYsNiw0LDIsMCwwLDAsMCwwLDAKNSw2LDQsNCw0LDYsNiw0LDQsNCw2LDYsNCwyLDAsMCwwLDAsMCwwCjIsMywyLDIsMiwzLDMsMiwzLDQsNiw2LDQsMywyLDIsMSwwLDAsMAoyLDMsMiwyLDIsMywzLDIsMyw0LDYsNiw0LDMsMiwyLDEsMCwwLDAKMCwwLDAsMCwwLDAsMCwwLDIsNCw2LDYsNCw0LDQsNCwyLDAsMCwwCjAsMCwwLDAsMCwwLDAsMCwxLDIsNCw1LDQsNCw0LDQsMiwwLDAsMAowLDAsMCwwLDAsMCwwLDAsMSwyLDQsNSw0LDQsNCw0LDIsMCwwLDAKMCwwLDAsMCwwLDAsMCwwLDAsMCwyLDQsNCw0LDQsNCwyLDAsMCwwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMiw0LDQsNCw0LDUsNCwyLDEsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDMsNiw2LDYsNiw4LDcsNCwyLDAKMCwwLDAsMCwwLDAsMCwwLDAsMCwyLDQsNCw0LDQsNiw2LDQsMiwwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMSwyLDIsMyw0LDYsNiw0LDIsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDIsNCw2LDYsNCwyLDAKMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwyLDQsNiw2LDQsMiwwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMiw0LDYsNiw0LDIsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDIsNCw2LDYsNCwyLDAKMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwyLDQsNiw2LDQsMiwwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMSwyLDMsMywyLDEsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDA",
+			"N	MjB4MjAKMTIuMHgxNC4wCjYsNCw0LDQsNCw0LDQsNCw0LDQsNiw0LDQsNCw0LDQsNCw0LDIsMAo2LDQsNCw0LDQsNCw0LDQsNCw0LDYsNCw0LDQsNCw0LDQsNCwyLDAKMywyLDIsMiwyLDIsMiwyLDIsMiwzLDIsMiwyLDIsMiwyLDIsMSwwCjYsNCw0LDQsNCw0LDQsNCw0LDQsNiw0LDQsNCw0LDQsNCw0LDIsMAo2LDQsNCw0LDQsNCw0LDQsNCw0LDYsNCwzLDIsMiwyLDIsMiwxLDAKNiw0LDQsNCw0LDQsNCw0LDQsNCw2LDQsMywyLDIsMiwyLDIsMSwwCjYsNCw0LDQsNCw0LDQsNCw0LDQsNiw0LDIsMCwwLDAsMCwwLDAsMAozLDIsMiwyLDIsMiwyLDIsMiwyLDMsMiwxLDAsMCwwLDAsMCwwLDAKMywyLDIsMywzLDQsNCw0LDQsNCw2LDQsMywyLDIsMiwyLDIsMSwwCjAsMCwwLDIsMiw0LDQsNCw0LDQsNiw0LDQsNCw0LDQsNCw0LDIsMAowLDAsMCwyLDIsNCw0LDQsNCw0LDYsNCw0LDQsNCw0LDQsNCwyLDAKMywyLDIsMywzLDQsNCw0LDQsNCw2LDQsNCw0LDQsNCw0LDQsMiwwCjMsMiwyLDIsMiwyLDIsMiwyLDIsMywyLDIsMiwyLDIsMiwyLDEsMAo2LDQsNCw0LDQsNCw0LDQsNCw0LDYsNCw0LDQsNCw0LDQsNCwyLDAKNiw0LDQsNCw0LDQsNCw0LDQsNCw2LDQsNCw0LDQsNCw0LDQsMiwwCjYsNCw0LDQsNCw0LDQsNCw0LDQsNiw0LDQsNCw0LDQsNCw0LDIsMAo2LDQsNCw0LDQsNCw0LDQsNCw0LDYsNCw0LDQsNCw0LDQsNCwyLDAKMywyLDIsMiwyLDIsMiwyLDIsMiwzLDIsMiwyLDIsMiwyLDIsMSwwCjMsMiwyLDIsMiwyLDIsMiwyLDIsMywyLDIsMiwyLDIsMiwyLDEsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDA",
+			"N	MjB4MjAKMzQuMHgxNi4wCjcsOCw2LDYsNiw5LDksNiw2LDYsOCw3LDQsNCw0LDYsNiw0LDIsMAo0LDUsNCw0LDQsNyw4LDYsNiw2LDgsNyw0LDQsNCw1LDQsMiwxLDAKNCw1LDQsNCw0LDcsOCw2LDYsNiw4LDcsNCw0LDQsNSw0LDIsMSwwCjYsNiw0LDQsNCw3LDgsNiw2LDYsOSw5LDYsNiw2LDgsNyw0LDIsMAo5LDksNiw2LDYsOSw5LDYsNiw2LDksOSw2LDYsNiw5LDksNiwzLDAKOSw5LDYsNiw2LDksOSw2LDYsNiw5LDksNiw2LDYsOSw5LDYsMywwCjksOSw2LDYsNiw5LDksNiw2LDYsOSw5LDYsNiw2LDksOSw2LDMsMAo2LDYsNCw0LDQsNyw4LDYsNiw2LDgsNyw0LDQsNCw2LDYsNCwyLDAKMywzLDIsMiwyLDUsNyw2LDYsNiw3LDUsMiwyLDIsMywzLDIsMSwwCjAsMCwwLDEsMiw1LDcsNiw2LDYsNiwzLDAsMCwwLDAsMCwwLDAsMAozLDMsMiwzLDQsNyw4LDYsNiw2LDcsNSwyLDIsMiwzLDMsMiwxLDAKNiw2LDQsNSw2LDksOSw2LDYsNiw4LDcsNCw0LDQsNiw2LDQsMiwwCjksOSw2LDYsNiw5LDksNiw2LDYsOSw5LDYsNiw2LDksOSw2LDMsMAo2LDYsNCw0LDQsNiw2LDQsNCw0LDYsNiw0LDUsNiw5LDksNiwzLDAKMywzLDIsMiwyLDMsMywyLDIsMiwzLDMsMiw0LDYsOSw5LDYsMywwCjAsMCwwLDAsMCwxLDIsMiwyLDIsMywzLDIsNCw2LDksOSw2LDMsMAowLDAsMCwwLDAsMiw0LDQsNCw0LDYsNiw0LDQsNCw2LDYsNCwyLDAKMCwwLDAsMCwwLDMsNiw2LDYsNiw5LDksNiw0LDIsMywzLDIsMSwwCjAsMCwwLDAsMCwzLDYsNiw2LDYsOSw5LDYsMywwLDAsMCwwLDAsMAowLDAsMCwwLDAsMyw2LDYsNiw2LDksOSw2LDMsMCwwLDAsMCwwLDA",
+			"O	MjB4MjAKMTIuMHgxNi4wCjYsNiw0LDIsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMiwyLDIsMAo2LDYsNCwyLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDIsMiwyLDAKMywzLDIsMSwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwxLDEsMSwwCjYsNiw0LDIsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMiwyLDIsMAo2LDYsNCwyLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDEsMSwxLDAKNiw2LDQsMiwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwxLDEsMSwwCjYsNiw0LDIsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMAozLDMsMiwxLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAKNiw2LDQsMiwwLDAsMCwwLDAsMCwwLDAsMCwxLDIsMywzLDIsMSwwCjYsNiw0LDIsMCwwLDAsMCwwLDAsMCwwLDAsMiw0LDYsNiw0LDIsMAo2LDYsNCwyLDAsMCwwLDAsMCwwLDAsMCwwLDIsNCw2LDYsNCwyLDAKNiw2LDQsMywyLDMsMywyLDIsMiwzLDMsMiwzLDQsNiw2LDQsMiwwCjMsMywyLDIsMiwzLDMsMiwyLDIsMywzLDIsMiwyLDMsMywyLDEsMAo1LDYsNCw0LDQsNiw2LDQsNCw0LDYsNiw0LDQsNCw2LDYsNCwyLDAKMyw1LDQsNCw0LDYsNiw0LDQsNCw2LDYsNCw0LDQsNSw0LDIsMSwwCjMsNSw0LDQsNCw2LDYsNCw0LDQsNiw2LDQsNCw0LDUsNCwyLDEsMAoyLDQsNCw0LDQsNiw2LDQsNCw0LDYsNiw0LDQsNCw0LDIsMCwwLDAKMSwyLDIsMiwyLDMsMywyLDIsMiwzLDMsMiwyLDIsMiwxLDAsMCwwCjEsMiwyLDIsMiwzLDMsMiwyLDIsMywzLDIsMiwyLDIsMSwwLDAsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDA",
+			"S	MjB4MjAKMTIuMHgxNC4wCjYsNCw0LDIsMiwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMAo2LDQsNCwzLDMsMiwxLDEsMCwwLDAsMCwxLDIsMiwyLDIsMiwxLDAKMywyLDIsMiwyLDIsMSwxLDAsMCwwLDAsMSwyLDIsMiwyLDIsMSwwCjUsNCw0LDQsNCw0LDIsMiwwLDAsMCwwLDIsNCw0LDQsNCw0LDIsMAozLDMsNCw0LDQsNCwzLDMsMiwxLDEsMCwyLDQsNCw0LDQsNCwyLDAKMywzLDQsNCw0LDQsMywzLDIsMSwxLDAsMiw0LDQsNCw0LDQsMiwwCjIsMiw0LDQsNCw0LDQsNCw0LDIsMiwwLDIsNCw0LDQsNCw0LDIsMAoxLDEsMiwyLDIsMiwyLDIsMiwxLDEsMCwxLDIsMiwyLDIsMiwxLDAKMSwxLDIsMywzLDQsNCw0LDQsMiwyLDAsMiw0LDQsNCw0LDQsMiwwCjAsMCwwLDIsMiw0LDQsNCw0LDIsMiwwLDIsNCw0LDQsNCw0LDIsMAowLDAsMCwyLDIsNCw0LDQsNCwyLDIsMCwyLDQsNCw0LDQsNCwyLDAKMCwwLDAsMiwyLDQsNCw0LDQsMyw0LDIsMyw0LDQsNCw0LDQsMiwwCjAsMCwwLDEsMSwyLDIsMiwyLDIsMywyLDIsMiwyLDIsMiwyLDEsMAowLDAsMCwyLDIsNCw0LDQsNCw0LDYsNCw0LDQsNCw0LDQsNCwyLDAKMCwwLDAsMiwyLDQsNCw0LDQsNCw2LDQsNCw0LDQsNCw0LDQsMiwwCjAsMCwwLDIsMiw0LDQsNCw0LDQsNiw0LDQsNCw0LDQsNCw0LDIsMAowLDAsMCwyLDIsNCw0LDQsNCw0LDYsNCw0LDQsNCw0LDQsNCwyLDAKMCwwLDAsMSwxLDIsMiwyLDIsMiwzLDIsMiwyLDIsMiwyLDIsMSwwCjAsMCwwLDEsMSwyLDIsMiwyLDIsMywyLDIsMiwyLDIsMiwyLDEsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDA",
+			"`	MjB4MjAKMjQuMHg1Mi4wCjYsNiw2LDYsNiw2LDYsNiw0LDQsNCw3LDgsOSw5LDksOCw1LDIsMAo5LDksOSw5LDksOSw5LDksNyw3LDcsOSw5LDksOSw5LDksNiwzLDAKOSw5LDksOSw5LDksOSw5LDgsOCw4LDksOSw5LDksOSw5LDYsMywwCjksOSw5LDksOSw5LDksOSw5LDksOSw4LDcsNiw3LDgsOSw3LDUsMwo2LDcsOCw5LDgsNyw2LDYsNyw4LDgsNiw0LDMsNCw2LDgsOCw3LDYKMyw1LDcsOSw3LDUsMywzLDUsNyw3LDQsMSwwLDEsNCw3LDksOSw5CjAsMyw2LDksNiwzLDAsMCwzLDYsNiwzLDAsMCwwLDIsNSw4LDksOQowLDMsNiw5LDYsMywwLDAsMyw2LDYsMywwLDAsMCwxLDQsNyw5LDkKMCwzLDYsOSw2LDMsMCwwLDMsNiw2LDMsMCwwLDAsMCwzLDYsOSw5CjAsMyw2LDksNiwzLDAsMCwzLDYsNiwzLDAsMCwwLDAsMyw2LDksOQowLDMsNiw5LDYsMywwLDAsMyw2LDYsMywwLDAsMCwwLDMsNiw5LDkKMyw1LDcsOSw3LDUsMywyLDQsNiw3LDQsMSwwLDEsMiw1LDcsOSw5CjYsNyw4LDksOCw3LDYsNCw1LDYsOCw1LDIsMCwyLDQsNyw4LDksOQo5LDksOSw5LDksOSw5LDcsNyw3LDksNyw1LDMsNSw3LDksOSw5LDkKOSw5LDksOSw5LDksOSw4LDcsNyw4LDgsNyw2LDcsOCw5LDgsNyw2CjksOSw5LDksOSw5LDksOSw3LDcsNyw5LDksOSw5LDksOSw3LDUsMwo2LDYsNiw2LDYsNiw2LDYsNCw0LDQsNyw4LDksOSw5LDgsNSwyLDAKMywzLDMsMywzLDMsMywzLDIsMiwyLDUsNyw5LDksOSw3LDQsMSwwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwzLDYsOSw5LDksNiwzLDAsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMyw2LDksOSw5LDYsMywwLDA",
+			"L	MjB4MjAKMjIuMHgxOC4wCjgsOSw5LDksOSw5LDgsNSw0LDQsNiw2LDYsNiw2LDQsMiwwLDAsMAo1LDYsNiw2LDYsNiw3LDUsNiw2LDksOSw5LDksOSw2LDMsMCwwLDAKMiwzLDMsMywzLDMsNSw0LDYsNiw5LDksOSw5LDksNiwzLDAsMCwwCjAsMCwwLDAsMCwwLDIsMiw0LDQsNiw2LDYsNyw4LDcsNSwyLDEsMAowLDAsMCwwLDAsMCwxLDEsMiwyLDMsMywzLDUsNyw4LDcsNCwyLDAKMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwzLDYsOSw5LDYsMywwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMyw2LDksOSw2LDMsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDMsNiw5LDksNiwzLDAKMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwzLDYsOSw5LDYsMywwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMyw2LDksOSw2LDMsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDMsNiw5LDksNiwzLDAKMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwzLDYsOSw5LDYsMywwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMyw2LDksOSw2LDMsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDMsNiw5LDksNiwzLDAKMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwzLDYsOSw5LDYsMywwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMyw2LDksOSw2LDMsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDMsNiw5LDksNiwzLDAKMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwzLDYsOSw5LDYsMywwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMyw2LDksOSw2LDMsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDMsNiw5LDksNiwzLDA",
 	};
 	
 	static StupidestPossibleSCOCRSansSerif MOD_OCR = new StupidestPossibleSCOCRSansSerif(additions);
@@ -156,22 +195,93 @@ public class ModifiedMolvecPipeline {
 		MOD_OCR.setAlphabet(alpha);
 	}
 	
+	public static BitSet bs = new BitSet();
+	static{
+		bs.set(0, 30);		
+	}
+	
+	public static void reset(){
+		BranchNode.clearStringInterceptor();		
+		BranchNode._cache.clear();		
+		
+		StructureImageExtractor.OCR_DEFAULT=StructureImageExtractor.OCR_COPY;							//~21.54 -> ~24.33 if commented		
+		StructureImageExtractor.PRE_RESCUE_OCR = true;							//~21.54 -> ~24.71 if commented
+		StructureImageExtractor.ATTEMPT_CROP = true;							//~21.54 -> ~21.55 if commented
+		StructureImageExtractor.FORCE_FINAL_MERGE = false;						//~22.00 -> ~21.75 if commented
+		StructureImageExtractor.KEEP_ALL_LINES=false;  							//~22.00 -> ~23.00 if commented
+		StructureImageExtractor.MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS=6; 	//~22.00 -> ~30.00 if commented
+		StructureImageExtractor.maxCandidateRatioForIntersection=1.5;			//~21.78 -> ~21.79 if commented
+		StructureImageExtractor.OCR_TO_BOND_MAX_DISTANCE=3.0;					//~21.78 -> ~21.54 if commented 
+		StructureImageExtractor.MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.5;         //~21.54 -> ~21.64 if commented
+		StructureImageExtractor.PREFER_OXYGENS=false;							//~21.78 -> ~21.81 if commented
+		StructureImageExtractor.PREFER_FLOURINE=false;
+		StructureImageExtractor.ADD_ORPHANS=false;
+		StructureImageExtractor.PHENOL_TO_CL=false;
+		StructureImageExtractor.HEMI_ACE_TO_CARB=false;
+		StructureImageExtractor.EXPLICIT_METHYL_CHANGE_TO_PEPTIDE_ENOL=false;
+		StructureImageExtractor.EXPLICIT_METHYL_TO_CL=false;
+		StructureImageExtractor.EXPLICIT_ALKENE_TO_CARBONYL=false;
+		StructureImageExtractor.ADD_DETECTED_CHILDREN=true;
+		StructureImageExtractor.ELEVATE_NITROGENS=false;
+		StructureImageExtractor.ELEVATE_OXYGENS=false;
+		StructureImageExtractor.ELEVATE_FLOURINE=false;
+		StructureImageExtractor.FORCE_MERGE_SMALL_RINGS = false;
+		StructureImageExtractor.TURN_SMALL_DOUBLE_BOND_TO_N = false;
+		StructureImageExtractor.FIX_HALOGENS=true;
+		StructureImageExtractor.GREEDY_ADD_EDGES = true;
+		StructureImageExtractor.AGGRESSIVE_REMOVE_SHORT_OCR = false;
+		StructureImageExtractor.OCRcutoffCosineRescue=0.5;
+		StructureImageExtractor.AGGRESSIVE_CONNECT_ATOMS=true;
+
+		StructureImageExtractor.MAX_AREA_TO_STITCH_OCR_SHAPE = 100;
+		StructureImageExtractor.MAX_DISTANCE_BETWEEN_OCR_SHAPES_TO_STITCH = 3;
+	}
 	
 	public static void setup(){
-		BranchNode.setStringInterceptor(converter);								//~21.54 -> ~22.80 if commented		
-		StructureImageExtractor.OCR_DEFAULT=MOD_OCR;							//~21.54 -> ~24.33 if commented		
-		StructureImageExtractor.PRE_RESCUE_OCR = false;							//~21.54 -> ~24.71 if commented
-		StructureImageExtractor.ATTEMPT_CROP = false;							//~21.54 -> ~21.55 if commented
-//		StructureImageExtractor.FORCE_FINAL_MERGE = true;						//~22.00 -> ~21.75 if commented
-		StructureImageExtractor.KEEP_ALL_LINES=true;  							//~22.00 -> ~23.00 if commented
-		StructureImageExtractor.MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS=12; 	//~22.00 -> ~30.00 if commented
-		StructureImageExtractor.maxCandidateRatioForIntersection=1.8;			//~21.78 -> ~21.79 if commented
-//		StructureImageExtractor.OCR_TO_BOND_MAX_DISTANCE=5.0;					//~21.78 -> ~21.54 if commented 
-		StructureImageExtractor.MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.31;         //~21.54 -> ~21.64 if commented
-		StructureImageExtractor.PREFER_OXYGENS=true;							//~21.78 -> ~21.81 if commented
+		if(bs.get(0))BranchNode.setStringInterceptor(converter);								//~21.54 -> ~22.80 if commented		
+		if(bs.get(1))StructureImageExtractor.OCR_DEFAULT=MOD_OCR;								//~21.54 -> ~24.33 if commented		
+		if(bs.get(2))StructureImageExtractor.PRE_RESCUE_OCR = false;							//~21.54 -> ~24.71 if commented
+		if(!bs.get(3))StructureImageExtractor.ATTEMPT_CROP = false;								//~21.54 -> ~21.55 if commented
 		
-		StructureImageExtractor.ADD_ORPHANS=true;
-		StructureImageExtractor.PHENOL_TO_CL=true;
+		//likely this
+		if(bs.get(4))StructureImageExtractor.FORCE_FINAL_MERGE = true;						//~22.00 -> ~21.75 if commented
+		
+		if(bs.get(5))StructureImageExtractor.KEEP_ALL_LINES=true;  							//~22.00 -> ~23.00 if commented
+		if(bs.get(6))StructureImageExtractor.MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS=12; 	//~22.00 -> ~30.00 if commented
+		if(bs.get(7))StructureImageExtractor.maxCandidateRatioForIntersection=1.8;			//~21.78 -> ~21.79 if commented
+		
+		if(!bs.get(8))StructureImageExtractor.OCR_TO_BOND_MAX_DISTANCE=5.0;					//~21.78 -> ~21.54 if commented
+		
+		if(bs.get(9))StructureImageExtractor.MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.31;         //~21.54 -> ~21.64 if commented
+		if(bs.get(10))StructureImageExtractor.PREFER_OXYGENS=true;							//~21.78 -> ~21.81 if commented
+		
+		
+		if(bs.get(11))StructureImageExtractor.PREFER_FLOURINE=true;
+		if(bs.get(12))StructureImageExtractor.ADD_ORPHANS=true;
+		if(bs.get(13))StructureImageExtractor.PHENOL_TO_CL=true;
+		if(bs.get(14))StructureImageExtractor.HEMI_ACE_TO_CARB=true;
+		if(bs.get(15))StructureImageExtractor.EXPLICIT_METHYL_CHANGE_TO_PEPTIDE_ENOL=true;
+		if(bs.get(16))StructureImageExtractor.EXPLICIT_METHYL_TO_CL=true;
+		if(!bs.get(17))StructureImageExtractor.EXPLICIT_ALKENE_TO_CARBONYL=true;
+		if(bs.get(18))StructureImageExtractor.ADD_DETECTED_CHILDREN=false;
+		if(bs.get(19))StructureImageExtractor.ELEVATE_NITROGENS=true;
+		if(bs.get(20))StructureImageExtractor.ELEVATE_OXYGENS=true;
+		if(bs.get(21))StructureImageExtractor.ELEVATE_FLOURINE=true;
+		if(!bs.get(22))StructureImageExtractor.FORCE_MERGE_SMALL_RINGS = true;
+		if(!bs.get(23))StructureImageExtractor.TURN_SMALL_DOUBLE_BOND_TO_N = true;
+		if(bs.get(24))StructureImageExtractor.FIX_HALOGENS=false;
+		
+		if(!bs.get(25))StructureImageExtractor.GREEDY_ADD_EDGES = false;
+		
+		if(bs.get(26))StructureImageExtractor.AGGRESSIVE_REMOVE_SHORT_OCR = true;
+		
+		if(bs.get(27))StructureImageExtractor.OCRcutoffCosineRescue=0.6;
+		
+		if(bs.get(28))StructureImageExtractor.AGGRESSIVE_CONNECT_ATOMS=false;
+		
+
+		if(!bs.get(29))StructureImageExtractor.MAX_AREA_TO_STITCH_OCR_SHAPE=250;
+		if(!bs.get(30))StructureImageExtractor.MAX_DISTANCE_BETWEEN_OCR_SHAPES_TO_STITCH=4;
 		
 	}
 	
@@ -182,7 +292,13 @@ public class ModifiedMolvecPipeline {
 		
 		RenderedImage ri = ImageUtil.decode(f);
 		BufferedImage biIn= convertRenderedImage(ri);
-		BufferedImage nbi=ImageCleaner.preCleanImageResize(biIn, 2, true, true);
+		BufferedImage nbi;
+		
+		if(!RESIZE){
+			nbi=ImageCleaner.preCleanImageResize(biIn, 1, false, true);			
+		}else{
+			nbi=ImageCleaner.preCleanImageResize(biIn, 2, true, true);
+		}
 		
 		MolvecResult mol = Molvec.ocr(nbi, op);
 		Chemical ct = Chemical.parse(mol.getSDfile().get());
@@ -190,13 +306,54 @@ public class ModifiedMolvecPipeline {
 		Rectangle2D bon = ChemFixer.bounds(ct);
 		long hetero1 = ct.atoms().filter(at->hetset.contains(at.getSymbol())).count()
 					  -ct.atoms().filter(at->badset.contains(at.getSymbol())).count();
+		Rectangle2D bonImg = mol.getOriginalBoundingBox().get();
 		
+		double avg=ct.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
+		double imgBondWidth=avg/bon.getWidth()*bonImg.getWidth();
+		
+		double sx=mol.getOriginalBoundingBox().get().getMinX();
+		double sy=mol.getOriginalBoundingBox().get().getMinY();
+		double sx2=nbi.getWidth()-mol.getOriginalBoundingBox().get().getMaxX();
+		double sy2=nbi.getHeight()-mol.getOriginalBoundingBox().get().getMaxY();
+		
+		
+		double[] bds = new double[]{sx,sy,sx2,sy2};
+		
+		DoubleSummaryStatistics  dss=Arrays.stream(bds).mapToObj(d->d).collect(Collectors.summarizingDouble(d->d));
+		
+		
+		Set<KnownMissingBond> missingAt = new HashSet<>();
+		
+		for(int i=0;i<4;i++){
+			if(bds[i]>dss.getMin()+imgBondWidth*1.0){
+//				System.out.println(f.getName() + ":" +sx + "," + sy + "," + sx2 + "," +sy2 );
+//				System.out.println(f.getName() + ": missing dimension " + i);
+				
+				if(i==0)missingAt.add(KnownMissingBond.LEFT);
+				if(i==1)missingAt.add(KnownMissingBond.TOP);
+				if(i==2)missingAt.add(KnownMissingBond.RIGHT);
+				if(i==3)missingAt.add(KnownMissingBond.BOTTOM);
+				
+//				throw new RuntimeException("missing pieces");
+			}
+		}
+		
+//		dss.getMin()
+				
 		if(bon.getHeight()>0.8*bon.getWidth()){
 
-			BufferedImage nbi2=ImageCleaner.preCleanImageResize(biIn, 2, true, false);
+			BufferedImage nbi2;
+			
+			if(!RESIZE){
+				nbi2=ImageCleaner.preCleanImageResize(biIn, 1, false, false);			
+			}else{
+				nbi2=ImageCleaner.preCleanImageResize(biIn, 2, true, false);
+			}
+			
 
 //			System.out.println("try 2 OCR");
 			MolvecResult mol2 = Molvec.ocr(nbi2, op);
+			
 //			System.out.println("got 2 ORC");
 			Chemical ct2 = Chemical.parse(mol.getSDfile().get());
 			
@@ -207,17 +364,19 @@ public class ModifiedMolvecPipeline {
 			if(hetero2>hetero1){
 				ct=ct2;
 				mol=mol2;
+				//TODO: fix bonds here too
 			}
 			
 		}
 		MolvecResult mresult=mol;
-		ChemFixResult cfr=ChemFixer.fixChemical(ct.copy());
+		ChemFixResult cfr=ChemFixer.fixChemical(ct.copy(), missingAt);
 		Chemical[] t = new Chemical[]{
 				ct
 		};
 		
+		if(cfr.type!=FixType.NULL){
 		t[0]=cfr.c;								//~21.54 -> ~33.40 if commented
-		
+		}
 		return new MolvecResult(){
 
 			@Override

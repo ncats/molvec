@@ -3,6 +3,7 @@ package gov.nih.ncats.molvec.internal.algo.experimental;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -19,9 +20,17 @@ import gov.nih.ncats.molwitch.Bond;
 import gov.nih.ncats.molwitch.Bond.BondType;
 import gov.nih.ncats.molwitch.Bond.Stereo;
 import gov.nih.ncats.molwitch.Chemical;
+import gov.nih.ncats.molwitch.MolwitchException;
 
 public class ChemFixer {
 
+	public static enum KnownMissingBond{
+		LEFT,
+		TOP,
+		RIGHT,
+		BOTTOM
+	}
+	
 	public static enum FixType{
 		NORMAL,
 		MERGED,
@@ -72,7 +81,7 @@ public class ChemFixer {
 		.filter(t->{
 			double ds= t.k().getAtomCoordinates().distanceSquaredTo(t.v().getAtomCoordinates());
 
-			if(ds<avg*avg*(1.3*1.3) && ds> avg*avg*0.68*0.68){
+			if(ds<avg*avg*(1.3*1.3) && ds> avg*avg*0.75*0.75){
 				return true;
 			}
 			return false;
@@ -92,9 +101,9 @@ public class ChemFixer {
 				Atom ca1=cop.getAtom(t.k().getAtomIndexInParent());
 				Atom ca2=cop.getAtom(t.v().getAtomIndexInParent());
 
-				Bond nb=cop.addBond(ca1, ca2, BondType.QUADRUPLE);
-
-				if(nb.isInRing() && ca1.getSmallestRingSize()>=6 && ca2.getSmallestRingSize()>=6){
+				Bond nb=cop.addBond(ca1, ca2, BondType.SINGLE);
+								
+				if(nb.isInRing() && ca1.getSmallestRingSize()>=5 || ca2.getSmallestRingSize()>=5){
 					//					System.out.println("Is in ring");
 					return true;
 				}
@@ -169,6 +178,7 @@ public class ChemFixer {
 					.findAny()
 					.isPresent();
 		})
+		.collect(Collectors.toList())
 		.forEach(t->{
 			//			
 			Chemical cop= c.copy();
@@ -188,7 +198,7 @@ public class ChemFixer {
 							.filter(ccc->ccc.atoms().filter(aaa->aaa.getAtomToAtomMap().getAsInt() == ca1.getAtomToAtomMap().getAsInt()).findAny().isPresent())
 							.findFirst()
 							.get();
-					if(pent.getAtomCount()==5){
+					if(pent.getAtomCount()==5||pent.getAtomCount()==6||pent.getAtomCount()==9){
 						c.addBond(t.k(),t.v(),BondType.SINGLE);
 						t.k().setImplicitHCount(null);
 						t.v().setImplicitHCount(null);
@@ -208,6 +218,20 @@ public class ChemFixer {
 
 		});
 		return c;
+	}
+	
+	public static double correlationToClean(Chemical c) throws MolwitchException{
+		
+		Chemical cop = c.copy();
+		cop.setAtomMapToPosition();
+		Chemical cop2= cop.copy();
+		
+		cop2.generateCoordinates();
+		
+		return 0;
+		
+		
+		
 	}
 
 	public static Chemical combineCloseBonds(Chemical c){
@@ -268,13 +292,16 @@ public class ChemFixer {
 		for(int i=0;i<c1.getAtomCount();i++){
 			Atom a1=c1.getAtom(i);
 			if(a1.getSymbol().equals("H"))continue;
+			if(a1.getSymbol().equals("O") && sumOrder(a1)>=2)continue;
 			for(int j=0;j<c2.getAtomCount();j++){
 				Atom a2=c2.getAtom(j);
 				if(a2.getSymbol().equals("H"))continue;
+				if(a2.getSymbol().equals("O") && sumOrder(a2)>=2)continue;
 				double[] xy1=a1.getAtomCoordinates().xy();
 				double[] xy2=a2.getAtomCoordinates().xy();
 
-				double sq = Math.abs(xy1[0]-xy2[0]) + Math.abs(xy1[1]-xy2[1]) ;
+				double l=0.8;
+				double sq = Math.pow(Math.pow(Math.abs(xy1[0]-xy2[0]),l) + Math.pow(Math.abs(xy1[1]-xy2[1]),l),1/l) ;
 
 				if(sq<minsq){
 					minsq=sq;
@@ -286,9 +313,20 @@ public class ChemFixer {
 		return Tuple.of(new int[]{mini,minj},Math.sqrt(minsq));
 
 	}
+	public static Chemical cleanDupeBonds(Chemical c){
+		Chemical c2=c.copy();
+		Set<Bond> sb=new HashSet<Bond>();
+		for(Bond b: c2.getBonds()){
+			if(sb.contains(b)){
+				c2.removeBond(b);
+			}
+			sb.add(b);
+		}
+		return c2;
+	}
 	public static Chemical dumbClean(Chemical c){
+		c=cleanDupeBonds(c);
 		makeMissingBonds(c);
-		;
 
 		{
 			c.atoms()
@@ -297,25 +335,6 @@ public class ChemFixer {
 			.forEach(at->{
 				at.setAtomicNumber(6);
 				at.setImplicitHCount(null);
-			});
-		}
-		{
-			List<Atom> rem = c.atoms()
-					.filter(at->at.getSymbol().equals("I"))
-					.filter(a->a.getBondCount()>=1)
-					.filter(at->{
-						Atom n1=at.getNeighbors().get(0);
-						if(!n1.getSymbol().equals("C"))return true;
-
-						return false;
-					})
-					.collect(Collectors.toList());
-			rem.forEach(at->{
-				List<Atom> nl=at.getNeighbors();
-				c.removeAtom(at);
-				nl.forEach(na->{
-					na.setImplicitHCount(null);
-				});
 			});
 		}
 		{
@@ -353,14 +372,27 @@ public class ChemFixer {
 				at.setImplicitHCount(null);
 			});
 		}
+		
+		{
+			Chemical tc=c;
+			c.atoms()
+			.filter(at->at.getSymbol().equals("Cl"))
+			.filter(at->at.getBondCount()==1)
+			.filter(at->at.getNeighbors().get(0).getSymbol().equals("O"))
+			.collect(Collectors.toList())
+			.forEach(at->{
+				tc.removeAtom(at);
+			});
+		}
 
 		{
+			Chemical tc=c;
 			c.atoms()
 			.filter(at->at.getSymbol().equals("F"))
 			.filter(at->at.getBondCount()>0)
 			.forEach(at->{
 				List<Atom> fs=at.getNeighbors().get(0).getNeighbors().stream().filter(nn->nn.getBondCount()==1)
-						.filter(a2->a2.getSymbol().equals("C") || a2.getSymbol().equals("F") || a2.getSymbol().equals("I")|| a2.getSymbol().equals("B"))
+						.filter(a2->a2.getSymbol().equals("C") || a2.getSymbol().equals("F") || a2.getSymbol().equals("I")|| a2.getSymbol().equals("B")|| a2.getSymbol().equals("N"))
 						.collect(Collectors.toList())
 						;
 				if(fs.size()==3){
@@ -377,8 +409,8 @@ public class ChemFixer {
 							att.setAtomicNumber(9);	
 							att.setImplicitHCount(null);
 						});
-						Atom an=c.addAtom("F", ca.getAtomCoordinates().getX()+1,ca.getAtomCoordinates().getY());
-						c.addBond(ca,an, BondType.SINGLE);
+						Atom an=tc.addAtom("F", ca.getAtomCoordinates().getX()+1,ca.getAtomCoordinates().getY());
+						tc.addBond(ca,an, BondType.SINGLE);
 					}else{
 						fs.forEach(att->{
 							att.setAtomicNumber(9);	
@@ -393,6 +425,7 @@ public class ChemFixer {
 		}
 
 		{
+			Chemical tc=c;
 			c.atoms()
 			.filter(at->at.getSymbol().equals("C"))
 			.filter(at->{
@@ -403,7 +436,7 @@ public class ChemFixer {
 				.filter(b->b.getStereo().equals(Stereo.DOWN)||b.getStereo().equals(Stereo.DOWN_INVERTED))
 				.findFirst()
 				.ifPresent(b->{
-					c.removeBond(b);
+					tc.removeBond(b);
 					b.getAtom1().setImplicitHCount(null);
 					b.getAtom2().setImplicitHCount(null);
 				});;
@@ -414,6 +447,7 @@ public class ChemFixer {
 		{
 			List<Atom> rem = c.atoms()
 					.filter(at->at.getSymbol().equals("I"))
+					.filter(at->at.getBondCount()>0)
 					.filter(at->{
 						Atom n1=at.getNeighbors().get(0);
 						if(Math.abs(n1.getAtomCoordinates().getX()-at.getAtomCoordinates().getX())<0.3){
@@ -443,6 +477,7 @@ public class ChemFixer {
 		}
 
 		{
+			Chemical tc=c;
 			c.atoms()
 			.filter(at->at.getSymbol().equals("H"))
 			.filter(at->at.getBondCount()>0)
@@ -455,7 +490,7 @@ public class ChemFixer {
 			.collect(Collectors.toList())
 			.forEach(at->{
 				List<Atom> nl=at.getNeighbors();
-				c.removeAtom(at);
+				tc.removeAtom(at);
 				nl.forEach(na->{
 					na.setImplicitHCount(null);
 				});
@@ -511,17 +546,7 @@ public class ChemFixer {
 
 
 
-		{
-
-			c.atoms()
-			.filter(at->at.getSymbol().equals("N"))
-			.forEach(na->{
-				if(na.getBonds().stream().mapToInt(b->b.getBondType().getOrder()).sum()>3){
-					na.setAtomicNumber(6);
-					na.setImplicitHCount(null);
-				}
-			});
-		}
+		
 		{
 			Set<String> allowb=Arrays.stream("C,O,F,Cl".split(",")).collect(Collectors.toSet());
 			c.atoms()
@@ -535,14 +560,18 @@ public class ChemFixer {
 			});
 		}
 		{
+			//If there's a little MORE it's Br, if there's a little LESS, it's probably F
+			//Br=35
 			c.atoms()
 			.filter(at->at.getSymbol().equals("B"))
 			.filter(at->at.getBondCount()==1)
-			.filter(at->at.getNeighbors().get(0).isInRing() && at.getNeighbors().get(0).getSmallestRingSize()==6)
+			.filter(at->at.getBonds().get(0).getBondType().getOrder()==1)
+			.filter(at->at.getNeighbors().get(0).isInRing())
 			.forEach(na->{
-				na.setAtomicNumber(9);
+				na.setAtomicNumber(35);
 			});
 		}
+		
 		//!@@@@@@@@@@@@@@
 		{
 
@@ -562,7 +591,11 @@ public class ChemFixer {
 
 			});
 		}
+
+		c=cleanDupeBonds(c);
+		
 		{
+			Chemical tc=c;
 
 			double avg= c.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
 			c.bonds()
@@ -599,8 +632,8 @@ public class ChemFixer {
 						});
 						Atom nlatom=latom.getBonds().stream().filter(lb->!lb.equals(bb))
 								.findFirst().get().getOtherAtom(latom);
-						c.removeAtom(latom);
-						c.addBond(patom, nlatom, BondType.SINGLE);
+						tc.removeAtom(latom);
+						tc.addBond(patom, nlatom, BondType.SINGLE);
 
 					}
 
@@ -609,7 +642,7 @@ public class ChemFixer {
 			});
 		}
 		{
-
+			Chemical tc=c;
 			double avg= c.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
 			c.bonds()
 			.filter(bb->bb.getBondLength()<avg*0.3)
@@ -624,8 +657,8 @@ public class ChemFixer {
 				}
 				if(toD!=null){
 					List<Atom> nat=toD.getNeighbors();
-					c.removeAtom(toD);
-					c.addBond(nat.get(0),nat.get(1), BondType.SINGLE);
+					tc.removeAtom(toD);
+					tc.addBond(nat.get(0),nat.get(1), BondType.SINGLE);
 					nat.get(0).setImplicitHCount(null);
 					nat.get(1).setImplicitHCount(null);
 				}
@@ -633,19 +666,34 @@ public class ChemFixer {
 			});
 		}
 
+		c=cleanDupeBonds(c);
 		{
-
+try{
 			//			double avg= c.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
 			c.bonds()
 			.filter(bb->bb.getBondType().equals(BondType.SINGLE))
 			.filter(bb->bb.getStereo().equals(Stereo.DOWN) || bb.getStereo().equals(Stereo.DOWN_INVERTED)  )
 			.filter(bb->bb.isInRing())
 			.filter(bb->bb.getAtom1().getSmallestRingSize()==5)
+			.filter(bb->bb.getAtom2().getSmallestRingSize()==5)
+			.filter(bb->!bb.getAtom2().getSymbol().equals("O"))
+			.filter(bb->!bb.getAtom1().getSymbol().equals("O"))
 			.filter(bb->Stream.of(bb.getAtom1(),bb.getAtom2()).flatMap(at->at.getBonds().stream()).filter(b1->b1.getBondType().equals(BondType.DOUBLE)).count()==0)
+			.collect(Collectors.toList())
+			
 			.forEach(bb->{
 				bb.setBondType(BondType.DOUBLE);
 
 			});
+}catch(Exception e){
+	try {
+		System.out.println(c.toMol());
+	} catch (IOException e1) {
+		// TODO Auto-generated catch block
+		e1.printStackTrace();
+	}
+	throw e;
+}
 		}
 
 		c.atoms().forEach(at->{
@@ -656,48 +704,33 @@ public class ChemFixer {
 
 		});
 
-
-		c.atoms().filter(at->at.getSymbol().equals("H"))
-
-		.forEach(at->{
-			if(at.getBondCount()>0){
-				Bond b = at.getBonds().get(0);
-				if(b.getBondType().equals(BondType.DOUBLE)){
-					b.setBondType(BondType.SINGLE);
-				}
-				if(b.getStereo().equals(Stereo.NONE)){
-					if(b.getAtom1().equals(at)){
-						b.setStereo(Stereo.DOWN_INVERTED);
-					}else{
-						b.setStereo(Stereo.DOWN);
-					}
-				}}else{
-					c.removeAtom(at);
-				}
-		});
-
-
-
 		{
-			//remove dumb triangles
-			c.atoms()
-			.filter(at->at.getSmallestRingSize()==3)
-			.filter(at->at.getSymbol().equals("C"))
-			.flatMap(at->at.getBonds().stream())
-			.filter(b->b.getBondType().equals(BondType.SINGLE))
-			.filter(b->b.getStereo().equals(Stereo.DOWN)||b.getStereo().equals(Stereo.DOWN_INVERTED))
-			.distinct()
-			.filter(b->b.getAtom1().getSmallestRingSize()==3 &&b.getAtom2().getSmallestRingSize()==3)
-			.forEach(b->{
-				c.removeBond(b);
-				if(b.getAtom1().getSmallestRingSize()==6 &&b.getAtom2().getSmallestRingSize()==6 ){
-
-				}else{
-					c.addBond(b);
-				}
+			Chemical tc=c;
+			c.atoms().filter(at->at.getSymbol().equals("H"))
+	
+			.forEach(at->{
+				if(at.getBondCount()>0){
+					Bond b = at.getBonds().get(0);
+					if(b.getBondType().equals(BondType.DOUBLE)){
+						b.setBondType(BondType.SINGLE);
+					}
+					if(b.getStereo().equals(Stereo.NONE)){
+						if(b.getAtom1().equals(at)){
+							b.setStereo(Stereo.DOWN_INVERTED);
+						}else{
+							b.setStereo(Stereo.DOWN);
+						}
+					}}else{
+						tc.removeAtom(at);
+					}
 			});
 		}
+
+
+
+		c=cleanDupeBonds(c);
 		{
+			Chemical tc=c;
 			//remove dumb double bonds
 			c.atoms()
 			.filter(at->at.getSmallestRingSize()==6)
@@ -708,16 +741,18 @@ public class ChemFixer {
 					.count()==2)
 			.flatMap(a->a.getBonds().stream().filter(b->b.getBondType().getOrder()==2).map(b->b.getOtherAtom(a)))
 			.filter(a->a.getBondCount()==1)
+			.collect(Collectors.toList())
 			.forEach(a->{
 				a.getNeighbors().get(0).setAtomicNumber(7);
-				c.removeAtom(a);
+				tc.removeAtom(a);
 			});
 		}
 
 
 		makeMissingBonds(c);
-
+		c=cleanDupeBonds(c);
 		{
+			Chemical tc=c;
 			//			
 			double avg= c.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
 			c.bonds()
@@ -732,13 +767,18 @@ public class ChemFixer {
 				Atom at1=(b.getAtom1().getBondCount()==1)?b.getAtom1():b.getAtom2();
 				Atom at2=b.getOtherAtom(at1);
 				at2.setAtomCoordinates(at1.getAtomCoordinates());
-				c.removeAtom(at1);
+				tc.removeAtom(at1);
 				//				b.setBondType(BondType.DOUBLE);
 			});
 			;
 		}
 		{
+			boolean[] changed = new boolean[]{false};
+			
 			double avg= c.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
+			Set<String> createDoublesFor = Stream.of("C","N").collect(Collectors.toSet());
+			do{
+			changed[0]=false;
 			c.atoms()
 			.filter(at->at.getSmallestRingSize()==6)
 			.flatMap(at->at.getBonds().stream())
@@ -746,20 +786,102 @@ public class ChemFixer {
 			.filter(b->Math.abs(b.getAtom1().getAtomCoordinates().getX() - b.getAtom2().getAtomCoordinates().getX())<avg*0.2 ||
 					Math.abs(b.getAtom1().getAtomCoordinates().getY() - b.getAtom2().getAtomCoordinates().getY())<avg*0.2
 					)
-			.filter(b->b.getAtom1().getSmallestRingSize()==6 &&b.getAtom2().getSmallestRingSize()==6)
+			.filter(b->b.getAtom1().getSmallestRingSize()>=5 &&b.getAtom2().getSmallestRingSize()>=5)
 			.filter(b->b.getAtom1().getBonds().stream().filter(bb->!bb.getBondType().equals(BondType.SINGLE)).count()==0)
 			.filter(b->b.getAtom2().getBonds().stream().filter(bb->!bb.getBondType().equals(BondType.SINGLE)).count()==0)
+			.filter(b->createDoublesFor.contains(b.getAtom1().getSymbol()))
+			.filter(b->createDoublesFor.contains(b.getAtom2().getSymbol()))
 			//			.peek(b->System.out.println(b))
-			.filter(b->b.getAtom1().getNeighbors().stream().filter(at->at.getSmallestRingSize()==6).flatMap(aa->aa.getBonds().stream()).filter(bb->bb.getBondType().equals(BondType.DOUBLE)).count()>=1)
-			.filter(b->b.getAtom2().getNeighbors().stream().filter(at->at.getSmallestRingSize()==6).flatMap(aa->aa.getBonds().stream()).filter(bb->bb.getBondType().equals(BondType.DOUBLE)).count()>=1)
+			.filter(b->b.getAtom1().getNeighbors().stream().filter(at->at.bondTo(b.getAtom1()).get().isInRing()).filter(at->at.getSmallestRingSize()>=5).flatMap(aa->aa.getBonds().stream()).filter(bb->bb.getBondType().equals(BondType.DOUBLE)).count()>=1)
+			.filter(b->b.getAtom2().getNeighbors().stream().filter(at->at.bondTo(b.getAtom2()).get().isInRing()).filter(at->at.getSmallestRingSize()>=5).flatMap(aa->aa.getBonds().stream()).filter(bb->bb.getBondType().equals(BondType.DOUBLE)).count()>=1)
 
+			.forEach(b->{
+				
+				changed[0]=true;
+				b.setBondType(BondType.DOUBLE);
+			});
+			}while(changed[0]);
+		}
+		
+		{
+			double avg= c.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
+
+			Set<String> createDoublesFor = Stream.of("C","N").collect(Collectors.toSet());
+			c.atoms()
+			.filter(at->at.getSmallestRingSize()==5)
+			.flatMap(at->at.getBonds().stream())
+			.filter(b->b.getBondType().equals(BondType.SINGLE))
+			.filter(b->Math.abs(b.getAtom1().getAtomCoordinates().getX() - b.getAtom2().getAtomCoordinates().getX())<avg*0.1 ||
+					Math.abs(b.getAtom1().getAtomCoordinates().getY() - b.getAtom2().getAtomCoordinates().getY())<avg*0.1
+					)
+			.filter(b->b.getAtom1().getSmallestRingSize()==5 &&b.getAtom2().getSmallestRingSize()==5)
+			.filter(b->b.getAtom1().getBonds().stream().filter(bb->!bb.getBondType().equals(BondType.SINGLE)).count()==0)
+			.filter(b->b.getAtom2().getBonds().stream().filter(bb->!bb.getBondType().equals(BondType.SINGLE)).count()==0)
+			.filter(b->createDoublesFor.contains(b.getAtom1().getSymbol()))
+			.filter(b->createDoublesFor.contains(b.getAtom2().getSymbol()))
+			//			.peek(b->System.out.println(b))
+			.filter(b->{
+				boolean at1dub=b.getAtom1().getNeighbors().stream().filter(at->at.bondTo(b.getAtom1()).get().isInRing()).filter(at->at.getSmallestRingSize()>=5).flatMap(aa->aa.getBonds().stream()).filter(b1->b1.isInRing()).filter(bb->bb.getBondType().equals(BondType.DOUBLE)).count()>=1;
+				boolean at2dub=b.getAtom2().getNeighbors().stream().filter(at->at.bondTo(b.getAtom2()).get().isInRing()).filter(at->at.getSmallestRingSize()>=5).flatMap(aa->aa.getBonds().stream()).filter(b1->b1.isInRing()).filter(bb->bb.getBondType().equals(BondType.DOUBLE)).count()>=1;
+				return at1dub^at2dub;
+			})
 			.forEach(b->{
 				b.setBondType(BondType.DOUBLE);
 			});
 			;
 		}
-
 		{
+			Chemical tc=c;
+			//remove dumb triangles
+			c.atoms()
+			.filter(at->at.getSmallestRingSize()==3)
+//			.filter(at->at.getSymbol().equals("C"))
+			.flatMap(at->at.getBonds().stream())
+			.filter(b->b.getBondType().equals(BondType.SINGLE))
+			.filter(b->b.getStereo().equals(Stereo.DOWN)||b.getStereo().equals(Stereo.DOWN_INVERTED))
+			.distinct()
+			.filter(b->b.getAtom1().getSmallestRingSize()==3 &&b.getAtom2().getSmallestRingSize()==3)
+			.collect(Collectors.toList())
+			.forEach(b->{
+				boolean addback=true;
+				if(b.getAtom1().getNeighbors().stream().filter(nn->nn.getSmallestRingSize()==4).count()>0 ||
+						b.getAtom2().getNeighbors().stream().filter(nn->nn.getSmallestRingSize()==4).count()>0
+						){
+					addback=false;
+				}
+				tc.removeBond(b);
+				
+				if(b.getAtom1().getSmallestRingSize()==6 ||b.getAtom2().getSmallestRingSize()==6 ){
+					addback=false;
+				}
+				
+				if(addback){
+					tc.addBond(b);
+				}
+			});
+			c=c.copy();
+		}
+		
+		{
+
+			double avg= c.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
+			//probably N
+			c.atoms()
+			.filter(at->at.getSymbol().equals("H"))
+			.filter(at->at.getNeighbors().stream().filter(n->n.getSymbol().equals("C")).count()>0)
+			.filter(at->at.getBonds().stream().filter(b->b.getBondLength()<avg*0.4).count()>0)
+			
+			.forEach(b->{
+				Atom a1=b.getNeighbors().get(0);
+				if(sumOrder(a1)<=3){
+					a1.setAtomicNumber(7);
+					a1.setImplicitHCount(null);
+				}
+			});
+		}
+		
+		{
+			Chemical tc=c;
 			double avg= c.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
 			c.atoms()
 			.filter(at->at.getSymbol().equals("C"))
@@ -780,7 +902,7 @@ public class ChemFixer {
 							bb.getAtom1().setImplicitHCount(null);
 							bb.getAtom2().setImplicitHCount(null);
 						}
-						c.removeAtom(at);
+						tc.removeAtom(at);
 						a1.setImplicitHCount(null);
 						a2.setImplicitHCount(null);
 					}
@@ -789,6 +911,7 @@ public class ChemFixer {
 		}
 
 		{
+			Chemical tc=c;
 			double avg= c.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
 			Set<Bond> obond = getOverlappingBonds(c).stream().flatMap(t->Stream.of(t.k(),t.v())).collect(Collectors.toSet());
 			c.bonds()
@@ -798,45 +921,79 @@ public class ChemFixer {
 			.filter(b->b.getAtom1().getSymbol().equals("C") && b.getAtom2().getSymbol().equals("C") )
 			.filter(b->b.getAtom1().getSymbol().equals("C") && b.getAtom2().getSymbol().equals("C") )
 			.filter(b->!obond.contains(b))
+			.collect(Collectors.toList())
 			.forEach(b->{
-				double fy=(b.getAtom1().getAtomCoordinates().getY()+b.getAtom2().getAtomCoordinates().getY())/2;
-				double fx=(b.getAtom1().getAtomCoordinates().getX()+b.getAtom2().getAtomCoordinates().getX())/2;
-				Atom mat=c.addAtom("C", fx,fy);
-				c.removeBond(b);
-				Bond b1=c.addBond(b.getAtom1(), mat, BondType.SINGLE);
-				Bond b2=c.addBond(b.getAtom2(), mat, BondType.SINGLE);
-				if(b.getAtom1().getBonds().stream().filter(bb->bb.getBondType().getOrder()==2).count()==1){
-					b2.setBondType(BondType.DOUBLE);
-				}else if(b.getAtom2().getBonds().stream().filter(bb->bb.getBondType().getOrder()==2).count()==1){
-					b1.setBondType(BondType.DOUBLE);
-				}
+				Atom a1=b.getAtom1();
+				Atom a2=b.getAtom2();
+				double fy=(a1.getAtomCoordinates().getY() +a2.getAtomCoordinates().getY())/2;
+				double fx=(a1.getAtomCoordinates().getX()+ a2.getAtomCoordinates().getX())/2;
+				Atom mat=tc.addAtom("C", fx,fy);
+				
+				tc.removeBond(b);
+//				Bond b1=tc.addBond(b.getAtom1(), mat, BondType.SINGLE);
+//				Bond b2=tc.addBond(b.getAtom2(), mat, BondType.SINGLE);
+//				if(b.getAtom1().getBonds().stream().filter(bb->bb.getBondType().getOrder()==2).count()==1){
+//					b2.setBondType(BondType.DOUBLE);
+//				}else if(b.getAtom2().getBonds().stream().filter(bb->bb.getBondType().getOrder()==2).count()==1){
+//					b1.setBondType(BondType.DOUBLE);
+//				}
 				mat.setImplicitHCount(null);
 				b.getAtom1().setImplicitHCount(null);
 				b.getAtom2().setImplicitHCount(null);
 			});
 		}
 
+		{
+			
+			c.atoms()
+			.filter(at->at.getSymbol().equals("C"))
+			.filter(at->sumOrder(at)>4)
+			.filter(at->at.getBondCount(BondType.DOUBLE)>=2)
+			.forEach(at->{
+				List<Bond> tbds=at.getBonds().stream().filter(bb->bb.getBondType().getOrder()==2)
+				.filter(b->b.getOtherAtom(at).getSymbol().equals("O"))
+				.collect(Collectors.toList());
+				;
+				if(tbds.size()==2){
+					tbds.get(0).setBondType(BondType.SINGLE);
+				}
+			});
+		}
+		{
+
+			c.atoms()
+			.filter(at->at.getSymbol().equals("N"))
+			.forEach(na->{
+				if(na.getBonds().stream().mapToInt(b->b.getBondType().getOrder()).sum()>3){
+					na.setAtomicNumber(6);
+					na.setImplicitHCount(null);
+				}
+			});
+		}
 
 		combineCloseBonds(c);
 		c.atoms().forEach(at->{
 			at.setImplicitHCount(null);		
 		});
 
-		Set<Bond> sb=new HashSet<Bond>();
-		for(Bond b: c.getBonds()){
-			if(sb.contains(b)){
-				c.removeBond(b);
-			}
-			sb.add(b);
-		}
+		cleanDupeBonds(c);
 
-
+//try {
+//	c.generateCoordinates();
+//} catch (MolwitchException e) {
+//	// TODO Auto-generated catch block
+//	e.printStackTrace();
+//}
 
 		//				;
 		//		c.bonds().filter(b->!sb.contains(b))
 		//		.collect(Collectors.toList()).forEach(b->c.removeBond(b));
 
 		return c;
+	}
+	
+	public static int sumOrder(Atom a){
+		return (int) a.getBonds().stream().mapToDouble(b->b.getBondType().getOrder()).sum();
 	}
 
 	public static Rectangle2D bounds(Chemical c){
@@ -874,31 +1031,37 @@ public class ChemFixer {
 
 	public static void setHStereo(Chemical c){
 		c.atoms().filter(at->at.getSymbol().equals("H"))
-
 		.forEach(at->{
-			if(at.getBondCount()>0){
-				Bond b = at.getBonds().get(0);
-				if(b.getBondType().equals(BondType.DOUBLE)){
-					b.setBondType(BondType.SINGLE);
-				}
-				if(b.getStereo().equals(Stereo.NONE)){
-					if(b.getAtom1().equals(at)){
-						b.setStereo(Stereo.DOWN_INVERTED);
-					}else{
-						b.setStereo(Stereo.DOWN);
+					if (at.getBondCount() > 0 && !at.getNeighbors().get(0).getSymbol().equals("H")) {
+						Bond b = at.getBonds().get(0);
+						b.setBondType(BondType.SINGLE);
+						
+						if (at.getNeighbors().get(0).getBonds().stream()
+								.filter(bb -> bb.getBondType().equals(BondType.DOUBLE)).count() == 0) {
+							if (b.getStereo().equals(Stereo.NONE)) {
+								if (b.getAtom1().equals(at)) {
+									b.setStereo(Stereo.DOWN_INVERTED);
+								} else {
+									b.setStereo(Stereo.DOWN);
+								}
+							}
+						}else{
+							b.setStereo(Stereo.NONE);
+						}
+					} else {
+						c.removeAtom(at);
 					}
-				}}else{
-					c.removeAtom(at);
-				}
 		});
 	}
 
 	public static Tuple<Chemical,Boolean> stitchChemical(Chemical cf){
-		double avg= cf.bonds().mapToDouble(b->b.getBondLength())
-				.average().getAsDouble();
+		
 		boolean stitched=false;
 		for(int li=0;li<20;li++){
+			double avg= cf.bonds().mapToDouble(b->b.getBondLength())
+					.average().getAsDouble();
 			Chemical c=cf.copy();
+			c.clearAtomMaps();
 			c.setAtomMapToPosition();
 
 			//			System.out.println("loop");
@@ -926,6 +1089,8 @@ public class ChemFixer {
 						if(comps.size()==1){
 							tryit=false;
 						}
+						cf=c;
+						continue;
 					}
 				}
 				if(tryit){
@@ -940,43 +1105,55 @@ public class ChemFixer {
 							Tuple<int[],Double> pair=closestAtoms(c1,c2);
 
 							if(pair.v()<mind){
-								mini=c1.getAtom(pair.k()[0]).getAtomToAtomMap().getAsInt()-1;
-								minj=c2.getAtom(pair.k()[1]).getAtomToAtomMap().getAsInt()-1;
-								mind=pair.v();
+								try{
+									int mi=c1.getAtom(pair.k()[0]).getAtomToAtomMap().getAsInt()-1;
+									int mj=c2.getAtom(pair.k()[1]).getAtomToAtomMap().getAsInt()-1;
+									mind=pair.v();
+									mini=mi;
+									minj=mj;
+								}catch(Exception e){
+									
+								}
 							}
 						}
 					}
 					//							System.out.println("mini:" + mini);
 					//							System.out.println("minj:" + minj);
-					Atom a1=c.getAtom(mini);
-					Atom a2=c.getAtom(minj);
-					boolean addBond=true;
-					if(a1.getAtomCoordinates().distanceSquaredTo(a2.getAtomCoordinates()) < avg*avg*0.5*0.5){
-						//probably incomplete extension
-						if(!a1.getSymbol().equals("C") && a2.getSymbol().equals("C")){
-							Atom t=a1;
-							a1=a2;
-							a2=t;
+					if(mini>=0 && minj>=0){
+						Atom a1=c.getAtom(mini);
+						Atom a2=c.getAtom(minj);
+						boolean addBond=true;
+						if(a1.getAtomCoordinates().distanceSquaredTo(a2.getAtomCoordinates()) < avg*avg*0.5*0.5){
+							//probably incomplete extension
+							if(!a1.getSymbol().equals("C") && a2.getSymbol().equals("C")){
+								Atom t=a1;
+								a1=a2;
+								a2=t;
+							}
+							if(a1.getSymbol().equals("C") && !a2.getSymbol().equals("C")){
+								addBond=false;
+							}
 						}
-						if(a1.getSymbol().equals("C") && !a2.getSymbol().equals("C")){
-							addBond=false;
+						if(a1.getBondCount()==0){
+							addBond=true;
 						}
-					}
 
-					if(addBond){
-						c.addBond(a1,a2,BondType.SINGLE);
-						a1.setImplicitHCount(null);
-						a2.setImplicitHCount(null);
-					}else{
-						Bond ob=a1.getBonds().get(0);
-						Atom na =ob.getOtherAtom(a1);
-						c.removeAtom(a1);
+						if(addBond){
+							c.addBond(a1,a2,BondType.SINGLE);
+							a1.setImplicitHCount(null);
+							a2.setImplicitHCount(null);
+						}else{
+							
+							Bond ob=a1.getBonds().get(0);
+							Atom na =ob.getOtherAtom(a1);
+							c.removeAtom(a1);
 
-						c.addBond(a2,na,ob.getBondType());
-						na.setImplicitHCount(null);
-						a2.setImplicitHCount(null);
+							c.addBond(a2,na,ob.getBondType());
+							na.setImplicitHCount(null);
+							a2.setImplicitHCount(null);
+						}
+						stitched=true;
 					}
-					stitched=true;
 					//					res.type=FixType.MERGED;
 				}
 				cf=c;
@@ -989,20 +1166,62 @@ public class ChemFixer {
 		return Tuple.of(cf,stitched);
 
 	}
-
+	
 	public static ChemFixResult fixChemical(Chemical cf){
+		return fixChemical(cf, new HashSet<>());
+	}
+	public static Chemical secondClean(Chemical ct){
+		Chemical c=ct.copy();
+		c.atoms().filter(ca->ca.getSymbol().equals("F"))
+		.flatMap(ca->ca.getNeighbors().stream())
+		.distinct()
+		.filter(ca->sumOrder(ca)>4)
+		.forEach(ca->{
+			ca.getNeighbors().stream().filter(nn->nn.getSymbol().equals("F"))
+			.map(tt->Tuple.of(tt,-tt.getAtomCoordinates().distanceSquaredTo(ca.getAtomCoordinates())).withVComparator())
+			.sorted()
+			.map(tt->tt.k())
+			.findFirst().ifPresent(nn->{
+				c.removeAtom(nn);
+			});
+		});
+		
+		c.bonds().filter(b->b.getBondType().equals(BondType.AROMATIC) || b.getBondType().equals(BondType.SINGLE_OR_DOUBLE) || b.getBondType().equals(BondType.QUADRUPLE))
+//		.peek(b->System.out.println("Found"))
+//		.peek(b->b.setBondType(BondType.SINGLE))
+//		.filter(b->b.getBondType().equals(BondType.AROMATIC) || b.getBondType().equals(BondType.SINGLE_OR_DOUBLE) || b.getBondType().equals(BondType.QUADRUPLE))
+//		.peek(b->System.out.println("Found AGAIN"))
+		.forEach(b->{
+//			c.removeBond(b);
+			b.setBondType(BondType.SINGLE);
+		});
+		;
+//		try {
+//			System.out.println(c.toMol());
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+		return c;
+		
+	}
+	
+	
+
+	public static ChemFixResult fixChemical(Chemical cf, Set<KnownMissingBond> mset ){
 		ChemFixResult res = new ChemFixResult();
 
+		res.c=cf;
 		try {
 
 
-			dumbClean(cf);	
+			cf=dumbClean(cf);	
 			Tuple<Chemical, Boolean> tup=stitchChemical(cf);
 			cf=tup.k();
 			if(tup.v()){
 				res.type=FixType.MERGED;
 			}
-
+			cf=secondClean(cf);
 			setHStereo(cf);
 
 			String[] lines=cf.toMol().split("\n");
@@ -1011,6 +1230,62 @@ public class ChemFixer {
 			}
 			String mm = Arrays.stream(lines).collect(Collectors.joining("\n"));
 			cf= Chemical.parse(mm);
+			
+			double avg = cf.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
+			double tol = avg*0.2;
+			List<Atom> byleft = cf.atoms().map(a->Tuple.of(-a.getAtomCoordinates().getX(),a).withKComparator()).sorted().map(t->t.v()).collect(Collectors.toList());
+			List<Atom> bytop = cf.atoms().map(a->Tuple.of(-a.getAtomCoordinates().getY(),a).withKComparator()).sorted().map(t->t.v()).collect(Collectors.toList());
+			Atom bottomMost=bytop.get(bytop.size()-1);
+			Atom topMost=bytop.get(0);
+			Atom rightMost=byleft.get(byleft.size()-1);
+			Atom leftMost=byleft.get(0);
+			
+			List<Atom> leftContend = byleft.stream().filter(ba->ba.getAtomCoordinates().getX()<leftMost.getAtomCoordinates().getX()+tol).collect(Collectors.toList());
+			List<Atom> rightContend = byleft.stream().filter(ba->ba.getAtomCoordinates().getX()>rightMost.getAtomCoordinates().getX()-tol).collect(Collectors.toList());
+			List<Atom> topContend = bytop.stream().filter(ba->ba.getAtomCoordinates().getY()<topMost.getAtomCoordinates().getY()+tol).collect(Collectors.toList());
+			List<Atom> bottomContend = bytop.stream().filter(ba->ba.getAtomCoordinates().getY()>bottomMost.getAtomCoordinates().getY()-tol).collect(Collectors.toList());
+			
+			Chemical ch=cf;
+			mset.forEach(ss->{
+				List<Atom> attempt;
+				double dx=0;
+				double dy=0;
+				switch(ss){
+					case BOTTOM:
+						attempt=bottomContend;
+						dy=avg;
+						break;
+					case LEFT:
+						dx=-avg;
+						attempt=leftContend;
+						break;
+					case RIGHT:
+						dx=avg;
+						attempt=rightContend;
+						break;
+					case TOP:
+						attempt=topContend;
+						dy=-avg;
+						break;
+					default:
+						attempt=new ArrayList<>();
+						break;
+				}
+				Atom neigh=null;
+				if(attempt.size()==1){
+					neigh=attempt.get(0);
+				}else if(attempt.size()>1){
+					neigh=attempt.get(0);
+				}
+				
+				if(neigh!=null){
+					Atom nat=ch.addAtom("C",neigh.getAtomCoordinates().getX()+dx,neigh.getAtomCoordinates().getY()+dy);
+					ch.addBond(nat,neigh,BondType.SINGLE);
+					nat.setImplicitHCount(null);
+					neigh.setImplicitHCount(null);
+				}
+			});
+			
 			res.c=cf;
 			cf.clearAtomMaps();
 
@@ -1018,9 +1293,11 @@ public class ChemFixer {
 
 
 		} catch (Exception e) {
+			res.type=FixType.NULL;
+			
 			// TODO Auto-generated catch block
-			//						e.printStackTrace();
-			return null;
+									e.printStackTrace();
+			return res;
 		}
 		return res;
 	}
@@ -1035,10 +1312,32 @@ public class ChemFixer {
 	public static List<String> getAllFeats(Chemical c, int r){
 		return c.atoms().map(a->atFeat(a,r)).sorted().collect(Collectors.toList());
 	}
+	
+	public static List<String> getAllBondFeats(Chemical c){
+		return c.bonds()
+				.map(b->Stream.of(b.getAtom1(),b.getAtom2())
+						      .map(at->at.getSymbol())
+						      .sorted()
+						      .collect(Collectors.joining(b.getBondType().getSymbol()+""
+						    		                     )
+						    		  )
+			        )
+				.sorted()
+				.collect(Collectors.toList());
+	}
 
 	public static List<String> compareFeats(Chemical c1, Chemical c2, int r){
 		List<String> f1= getAllFeats(c1,r);
 		List<String> f2= getAllFeats(c2,r);
+
+
+		return getDiffs(f1,f2);
+
+	}
+	
+	public static List<String> compareBondFeats(Chemical c1, Chemical c2){
+		List<String> f1= getAllBondFeats(c1);
+		List<String> f2= getAllBondFeats(c2);
 
 
 		return getDiffs(f1,f2);
@@ -1080,11 +1379,124 @@ public class ChemFixer {
 
 	}
 
-	public static void main(String[] h){
-		List<String> l1=Arrays.stream("A,B,C,D,E,F,F,G".split(",")).sorted().collect(Collectors.toList());
-		List<String> l2=Arrays.stream("A,B,C,D,D,E,F,G,G".split(",")).sorted().collect(Collectors.toList());
-		getDiffs(l1,l2)
-		.forEach(c->System.out.println(c));
+	public static void main(String[] h) throws IOException{
+		Chemical c= Chemical.parse("\n" + 
+				"  CDK     03152122202D\n" + 
+				"\n" + 
+				" 45 49  0  0  1  0  0  0  0  0999 V2000\n" + 
+				"    6.3531    3.6032    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    5.4235    3.2072    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    3.4994    1.8829    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    2.7446    1.2069    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"   -0.1440    2.1541    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    0.6108    2.8301    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    1.7817    1.5227    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    1.0180    0.8591    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    2.9526    0.2152    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    3.9154   -0.1006    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    0.0640    1.1624    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"   -0.6909    0.4864    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"   -1.6908    0.8115    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"   -2.4486    0.1048    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"   -3.3715    0.4419    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"   -4.1241   -0.2567    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    2.1977   -0.4608    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"   -0.4829   -0.5053    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"   -1.2516   -1.2168    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"   -0.0669   -2.4888    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    0.6957   -1.8314    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"   -2.2007   -0.8656    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    5.3162    2.1866    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    4.4857    1.5980    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    0.5211    3.8420    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    1.5737    2.5144    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    7.1616    2.9968    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    7.0395    1.9918    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    6.1342    1.5783    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    4.7887    0.6247    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    5.8081    0.6139    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"   -1.8618    1.7939    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    1.2348   -0.1451    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"   -5.1377   -0.0534    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"   -4.0621   -1.2615    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"   -1.0376   -2.2085    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    0.1556   -3.5210    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"    1.0893   -3.8439    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"   -5.6365    0.8115    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"   -7.1616   -0.0534    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"   -6.7533   -0.7577    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"   -5.6300   -0.7588    0.0000 C   0  0  1  0  0  0  0  0  0  0  0  0\n" + 
+				"   -6.6596    0.8115    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				"   -4.9693   -1.6738    0.0000 N   0  3  0  0  0  0  0  0  0  0  0  0\n" + 
+				"   -1.7847   -2.8491    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
+				" 34 39  2  0  0  0  0\n" + 
+				" 11 12  1  0  0  0  0\n" + 
+				" 13 14  1  0  0  0  0\n" + 
+				" 15 16  1  0  0  0  0\n" + 
+				" 30 31  1  0  0  0  0\n" + 
+				" 16 35  2  0  0  0  0\n" + 
+				"  5 11  1  0  0  0  0\n" + 
+				" 42 41  1  6  0  0  0\n" + 
+				" 20 36  1  0  0  0  0\n" + 
+				"  6 26  2  0  0  0  0\n" + 
+				" 36 45  1  0  0  0  0\n" + 
+				"  6 25  1  0  0  0  0\n" + 
+				"  9 17  2  0  0  0  0\n" + 
+				" 16 34  1  0  0  0  0\n" + 
+				" 20 37  1  0  0  0  0\n" + 
+				"  2 23  2  0  0  0  0\n" + 
+				" 19 22  2  0  0  0  0\n" + 
+				" 34 42  1  0  0  0  0\n" + 
+				" 28 29  2  0  0  0  0\n" + 
+				" 24 30  2  0  0  0  0\n" + 
+				" 40 43  2  0  0  0  0\n" + 
+				" 40 41  1  0  0  0  0\n" + 
+				"  1  2  1  0  0  0  0\n" + 
+				"  1 27  2  0  0  0  0\n" + 
+				"  3  4  1  0  0  0  0\n" + 
+				" 37 38  1  0  0  0  0\n" + 
+				"  5  6  1  0  0  0  0\n" + 
+				"  4  7  1  0  0  0  0\n" + 
+				" 12 13  2  0  0  0  0\n" + 
+				" 14 15  1  0  0  0  0\n" + 
+				"  4  9  1  0  0  0  0\n" + 
+				" 18 19  1  0  0  0  0\n" + 
+				" 29 31  1  0  0  0  0\n" + 
+				"  7  8  2  0  0  0  0\n" + 
+				" 39 43  1  0  0  0  0\n" + 
+				"  9 10  1  0  0  0  0\n" + 
+				" 42 44  2  0  0  0  0\n" + 
+				" 13 32  1  0  0  0  0\n" + 
+				"  3 24  1  0  0  0  0\n" + 
+				" 19 36  1  0  0  0  0\n" + 
+				" 14 22  1  0  0  0  0\n" + 
+				" 23 24  1  0  0  0  0\n" + 
+				" 20 21  1  0  0  0  0\n" + 
+				" 35 44  1  0  0  0  0\n" + 
+				" 27 28  1  0  0  0  0\n" + 
+				"  8 11  1  0  0  0  0\n" + 
+				" 23 29  1  0  0  0  0\n" + 
+				"  8 33  1  0  0  0  0\n" + 
+				" 44 35  1  0  0  0  0\n" + 
+				"M  CHG  1  44   1\n" + 
+				"M  END");
+		c=cleanDupeBonds(c);
+		c.bonds()
+		.filter(bb->bb.getBondType().equals(BondType.SINGLE))
+		.filter(bb->bb.getStereo().equals(Stereo.DOWN) || bb.getStereo().equals(Stereo.DOWN_INVERTED)  )
+		.filter(bb->bb.isInRing())
+		.filter(bb->bb.getAtom1().getSmallestRingSize()==5)
+		.filter(bb->bb.getAtom2().getSmallestRingSize()==5)
+		.filter(bb->!bb.getAtom2().getSymbol().equals("O"))
+		.filter(bb->!bb.getAtom1().getSymbol().equals("O"))
+		.filter(bb->Stream.of(bb.getAtom1(),bb.getAtom2()).flatMap(at->at.getBonds().stream()).filter(b1->b1.getBondType().equals(BondType.DOUBLE)).count()==0)
+		.collect(Collectors.toList())
+		
+		.forEach(bb->{
+			bb.setBondType(BondType.DOUBLE);
+
+		});
+		System.out.println(c.toMol());
 	}
 
 }

@@ -2132,10 +2132,13 @@ public class Bitmap implements Serializable {
                     labels[y][x] = (short) label1;
                 }
                 /* assign new label */
-                else if (labels[y][x - 1] == 0
+                else if (
+                		    labels[y][x - 1] == 0
                          && labels[y - 1][x] == 0
                          && labels[y - 1][x - 1] == 0
-                         && labels[y - 1][x + 1] == 0) {
+                         && labels[y - 1][x + 1] == 0
+                         
+                		) {
                     labels[y][x] = ++label[0];
                 } else {
                     L[0] = labels[y - 1][x - 1];

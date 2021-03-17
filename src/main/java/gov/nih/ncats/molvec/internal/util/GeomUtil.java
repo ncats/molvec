@@ -1091,9 +1091,9 @@ public class GeomUtil {
     		List<Point2D> ips=getAllIntersections(l);
     		if(ips.isEmpty())return Arrays.asList(l);
     		if(ips.size()>2){
-    			System.out.println("Line:" + l);
-    			System.out.println("Shape:" + Arrays.toString(vertices(s)));
-    			System.out.println("Shape:" + Arrays.toString(vertices(convexHull2(vertices(s)))));
+//    			System.out.println("Line:" + l);
+//    			System.out.println("Shape:" + Arrays.toString(vertices(s)));
+//    			System.out.println("Shape:" + Arrays.toString(vertices(convexHull2(vertices(s)))));
     			throw new IllegalStateException("Line should not intersect with convex hull more than twice, maybe the shape isn't a convux hull?");
     		}
     		
@@ -1274,9 +1274,9 @@ public class GeomUtil {
 			if(ips.isEmpty())return Optional.empty();
 			
 			if(ips.size()>2){
-				System.out.println("Line:" + l);
-				System.out.println("Shape:" + Arrays.toString(vertices(s)));
-				System.out.println("Shape:" + Arrays.toString(vertices(convexHull2(vertices(s)))));
+//				System.out.println("Line:" + l);
+//				System.out.println("Shape:" + Arrays.toString(vertices(s)));
+//				System.out.println("Shape:" + Arrays.toString(vertices(convexHull2(vertices(s)))));
 				throw new IllegalStateException("Line should not intersect with convex hull more than twice, maybe the shape isn't a convux hull?");
 			}
 
@@ -2725,9 +2725,9 @@ public class GeomUtil {
 		if(ips.isEmpty())return Optional.empty();
 		
 		if(ips.size()>2){
-			System.out.println("Line:" + l);
-			System.out.println("Shape:" + Arrays.toString(vertices(s)));
-			System.out.println("Shape:" + Arrays.toString(vertices(convexHull2(vertices(s)))));
+//			System.out.println("Line:" + l);
+//			System.out.println("Shape:" + Arrays.toString(vertices(s)));
+//			System.out.println("Shape:" + Arrays.toString(vertices(convexHull2(vertices(s)))));
 			throw new IllegalStateException("Line should not intersect with convex hull more than twice, maybe the shape isn't a convux hull?");
 		}
 
