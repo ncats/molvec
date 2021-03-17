@@ -20,7 +20,6 @@ import gov.nih.ncats.molwitch.Bond;
 import gov.nih.ncats.molwitch.Bond.BondType;
 import gov.nih.ncats.molwitch.Bond.Stereo;
 import gov.nih.ncats.molwitch.Chemical;
-import gov.nih.ncats.molwitch.MolwitchException;
 
 public class ChemFixer {
 
@@ -220,7 +219,7 @@ public class ChemFixer {
 		return c;
 	}
 	
-	public static double correlationToClean(Chemical c) throws MolwitchException{
+	public static double correlationToClean(Chemical c) throws Exception{
 		
 		Chemical cop = c.copy();
 		cop.setAtomMapToPosition();
