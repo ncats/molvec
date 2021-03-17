@@ -97,6 +97,7 @@ public class StructureImageExtractor {
 
 	private static final SCOCR OCR_ALL=new FontBasedRasterCosineSCOCR();
 
+
 	
 	
 
@@ -257,7 +258,8 @@ public class StructureImageExtractor {
 	
 	public static double MAX_AREA_TO_STITCH_OCR_SHAPE = 100;
 	public static double MAX_DISTANCE_BETWEEN_OCR_SHAPES_TO_STITCH = 3;
-	
+
+	public static boolean REMOVE_MIDDLE_NODES = true;	
 	
 	
 //	public static Binarization DEF_BINARIZATION = new SauvolaThreshold();
@@ -5361,30 +5363,31 @@ public class StructureImageExtractor {
 
 			//sometimes there's an atom in the middle of an existing bond, when this happens, it should be removed
 			
-			List<Tuple<Edge,Shape>> mshapes = ctab.getEdges()
-				.stream()
-				.filter(n->!n.isInventedBond())
-				.map(e->Tuple.of(e,GeomUtil.growLine(e.getLine(), ctab.getAverageBondLength()*0.1)))
-				.collect(Collectors.toList());
-			
-			List<Node> remnodes=ctab.getNodes()
-				.stream()
-				.filter(n->!n.isInvented())
-				.filter(n->mshapes.stream()
-						          .filter(st->st.v().contains(n.getPoint()))
-						          .filter(st->!st.k().getRealNode1().equals(n) && !st.k().getRealNode2().equals(n))
-						          .findAny()
-						          .isPresent())
-				.collect(Collectors.toList());
-			
-			if(remnodes.size()>0){
-				remnodes.forEach(nn->ctab.removeNodeAndEdges(nn));
-				ctab.simpleClean();
+			if(REMOVE_MIDDLE_NODES){
+				List<Tuple<Edge,Shape>> mshapes = ctab.getEdges()
+					.stream()
+					.filter(n->!n.isInventedBond())
+					.map(e->Tuple.of(e,GeomUtil.growLine(e.getLine(), ctab.getAverageBondLength()*0.1)))
+					.collect(Collectors.toList());
+				
+				List<Node> remnodes=ctab.getNodes()
+					.stream()
+					.filter(n->!n.isInvented())
+					.filter(n->mshapes.stream()
+							          .filter(st->st.v().contains(n.getPoint()))
+							          .filter(st->!st.k().getRealNode1().equals(n) && !st.k().getRealNode2().equals(n))
+							          .findAny()
+							          .isPresent())
+					.collect(Collectors.toList());
+				
+				if(remnodes.size()>0){
+					remnodes.forEach(nn->ctab.removeNodeAndEdges(nn));
+					ctab.simpleClean();
+				}
+				
+				
+				if(DEBUG)logState(46,"look for an atom in the middle of an existing bond, when this happens, it should be removed");
 			}
-			
-			
-			if(DEBUG)logState(46,"look for an atom in the middle of an existing bond, when this happens, it should be removed");
-			
 	
 //			
 			
@@ -6228,6 +6231,7 @@ public class StructureImageExtractor {
 				       .forEach(Edge::setToAromatic);
 		       });
 		
+		ctab.removeOrphanNodes();
 
 		
 		if(ADD_ORPHANS){

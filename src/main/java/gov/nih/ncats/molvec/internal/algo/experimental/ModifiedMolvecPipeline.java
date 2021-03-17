@@ -197,7 +197,7 @@ public class ModifiedMolvecPipeline {
 	
 	public static BitSet bs = new BitSet();
 	static{
-		bs.set(0, 30);		
+		bs.set(0, 40);		
 	}
 	
 	public static void reset(){
@@ -282,22 +282,29 @@ public class ModifiedMolvecPipeline {
 
 		if(!bs.get(29))StructureImageExtractor.MAX_AREA_TO_STITCH_OCR_SHAPE=250;
 		if(!bs.get(30))StructureImageExtractor.MAX_DISTANCE_BETWEEN_OCR_SHAPES_TO_STITCH=4;
+		if(bs.get(31))StructureImageExtractor.REMOVE_MIDDLE_NODES=false;
 		
 	}
 	
 	public static MolvecResult process(File f, MolvecOptions op) throws IOException{
 		
 		setup();
+		boolean dorotate=true;
+		
+		
 		
 		
 		RenderedImage ri = ImageUtil.decode(f);
 		BufferedImage biIn= convertRenderedImage(ri);
+//		if(Math.random()<0.5){
+//			biIn=ImageCleaner.rotateCw(biIn);
+//		}
 		BufferedImage nbi;
 		
 		if(!RESIZE){
-			nbi=ImageCleaner.preCleanImageResize(biIn, 1, false, true);			
+			nbi=ImageCleaner.preCleanImageResize(biIn, 1, false, dorotate);			
 		}else{
-			nbi=ImageCleaner.preCleanImageResize(biIn, 2, true, true);
+			nbi=ImageCleaner.preCleanImageResize(biIn, 2, true, dorotate);
 		}
 		
 		MolvecResult mol = Molvec.ocr(nbi, op);
@@ -328,11 +335,11 @@ public class ModifiedMolvecPipeline {
 			if(bds[i]>dss.getMin()+imgBondWidth*1.0){
 //				System.out.println(f.getName() + ":" +sx + "," + sy + "," + sx2 + "," +sy2 );
 //				System.out.println(f.getName() + ": missing dimension " + i);
-				
-				if(i==0)missingAt.add(KnownMissingBond.LEFT);
-				if(i==1)missingAt.add(KnownMissingBond.TOP);
-				if(i==2)missingAt.add(KnownMissingBond.RIGHT);
-				if(i==3)missingAt.add(KnownMissingBond.BOTTOM);
+//				
+//				if(i==0)missingAt.add(KnownMissingBond.LEFT);
+//				if(i==1)missingAt.add(KnownMissingBond.TOP);
+//				if(i==2)missingAt.add(KnownMissingBond.RIGHT);
+//				if(i==3)missingAt.add(KnownMissingBond.BOTTOM);
 				
 //				throw new RuntimeException("missing pieces");
 			}
@@ -345,9 +352,9 @@ public class ModifiedMolvecPipeline {
 			BufferedImage nbi2;
 			
 			if(!RESIZE){
-				nbi2=ImageCleaner.preCleanImageResize(biIn, 1, false, false);			
+				nbi2=ImageCleaner.preCleanImageResize(biIn, 1, false, !dorotate);			
 			}else{
-				nbi2=ImageCleaner.preCleanImageResize(biIn, 2, true, false);
+				nbi2=ImageCleaner.preCleanImageResize(biIn, 2, true, !dorotate);
 			}
 			
 

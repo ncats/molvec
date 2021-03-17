@@ -417,6 +417,21 @@ public class Viewer extends JPanel
 
 
             System.out.println(sie.toMol());
+            
+            {
+	            String mol=ctab.toMol();
+	            if(MODIFIED_PIPE){
+	            	try {
+						Chemical chem=ChemFixer.fixChemical(Chemical.parse(mol))
+						.c;
+						System.out.println(chem.toInchi().getInchi());
+					} catch (Exception e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+	            }
+            }
+            
             Bitmap bitmap = sie.getBitmap();
 
             int height = bitmap.height();

@@ -1,5 +1,6 @@
 package gov.nih.ncats.molvec.internal.algo.experimental;
 
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
@@ -20,6 +21,7 @@ import gov.nih.ncats.molwitch.Bond;
 import gov.nih.ncats.molwitch.Bond.BondType;
 import gov.nih.ncats.molwitch.Bond.Stereo;
 import gov.nih.ncats.molwitch.Chemical;
+import gov.nih.ncats.molwitch.MolwitchException;
 
 public class ChemFixer {
 
@@ -219,18 +221,63 @@ public class ChemFixer {
 		return c;
 	}
 	
-	public static double correlationToClean(Chemical c) throws Exception{
+	public static double correlationToClean(Chemical c) throws MolwitchException{
 		
 		Chemical cop = c.copy();
 		cop.setAtomMapToPosition();
 		Chemical cop2= cop.copy();
-		
 		cop2.generateCoordinates();
 		
-		return 0;
+		double avg1 = cop.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
+		double avg2 = cop2.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
+		
+		double cx1= cop.atoms().mapToDouble(at->at.getAtomCoordinates().getX()).average().getAsDouble();
+		double cy1= cop.atoms().mapToDouble(at->at.getAtomCoordinates().getY()).average().getAsDouble();
+		double cx2= cop2.atoms().mapToDouble(at->at.getAtomCoordinates().getX()).average().getAsDouble();
+		double cy2= cop2.atoms().mapToDouble(at->at.getAtomCoordinates().getY()).average().getAsDouble();
 		
 		
 		
+		List<Point2D> pts1 = cop.atoms().map(at->getPoint(at)).map(p->new Point2D.Double((p.getX()-cx1)/avg1, (p.getY()-cy1)/avg1))
+				.collect(Collectors.toList());
+		
+		List<Point2D> pts2 = cop.atoms().map(at->getPoint(at)).map(p->new Point2D.Double((p.getX()-cx2)/avg1, (p.getY()-cy2)/avg2))
+				.collect(Collectors.toList());
+		
+		Point2D cent = new Point2D.Double(0,0);
+		double smallestTot = Double.POSITIVE_INFINITY; 
+		for(int i=0;i<pts1.size();i++){
+			Point2D anch1 = pts1.get(i);
+			Point2D anch2 = pts2.get(i);
+			AffineTransform afft1=GeomUtil.getTransformFromLineToLine(new Line2D.Double(cent, anch1), new Line2D.Double(cent, anch2), false);
+			
+			double totSq1=0;
+			
+			for(int j=0;j< pts1.size();j++){
+				Point2D oa1=pts1.get(j);
+				Point2D oa2=pts2.get(j);
+				
+				Point2D npt= afft1.transform(oa1, null);
+				totSq1+=npt.distanceSq(oa2);
+			}
+			AffineTransform afft2=GeomUtil.getTransformFromLineToLine(new Line2D.Double(cent, anch1), new Line2D.Double(cent, anch2), true);
+			
+			double totSq2=0;
+			
+			for(int j=0;j< pts1.size();j++){
+				Point2D oa1=pts1.get(j);
+				Point2D oa2=pts2.get(j);
+				
+				Point2D npt= afft2.transform(oa1, null);
+				totSq2+=npt.distanceSq(oa2);
+			}
+			smallestTot = Math.min(smallestTot,Math.min(totSq1, totSq2));
+		}
+		
+		
+		
+		
+		return Math.sqrt(smallestTot/pts1.size());
 	}
 
 	public static Chemical combineCloseBonds(Chemical c){
@@ -675,8 +722,8 @@ try{
 			.filter(bb->bb.isInRing())
 			.filter(bb->bb.getAtom1().getSmallestRingSize()==5)
 			.filter(bb->bb.getAtom2().getSmallestRingSize()==5)
-			.filter(bb->!bb.getAtom2().getSymbol().equals("O"))
-			.filter(bb->!bb.getAtom1().getSymbol().equals("O"))
+			.filter(bb->!bb.getAtom2().getSymbol().equals("O") && !bb.getAtom2().getSymbol().equals("S"))
+			.filter(bb->!bb.getAtom1().getSymbol().equals("O") && !bb.getAtom1().getSymbol().equals("S"))
 			.filter(bb->Stream.of(bb.getAtom1(),bb.getAtom2()).flatMap(at->at.getBonds().stream()).filter(b1->b1.getBondType().equals(BondType.DOUBLE)).count()==0)
 			.collect(Collectors.toList())
 			
@@ -1156,6 +1203,7 @@ try{
 					//					res.type=FixType.MERGED;
 				}
 				cf=c;
+				
 			}else{
 
 
@@ -1289,6 +1337,7 @@ try{
 			cf.clearAtomMaps();
 
 
+//			System.out.println(correlationToClean(cf));
 
 
 		} catch (Exception e) {
@@ -1378,123 +1427,10 @@ try{
 
 	}
 
-	public static void main(String[] h) throws IOException{
-		Chemical c= Chemical.parse("\n" + 
-				"  CDK     03152122202D\n" + 
-				"\n" + 
-				" 45 49  0  0  1  0  0  0  0  0999 V2000\n" + 
-				"    6.3531    3.6032    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    5.4235    3.2072    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    3.4994    1.8829    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    2.7446    1.2069    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"   -0.1440    2.1541    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    0.6108    2.8301    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    1.7817    1.5227    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    1.0180    0.8591    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    2.9526    0.2152    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    3.9154   -0.1006    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    0.0640    1.1624    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"   -0.6909    0.4864    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"   -1.6908    0.8115    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"   -2.4486    0.1048    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"   -3.3715    0.4419    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"   -4.1241   -0.2567    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    2.1977   -0.4608    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"   -0.4829   -0.5053    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"   -1.2516   -1.2168    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"   -0.0669   -2.4888    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    0.6957   -1.8314    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"   -2.2007   -0.8656    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    5.3162    2.1866    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    4.4857    1.5980    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    0.5211    3.8420    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    1.5737    2.5144    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    7.1616    2.9968    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    7.0395    1.9918    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    6.1342    1.5783    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    4.7887    0.6247    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    5.8081    0.6139    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"   -1.8618    1.7939    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    1.2348   -0.1451    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"   -5.1377   -0.0534    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"   -4.0621   -1.2615    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"   -1.0376   -2.2085    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    0.1556   -3.5210    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"    1.0893   -3.8439    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"   -5.6365    0.8115    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"   -7.1616   -0.0534    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"   -6.7533   -0.7577    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"   -5.6300   -0.7588    0.0000 C   0  0  1  0  0  0  0  0  0  0  0  0\n" + 
-				"   -6.6596    0.8115    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				"   -4.9693   -1.6738    0.0000 N   0  3  0  0  0  0  0  0  0  0  0  0\n" + 
-				"   -1.7847   -2.8491    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n" + 
-				" 34 39  2  0  0  0  0\n" + 
-				" 11 12  1  0  0  0  0\n" + 
-				" 13 14  1  0  0  0  0\n" + 
-				" 15 16  1  0  0  0  0\n" + 
-				" 30 31  1  0  0  0  0\n" + 
-				" 16 35  2  0  0  0  0\n" + 
-				"  5 11  1  0  0  0  0\n" + 
-				" 42 41  1  6  0  0  0\n" + 
-				" 20 36  1  0  0  0  0\n" + 
-				"  6 26  2  0  0  0  0\n" + 
-				" 36 45  1  0  0  0  0\n" + 
-				"  6 25  1  0  0  0  0\n" + 
-				"  9 17  2  0  0  0  0\n" + 
-				" 16 34  1  0  0  0  0\n" + 
-				" 20 37  1  0  0  0  0\n" + 
-				"  2 23  2  0  0  0  0\n" + 
-				" 19 22  2  0  0  0  0\n" + 
-				" 34 42  1  0  0  0  0\n" + 
-				" 28 29  2  0  0  0  0\n" + 
-				" 24 30  2  0  0  0  0\n" + 
-				" 40 43  2  0  0  0  0\n" + 
-				" 40 41  1  0  0  0  0\n" + 
-				"  1  2  1  0  0  0  0\n" + 
-				"  1 27  2  0  0  0  0\n" + 
-				"  3  4  1  0  0  0  0\n" + 
-				" 37 38  1  0  0  0  0\n" + 
-				"  5  6  1  0  0  0  0\n" + 
-				"  4  7  1  0  0  0  0\n" + 
-				" 12 13  2  0  0  0  0\n" + 
-				" 14 15  1  0  0  0  0\n" + 
-				"  4  9  1  0  0  0  0\n" + 
-				" 18 19  1  0  0  0  0\n" + 
-				" 29 31  1  0  0  0  0\n" + 
-				"  7  8  2  0  0  0  0\n" + 
-				" 39 43  1  0  0  0  0\n" + 
-				"  9 10  1  0  0  0  0\n" + 
-				" 42 44  2  0  0  0  0\n" + 
-				" 13 32  1  0  0  0  0\n" + 
-				"  3 24  1  0  0  0  0\n" + 
-				" 19 36  1  0  0  0  0\n" + 
-				" 14 22  1  0  0  0  0\n" + 
-				" 23 24  1  0  0  0  0\n" + 
-				" 20 21  1  0  0  0  0\n" + 
-				" 35 44  1  0  0  0  0\n" + 
-				" 27 28  1  0  0  0  0\n" + 
-				"  8 11  1  0  0  0  0\n" + 
-				" 23 29  1  0  0  0  0\n" + 
-				"  8 33  1  0  0  0  0\n" + 
-				" 44 35  1  0  0  0  0\n" + 
-				"M  CHG  1  44   1\n" + 
-				"M  END");
-		c=cleanDupeBonds(c);
-		c.bonds()
-		.filter(bb->bb.getBondType().equals(BondType.SINGLE))
-		.filter(bb->bb.getStereo().equals(Stereo.DOWN) || bb.getStereo().equals(Stereo.DOWN_INVERTED)  )
-		.filter(bb->bb.isInRing())
-		.filter(bb->bb.getAtom1().getSmallestRingSize()==5)
-		.filter(bb->bb.getAtom2().getSmallestRingSize()==5)
-		.filter(bb->!bb.getAtom2().getSymbol().equals("O"))
-		.filter(bb->!bb.getAtom1().getSymbol().equals("O"))
-		.filter(bb->Stream.of(bb.getAtom1(),bb.getAtom2()).flatMap(at->at.getBonds().stream()).filter(b1->b1.getBondType().equals(BondType.DOUBLE)).count()==0)
-		.collect(Collectors.toList())
+	public static void main(String[] h) throws Exception{
+		Chemical c= Chemical.parse("CCCCC");
 		
-		.forEach(bb->{
-			bb.setBondType(BondType.DOUBLE);
-
-		});
+		System.out.println(correlationToClean(c));
 		System.out.println(c.toMol());
 	}
 

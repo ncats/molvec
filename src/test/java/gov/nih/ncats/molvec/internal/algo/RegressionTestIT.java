@@ -1207,10 +1207,48 @@ public class RegressionTestIT {
 			
 	}
 	
+	
+	public Chemical inchiForSet(File f,int p){
+		//turn all on
+		ModifiedMolvecPipeline.bs.set(0,50);
+		ModifiedMolvecPipeline.reset();
+		if(p>=0){
+			ModifiedMolvecPipeline.bs.clear(p);
+		}
+		
+		String finchi="InChI=1S/C12H24N2O/c1-13-12-4-2-11(3-5-12)10-14-6-8-15-9-7-14/h11-13H,2-10H2,1H3";
+		try{
+			MolvecResult mvr= ModifiedMolvecPipeline.process(f, new MolvecOptions());
+			Chemical mc = Chemical.parse(mvr.getMolfile().get());
+			
+			String tinchi=mc.toInchi().getInchi();
+			Chemical mci=Inchi.toChemical(tinchi);
+			
+			return mc;
+		}catch(Exception e){
+			return null;
+		}
+	}
+	
+	public Chemical inchiFor(File f){
+		
+		try{
+			MolvecResult mvr= ModifiedMolvecPipeline.process(f, new MolvecOptions());
+			Chemical mc = Chemical.parse(mvr.getMolfile().get());
+			
+			
+			return mc;
+		}catch(Exception e){
+			return null;
+		}
+	}
+	
 	@Test
 	public void bmsInChITest() throws IOException{
 
+		
 		String finchi="InChI=1S/C12H24N2O/c1-13-12-4-2-11(3-5-12)10-14-6-8-15-9-7-14/h11-13H,2-10H2,1H3";
+		Chemical fakeChem = Inchi.toChemical(finchi);
 		String pathToBMS="/home/tyler/Downloads/BMS MolVec/bms-molecular-translation";
 
 		String dir="train";
@@ -1222,13 +1260,12 @@ public class RegressionTestIT {
 				.map(l->new String[]{l.split(",")[0],l.substring(13).replace("\"", "")})
 				.collect(Collectors.toMap(l->l[0], l->l[1]));
 		
-//		int s=(int)(Math.random()*0xfff);
+		int s=(int)(Math.random()*0xfff);
 
-		int s=0x002;
-		int e=s +0x1;
+//		int s=0x91b;
+		int e=s +0x20;
 		long rstart=System.currentTimeMillis();
 		
-
 		
 		
 		
@@ -1251,7 +1288,7 @@ public class RegressionTestIT {
 				long str=System.currentTimeMillis();
 				String tk = "000" +Integer.toHexString( k);
 				String ph=tk.substring(tk.length()-3);
-				try( PrintWriter pw = new PrintWriter(out+"/"+dir+ph+"HYP" +prefi[0] + ff+ ".txt")){
+				try( PrintWriter pw = new PrintWriter(out+"/"+dir+ph+"BYP" +prefi[0] + ff+".txt")){
 					
 	//				char[] hex="0123456789abcdef".toCharArray();
 	//	
@@ -1281,28 +1318,53 @@ public class RegressionTestIT {
 							.map(f->{
 								
 								String inchi=finchi;
-								String type="fake";
+								String type="real";
 								String n=f.getName().replace(".png","");
 								String difff="?";
 								Chemical mci=null;
-	//							System.out.println(n);
-								try {
-									MolvecResult mvr= ModifiedMolvecPipeline.process(f, new MolvecOptions());
-									Chemical mc = Chemical.parse(mvr.getMolfile().get());
-	//												    		  System.out.println(mc.toMol());
-									
-									String tinchi=mc.toInchi().getInchi();
-									mci=Inchi.toChemical(tinchi);
-									
-									inchi=tinchi;
-									tinchi=mci.toInchi().getInchi();
-									type="real";
-								} catch (Exception e1) {
-									// TODO Auto-generated catch block
-//											    		   e1.printStackTrace();
-									type="null";
+								
+								Chemical chem1 = inchiFor(f);
+								Chemical chem2 = null;
+								
+								Chemical realChem=null;
+//								String inchi2=inchi1;
+								if(chem1==null && chem2==null){
+									realChem=fakeChem;
+								}else if(chem1==null){
+									realChem=chem2;
+								}else if(chem2==null){
+									realChem=chem1;
+								}else{
+									try{
+										if(ChemFixer.correlationToClean(chem1) < ChemFixer.correlationToClean(chem2)){
+											realChem=chem1;
+										}else{
+											realChem=chem2;
+										}
+									}catch(Exception ee){
+										realChem=chem1;
+										ee.printStackTrace();
+									}
 								}
-		
+								
+								try {
+									inchi = realChem.toInchi().getInchi();
+								} catch (IOException e2) {
+									// TODO Auto-generated catch block
+									e2.printStackTrace();
+								}
+								if(inchi.equals("")){
+									//!
+									inchi=finchi;
+								}
+								
+								try {
+									mci=Inchi.toChemical(inchi);
+								} catch (IOException e1) {
+									// TODO Auto-generated catch block
+									e1.printStackTrace();
+								}
+								
 								String rinchi=inchiAnswers.get(n);
 								if(rinchi==null){
 									rinchi=finchi;
@@ -1321,7 +1383,7 @@ public class RegressionTestIT {
 		
 								pw.println(n + "\t" + inchi  +"\t" +type+ "\t" +g + "\t" + rinchi + "\t" + difff + "\t" + prefi[0]+ff);
 	
-	//							System.out.println(n + "\t" + inchi  +"\t" +type+ "\t" +g + "\t" + rinchi + "\t" + difff);
+//								System.out.println(n + "\t" + inchi  +"\t" +type+ "\t" +g + "\t" + rinchi + "\t" + difff);
 								return g;
 							})
 							.collect(Collectors.summarizingDouble(d->d));
@@ -1330,7 +1392,7 @@ public class RegressionTestIT {
 					//				      .average()
 					//				      .getAsDouble();
 		
-					System.out.println(prefi[0]+ff + "\t" + ph + "\t" + dss.getCount() + "\t" + dss.getAverage() + "\t" + dss.getMax() + "\t" + dss.getMin() + "\t" + (System.currentTimeMillis()-str) + "\t" + (System.currentTimeMillis()-rstart));		
+					System.out.println(prefi[0] +ff+ "\t" + ph + "\t" + dss.getCount() + "\t" + dss.getAverage() + "\t" + dss.getMax() + "\t" + dss.getMin() + "\t" + (System.currentTimeMillis()-str) + "\t" + (System.currentTimeMillis()-rstart));		
 				}catch(Exception ee){
 					ee.printStackTrace();
 				}

@@ -24,6 +24,21 @@ public class ImageCleaner {
 		}
 		return newImage;
 	}
+	public static BufferedImage rotateCcw(BufferedImage img) {
+		int width = img.getWidth();
+		int height = img.getHeight();
+		BufferedImage newImage = new BufferedImage(height, width, img.getType());
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
+				newImage.setRGB(j, width - 1 - i, img.getRGB(i, j));
+			}
+		}
+		return newImage;
+	}
+	public static BufferedImage invert(BufferedImage img) {
+		
+		return rotateCw(rotateCw(img));
+	}
 	
 	public static BufferedImage preCleanImageResize(BufferedImage biIn, double scale, boolean qblur, boolean rotateWidest) throws IOException{
 
@@ -31,7 +46,7 @@ public class ImageCleaner {
 			rotateWidest=!rotateWidest;
 		}
 		if(rotateWidest){
-			biIn=rotateCw(biIn);
+			biIn=rotateCcw(biIn);
 		}
 		 
 		if(qblur){	
