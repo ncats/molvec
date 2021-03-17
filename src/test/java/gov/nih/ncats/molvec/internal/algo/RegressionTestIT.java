@@ -1222,9 +1222,9 @@ public class RegressionTestIT {
 				.map(l->new String[]{l.split(",")[0],l.substring(13).replace("\"", "")})
 				.collect(Collectors.toMap(l->l[0], l->l[1]));
 		
-		int s=(int)(Math.random()*0xfff);
+//		int s=(int)(Math.random()*0xfff);
 
-//		int s=0x002;
+		int s=0x002;
 		int e=s +0x1;
 		long rstart=System.currentTimeMillis();
 		
