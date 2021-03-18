@@ -97,6 +97,8 @@ public class StructureImageExtractor {
 
 	private static final SCOCR OCR_ALL=new FontBasedRasterCosineSCOCR();
 
+	
+
 
 	
 	
@@ -260,6 +262,7 @@ public class StructureImageExtractor {
 	public static double MAX_DISTANCE_BETWEEN_OCR_SHAPES_TO_STITCH = 3;
 
 	public static boolean REMOVE_MIDDLE_NODES = true;	
+	public static boolean AGGRESSIVE_CLEAN_TRIPLE_BONDS = true;
 	
 	
 //	public static Binarization DEF_BINARIZATION = new SauvolaThreshold();
@@ -1266,9 +1269,9 @@ public class StructureImageExtractor {
 //
 			//look for tiny polygons that might be broken apart
 			
-			List<Shape> toRemoveShape = new ArrayList<>();
+			List<ShapeWrapper> toRemoveShape = new ArrayList<>();
 			
-			List<Shape> combined=polygons.stream()
+			List<ShapeWrapper> combined=polygons.stream()
 			 .map(p->Tuple.of(p,p))
 			 .map(Tuple.vmap(p->p.getArea()))
 			 .filter(t->t.v()<MAX_AREA_TO_STITCH_OCR_SHAPE)
@@ -1280,12 +1283,12 @@ public class StructureImageExtractor {
 			 .filter(sl->sl.size()>1)
 			 .map(s->{
 				 Shape ss=s.stream()
-						 .peek(s1->toRemoveShape.add(s1.getShape()))
+						 .peek(s1->toRemoveShape.add(s1))
 						 .flatMap(s1->Arrays.stream(s1.getVerts()))
 						 .collect(GeomUtil.convexHull());
 				 
 				 realRescueOCRCandidates.add(ss);
-				 return ss;
+				 return ShapeWrapper.of(ss);
 				 
 			 })
 			 .collect(Collectors.toList());
@@ -1305,25 +1308,26 @@ public class StructureImageExtractor {
 
 				Bitmap bmold=bitmap;
 				combined.stream()
-						.map(ss->GeomUtil.growShapeHex(ss.getBounds2D(), 2))
+						.map(ss->ss.growShapeNPoly(2, 6))
 						.forEach(ss->{
-							bmold.paste(bm2,ss);
+//							bmold.paste(bm2,ss);
 						});
-				Set<ShapeWrapper> toAdd = new HashSet<>();
-				Set<ShapeWrapper> toRem = new HashSet<>();
-				combined.stream()
-					.map(ss->GeomUtil.growShapeHex(ss.getBounds2D(), 10))
-					.map(ss->ShapeWrapper.of(ss))
-					.forEach(ss->{
-						npolys.stream()
-						      .filter(sn->GeomUtil.intersects(ss, sn))
-						      .forEach(sn->toAdd.add(sn));
-						polygons.stream()
-					      .filter(sn->GeomUtil.intersects(ss, sn))
-					      .forEach(sn->toRem.add(sn));
-					});
-				polygons.removeAll(toRem);
-				polygons.addAll(toAdd);
+//				Set<ShapeWrapper> toAdd = new HashSet<>();
+//				Set<ShapeWrapper> toRem = new HashSet<>();
+//				combined.stream()
+//					.map(ss->GeomUtil.growShapeHex(ss.getBounds2D(), 10))
+//					.map(ss->ShapeWrapper.of(ss))
+//					.forEach(ss->{
+//						npolys.stream()
+//						      .filter(sn->GeomUtil.intersects(ss, sn))
+//						      .forEach(sn->toAdd.add(sn));
+//						polygons.stream()
+//					      .filter(sn->GeomUtil.intersects(ss, sn))
+//					      .forEach(sn->toRem.add(sn));
+//					});
+				
+				polygons.removeAll(toRemoveShape);
+				polygons.addAll(combined);
 				
 			}
 		}
@@ -4730,68 +4734,69 @@ public class StructureImageExtractor {
 				});
 			if(DEBUG)logState(35,"C-C double bonds are diminished to single if the second part of the double bond was based on a close single bond");
 			
-			//clean bad triple bonds
-			ctab.getEdges().stream()
-				.filter(e->e.getOrder()==3)
-				.filter(e->!e.isInventedBond())
-				.filter(e->e.getRealNode1().getSymbol().equals("C") && e.getRealNode2().getSymbol().equals("C"))
-				.collect(Collectors.toList())
-				.forEach(e->{
-						
-						LineWrapper lb = LineWrapper.of(e.getLine());
-						Point2D apnt=lb.centerPoint();
-						
-						List<Tuple<Line2D,Point2D>> possibleOtherDoubleBonds = rejBondOrderLines.stream()
-								 .filter(l->l.length()>ctab.getAverageBondLength()*0.4)
-								 .filter(l->l.absCosTheta(lb)>0.8)
-				                 .map(l->Tuple.of(l,l.centerPoint()))
-				                 .filter(p->p.v().distance(apnt)<ctab.getAverageBondLength()*0.8)
-				                 .map(Tuple.kmap(l->l.getLine()))
-				                 .collect(Collectors.toList());
-						
-						if(possibleOtherDoubleBonds.size() ==1){
-							//probably should have been a double bond
-							e.setOrder(2);
-							return;
-						}
-						List<Tuple<Edge,Shape>> edgeShapes = ctab.getEdges()
-								                                 .stream()
-								                                 .filter(e1->e1!=e)
-								                                 .map(e1->Tuple.of(e1,GeomUtil.growLine(e1.getLine(), ctab.getAverageBondLength()*0.5)))
-								                                 .collect(Collectors.toList());
-						
-						List<Tuple<Line2D,Edge>> bestEdge = possibleOtherDoubleBonds.stream()
-						                        .map(t->Tuple.of(t.k(),edgeShapes.stream()
-						                        		                     .filter(es->es.v().contains(t.v()))
-						                        		                     .filter(es->GeomUtil.cosTheta(t.k(),es.k().getLine())>0.8)
-						                        		                     .map(ee->ee.k())
-						                        		                     .findAny()
-						                        		                     .orElse(null)
-						                        		))
-						                        .collect(Collectors.toList());
-						
-						
-						long c=bestEdge.stream()
-						        .filter(te->{
-						        	if(te.v()!=null){
-						        		if(te.v().getOrder()==1){
-						        			te.v().setOrder(2);
-						        		}
-						        		return true;
-						        	}
-						        	return false;
-						        })
-						        .count();
-						if(c==1){
-							e.setOrder(2);
-						}else if(c==2){
-							e.setOrder(1);
-						}
-						
-						//ctab.removeEdge(e);
-				});
-			if(DEBUG)logState(36,"C-C triple bonds are diminished to double/single if there is not enough support for them being triple bonds");
-			
+			if(AGGRESSIVE_CLEAN_TRIPLE_BONDS){
+				//clean bad triple bonds
+				ctab.getEdges().stream()
+					.filter(e->e.getOrder()==3)
+					.filter(e->!e.isInventedBond())
+					.filter(e->e.getRealNode1().getSymbol().equals("C") && e.getRealNode2().getSymbol().equals("C"))
+					.collect(Collectors.toList())
+					.forEach(e->{
+							
+							LineWrapper lb = LineWrapper.of(e.getLine());
+							Point2D apnt=lb.centerPoint();
+							
+							List<Tuple<Line2D,Point2D>> possibleOtherDoubleBonds = rejBondOrderLines.stream()
+									 .filter(l->l.length()>ctab.getAverageBondLength()*0.4)
+									 .filter(l->l.absCosTheta(lb)>0.8)
+					                 .map(l->Tuple.of(l,l.centerPoint()))
+					                 .filter(p->p.v().distance(apnt)<ctab.getAverageBondLength()*0.8)
+					                 .map(Tuple.kmap(l->l.getLine()))
+					                 .collect(Collectors.toList());
+							
+							if(possibleOtherDoubleBonds.size() ==1){
+								//probably should have been a double bond
+								e.setOrder(2);
+								return;
+							}
+							List<Tuple<Edge,Shape>> edgeShapes = ctab.getEdges()
+									                                 .stream()
+									                                 .filter(e1->e1!=e)
+									                                 .map(e1->Tuple.of(e1,GeomUtil.growLine(e1.getLine(), ctab.getAverageBondLength()*0.5)))
+									                                 .collect(Collectors.toList());
+							
+							List<Tuple<Line2D,Edge>> bestEdge = possibleOtherDoubleBonds.stream()
+							                        .map(t->Tuple.of(t.k(),edgeShapes.stream()
+							                        		                     .filter(es->es.v().contains(t.v()))
+							                        		                     .filter(es->GeomUtil.cosTheta(t.k(),es.k().getLine())>0.8)
+							                        		                     .map(ee->ee.k())
+							                        		                     .findAny()
+							                        		                     .orElse(null)
+							                        		))
+							                        .collect(Collectors.toList());
+							
+							
+							long c=bestEdge.stream()
+							        .filter(te->{
+							        	if(te.v()!=null){
+							        		if(te.v().getOrder()==1){
+							        			te.v().setOrder(2);
+							        		}
+							        		return true;
+							        	}
+							        	return false;
+							        })
+							        .count();
+							if(c==1){
+								e.setOrder(2);
+							}else if(c==2){
+								e.setOrder(1);
+							}
+							
+							//ctab.removeEdge(e);
+					});
+				if(DEBUG)logState(36,"C-C triple bonds are diminished to double/single if there is not enough support for them being triple bonds");
+			}
 			
 			//look for pentavalent Carbons
 			ctab.getNodes()

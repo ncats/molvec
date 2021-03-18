@@ -1,5 +1,6 @@
 package gov.nih.ncats.molvec.internal.algo.experimental;
 
+import java.awt.Shape;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
@@ -16,6 +17,7 @@ import java.util.stream.Stream;
 import gov.nih.ncats.common.stream.StreamUtil;
 import gov.nih.ncats.molvec.internal.algo.Tuple;
 import gov.nih.ncats.molvec.internal.util.GeomUtil;
+import gov.nih.ncats.molvec.internal.util.GeomUtil.ShapeWrapper;
 import gov.nih.ncats.molwitch.Atom;
 import gov.nih.ncats.molwitch.Bond;
 import gov.nih.ncats.molwitch.Bond.BondType;
@@ -370,6 +372,9 @@ public class ChemFixer {
 		}
 		return c2;
 	}
+	
+	
+	
 	public static Chemical dumbClean(Chemical c){
 		c=cleanDupeBonds(c);
 		makeMissingBonds(c);
@@ -438,7 +443,12 @@ public class ChemFixer {
 			.filter(at->at.getBondCount()>0)
 			.forEach(at->{
 				List<Atom> fs=at.getNeighbors().get(0).getNeighbors().stream().filter(nn->nn.getBondCount()==1)
-						.filter(a2->a2.getSymbol().equals("C") || a2.getSymbol().equals("F") || a2.getSymbol().equals("I")|| a2.getSymbol().equals("B")|| a2.getSymbol().equals("N"))
+						.filter(a2->a2.getSymbol().equals("C") || a2.getSymbol().equals("F") || a2.getSymbol().equals("I")|| a2.getSymbol().equals("B")|| 
+								a2.getSymbol().equals("N") ||
+								a2.getSymbol().equals("O") //riskier
+								
+								
+								)
 						.collect(Collectors.toList())
 						;
 				if(fs.size()==3){
@@ -455,8 +465,17 @@ public class ChemFixer {
 							att.setAtomicNumber(9);	
 							att.setImplicitHCount(null);
 						});
-						Atom an=tc.addAtom("F", ca.getAtomCoordinates().getX()+1,ca.getAtomCoordinates().getY());
-						tc.addBond(ca,an, BondType.SINGLE);
+						ShapeWrapper s=ShapeWrapper.of(ca.getNeighbors().stream().map(aa->getPoint(aa))
+						.collect(GeomUtil.convexHull()));
+						ShapeWrapper s2=s.normalize();
+						ShapeWrapper s3=GeomUtil.makeNPolygonOriginCenter(3, 1);
+						double sim=s2.similarity(s3);
+						
+						if(sim<0.5){
+						//
+							Atom an=tc.addAtom("F", ca.getAtomCoordinates().getX()+1,ca.getAtomCoordinates().getY());
+							tc.addBond(ca,an, BondType.SINGLE);
+						}
 					}else{
 						fs.forEach(att->{
 							att.setAtomicNumber(9);	
@@ -725,9 +744,15 @@ try{
 			.filter(bb->!bb.getAtom2().getSymbol().equals("O") && !bb.getAtom2().getSymbol().equals("S"))
 			.filter(bb->!bb.getAtom1().getSymbol().equals("O") && !bb.getAtom1().getSymbol().equals("S"))
 			.filter(bb->Stream.of(bb.getAtom1(),bb.getAtom2()).flatMap(at->at.getBonds().stream()).filter(b1->b1.getBondType().equals(BondType.DOUBLE)).count()==0)
+			.filter(b->Stream.of(b.getAtom1(),b.getAtom2())
+					.filter(at->at.getSymbol().equals("N"))
+					.filter(at->sumOrder(at)>=3)
+					.count() ==0
+					)
 			.collect(Collectors.toList())
 			
 			.forEach(bb->{
+				
 				bb.setBondType(BondType.DOUBLE);
 
 			});
@@ -838,6 +863,16 @@ try{
 			.filter(b->createDoublesFor.contains(b.getAtom1().getSymbol()))
 			.filter(b->createDoublesFor.contains(b.getAtom2().getSymbol()))
 			//			.peek(b->System.out.println(b))
+			.filter(b->Stream.of(b.getAtom1(),b.getAtom2())
+					.filter(at->at.getSymbol().equals("N"))
+					.filter(at->sumOrder(at)>=3)
+					.count() ==0
+					)
+			.filter(b->Stream.of(b.getAtom1(),b.getAtom2())
+					.filter(at->at.getSymbol().equals("C"))
+					.filter(at->sumOrder(at)>=4)
+					.count() ==0
+					)
 			.filter(b->b.getAtom1().getNeighbors().stream().filter(at->at.bondTo(b.getAtom1()).get().isInRing()).filter(at->at.getSmallestRingSize()>=5).flatMap(aa->aa.getBonds().stream()).filter(bb->bb.getBondType().equals(BondType.DOUBLE)).count()>=1)
 			.filter(b->b.getAtom2().getNeighbors().stream().filter(at->at.bondTo(b.getAtom2()).get().isInRing()).filter(at->at.getSmallestRingSize()>=5).flatMap(aa->aa.getBonds().stream()).filter(bb->bb.getBondType().equals(BondType.DOUBLE)).count()>=1)
 
@@ -857,14 +892,24 @@ try{
 			.filter(at->at.getSmallestRingSize()==5)
 			.flatMap(at->at.getBonds().stream())
 			.filter(b->b.getBondType().equals(BondType.SINGLE))
-			.filter(b->Math.abs(b.getAtom1().getAtomCoordinates().getX() - b.getAtom2().getAtomCoordinates().getX())<avg*0.1 ||
-					Math.abs(b.getAtom1().getAtomCoordinates().getY() - b.getAtom2().getAtomCoordinates().getY())<avg*0.1
+			.filter(b->Math.abs(b.getAtom1().getAtomCoordinates().getX() - b.getAtom2().getAtomCoordinates().getX())<avg*0.2 ||
+					Math.abs(b.getAtom1().getAtomCoordinates().getY() - b.getAtom2().getAtomCoordinates().getY())<avg*0.2
 					)
 			.filter(b->b.getAtom1().getSmallestRingSize()==5 &&b.getAtom2().getSmallestRingSize()==5)
 			.filter(b->b.getAtom1().getBonds().stream().filter(bb->!bb.getBondType().equals(BondType.SINGLE)).count()==0)
 			.filter(b->b.getAtom2().getBonds().stream().filter(bb->!bb.getBondType().equals(BondType.SINGLE)).count()==0)
 			.filter(b->createDoublesFor.contains(b.getAtom1().getSymbol()))
 			.filter(b->createDoublesFor.contains(b.getAtom2().getSymbol()))
+			.filter(b->Stream.of(b.getAtom1(),b.getAtom2())
+					.filter(at->at.getSymbol().equals("N"))
+					.filter(at->sumOrder(at)>=3)
+					.count() ==0
+					)
+			.filter(b->Stream.of(b.getAtom1(),b.getAtom2())
+					.filter(at->at.getSymbol().equals("C"))
+					.filter(at->sumOrder(at)>=4)
+					.count() ==0
+					)
 			//			.peek(b->System.out.println(b))
 			.filter(b->{
 				boolean at1dub=b.getAtom1().getNeighbors().stream().filter(at->at.bondTo(b.getAtom1()).get().isInRing()).filter(at->at.getSmallestRingSize()>=5).flatMap(aa->aa.getBonds().stream()).filter(b1->b1.isInRing()).filter(bb->bb.getBondType().equals(BondType.DOUBLE)).count()>=1;
@@ -909,19 +954,31 @@ try{
 		}
 		
 		{
-
+			Chemical tc=c;
 			double avg= c.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
 			//probably N
 			c.atoms()
 			.filter(at->at.getSymbol().equals("H"))
 			.filter(at->at.getNeighbors().stream().filter(n->n.getSymbol().equals("C")).count()>0)
 			.filter(at->at.getBonds().stream().filter(b->b.getBondLength()<avg*0.4).count()>0)
-			
+			.collect(Collectors.toList())
 			.forEach(b->{
 				Atom a1=b.getNeighbors().get(0);
-				if(sumOrder(a1)<=3){
-					a1.setAtomicNumber(7);
-					a1.setImplicitHCount(null);
+				if(sumOrder(a1)==3){
+						a1.setAtomicNumber(7);
+						a1.setImplicitHCount(null);
+				}else if(sumOrder(a1)==2){
+					a1.getNeighbors().stream()
+					.filter(nn->!b.equals(nn))
+					.findFirst()
+					.ifPresent(oo->{
+						tc.removeAtom(a1);
+						Bond bn=tc.addBond(oo,b, BondType.SINGLE);
+						bn.setStereo(Stereo.DOWN);
+					});
+					
+					
+//					c.addBond(b)
 				}
 			});
 		}
@@ -1016,11 +1073,35 @@ try{
 				}
 			});
 		}
+		
+		{
+			Chemical ct=c;
 
+			double avg= c.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
+			c.atoms()
+			.filter(at->at.getSymbol().equals("N"))
+			.filter(at->at.getBondCount()==1)
+			.filter(at->at.getBonds().get(0).getBondType().getOrder()==2)
+			.filter(at->at.getBonds().get(0).getOtherAtom(at).getSymbol().equals("C"))
+			.map(a->Tuple.of(a,a.getBonds().get(0)))
+			.filter(b->b.v().getBondLength()<avg*0.5)
+			.collect(Collectors.toList())
+			.forEach(nb->{
+				Atom aa=nb.v().getOtherAtom(nb.k());
+				ct.removeAtom(nb.k());
+				aa.setAtomicNumber(7);
+			});
+		}
+		
+		
 		combineCloseBonds(c);
 		c.atoms().forEach(at->{
 			at.setImplicitHCount(null);		
 		});
+		
+		
+		
+		
 
 		cleanDupeBonds(c);
 

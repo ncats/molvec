@@ -207,7 +207,6 @@ public class Viewer extends JPanel
         addMouseMotionListener (this);
         addMouseListener (this);
         addHierarchyBoundsListener (this);
-
         popupMenu = new JPopupMenu ();
         JMenuItem item;
         popupMenu.add(item = new JMenuItem ("Save polygon bitmap"));

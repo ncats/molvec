@@ -1263,7 +1263,7 @@ public class RegressionTestIT {
 		int s=(int)(Math.random()*0xfff);
 
 //		int s=0x91b;
-		int e=s +0x20;
+		int e=s +0x2;
 		long rstart=System.currentTimeMillis();
 		
 		
@@ -1288,7 +1288,7 @@ public class RegressionTestIT {
 				long str=System.currentTimeMillis();
 				String tk = "000" +Integer.toHexString( k);
 				String ph=tk.substring(tk.length()-3);
-				try( PrintWriter pw = new PrintWriter(out+"/"+dir+ph+"BYP" +prefi[0] + ff+".txt")){
+				try( PrintWriter pw = new PrintWriter(out+"/"+dir+ph+"CYP" +prefi[0] + ff+".txt")){
 					
 	//				char[] hex="0123456789abcdef".toCharArray();
 	//	
@@ -1361,6 +1361,7 @@ public class RegressionTestIT {
 								try {
 									mci=Inchi.toChemical(inchi);
 								} catch (IOException e1) {
+									System.out.println(inchi);
 									// TODO Auto-generated catch block
 									e1.printStackTrace();
 								}

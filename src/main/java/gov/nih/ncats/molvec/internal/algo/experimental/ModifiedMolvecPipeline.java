@@ -34,6 +34,7 @@ import gov.nih.ncats.molwitch.Chemical;
 
 public class ModifiedMolvecPipeline {
 
+	private static boolean DO_FIX=true;
 	public static boolean RESIZE=true;
 	private static Set<String> hetset = Stream.of("N", "Br", "F").collect(Collectors.toSet());
 	private static Set<String> badset = Stream.of("B").collect(Collectors.toSet());
@@ -57,8 +58,12 @@ public class ModifiedMolvecPipeline {
 				.replace("olt", "OH")
 				.replace("OIN", "H2N")
 				.replace("OlN", "H2N")
+				
 				.replace("cHl", "OH")
 				.replace("cHI", "OH")
+				.replace("CHI", "OH")
+				.replace("CHl", "OH")
+				
 				.replace("cHN", "OH")
 				.replace("rHI", "OH")
 				.replace("3t", "OH")
@@ -114,7 +119,10 @@ public class ModifiedMolvecPipeline {
 				.replace("NI", "N")
 				.replace("oN", "OH")
 				.replace("Hc", "HO")
+				
 				.replace("cH", "OH")
+				.replace("CH", "OH")
+				
 				.replace("3N3", "HO")
 				.replace("c8t", "OH")
 				.replace("rat", "OH")
@@ -133,7 +141,10 @@ public class ModifiedMolvecPipeline {
 				.replace("7g", "N")
 				.replace("NO", "HO")	
 				.replace("FI", "H")
-				.replace("5", "S");
+				.replace("5", "S")
+				.replace("r1", "PH") //risky
+				.replaceAll("^CH$", "OH") //risky
+				;
 	};
 	
 	static String[] additions = new String[]{
@@ -235,16 +246,20 @@ public class ModifiedMolvecPipeline {
 
 		StructureImageExtractor.MAX_AREA_TO_STITCH_OCR_SHAPE = 100;
 		StructureImageExtractor.MAX_DISTANCE_BETWEEN_OCR_SHAPES_TO_STITCH = 3;
+		StructureImageExtractor.REMOVE_MIDDLE_NODES=true;
+		
+		StructureImageExtractor.AGGRESSIVE_CLEAN_TRIPLE_BONDS=true;
+		DO_FIX=false;
 	}
 	
 	public static void setup(){
 		if(bs.get(0))BranchNode.setStringInterceptor(converter);								//~21.54 -> ~22.80 if commented		
 		if(bs.get(1))StructureImageExtractor.OCR_DEFAULT=MOD_OCR;								//~21.54 -> ~24.33 if commented		
 		if(bs.get(2))StructureImageExtractor.PRE_RESCUE_OCR = false;							//~21.54 -> ~24.71 if commented
-		if(!bs.get(3))StructureImageExtractor.ATTEMPT_CROP = false;								//~21.54 -> ~21.55 if commented
+		if(bs.get(3))StructureImageExtractor.ATTEMPT_CROP = false;								//~21.54 -> ~21.55 if commented
 		
 		//likely this
-		if(bs.get(4))StructureImageExtractor.FORCE_FINAL_MERGE = true;						//~22.00 -> ~21.75 if commented
+		if(!bs.get(4))StructureImageExtractor.FORCE_FINAL_MERGE = true;						//~22.00 -> ~21.75 if commented
 		
 		if(bs.get(5))StructureImageExtractor.KEEP_ALL_LINES=true;  							//~22.00 -> ~23.00 if commented
 		if(bs.get(6))StructureImageExtractor.MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS=12; 	//~22.00 -> ~30.00 if commented
@@ -280,9 +295,11 @@ public class ModifiedMolvecPipeline {
 		if(bs.get(28))StructureImageExtractor.AGGRESSIVE_CONNECT_ATOMS=false;
 		
 
-		if(!bs.get(29))StructureImageExtractor.MAX_AREA_TO_STITCH_OCR_SHAPE=250;
-		if(!bs.get(30))StructureImageExtractor.MAX_DISTANCE_BETWEEN_OCR_SHAPES_TO_STITCH=4;
+		if(bs.get(29))StructureImageExtractor.MAX_AREA_TO_STITCH_OCR_SHAPE=250;
+		if(bs.get(30))StructureImageExtractor.MAX_DISTANCE_BETWEEN_OCR_SHAPES_TO_STITCH=4;
 		if(bs.get(31))StructureImageExtractor.REMOVE_MIDDLE_NODES=false;
+		if(bs.get(32))DO_FIX=true;
+		if(bs.get(33))StructureImageExtractor.AGGRESSIVE_CLEAN_TRIPLE_BONDS=false;
 		
 	}
 	
@@ -376,14 +393,18 @@ public class ModifiedMolvecPipeline {
 			
 		}
 		MolvecResult mresult=mol;
-		ChemFixResult cfr=ChemFixer.fixChemical(ct.copy(), missingAt);
 		Chemical[] t = new Chemical[]{
 				ct
 		};
-		
-		if(cfr.type!=FixType.NULL){
-		t[0]=cfr.c;								//~21.54 -> ~33.40 if commented
+		if(DO_FIX){
+			ChemFixResult cfr=ChemFixer.fixChemical(ct.copy(), missingAt);
+			if(cfr.type!=FixType.NULL){
+				t[0]=cfr.c;								//~21.54 -> ~33.40 if commented
+			}
 		}
+		
+		
+		
 		return new MolvecResult(){
 
 			@Override

@@ -40,6 +40,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import gov.nih.ncats.molvec.internal.algo.Tuple;
+import gov.nih.ncats.molvec.internal.util.GeomUtil.ShapeWrapper;
 
 
 public class GeomUtil {
@@ -103,6 +104,11 @@ public class GeomUtil {
     	         .mapToObj(t->new Point2D.Double(Math.cos(t)*rad, Math.sin(t)*rad))
     	         .map(p1->new Point2D.Double(p.getX()+p1.getX(),p1.getY()+p.getY()))
     	         .toArray(i->new Point2D[i]);
+    }
+    
+    public static ShapeWrapper makeNPolygonOriginCenter(int n, double rad){
+    	
+    	return ShapeWrapper.of(GeomUtil.convexHull2(makeNPolyCenteredAt(new Point2D.Double(0,0),n,rad)));
     }
 
     /**
@@ -1306,6 +1312,43 @@ public class GeomUtil {
 		public ShapeWrapper getTransformed(AffineTransform at) {
 			Shape ts=at.createTransformedShape(this.getShape());
 			return ShapeWrapper.of(ts);
+		}
+
+		/**
+		 * Return a {@link ShapeWrapper} scaled, translated and rotated so that
+		 * the center-of-mass is at the origin and the point farthest 
+		 * from the center of mass is at point (1.0,0.0).
+		 * @return
+		 */
+		public ShapeWrapper normalize() {
+			Point2D cent=this.centerOfMass();
+			Point2D far = Arrays.stream(this.getVerts())
+					.map(p->Tuple.of(p.distanceSq(cent), p).withKComparator())
+					.max(Comparator.naturalOrder())
+					.map(t->t.v())
+					.get();
+			Line2D l = new Line2D.Double(cent, far);
+			Line2D unitLine = new Line2D.Double(0,0,1,0);
+			
+			AffineTransform aft=GeomUtil.getTransformFromLineToLine(l, unitLine, this.getSignedArea()<0);
+			
+			return this.getTransformed(aft);
+		}
+		
+		public Optional<ShapeWrapper> getIntersection(ShapeWrapper s2){
+			return getIntersectionShape(this,s2);
+		}
+		
+		public double similarity(ShapeWrapper s2){
+			
+			double iarea=this.getIntersection(s2)
+			    .map(is->is.getArea())
+			    .orElse(0.0);
+			
+			double tarea=this.and(s2).getArea();
+			
+			return iarea/tarea;
+			
 		}
     }
 
