@@ -733,38 +733,38 @@ public class ChemFixer {
 
 		c=cleanDupeBonds(c);
 		{
-try{
-			//			double avg= c.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
-			c.bonds()
-			.filter(bb->bb.getBondType().equals(BondType.SINGLE))
-			.filter(bb->bb.getStereo().equals(Stereo.DOWN) || bb.getStereo().equals(Stereo.DOWN_INVERTED)  )
-			.filter(bb->bb.isInRing())
-			.filter(bb->bb.getAtom1().getSmallestRingSize()==5)
-			.filter(bb->bb.getAtom2().getSmallestRingSize()==5)
-			.filter(bb->!bb.getAtom2().getSymbol().equals("O") && !bb.getAtom2().getSymbol().equals("S"))
-			.filter(bb->!bb.getAtom1().getSymbol().equals("O") && !bb.getAtom1().getSymbol().equals("S"))
-			.filter(bb->Stream.of(bb.getAtom1(),bb.getAtom2()).flatMap(at->at.getBonds().stream()).filter(b1->b1.getBondType().equals(BondType.DOUBLE)).count()==0)
-			.filter(b->Stream.of(b.getAtom1(),b.getAtom2())
-					.filter(at->at.getSymbol().equals("N"))
-					.filter(at->sumOrder(at)>=3)
-					.count() ==0
-					)
-			.collect(Collectors.toList())
+			try{
+						//			double avg= c.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
+						c.bonds()
+						.filter(bb->bb.getBondType().equals(BondType.SINGLE))
+						.filter(bb->bb.getStereo().equals(Stereo.DOWN) || bb.getStereo().equals(Stereo.DOWN_INVERTED)  )
+						.filter(bb->bb.isInRing())
+						.filter(bb->bb.getAtom1().getSmallestRingSize()==5)
+						.filter(bb->bb.getAtom2().getSmallestRingSize()==5)
+						.filter(bb->!bb.getAtom2().getSymbol().equals("O") && !bb.getAtom2().getSymbol().equals("S"))
+						.filter(bb->!bb.getAtom1().getSymbol().equals("O") && !bb.getAtom1().getSymbol().equals("S"))
+						.filter(bb->Stream.of(bb.getAtom1(),bb.getAtom2()).flatMap(at->at.getBonds().stream()).filter(b1->b1.getBondType().equals(BondType.DOUBLE)).count()==0)
+						.filter(b->Stream.of(b.getAtom1(),b.getAtom2())
+								.filter(at->at.getSymbol().equals("N"))
+								.filter(at->sumOrder(at)>=3)
+								.count() ==0
+								)
+						.collect(Collectors.toList())
+						
+						.forEach(bb->{
+							
+							bb.setBondType(BondType.DOUBLE);
 			
-			.forEach(bb->{
-				
-				bb.setBondType(BondType.DOUBLE);
-
-			});
-}catch(Exception e){
-	try {
-		System.out.println(c.toMol());
-	} catch (IOException e1) {
-		// TODO Auto-generated catch block
-		e1.printStackTrace();
-	}
-	throw e;
-}
+						});
+			}catch(Exception e){
+//				try {
+//					System.out.println(c.toMol());
+//				} catch (IOException e1) {
+//					// TODO Auto-generated catch block
+//					e1.printStackTrace();
+//				}
+				throw e;
+			}
 		}
 
 		c.atoms().forEach(at->{

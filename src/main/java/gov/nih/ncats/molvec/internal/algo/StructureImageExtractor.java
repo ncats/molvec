@@ -99,6 +99,8 @@ public class StructureImageExtractor {
 
 	
 
+	
+
 
 	
 	
@@ -263,6 +265,7 @@ public class StructureImageExtractor {
 
 	public static boolean REMOVE_MIDDLE_NODES = true;	
 	public static boolean AGGRESSIVE_CLEAN_TRIPLE_BONDS = true;
+	public static boolean COMBINE_WITH_BLUR = true;
 	
 	
 //	public static Binarization DEF_BINARIZATION = new SauvolaThreshold();
@@ -1306,28 +1309,37 @@ public class StructureImageExtractor {
 						.map(s->ShapeWrapper.of(s))
 						.collect(Collectors.toList());
 
-				Bitmap bmold=bitmap;
-				combined.stream()
-						.map(ss->ss.growShapeNPoly(2, 6))
-						.forEach(ss->{
-//							bmold.paste(bm2,ss);
-						});
-//				Set<ShapeWrapper> toAdd = new HashSet<>();
-//				Set<ShapeWrapper> toRem = new HashSet<>();
-//				combined.stream()
-//					.map(ss->GeomUtil.growShapeHex(ss.getBounds2D(), 10))
-//					.map(ss->ShapeWrapper.of(ss))
-//					.forEach(ss->{
-//						npolys.stream()
-//						      .filter(sn->GeomUtil.intersects(ss, sn))
-//						      .forEach(sn->toAdd.add(sn));
-//						polygons.stream()
-//					      .filter(sn->GeomUtil.intersects(ss, sn))
-//					      .forEach(sn->toRem.add(sn));
-//					});
+				Set<ShapeWrapper> toAdd = new HashSet<>();
+				Set<ShapeWrapper> toRem = new HashSet<>();
 				
-				polygons.removeAll(toRemoveShape);
-				polygons.addAll(combined);
+				
+				
+				if(COMBINE_WITH_BLUR){
+					Bitmap bmold=bitmap;
+					combined.stream()
+							.map(ss->ss.getWrappedBounds().growShapeNPoly(2, 6))
+							.forEach(ss->{
+								bmold.paste(bm2,ss.getShape());
+							});
+					
+					combined.stream()
+						.map(ss->GeomUtil.growShapeHex(ss.getShape().getBounds2D(), 10))
+						.map(ss->ShapeWrapper.of(ss))
+						.forEach(ss->{
+							npolys.stream()
+							      .filter(sn->GeomUtil.intersects(ss, sn))
+							      .forEach(sn->toAdd.add(sn));
+							polygons.stream()
+						      .filter(sn->GeomUtil.intersects(ss, sn))
+						      .forEach(sn->toRem.add(sn));
+						});
+				}else{
+					toRem.addAll(toRemoveShape);
+					toAdd.addAll(combined);
+				}
+				
+				polygons.removeAll(toRem);
+				polygons.addAll(toAdd);
 				
 			}
 		}

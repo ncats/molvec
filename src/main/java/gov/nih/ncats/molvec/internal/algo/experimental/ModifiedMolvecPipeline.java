@@ -250,6 +250,8 @@ public class ModifiedMolvecPipeline {
 		
 		StructureImageExtractor.AGGRESSIVE_CLEAN_TRIPLE_BONDS=true;
 		DO_FIX=false;
+
+		StructureImageExtractor.COMBINE_WITH_BLUR=true;
 	}
 	
 	public static void setup(){
@@ -300,6 +302,7 @@ public class ModifiedMolvecPipeline {
 		if(bs.get(31))StructureImageExtractor.REMOVE_MIDDLE_NODES=false;
 		if(bs.get(32))DO_FIX=true;
 		if(bs.get(33))StructureImageExtractor.AGGRESSIVE_CLEAN_TRIPLE_BONDS=false;
+		if(bs.get(34))StructureImageExtractor.COMBINE_WITH_BLUR=false;
 		
 	}
 	

@@ -1070,6 +1070,9 @@ public class GeomUtil {
     		return circumscribedRadius;
     	}
     	
+    	public ShapeWrapper getWrappedBounds(){
+    		return ShapeWrapper.of(this.getBounds());
+    	}
     	public double getCircleLikeScore(){
     		double cr=getCircumscribedRadius();
     		double ir = getInscribedRadius();
