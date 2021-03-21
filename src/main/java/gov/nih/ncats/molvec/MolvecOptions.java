@@ -113,6 +113,8 @@ public class MolvecOptions {
 		bs.set(0, 100);
 		flagTries = new int[]{
 				-1,   //3 minute setup + 3 minutes per 1k
+				74,
+//				75,
 				1,
 				30,
 				35,  

@@ -448,7 +448,14 @@ public class ModifiedMolvecPipeline {
 		if(!RESIZE){
 			nbi=ImageCleaner.preCleanImageResize(biIn, 1, false, dorotate);			
 		}else{
-			nbi=ImageCleaner.preCleanImageResize(biIn, 2, true, dorotate);
+			nbi=biIn;
+			
+			if(MODIFICATION_FLAGS.get(75)){
+				nbi=ImageCleaner.preCleanImageResize(nbi, 2, true, dorotate);
+			}
+			if(!MODIFICATION_FLAGS.get(74)){
+				nbi=ImageCleaner.preCleanImageResize(nbi, 1, true, dorotate);
+			}
 		}
 		
 		

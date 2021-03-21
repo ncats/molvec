@@ -4,7 +4,6 @@ import gov.nih.ncats.common.cli.Cli;
 import gov.nih.ncats.common.cli.CliSpecification;
 import gov.nih.ncats.common.cli.CliValidationException;
 import gov.nih.ncats.common.functions.ThrowableConsumer;
-import gov.nih.ncats.molvec.internal.algo.experimental.BMS;
 import gov.nih.ncats.molvec.internal.algo.experimental.ModifiedMolvecPipeline;
 import gov.nih.ncats.molvec.ui.Viewer;
 
