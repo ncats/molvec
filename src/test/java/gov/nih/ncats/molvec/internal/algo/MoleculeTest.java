@@ -103,7 +103,7 @@ public class MoleculeTest {
 	public void testAsFile() throws Exception {
 		File f=getFile(spec.filePath);
 
-		StructureImageExtractor sie = new StructureImageExtractor(f,debug);
+		StructureImageExtractor sie = new StructureImageExtractor(f,StructureImageExtractor.DEFAULT_VALUES.debug(false));
 
 		//Chemical c =Chemical.parseMol(sie.getCtab().toMol());
 		Chemical c =Chemical.parseMol(sie.getCtab().toMol()).toBuilder().aromatize(false).build();

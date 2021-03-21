@@ -1208,27 +1208,6 @@ public class RegressionTestIT {
 	}
 	
 	
-	public Chemical inchiForSet(File f,int p){
-		//turn all on
-		ModifiedMolvecPipeline.bs.set(0,50);
-		ModifiedMolvecPipeline.reset();
-		if(p>=0){
-			ModifiedMolvecPipeline.bs.clear(p);
-		}
-		
-		String finchi="InChI=1S/C12H24N2O/c1-13-12-4-2-11(3-5-12)10-14-6-8-15-9-7-14/h11-13H,2-10H2,1H3";
-		try{
-			MolvecResult mvr= ModifiedMolvecPipeline.process(f, new MolvecOptions());
-			Chemical mc = Chemical.parse(mvr.getMolfile().get());
-			
-			String tinchi=mc.toInchi().getInchi();
-			Chemical mci=Inchi.toChemical(tinchi);
-			
-			return mc;
-		}catch(Exception e){
-			return null;
-		}
-	}
 	
 	public Chemical inchiFor(File f){
 		
@@ -1272,15 +1251,15 @@ public class RegressionTestIT {
 		for(int feat=-1;feat<32;feat++){
  
 			//turn all on
-			ModifiedMolvecPipeline.bs.set(0,50);
-			ModifiedMolvecPipeline.reset();
+//			ModifiedMolvecPipeline.MODIFICATION_FLAGS.set(0,50);
+//			ModifiedMolvecPipeline.reset();
 			
 			String[] prefi= new String[]{"A"};
 			
 			int ff=feat;
 			if(feat>=0){
 				prefi[0]="B";
-				ModifiedMolvecPipeline.bs.clear(feat);
+//				ModifiedMolvecPipeline.MODIFICATION_FLAGS.clear(feat);
 			}
 			IntStream.range(s, e)
 //			.parallel()

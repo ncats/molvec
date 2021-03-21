@@ -24,6 +24,7 @@ import gov.nih.ncats.molvec.MolvecOptions;
 import gov.nih.ncats.molvec.MolvecResult;
 import gov.nih.ncats.molvec.internal.algo.BranchNode;
 import gov.nih.ncats.molvec.internal.algo.StructureImageExtractor;
+import gov.nih.ncats.molvec.internal.algo.StructureImageExtractor.ImageExtractionValues;
 import gov.nih.ncats.molvec.internal.algo.experimental.ChemFixer.ChemFixResult;
 import gov.nih.ncats.molvec.internal.algo.experimental.ChemFixer.FixType;
 import gov.nih.ncats.molvec.internal.algo.experimental.ChemFixer.KnownMissingBond;
@@ -31,11 +32,32 @@ import gov.nih.ncats.molvec.internal.image.ImageUtil;
 import gov.nih.ncats.molvec.ui.SCOCR;
 import gov.nih.ncats.molvec.ui.StupidestPossibleSCOCRSansSerif;
 import gov.nih.ncats.molwitch.Chemical;
+import gov.nih.ncats.molwitch.inchi.InChiResult;
 
 public class ModifiedMolvecPipeline {
+	
+	public static ResultScorer DEFAULT_RESULT_SCORER = new ConstantValueResultScorer(1.0);
 
-	private static boolean DO_FIX=true;
-	public static boolean RESIZE=true;
+	public static void setDefaultScorer(ResultScorer rScorer){
+		DEFAULT_RESULT_SCORER=rScorer;
+	}
+	private static Function<MolvecOptions,MolvecOptions> _adapter=(mo)->mo;
+	
+	public static MolvecOptions adapt(MolvecOptions mo){
+		return _adapter.apply(mo);
+	}
+	
+	public static void addAdaptionStep(Function<MolvecOptions,MolvecOptions> step){
+		_adapter=_adapter.andThen(step);
+	}
+	
+	public static void setTryLimit(int l){
+		addAdaptionStep(mo->mo.limitAttempts(l));
+	}
+	
+	
+//	private static boolean DO_FIX=true;
+//	public static boolean RESIZE=true;
 	private static Set<String> hetset = Stream.of("N", "Br", "F").collect(Collectors.toSet());
 	private static Set<String> badset = Stream.of("B").collect(Collectors.toSet());
 	
@@ -195,9 +217,13 @@ public class ModifiedMolvecPipeline {
 			"S	MjB4MjAKMTIuMHgxNC4wCjYsNCw0LDIsMiwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMAo2LDQsNCwzLDMsMiwxLDEsMCwwLDAsMCwxLDIsMiwyLDIsMiwxLDAKMywyLDIsMiwyLDIsMSwxLDAsMCwwLDAsMSwyLDIsMiwyLDIsMSwwCjUsNCw0LDQsNCw0LDIsMiwwLDAsMCwwLDIsNCw0LDQsNCw0LDIsMAozLDMsNCw0LDQsNCwzLDMsMiwxLDEsMCwyLDQsNCw0LDQsNCwyLDAKMywzLDQsNCw0LDQsMywzLDIsMSwxLDAsMiw0LDQsNCw0LDQsMiwwCjIsMiw0LDQsNCw0LDQsNCw0LDIsMiwwLDIsNCw0LDQsNCw0LDIsMAoxLDEsMiwyLDIsMiwyLDIsMiwxLDEsMCwxLDIsMiwyLDIsMiwxLDAKMSwxLDIsMywzLDQsNCw0LDQsMiwyLDAsMiw0LDQsNCw0LDQsMiwwCjAsMCwwLDIsMiw0LDQsNCw0LDIsMiwwLDIsNCw0LDQsNCw0LDIsMAowLDAsMCwyLDIsNCw0LDQsNCwyLDIsMCwyLDQsNCw0LDQsNCwyLDAKMCwwLDAsMiwyLDQsNCw0LDQsMyw0LDIsMyw0LDQsNCw0LDQsMiwwCjAsMCwwLDEsMSwyLDIsMiwyLDIsMywyLDIsMiwyLDIsMiwyLDEsMAowLDAsMCwyLDIsNCw0LDQsNCw0LDYsNCw0LDQsNCw0LDQsNCwyLDAKMCwwLDAsMiwyLDQsNCw0LDQsNCw2LDQsNCw0LDQsNCw0LDQsMiwwCjAsMCwwLDIsMiw0LDQsNCw0LDQsNiw0LDQsNCw0LDQsNCw0LDIsMAowLDAsMCwyLDIsNCw0LDQsNCw0LDYsNCw0LDQsNCw0LDQsNCwyLDAKMCwwLDAsMSwxLDIsMiwyLDIsMiwzLDIsMiwyLDIsMiwyLDIsMSwwCjAsMCwwLDEsMSwyLDIsMiwyLDIsMywyLDIsMiwyLDIsMiwyLDEsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDA",
 			"`	MjB4MjAKMjQuMHg1Mi4wCjYsNiw2LDYsNiw2LDYsNiw0LDQsNCw3LDgsOSw5LDksOCw1LDIsMAo5LDksOSw5LDksOSw5LDksNyw3LDcsOSw5LDksOSw5LDksNiwzLDAKOSw5LDksOSw5LDksOSw5LDgsOCw4LDksOSw5LDksOSw5LDYsMywwCjksOSw5LDksOSw5LDksOSw5LDksOSw4LDcsNiw3LDgsOSw3LDUsMwo2LDcsOCw5LDgsNyw2LDYsNyw4LDgsNiw0LDMsNCw2LDgsOCw3LDYKMyw1LDcsOSw3LDUsMywzLDUsNyw3LDQsMSwwLDEsNCw3LDksOSw5CjAsMyw2LDksNiwzLDAsMCwzLDYsNiwzLDAsMCwwLDIsNSw4LDksOQowLDMsNiw5LDYsMywwLDAsMyw2LDYsMywwLDAsMCwxLDQsNyw5LDkKMCwzLDYsOSw2LDMsMCwwLDMsNiw2LDMsMCwwLDAsMCwzLDYsOSw5CjAsMyw2LDksNiwzLDAsMCwzLDYsNiwzLDAsMCwwLDAsMyw2LDksOQowLDMsNiw5LDYsMywwLDAsMyw2LDYsMywwLDAsMCwwLDMsNiw5LDkKMyw1LDcsOSw3LDUsMywyLDQsNiw3LDQsMSwwLDEsMiw1LDcsOSw5CjYsNyw4LDksOCw3LDYsNCw1LDYsOCw1LDIsMCwyLDQsNyw4LDksOQo5LDksOSw5LDksOSw5LDcsNyw3LDksNyw1LDMsNSw3LDksOSw5LDkKOSw5LDksOSw5LDksOSw4LDcsNyw4LDgsNyw2LDcsOCw5LDgsNyw2CjksOSw5LDksOSw5LDksOSw3LDcsNyw5LDksOSw5LDksOSw3LDUsMwo2LDYsNiw2LDYsNiw2LDYsNCw0LDQsNyw4LDksOSw5LDgsNSwyLDAKMywzLDMsMywzLDMsMywzLDIsMiwyLDUsNyw5LDksOSw3LDQsMSwwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwzLDYsOSw5LDksNiwzLDAsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMyw2LDksOSw5LDYsMywwLDA",
 			"L	MjB4MjAKMjIuMHgxOC4wCjgsOSw5LDksOSw5LDgsNSw0LDQsNiw2LDYsNiw2LDQsMiwwLDAsMAo1LDYsNiw2LDYsNiw3LDUsNiw2LDksOSw5LDksOSw2LDMsMCwwLDAKMiwzLDMsMywzLDMsNSw0LDYsNiw5LDksOSw5LDksNiwzLDAsMCwwCjAsMCwwLDAsMCwwLDIsMiw0LDQsNiw2LDYsNyw4LDcsNSwyLDEsMAowLDAsMCwwLDAsMCwxLDEsMiwyLDMsMywzLDUsNyw4LDcsNCwyLDAKMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwzLDYsOSw5LDYsMywwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMyw2LDksOSw2LDMsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDMsNiw5LDksNiwzLDAKMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwzLDYsOSw5LDYsMywwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMyw2LDksOSw2LDMsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDMsNiw5LDksNiwzLDAKMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwzLDYsOSw5LDYsMywwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMyw2LDksOSw2LDMsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDMsNiw5LDksNiwzLDAKMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwzLDYsOSw5LDYsMywwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMyw2LDksOSw2LDMsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDMsNiw5LDksNiwzLDAKMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwzLDYsOSw5LDYsMywwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMyw2LDksOSw2LDMsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDMsNiw5LDksNiwzLDA",
+//			"S	MjB4MjAKMTQuMHgzNC4wCjksOSw5LDksOSw5LDksOSw5LDksOSw5LDcsNSwyLDIsMiwzLDMsMwo2LDYsNiw2LDYsNiw2LDYsNiw2LDYsNiw1LDQsMiwyLDIsMywzLDMKNiw2LDYsNiw2LDYsNiw2LDYsNiw2LDYsNiw2LDQsNCw0LDYsNiw2CjMsNCw1LDYsNSw0LDMsMyw0LDUsNiw1LDUsNSw0LDQsNCw2LDYsNgozLDQsNSw2LDUsNCwzLDMsNCw1LDYsNSw1LDUsNCw0LDQsNiw2LDYKMCwyLDQsNiw0LDIsMCwwLDIsNCw2LDQsNCw0LDQsNCw0LDYsNiw2CjAsMiw0LDYsNCwyLDAsMCwyLDQsNiw0LDQsNCw0LDQsNCw2LDYsNgowLDIsNCw2LDQsMiwwLDAsMiw0LDYsNCw0LDQsNCw0LDQsNiw2LDYKMCwyLDQsNiw0LDIsMCwwLDIsNCw2LDQsNCw0LDQsNCw0LDYsNiw2CjAsMiw0LDYsNCwyLDAsMCwyLDQsNiw0LDQsNCw1LDUsNSw2LDYsNgowLDMsNiw5LDYsMywwLDAsMyw2LDksNiw2LDYsOCw4LDgsOSw5LDkKMCwyLDQsNiw0LDIsMCwwLDIsNCw2LDQsNCw0LDYsNiw2LDYsNiw2CjIsNCw1LDYsNSw0LDMsMyw0LDUsNiw0LDQsNCw2LDYsNiw2LDYsNgo0LDYsNiw2LDYsNiw2LDYsNiw2LDYsNCw0LDQsNiw2LDYsNiw2LDYKNCw2LDYsNiw2LDYsNiw2LDYsNiw2LDQsNCw0LDYsNiw2LDYsNiw2CjQsNiw2LDYsNiw2LDYsNiw2LDUsNCwyLDIsMiwzLDMsMywzLDMsMwo0LDYsNiw2LDYsNiw2LDYsNiw0LDIsMCwwLDAsMCwwLDAsMCwwLDAKNCw2LDYsNiw2LDYsNiw2LDYsNCwyLDAsMCwwLDAsMCwwLDAsMCwwCjIsMywzLDMsMywzLDMsMywzLDIsMSwwLDAsMCwwLDAsMCwwLDAsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDA",
+			"H	MjB4MjAKMTguMHgxOC4wCjksOSw5LDksOSw5LDksNiw2LDYsOSw5LDksOSw5LDksOSw2LDMsMAo5LDksOSw5LDksOSw5LDYsNiw2LDksOSw5LDksOSw5LDksNiwzLDAKNiw2LDYsNiw3LDgsOSw2LDYsNSw3LDYsNiw2LDYsNiw2LDQsMiwwCjMsMywzLDMsNSw3LDksNiw2LDQsNSwzLDMsMywzLDMsMywyLDEsMAowLDAsMCwwLDMsNiw5LDYsNiwzLDMsMCwwLDAsMCwwLDAsMCwwLDAKMCwwLDAsMCwzLDYsOSw2LDYsMywzLDAsMCwwLDAsMCwwLDAsMCwwCjAsMCwwLDAsMyw2LDksNiw2LDMsMywwLDAsMCwwLDAsMCwwLDAsMAowLDAsMCwwLDIsNCw2LDQsNCwyLDIsMCwwLDAsMCwwLDAsMCwwLDAKMCwwLDAsMCwyLDQsNiw0LDQsMiwyLDAsMCwwLDAsMCwwLDAsMCwwCjMsMywzLDMsNCw1LDYsNCw0LDMsNCwzLDMsMywzLDMsMywyLDEsMAo2LDYsNiw2LDcsOCw5LDYsNiw1LDcsNiw2LDYsNiw2LDYsNCwyLDAKOSw5LDksOSw5LDksOSw2LDYsNiw5LDksOSw5LDksOSw5LDYsMywwCjgsOSw5LDksOSw5LDksNiw2LDYsOSw5LDksOSw5LDksOSw2LDMsMAo1LDYsNyw4LDksOSw4LDUsNCw0LDYsNiw2LDYsNiw2LDYsNCwyLDAKMiwzLDUsNyw5LDksNyw0LDIsMiwzLDMsMywzLDMsMywzLDIsMSwwCjAsMCwzLDYsOSw5LDYsMywwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMAowLDAsMyw2LDksOSw2LDMsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAKMCwwLDIsNCw2LDYsNCwyLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwCjAsMCwxLDIsMywzLDIsMSwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDA",
+			"N	MjB4MjAKMjAuMHgyMC4wCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwzLDYsOSw5LDksOQowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMyw2LDksOSw5LDkKMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDIsNCw2LDYsNiw2CjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwxLDIsMywzLDMsMwoxLDIsMywzLDMsMywzLDMsMywzLDMsMywzLDMsMiwxLDAsMCwwLDAKMiw0LDYsNiw2LDYsNiw2LDYsNiw2LDYsNiw2LDQsMiwwLDAsMCwwCjUsNyw5LDksOSw5LDksOSw5LDksOSw5LDksOSw2LDMsMCwwLDAsMAo3LDgsOSw5LDksOSw5LDksOSw5LDksOSw5LDksNiwzLDAsMCwwLDAKOSw5LDksOSw5LDksOCw3LDYsNiw2LDYsNiw2LDQsMiwwLDAsMCwwCjgsOSw5LDksOSw5LDcsNSwzLDMsMywzLDMsMywyLDEsMCwwLDAsMAo2LDgsOSw5LDksOSw3LDUsMiwxLDAsMCwwLDAsMCwwLDAsMCwwLDAKNCw3LDksOSw5LDksOCw3LDQsMiwwLDAsMCwwLDAsMCwwLDAsMCwwCjIsNCw2LDYsNyw4LDksOSw2LDMsMCwwLDAsMCwwLDAsMCwwLDAsMAoxLDIsMywzLDUsNyw5LDksNiwzLDAsMCwwLDAsMCwwLDAsMCwwLDAKMSwyLDMsMyw0LDUsNyw4LDcsNSwzLDMsMywzLDMsMywyLDEsMCwwCjIsNCw2LDYsNSw0LDUsNyw4LDcsNiw2LDYsNiw2LDYsNCwyLDAsMAozLDYsOSw5LDYsMywzLDYsOSw5LDksOSw5LDksOSw5LDYsMywwLDAKMyw2LDksOSw2LDMsMyw2LDksOSw5LDksOSw5LDksOSw2LDMsMCwwCjMsNiw5LDksNiwzLDMsNiw5LDksOSw5LDksOSw5LDksNiwzLDAsMAozLDYsOSw5LDYsMywzLDYsOSw5LDksOSw5LDksOSw5LDYsMywwLDA",
 	};
 	
 	static StupidestPossibleSCOCRSansSerif MOD_OCR = new StupidestPossibleSCOCRSansSerif(additions);
+	public static boolean RESIZE=true;
 	
 	static{
 		Set<Character> alpha=SCOCR.SET_COMMON_CHEM_ALL();
@@ -206,109 +232,207 @@ public class ModifiedMolvecPipeline {
 		MOD_OCR.setAlphabet(alpha);
 	}
 	
-	public static BitSet bs = new BitSet();
-	static{
-		bs.set(0, 40);		
+	
+	
+	
+		
+	
+
+	public static MolvecOptions prepare(MolvecOptions op){
+		StructureImageExtractor.ImageExtractionValues values = new ImageExtractionValues();
+		
+		op.setValues(values);
+		
+		BranchNode.clearStringInterceptor();
+		BranchNode._cache.clear();
+		
+		BitSet MODIFICATION_FLAGS = op.getFlags();
+		
+		
+		{
+			//TODO broke
+			if(MODIFICATION_FLAGS.get(0))BranchNode.setStringInterceptor(converter);								//~21.54 -> ~22.80 if commented
+			
+			
+			if(MODIFICATION_FLAGS.get(1))values.OCR_DEFAULT=MOD_OCR;								//~21.54 -> ~24.33 if commented		
+			if(MODIFICATION_FLAGS.get(2))values.PRE_RESCUE_OCR = false;							//~21.54 -> ~24.71 if commented
+			if(MODIFICATION_FLAGS.get(3))values.ATTEMPT_CROP = false;								//~21.54 -> ~21.55 if commented
+			
+			//likely this
+			if(!MODIFICATION_FLAGS.get(4))values.FORCE_FINAL_MERGE = true;						//~22.00 -> ~21.75 if commented
+			
+			if(MODIFICATION_FLAGS.get(5))values.KEEP_ALL_LINES=true;  							//~22.00 -> ~23.00 if commented
+			if(MODIFICATION_FLAGS.get(6))values.MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS=12; 	//~22.00 -> ~30.00 if commented
+			if(MODIFICATION_FLAGS.get(7))values.maxCandidateRatioForIntersection=1.8;			//~21.78 -> ~21.79 if commented
+			
+			if(!MODIFICATION_FLAGS.get(8))values.OCR_TO_BOND_MAX_DISTANCE=5.0;					//~21.78 -> ~21.54 if commented
+			
+			if(MODIFICATION_FLAGS.get(9))values.MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.31;         //~21.54 -> ~21.64 if commented
+			if(MODIFICATION_FLAGS.get(10))values.PREFER_OXYGENS=true;							//~21.78 -> ~21.81 if commented
+			
+			
+			if(MODIFICATION_FLAGS.get(11))values.PREFER_FLOURINE=true;
+			
+			if(MODIFICATION_FLAGS.get(12))values.ADD_ORPHANS=true;
+			if(MODIFICATION_FLAGS.get(13))values.PHENOL_TO_CL=true;
+			
+			if(MODIFICATION_FLAGS.get(14))values.HEMI_ACE_TO_CARB=true;
+			if(MODIFICATION_FLAGS.get(15))values.EXPLICIT_METHYL_CHANGE_TO_PEPTIDE_ENOL=true;
+			if(MODIFICATION_FLAGS.get(16))values.EXPLICIT_METHYL_TO_CL=true;
+			if(!MODIFICATION_FLAGS.get(17))values.EXPLICIT_ALKENE_TO_CARBONYL=true;
+			if(MODIFICATION_FLAGS.get(18))values.ADD_DETECTED_CHILDREN=false;
+			if(MODIFICATION_FLAGS.get(19))values.ELEVATE_NITROGENS=true;
+			if(MODIFICATION_FLAGS.get(20))values.ELEVATE_OXYGENS=true;
+			if(MODIFICATION_FLAGS.get(21))values.ELEVATE_FLOURINE=true;
+			if(!MODIFICATION_FLAGS.get(22))values.FORCE_MERGE_SMALL_RINGS = true;
+			if(!MODIFICATION_FLAGS.get(23))values.TURN_SMALL_DOUBLE_BOND_TO_N = true;
+			if(MODIFICATION_FLAGS.get(24))values.FIX_HALOGENS=false;
+			
+			if(MODIFICATION_FLAGS.get(25))values.GREEDY_ADD_EDGES = false;
+			
+			if(MODIFICATION_FLAGS.get(26))values.AGGRESSIVE_REMOVE_SHORT_OCR = true;
+			
+			if(MODIFICATION_FLAGS.get(27))values.OCRcutoffCosineRescue=0.6;
+			
+			if(MODIFICATION_FLAGS.get(28))values.AGGRESSIVE_CONNECT_ATOMS=false;
+			
+
+			if(MODIFICATION_FLAGS.get(29))values.MAX_AREA_TO_STITCH_OCR_SHAPE=250;
+			if(MODIFICATION_FLAGS.get(30))values.MAX_DISTANCE_BETWEEN_OCR_SHAPES_TO_STITCH=4;
+			if(!MODIFICATION_FLAGS.get(31))values.REMOVE_MIDDLE_NODES=false;
+			if(MODIFICATION_FLAGS.get(33))values.AGGRESSIVE_CLEAN_TRIPLE_BONDS=false;
+			if(MODIFICATION_FLAGS.get(34))values.COMBINE_WITH_BLUR=false;
+		}
+		return op;
 	}
 	
-	public static void reset(){
-		BranchNode.clearStringInterceptor();		
-		BranchNode._cache.clear();		
-		
-		StructureImageExtractor.OCR_DEFAULT=StructureImageExtractor.OCR_COPY;							//~21.54 -> ~24.33 if commented		
-		StructureImageExtractor.PRE_RESCUE_OCR = true;							//~21.54 -> ~24.71 if commented
-		StructureImageExtractor.ATTEMPT_CROP = true;							//~21.54 -> ~21.55 if commented
-		StructureImageExtractor.FORCE_FINAL_MERGE = false;						//~22.00 -> ~21.75 if commented
-		StructureImageExtractor.KEEP_ALL_LINES=false;  							//~22.00 -> ~23.00 if commented
-		StructureImageExtractor.MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS=6; 	//~22.00 -> ~30.00 if commented
-		StructureImageExtractor.maxCandidateRatioForIntersection=1.5;			//~21.78 -> ~21.79 if commented
-		StructureImageExtractor.OCR_TO_BOND_MAX_DISTANCE=3.0;					//~21.78 -> ~21.54 if commented 
-		StructureImageExtractor.MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.5;         //~21.54 -> ~21.64 if commented
-		StructureImageExtractor.PREFER_OXYGENS=false;							//~21.78 -> ~21.81 if commented
-		StructureImageExtractor.PREFER_FLOURINE=false;
-		StructureImageExtractor.ADD_ORPHANS=false;
-		StructureImageExtractor.PHENOL_TO_CL=false;
-		StructureImageExtractor.HEMI_ACE_TO_CARB=false;
-		StructureImageExtractor.EXPLICIT_METHYL_CHANGE_TO_PEPTIDE_ENOL=false;
-		StructureImageExtractor.EXPLICIT_METHYL_TO_CL=false;
-		StructureImageExtractor.EXPLICIT_ALKENE_TO_CARBONYL=false;
-		StructureImageExtractor.ADD_DETECTED_CHILDREN=true;
-		StructureImageExtractor.ELEVATE_NITROGENS=false;
-		StructureImageExtractor.ELEVATE_OXYGENS=false;
-		StructureImageExtractor.ELEVATE_FLOURINE=false;
-		StructureImageExtractor.FORCE_MERGE_SMALL_RINGS = false;
-		StructureImageExtractor.TURN_SMALL_DOUBLE_BOND_TO_N = false;
-		StructureImageExtractor.FIX_HALOGENS=true;
-		StructureImageExtractor.GREEDY_ADD_EDGES = true;
-		StructureImageExtractor.AGGRESSIVE_REMOVE_SHORT_OCR = false;
-		StructureImageExtractor.OCRcutoffCosineRescue=0.5;
-		StructureImageExtractor.AGGRESSIVE_CONNECT_ATOMS=true;
+	public static class ModifiedMolvecResult implements MolvecResult{
+		private String type;
+		public String getType() {
+			return type;
+		}
 
-		StructureImageExtractor.MAX_AREA_TO_STITCH_OCR_SHAPE = 100;
-		StructureImageExtractor.MAX_DISTANCE_BETWEEN_OCR_SHAPES_TO_STITCH = 3;
-		StructureImageExtractor.REMOVE_MIDDLE_NODES=true;
-		
-		StructureImageExtractor.AGGRESSIVE_CLEAN_TRIPLE_BONDS=true;
-		DO_FIX=false;
 
-		StructureImageExtractor.COMBINE_WITH_BLUR=true;
-	}
-	
-	public static void setup(){
-		if(bs.get(0))BranchNode.setStringInterceptor(converter);								//~21.54 -> ~22.80 if commented		
-		if(bs.get(1))StructureImageExtractor.OCR_DEFAULT=MOD_OCR;								//~21.54 -> ~24.33 if commented		
-		if(bs.get(2))StructureImageExtractor.PRE_RESCUE_OCR = false;							//~21.54 -> ~24.71 if commented
-		if(bs.get(3))StructureImageExtractor.ATTEMPT_CROP = false;								//~21.54 -> ~21.55 if commented
+		public void setType(String type) {
+			this.type = type;
+		}
+
+
+		public double getScore() {
+			return score;
+		}
+
+
+		public void setScore(double score) {
+			this.score = score;
+		}
+
+		private double score;
+		MolvecResult inner;
 		
-		//likely this
-		if(!bs.get(4))StructureImageExtractor.FORCE_FINAL_MERGE = true;						//~22.00 -> ~21.75 if commented
-		
-		if(bs.get(5))StructureImageExtractor.KEEP_ALL_LINES=true;  							//~22.00 -> ~23.00 if commented
-		if(bs.get(6))StructureImageExtractor.MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS=12; 	//~22.00 -> ~30.00 if commented
-		if(bs.get(7))StructureImageExtractor.maxCandidateRatioForIntersection=1.8;			//~21.78 -> ~21.79 if commented
-		
-		if(!bs.get(8))StructureImageExtractor.OCR_TO_BOND_MAX_DISTANCE=5.0;					//~21.78 -> ~21.54 if commented
-		
-		if(bs.get(9))StructureImageExtractor.MAX_BOND_RATIO_FOR_MERGING_TO_OCR=0.31;         //~21.54 -> ~21.64 if commented
-		if(bs.get(10))StructureImageExtractor.PREFER_OXYGENS=true;							//~21.78 -> ~21.81 if commented
-		
-		
-		if(bs.get(11))StructureImageExtractor.PREFER_FLOURINE=true;
-		if(bs.get(12))StructureImageExtractor.ADD_ORPHANS=true;
-		if(bs.get(13))StructureImageExtractor.PHENOL_TO_CL=true;
-		if(bs.get(14))StructureImageExtractor.HEMI_ACE_TO_CARB=true;
-		if(bs.get(15))StructureImageExtractor.EXPLICIT_METHYL_CHANGE_TO_PEPTIDE_ENOL=true;
-		if(bs.get(16))StructureImageExtractor.EXPLICIT_METHYL_TO_CL=true;
-		if(!bs.get(17))StructureImageExtractor.EXPLICIT_ALKENE_TO_CARBONYL=true;
-		if(bs.get(18))StructureImageExtractor.ADD_DETECTED_CHILDREN=false;
-		if(bs.get(19))StructureImageExtractor.ELEVATE_NITROGENS=true;
-		if(bs.get(20))StructureImageExtractor.ELEVATE_OXYGENS=true;
-		if(bs.get(21))StructureImageExtractor.ELEVATE_FLOURINE=true;
-		if(!bs.get(22))StructureImageExtractor.FORCE_MERGE_SMALL_RINGS = true;
-		if(!bs.get(23))StructureImageExtractor.TURN_SMALL_DOUBLE_BOND_TO_N = true;
-		if(bs.get(24))StructureImageExtractor.FIX_HALOGENS=false;
-		
-		if(!bs.get(25))StructureImageExtractor.GREEDY_ADD_EDGES = false;
-		
-		if(bs.get(26))StructureImageExtractor.AGGRESSIVE_REMOVE_SHORT_OCR = true;
-		
-		if(bs.get(27))StructureImageExtractor.OCRcutoffCosineRescue=0.6;
-		
-		if(bs.get(28))StructureImageExtractor.AGGRESSIVE_CONNECT_ATOMS=false;
+		public ModifiedMolvecResult(MolvecResult mr, double score, String type){
+			this.inner=mr;
+			this.type=type;
+			this.score=score;
+		}
 		
 
-		if(bs.get(29))StructureImageExtractor.MAX_AREA_TO_STITCH_OCR_SHAPE=250;
-		if(bs.get(30))StructureImageExtractor.MAX_DISTANCE_BETWEEN_OCR_SHAPES_TO_STITCH=4;
-		if(bs.get(31))StructureImageExtractor.REMOVE_MIDDLE_NODES=false;
-		if(bs.get(32))DO_FIX=true;
-		if(bs.get(33))StructureImageExtractor.AGGRESSIVE_CLEAN_TRIPLE_BONDS=false;
-		if(bs.get(34))StructureImageExtractor.COMBINE_WITH_BLUR=false;
+		@Override
+		public Optional<String> getMolfile() {
+			return inner.getMolfile();
+		}
+
+		@Override
+		public Optional<String> getSDfile() {
+			return inner.getSDfile();
+		}
+
+		@Override
+		public Optional<String> getSDfile(Map<String, String> properties) {
+			return inner.getSDfile(properties);
+		}
+
+		@Override
+		public Optional<Rectangle2D> getOriginalBoundingBox() {
+			return inner.getOriginalBoundingBox();
+		}
+
+		@Override
+		public boolean hasError() {
+			
+			return inner.hasError();
+		}
+
+		@Override
+		public Optional<Throwable> getError() {
+			// TODO Auto-generated method stub
+			return inner.getError();
+		}
 		
 	}
+	public static void setInChIDefaultScorer(){
+		ResultScorer rs=new InChIKeySetScorer(new File("./resources/ikeys.txt"));
+		ModifiedMolvecPipeline.setDefaultScorer(rs);
+	}
+	public static ModifiedMolvecResult process(File f, MolvecOptions op) throws IOException{
+		double pscore=-1;
+		op=op.modFlags();
+		if(op.isOverrideScorer()){
+			op.setScorer(DEFAULT_RESULT_SCORER);
+		}
+		op=_adapter.apply(op);
+		int[] tries = op.getFlagTries();
+		ResultScorer rs =op.getScorer();
+		ModifiedMolvecResult mvrbest = null;
+		for(int ii=0;ii<tries.length;ii++){
+				int fii=tries[ii];				
+				if(fii>=0){
+					op=op.modFlags().clearFlag(fii);
+				}				
+				
+				try{
+					MolvecResult mvr = ModifiedMolvecPipeline.processTogether
+							(f, op);
+					
+					Chemical mc = Chemical.parse(mvr.getMolfile().get());
+					
+					double score=rs.score(mc);
+					ModifiedMolvecResult mt=new ModifiedMolvecResult(mvr, score,null);
+					
+					
+					if(score>0.9){
+						mvrbest=mt;
+						mt.setType("found-t" + fii);
+						break;
+					}else if(score>pscore){
+						mvrbest=mt;
+						pscore=score;
+						mt.setType("best-t" + fii);
+					}
+				}catch(Exception ee){
+//					ee.printStackTrace();
+					ee.printStackTrace();
+				}
+				
+		}
+		return mvrbest;
+	}
 	
-	public static MolvecResult process(File f, MolvecOptions op) throws IOException{
+	public static MolvecResult processTogether(File f, MolvecOptions op) throws IOException{
 		
-		setup();
+		
+		boolean RESIZE=ModifiedMolvecPipeline.RESIZE;
+		boolean DO_FIX=true;
+
+		op=prepare(op);
+		
+		BitSet MODIFICATION_FLAGS = op.getFlags();
+		
+		{
+			if(MODIFICATION_FLAGS.get(32))DO_FIX=true;
+		}
+		
+		
 		boolean dorotate=true;
 		
 		
@@ -326,6 +450,9 @@ public class ModifiedMolvecPipeline {
 		}else{
 			nbi=ImageCleaner.preCleanImageResize(biIn, 2, true, dorotate);
 		}
+		
+		
+		
 		
 		MolvecResult mol = Molvec.ocr(nbi, op);
 		Chemical ct = Chemical.parse(mol.getSDfile().get());
@@ -356,10 +483,10 @@ public class ModifiedMolvecPipeline {
 //				System.out.println(f.getName() + ":" +sx + "," + sy + "," + sx2 + "," +sy2 );
 //				System.out.println(f.getName() + ": missing dimension " + i);
 //				
-//				if(i==0)missingAt.add(KnownMissingBond.LEFT);
-//				if(i==1)missingAt.add(KnownMissingBond.TOP);
-//				if(i==2)missingAt.add(KnownMissingBond.RIGHT);
-//				if(i==3)missingAt.add(KnownMissingBond.BOTTOM);
+				if(i==0)missingAt.add(KnownMissingBond.LEFT);
+				if(i==1)missingAt.add(KnownMissingBond.TOP);
+				if(i==2)missingAt.add(KnownMissingBond.RIGHT);
+				if(i==3)missingAt.add(KnownMissingBond.BOTTOM);
 				
 //				throw new RuntimeException("missing pieces");
 			}
@@ -400,7 +527,7 @@ public class ModifiedMolvecPipeline {
 				ct
 		};
 		if(DO_FIX){
-			ChemFixResult cfr=ChemFixer.fixChemical(ct.copy(), missingAt);
+			ChemFixResult cfr=ChemFixer.fixChemical(ct.copy(), missingAt, MODIFICATION_FLAGS);
 			if(cfr.type!=FixType.NULL){
 				t[0]=cfr.c;								//~21.54 -> ~33.40 if commented
 			}

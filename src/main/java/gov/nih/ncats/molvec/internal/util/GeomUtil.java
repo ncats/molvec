@@ -1343,7 +1343,7 @@ public class GeomUtil {
 		}
 		
 		public double similarity(ShapeWrapper s2){
-			
+			try{
 			double iarea=this.getIntersection(s2)
 			    .map(is->is.getArea())
 			    .orElse(0.0);
@@ -1351,7 +1351,10 @@ public class GeomUtil {
 			double tarea=this.and(s2).getArea();
 			
 			return iarea/tarea;
-			
+			}catch(Exception e){
+				
+			}
+			return 0;
 		}
     }
 

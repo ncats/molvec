@@ -4,6 +4,7 @@ import gov.nih.ncats.common.cli.Cli;
 import gov.nih.ncats.common.cli.CliSpecification;
 import gov.nih.ncats.common.cli.CliValidationException;
 import gov.nih.ncats.common.functions.ThrowableConsumer;
+import gov.nih.ncats.molvec.internal.algo.experimental.BMS;
 import gov.nih.ncats.molvec.internal.algo.experimental.ModifiedMolvecPipeline;
 import gov.nih.ncats.molvec.ui.Viewer;
 
@@ -12,12 +13,16 @@ import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static gov.nih.ncats.common.cli.CliSpecification.*;
 /**
  * Created by katzelda on 5/20/19.
  */
 public class Main {
+
+	static final Logger logger = Logger.getLogger(Main.class.getName());
 
 	private static boolean USE_MOD_PIPELINE = false;
 	
@@ -75,7 +80,8 @@ public class Main {
     
     public static MolvecResult getResult(File f, String name) throws IOException{
     	if(USE_MOD_PIPELINE){
-    		return ModifiedMolvecPipeline.process(f, new MolvecOptions().setName(name));
+    		MolvecOptions mo = new MolvecOptions().modFlags().setName(name);
+    		return ModifiedMolvecPipeline.process(f, mo);
     	}else{
     		return Molvec.ocr(f, new MolvecOptions().setName(name));
     	}
@@ -91,7 +97,15 @@ public class Main {
                 option("xclean").isFlag(true)
                                     .description("Set experimental \"clean mode\" to rescue small spotty images"),
                 option("noresize").isFlag(true)
-                                    .description("Do not resize to clean images in xclean"),    
+									.addValidation(cli->cli.hasOption("xclean"), "noresie only valid if specifying xclean mode")
+                                    .description("Do not resize to clean images in xclean"), 
+                option("inchiscorer").isFlag(true)
+                					.addValidation(cli->cli.hasOption("xclean"), "inchiscorer only valid if specifying xclean mode")
+                                    .description("xclean option to use inchi whitelist scorer. List of inchikeys must be found in ./resources/ikeys.txt with one inchikey per row."),
+                option("limittries")
+                                    .argName("count")
+                                    .addValidation(cli->cli.hasOption("xclean"), "limittries only valid if specifying xclean mode")
+                                    .description("scale of image to show in viewer (only valid if gui mode AND file are specified)"),
                 radio(
                 group(option("f").longName("file")
                         .argName("path")
@@ -178,7 +192,22 @@ public class Main {
             if(cli.hasOption("noresize")){
             	ModifiedMolvecPipeline.RESIZE=false;
             }
+            
+            if(cli.hasOption("inchiscorer")){
+            	logger.log(Level.INFO, "Loading inchi whitelist scorer from \"resources/ikeys.txt\". This may take some time ...");
+            	try{
+            		ModifiedMolvecPipeline.setInChIDefaultScorer();
+            		logger.log(Level.INFO, "Loading complete");
+            	}catch(Exception e){
+            		logger.log(Level.WARNING, "Error loading inchi whitelist", e);
+            	}
+            }
 
+            if(cli.hasOption("limittries")){
+            	int limit = Integer.parseInt(cli.getOptionValue("limit-tries"));
+            	ModifiedMolvecPipeline.setTryLimit(limit);
+            }
+            
             if(cli.hasOption("gui")){
                 //file and scale
                 if(cli.hasOption("f")){

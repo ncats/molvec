@@ -81,6 +81,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import gov.nih.ncats.molvec.MolvecOptions;
 import gov.nih.ncats.molvec.internal.algo.CentroidEuclideanMetric;
 import gov.nih.ncats.molvec.internal.algo.NearestNeighbors;
 import gov.nih.ncats.molvec.internal.algo.StructureImageExtractor;
@@ -138,20 +139,12 @@ public class Viewer extends JPanel
 //    		Color.ORANGE
         //Color.red, Color.blue, Color.black
     };
-    public static boolean MODIFIED_PIPE=true; 
+    public static boolean MODIFIED_PIPE=false; 
     
-    static{
-    	//here for debugging purposes
-    	if(MODIFIED_PIPE){
-    		ModifiedMolvecPipeline.setup();
-    	}
-    }
+    
     
     public static void setExperimentalClean(boolean b){
     	MODIFIED_PIPE=b;
-    	if(b){
-    		ModifiedMolvecPipeline.setup();
-    	}
     }
     		
 
@@ -398,9 +391,11 @@ public class Viewer extends JPanel
 	        	RenderedImage ri = ImageUtil.decode(file);
 	    		BufferedImage biIn= convertRenderedImage(ri);
 	        	BufferedImage bii=ImageCleaner.preCleanImageResize(biIn, 2, true, true);
-	            sie = StructureImageExtractor.createFromImage(bii,true);
+	        	MolvecOptions mo= new MolvecOptions().modFlags().setDebug();
+	        	mo=ModifiedMolvecPipeline.prepare(mo);
+	            sie = StructureImageExtractor.createFromImage(bii,mo.getValues());
         	}else{
-        		sie = new StructureImageExtractor(file,true);
+        		sie = new StructureImageExtractor(file,((new MolvecOptions()).setDebug()).getValues());
         	}
 
             bitmap = sie.getBitmap();
@@ -421,7 +416,8 @@ public class Viewer extends JPanel
 	            String mol=ctab.toMol();
 	            if(MODIFIED_PIPE){
 	            	try {
-						Chemical chem=ChemFixer.fixChemical(Chemical.parse(mol))
+	            		MolvecOptions mo= new MolvecOptions().modFlags().setDebug();
+						Chemical chem=ChemFixer.fixChemical(Chemical.parse(mol), mo.getFlags())
 						.c;
 						System.out.println(chem.toInchi().getInchi());
 					} catch (Exception e1) {
@@ -1402,7 +1398,8 @@ public class Viewer extends JPanel
                 String mol=viewer.ctab.toMol();
                 if(MODIFIED_PIPE){
                 	try {
-						mol=ChemFixer.fixChemical(Chemical.parse(mol))
+                		MolvecOptions mo= new MolvecOptions().modFlags().setDebug();
+						mol=ChemFixer.fixChemical(Chemical.parse(mol), mo.getFlags())
 						.c.toMol();
 					} catch (Exception e1) {
 						// TODO Auto-generated catch block

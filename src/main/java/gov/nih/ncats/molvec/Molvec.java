@@ -4,6 +4,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
@@ -42,10 +43,8 @@ public final class Molvec {
 	 */
 	public static MolvecResult ocr(File image, MolvecOptions options) throws IOException{
 		checkNotNull(image);
+		options = Optional.ofNullable(options).orElse(DEFAULT_OPTIONS);
 		StructureImageExtractor sie = new StructureImageExtractor(image);
-		if(options ==null) {
-			return DEFAULT_OPTIONS.computeResult(sie.getCtab());
-		}
 		return options.computeResult(sie.getCtab());
 
 	}
@@ -82,10 +81,9 @@ public final class Molvec {
 	 */
 	public static MolvecResult ocr(byte[] image, MolvecOptions options) throws IOException{
 		checkNotNull(image);
-		StructureImageExtractor sie = new StructureImageExtractor(image);
-		if(options ==null) {
-			return DEFAULT_OPTIONS.computeResult(sie.getCtab());
-		}
+		options = Optional.ofNullable(options).orElse(DEFAULT_OPTIONS);
+		StructureImageExtractor sie = new StructureImageExtractor(image,options.getValues());
+		
 		return options.computeResult(sie.getCtab());
 
 	}
@@ -116,7 +114,8 @@ public final class Molvec {
 	 */
 	public static MolvecResult ocr(BufferedImage image, MolvecOptions options) throws IOException{
 		checkNotNull(image);
-		StructureImageExtractor sie = StructureImageExtractor.createFromImage(image);
+		options = Optional.ofNullable(options).orElse(DEFAULT_OPTIONS);
+		StructureImageExtractor sie = StructureImageExtractor.createFromImage(image,options.getValues());
 		if(options ==null) {
 			return DEFAULT_OPTIONS.computeResult(sie.getCtab());
 		}

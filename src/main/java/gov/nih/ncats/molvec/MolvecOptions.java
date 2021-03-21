@@ -1,17 +1,30 @@
 package gov.nih.ncats.molvec;
 
-import gov.nih.ncats.molvec.internal.util.CachedSupplier;
-import gov.nih.ncats.molvec.internal.util.ConnectionTable;
-import gov.nih.ncats.molvec.internal.util.GeomUtil;
-
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
+
+import gov.nih.ncats.molvec.internal.algo.StructureImageExtractor;
+import gov.nih.ncats.molvec.internal.algo.experimental.ConstantValueResultScorer;
+import gov.nih.ncats.molvec.internal.algo.experimental.ResultScorer;
+import gov.nih.ncats.molvec.internal.util.CachedSupplier;
+import gov.nih.ncats.molvec.internal.util.ConnectionTable;
+import gov.nih.ncats.molvec.internal.util.GeomUtil;
 
 public class MolvecOptions {
     private double averageBondLength = 1D;
@@ -19,7 +32,128 @@ public class MolvecOptions {
     private boolean includeSgroups = true;
 
     private String name;
+    
+    private BitSet flags = new BitSet();
+    private int[] flagTries = new int[]{-1};
+    private ResultScorer scorer = new ConstantValueResultScorer(1.0);
+    
+    
+    private boolean overrideScorer=true;
+  
+    
+    
+    public boolean isOverrideScorer() {
+		return overrideScorer;
+	}
 
+
+
+	public MolvecOptions setOverrideScorer(boolean overrideScorer) {
+		this.overrideScorer = overrideScorer;
+		return this;
+	}
+
+
+
+	public ResultScorer getScorer() {
+		return scorer;
+	}
+
+
+
+	public MolvecOptions setScorer(ResultScorer scorer) {
+		this.scorer = scorer;
+		return this;
+	}
+
+
+
+	public int[] getFlagTries() {
+		return flagTries;
+	}
+
+
+
+	public void setFlagTries(int[] flagTries) {
+		this.flagTries = flagTries;
+	}
+
+	private StructureImageExtractor.ImageExtractionValues values = StructureImageExtractor.DEFAULT_VALUES;
+    
+    public StructureImageExtractor.ImageExtractionValues getValues() {
+		return values;
+	}
+
+
+
+	public void setValues(StructureImageExtractor.ImageExtractionValues values) {
+		this.values = values;
+	}
+
+
+
+	public BitSet getFlags() {
+		return flags;
+	}
+
+
+
+	public MolvecOptions setFlags(BitSet bs){
+    	flags=bs;
+    	return this;
+    }
+	
+	public MolvecOptions setDebug(){
+		values= this.values.debug(true);
+		return this;
+	}
+	
+	public MolvecOptions modFlags(){
+		BitSet bs = new BitSet();
+		bs.set(0, 100);
+		flagTries = new int[]{
+				-1,   //3 minute setup + 3 minutes per 1k
+				1,
+				30,
+				35,  
+				7,    //3 minute setup + 5 minutes per 1k
+				6,
+				5,
+				34,
+				59,
+				4,
+				12,
+				13,
+				8,
+				41,
+				36,
+				26,
+				14,
+				2,
+				9,
+				58,
+				54,
+				43,
+				19,
+				46,
+				15,
+				29,   //3 minute setup + 18 minutes per 1k
+				};
+		return this.setFlags(bs);
+	}
+	
+	public MolvecOptions limitAttempts(int max){
+		this.flagTries=Arrays.stream(this.flagTries).limit(max).toArray();
+		return this;
+	}
+	
+	public MolvecOptions clearFlag(int p){
+		this.flags.clear(p);
+		return this;
+	}
+    
+    
+    
     public MolvecOptions setName(String name){
         this.name = name;
         return this;
