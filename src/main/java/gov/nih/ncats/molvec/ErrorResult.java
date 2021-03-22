@@ -42,4 +42,10 @@ class ErrorResult implements MolvecResult{
     public Optional<Throwable> getError() {
         return Optional.of(t);
     }
+
+	@Override
+	public Optional<Map<String, String>> getProperties() {
+		
+		return Optional.empty();
+	}
 }

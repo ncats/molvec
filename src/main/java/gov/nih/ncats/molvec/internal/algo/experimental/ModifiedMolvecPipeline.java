@@ -380,7 +380,7 @@ public class ModifiedMolvecPipeline {
 			props.put("score", String.format("%.2f", this.getScore()));
 			props.put("match-type", this.getType());
 			
-			return props;
+			return Optional.of(props);
 		}
 		
 	}
@@ -612,6 +612,11 @@ public class ModifiedMolvecPipeline {
 			public Optional<Throwable> getError() {
 				// TODO Auto-generated method stub
 				return mresult.getError();
+			}
+
+			@Override
+			public Optional<Map<String, String>> getProperties() {
+				return mresult.getProperties();
 			}
 			
 		};
