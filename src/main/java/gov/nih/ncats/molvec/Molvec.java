@@ -116,9 +116,7 @@ public final class Molvec {
 		checkNotNull(image);
 		options = Optional.ofNullable(options).orElse(DEFAULT_OPTIONS);
 		StructureImageExtractor sie = StructureImageExtractor.createFromImage(image,options.getValues());
-		if(options ==null) {
-			return DEFAULT_OPTIONS.computeResult(sie.getCtab());
-		}
+		
 		return options.computeResult(sie.getCtab());
 
 	}

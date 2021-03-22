@@ -27,6 +27,37 @@ import gov.nih.ncats.molvec.internal.util.ConnectionTable;
 import gov.nih.ncats.molvec.internal.util.GeomUtil;
 
 public class MolvecOptions {
+	private static int DEFAULT_LIMIT_TRIES=7;
+	private static int[] FLAG_TRY_ORDER=new int[]{
+			-1,   //3 minute setup + 3 minutes per 1k
+			74,
+			1,
+			30,
+			35,
+			75,
+			59,
+			7,    //3 minute setup + 5 minutes per 1k
+			6,
+			5,
+			34,
+			4,
+			12,
+			13,
+			8,
+			41,
+			36,
+			26,
+			14,
+			2,
+			9,
+			58,
+			54,
+			43,
+			19,
+			46,
+			15,
+			29,   //3 minute setup + 18 minutes per 1k
+			};
     private double averageBondLength = 1D;
     private boolean center = true;
     private boolean includeSgroups = true;
@@ -111,41 +142,13 @@ public class MolvecOptions {
 	public MolvecOptions modFlags(){
 		BitSet bs = new BitSet();
 		bs.set(0, 100);
-		flagTries = new int[]{
-				-1,   //3 minute setup + 3 minutes per 1k
-				74,
-//				75,
-				1,
-				30,
-				35,  
-				7,    //3 minute setup + 5 minutes per 1k
-				6,
-				5,
-				34,
-				59,
-				4,
-				12,
-				13,
-				8,
-				41,
-				36,
-				26,
-				14,
-				2,
-				9,
-				58,
-				54,
-				43,
-				19,
-				46,
-				15,
-				29,   //3 minute setup + 18 minutes per 1k
-				};
-		return this.setFlags(bs);
+		flagTries = Arrays.copyOf(FLAG_TRY_ORDER, FLAG_TRY_ORDER.length);
+		
+		return this.setFlags(bs).limitAttempts(DEFAULT_LIMIT_TRIES);
 	}
 	
 	public MolvecOptions limitAttempts(int max){
-		this.flagTries=Arrays.stream(this.flagTries).limit(max).toArray();
+		this.flagTries=Arrays.stream(Arrays.copyOf(FLAG_TRY_ORDER, FLAG_TRY_ORDER.length)).limit(max).toArray();
 		return this;
 	}
 	

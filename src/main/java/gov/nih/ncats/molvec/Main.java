@@ -191,6 +191,11 @@ public class Main {
             if(cli.hasOption("noresize")){
             	ModifiedMolvecPipeline.RESIZE=false;
             }
+
+            if(cli.hasOption("limittries")){
+            	int limit = Integer.parseInt(cli.getOptionValue("limittries"));
+            	ModifiedMolvecPipeline.setTryLimit(limit);
+            }
             
             if(cli.hasOption("inchiscorer")){
             	logger.log(Level.INFO, "Loading inchi whitelist scorer from \"resources/ikeys.txt\". This may take some time ...");
@@ -202,11 +207,6 @@ public class Main {
             	}
             }
 
-            if(cli.hasOption("limittries")){
-            	int limit = Integer.parseInt(cli.getOptionValue("limit-tries"));
-            	ModifiedMolvecPipeline.setTryLimit(limit);
-            }
-            
             if(cli.hasOption("gui")){
                 //file and scale
                 if(cli.hasOption("f")){
