@@ -31,6 +31,7 @@ public class MolvecOptions {
 	private static int[] FLAG_TRY_ORDER=new int[]{
 			-1,   //3 minute setup + 3 minutes per 1k
 			74,
+			76,
 			1,
 			30,
 			35,
@@ -449,17 +450,17 @@ public class MolvecOptions {
         public Optional<String> getMolfile() {
             return Optional.of(mol);
         }
-
+        
         @Override
-        public Optional<String> getSDfile() {
-            if(name ==null){
-                //according to sdfile spec
-                //If the SDfile only contains structures, there can be no blank line between the last "M END"
-                //and the $$$$ delimiter line.
-                return getSDfile(null);
-            }
-            return getSDfile(Collections.singletonMap("Molecule Name", name));
+        public Optional<Map<String, String>> getProperties(){
+        	if(name!=null){
+        		return Optional.of(Collections.singletonMap("Molecule Name", name));
+        	}else{
+        		return Optional.empty();
+        	}
         }
+
+       
 
         @Override
         public Optional<String> getSDfile(Map<String, String> properties) {

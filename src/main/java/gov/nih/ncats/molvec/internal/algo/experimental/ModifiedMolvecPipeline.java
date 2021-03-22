@@ -12,6 +12,7 @@ import java.util.BitSet;
 import java.util.DoubleSummaryStatistics;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -32,12 +33,14 @@ import gov.nih.ncats.molvec.internal.image.ImageUtil;
 import gov.nih.ncats.molvec.ui.SCOCR;
 import gov.nih.ncats.molvec.ui.StupidestPossibleSCOCRSansSerif;
 import gov.nih.ncats.molwitch.Chemical;
-import gov.nih.ncats.molwitch.inchi.InChiResult;
 
 public class ModifiedMolvecPipeline {
 	
 	public static ResultScorer DEFAULT_RESULT_SCORER = new ConstantValueResultScorer(1.0);
 
+	public static ResultScorer getDefaultScorer(){
+		return DEFAULT_RESULT_SCORER;
+	}
 	public static void setDefaultScorer(ResultScorer rScorer){
 		DEFAULT_RESULT_SCORER=rScorer;
 	}
@@ -344,9 +347,9 @@ public class ModifiedMolvecPipeline {
 
 		@Override
 		public Optional<String> getSDfile() {
-			return inner.getSDfile();
+			return getSDfile(getProperties().orElse(null));
 		}
-
+		
 		@Override
 		public Optional<String> getSDfile(Map<String, String> properties) {
 			return inner.getSDfile(properties);
@@ -365,8 +368,19 @@ public class ModifiedMolvecPipeline {
 
 		@Override
 		public Optional<Throwable> getError() {
-			// TODO Auto-generated method stub
 			return inner.getError();
+		}
+
+
+		@Override
+		public Optional<Map<String, String>> getProperties() {
+			Map<String,String> props = inner.getProperties().map(m->new LinkedHashMap<String,String>(m)).orElse(new LinkedHashMap<String,String>());
+					
+			
+			props.put("score", String.format("%.2f", this.getScore()));
+			props.put("match-type", this.getType());
+			
+			return props;
 		}
 		
 	}
@@ -444,6 +458,10 @@ public class ModifiedMolvecPipeline {
 //			biIn=ImageCleaner.rotateCw(biIn);
 //		}
 		BufferedImage nbi;
+		
+		if(!MODIFICATION_FLAGS.get(76)){
+			dorotate=!dorotate;
+		}
 		
 		if(!RESIZE){
 			nbi=ImageCleaner.preCleanImageResize(biIn, 1, false, dorotate);			

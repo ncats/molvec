@@ -1,6 +1,7 @@
 package gov.nih.ncats.molvec;
 
 import java.awt.geom.Rectangle2D;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
@@ -16,11 +17,23 @@ public interface MolvecResult {
      */
     Optional<String> getMolfile();
 
+
+    
+    
+    Optional<Map<String,String>> getProperties();
+    
     /**
      * Returns a SDfile ( structure-data file)  of the chemical structure.
      * @return an Optional containing the SDfile as String or Empty Optional if there was an error.
      */
-    Optional<String> getSDfile();
+    public default Optional<String> getSDfile() {
+    	try{
+    		return getSDfile(getProperties().orElse(null));
+    	}catch(Exception e){
+    		return Optional.empty();
+    	}
+    }
+    
     /**
      * Returns a SDfile ( structure-data file)  of the chemical structure with the given properties.
      * @param properties a mapping of properties to include in the formatted SDfile. If null, then no properties are included.
