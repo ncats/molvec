@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.DoubleSummaryStatistics;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
@@ -352,7 +353,12 @@ public class ModifiedMolvecPipeline {
 		
 		@Override
 		public Optional<String> getSDfile(Map<String, String> properties) {
-			return inner.getSDfile(properties);
+			Map<String,String> p=getProperties().orElse(new LinkedHashMap<>());
+			if(properties!=null){
+				p.putAll(properties);
+			}
+			
+			return inner.getSDfile(p);
 		}
 
 		@Override
@@ -397,6 +403,11 @@ public class ModifiedMolvecPipeline {
 		op=_adapter.apply(op);
 		int[] tries = op.getFlagTries();
 		ResultScorer rs =op.getScorer();
+		
+		if(rs instanceof ConstantValueResultScorer){
+			tries= new int[]{tries[0]};
+		}
+		
 		ModifiedMolvecResult mvrbest = null;
 		for(int ii=0;ii<tries.length;ii++){
 				int fii=tries[ii];				

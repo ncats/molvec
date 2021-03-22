@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import gov.nih.ncats.common.stream.StreamUtil;
 import gov.nih.ncats.molvec.internal.algo.StructureImageExtractor;
 import gov.nih.ncats.molvec.internal.algo.experimental.ConstantValueResultScorer;
 import gov.nih.ncats.molvec.internal.algo.experimental.ResultScorer;
@@ -58,6 +59,10 @@ public class MolvecOptions {
 			9,
 			46,
 			};
+//	static{
+//		FLAG_TRY_ORDER=StreamUtil.with(Arrays.stream(FLAG_TRY_ORDER).boxed())
+//				.and()
+//	}
     private double averageBondLength = 1D;
     private boolean center = true;
     private boolean includeSgroups = true;
