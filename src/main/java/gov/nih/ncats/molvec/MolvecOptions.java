@@ -29,35 +29,34 @@ import gov.nih.ncats.molvec.internal.util.GeomUtil;
 public class MolvecOptions {
 	private static int DEFAULT_LIMIT_TRIES=7;
 	private static int[] FLAG_TRY_ORDER=new int[]{
-			-1,   //3 minute setup + 3 minutes per 1k
+			-1,   //3 minute setup + 3 minutes per 1k-1
 			74,
-			76,
-			1,
 			30,
+			1,
 			35,
 			75,
 			59,
-			7,    //3 minute setup + 5 minutes per 1k
-			6,
+			7,
+			76,
 			5,
+			6,
 			34,
-			4,
-			12,
-			13,
-			8,
-			41,
 			36,
-			26,
-			14,
-			2,
-			9,
-			58,
-			54,
+			13,
+			29,
+			12,
 			43,
 			19,
+			58,
+			2,
+			8,
+			4,
+			26,
+			14,
+			41,
+			54,
+			9,
 			46,
-			15,
-			29,   //3 minute setup + 18 minutes per 1k
 			};
     private double averageBondLength = 1D;
     private boolean center = true;
