@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import gov.nih.ncats.common.stream.StreamUtil;
 import gov.nih.ncats.molvec.internal.algo.StructureImageExtractor;
@@ -29,40 +30,71 @@ import gov.nih.ncats.molvec.internal.util.GeomUtil;
 
 public class MolvecOptions {
 	private static int DEFAULT_LIMIT_TRIES=7;
+	private static int DEFAULT_MAX_LIMIT_TRIES=28;
+	
+	private static int[][] ADDITIONAL_PAIRS = new int[][] {
+		new int[]{74,30,75},
+		new int[]{74,59},
+		new int[]{74,30,1,75},
+	};
+	
 	private static int[] FLAG_TRY_ORDER=new int[]{
-			-1,   //3 minute setup + 3 minutes per 1k-1
+			-1,
 			74,
 			30,
-			1,
 			35,
+			1,
 			75,
 			59,
-			7,
-			76,
 			5,
+			7,
 			6,
-			34,
-			36,
+			76,
+			34, //
 			13,
-			29,
-			12,
-			43,
-			19,
+			36,
+			29, //
+			25,
+			12, //
+			19, //
+			43, //
 			58,
-			2,
-			8,
+			2,  //
+			26, //
+			28, //
+			21,
 			4,
-			26,
+			8,
 			14,
-			41,
+			20,
+			3,
+			31,
+			44,
 			54,
-			9,
+			17,
+			23,
+			41,
+			47,
+			50,
+			63,
+			70,
+			71,
+			0,
+			18,
 			46,
+			64,
+			72,
+			9,
 			};
-//	static{
-//		FLAG_TRY_ORDER=StreamUtil.with(Arrays.stream(FLAG_TRY_ORDER).boxed())
-//				.and()
-//	}
+	static{
+		FLAG_TRY_ORDER=StreamUtil.with(Arrays.stream(FLAG_TRY_ORDER).boxed())
+				.and(IntStream.range(0,100).boxed())
+				.stream()
+				.distinct()
+				.mapToInt(i->i)
+				.toArray();
+		
+	}
     private double averageBondLength = 1D;
     private boolean center = true;
     private boolean includeSgroups = true;
@@ -153,7 +185,9 @@ public class MolvecOptions {
 	}
 	
 	public MolvecOptions limitAttempts(int max){
-		this.flagTries=Arrays.stream(Arrays.copyOf(FLAG_TRY_ORDER, FLAG_TRY_ORDER.length)).limit(max).toArray();
+		this.flagTries=Arrays.stream(Arrays.copyOf(FLAG_TRY_ORDER, FLAG_TRY_ORDER.length))
+				.limit(max)
+				.toArray();
 		return this;
 	}
 	

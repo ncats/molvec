@@ -7,13 +7,14 @@ import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.DoubleSummaryStatistics;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -21,6 +22,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import gov.nih.ncats.common.stream.StreamUtil;
+import gov.nih.ncats.common.stream.StreamUtil.StreamConcatter;
 import gov.nih.ncats.molvec.Molvec;
 import gov.nih.ncats.molvec.MolvecOptions;
 import gov.nih.ncats.molvec.MolvecResult;
@@ -36,6 +39,7 @@ import gov.nih.ncats.molvec.ui.StupidestPossibleSCOCRSansSerif;
 import gov.nih.ncats.molwitch.Chemical;
 
 public class ModifiedMolvecPipeline {
+	public static boolean DO_MULTI_TRIES=false;
 	
 	public static ResultScorer DEFAULT_RESULT_SCORER = new ConstantValueResultScorer(1.0);
 
@@ -338,8 +342,7 @@ public class ModifiedMolvecPipeline {
 			this.inner=mr;
 			this.type=type;
 			this.score=score;
-		}
-		
+		}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       		
 
 		@Override
 		public Optional<String> getMolfile() {
@@ -407,13 +410,52 @@ public class ModifiedMolvecPipeline {
 		if(rs instanceof ConstantValueResultScorer){
 			tries= new int[]{tries[0]};
 		}
+//		List<int[]> mflags = new ArrayList<>();
+//		mflags.add(new int[]{-1});
+//		
+//		for(int j=1;j<Math.pow(2, tries.length-1);j++){
+//			String bs = Integer.toBinaryString(j);
+//			StringBuilder sb = new StringBuilder(bs);
+//			sb.reverse();
+//			
+//					
+//			int[] bitset=Arrays.stream(sb.toString().split(""))
+//			.mapToInt(s->Integer.parseInt(s))
+//			.toArray();
+//			List<Integer> mlist= new ArrayList<>();
+//			
+//			for(int k=0;k<bitset.length;k++){
+//				if(bitset[k]>0){
+//					mlist.add(tries[k+1]);
+//				}
+//			}
+//			mflags.add(mlist.stream().mapToInt(jj->jj).toArray());
+//		}
+		
+		
+		StreamConcatter<int[]> sc = StreamUtil.with(Arrays.stream(tries).mapToObj(i->new int[]{i}));
+		if(DO_MULTI_TRIES) {
+			sc=sc
+					.and(new int[]{74,30,75})
+					.and(new int[]{74,59})
+					.and(new int[]{74,30,1,75});
+		}
+		int[][] realtries=sc
+				.stream()
+				.toArray(i->new int[i][]);
+		
+//		realtries = mflags.stream().toArray(i->new int[i][]);
 		
 		ModifiedMolvecResult mvrbest = null;
-		for(int ii=0;ii<tries.length;ii++){
-				int fii=tries[ii];				
-				if(fii>=0){
-					op=op.modFlags().clearFlag(fii);
-				}				
+		
+		for(int ii=0;ii<realtries.length;ii++){
+				op=op.modFlags();
+				int[] fii=realtries[ii];
+				for(int j:fii){
+					if(j>=0){
+						op=op.clearFlag(j);
+					}
+				}			
 				
 				try{
 					MolvecResult mvr = ModifiedMolvecPipeline.processTogether
@@ -427,12 +469,12 @@ public class ModifiedMolvecPipeline {
 					
 					if(score>0.9){
 						mvrbest=mt;
-						mt.setType("found-t" + fii);
+						mt.setType("found-t" + Arrays.toString(fii).replace("[", "").replace("]", "").replace(",","_").replace(" ", ""));
 						break;
 					}else if(score>pscore){
 						mvrbest=mt;
 						pscore=score;
-						mt.setType("best-t" + fii);
+						mt.setType("best-t" + Arrays.toString(fii).replace("[", "").replace("]", "").replace(",","_").replace(" ", ""));
 					}
 				}catch(Exception ee){
 //					ee.printStackTrace();

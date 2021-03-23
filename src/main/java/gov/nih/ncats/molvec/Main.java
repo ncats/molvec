@@ -104,7 +104,10 @@ public class Main {
                 option("limittries")
                                     .argName("count")
                                     .addValidation(cli->cli.hasOption("xclean"), "limittries only valid if specifying xclean mode")
-                                    .description("scale of image to show in viewer (only valid if gui mode AND file are specified)"),
+                                    .description("xclean option to set a limit on the number of variations to try. Requires a scorer like inchiscorer."),
+                option("combotries").isFlag(true)
+                                    .addValidation(cli->cli.hasOption("xclean"), "combotries only valid if specifying xclean mode")
+                                    .description("xclean option to do some combination paramater adjustments from the baseline. Requires a scorer like inchiscorer"),
                 radio(
                 group(option("f").longName("file")
                         .argName("path")
@@ -195,6 +198,11 @@ public class Main {
             if(cli.hasOption("limittries")){
             	int limit = Integer.parseInt(cli.getOptionValue("limittries"));
             	ModifiedMolvecPipeline.setTryLimit(limit);
+            }
+            if(cli.hasOption("combotries")){
+            	
+            	ModifiedMolvecPipeline.DO_MULTI_TRIES = true;
+            	
             }
             
             if(cli.hasOption("inchiscorer")){
