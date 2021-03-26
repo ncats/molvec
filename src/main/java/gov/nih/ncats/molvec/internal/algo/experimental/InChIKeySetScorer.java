@@ -72,7 +72,7 @@ public class InChIKeySetScorer implements ResultScorer{
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+//			e.printStackTrace();
 		}		
 		return 0;
 	}

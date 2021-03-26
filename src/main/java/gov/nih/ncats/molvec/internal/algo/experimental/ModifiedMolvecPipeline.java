@@ -606,7 +606,7 @@ public class ModifiedMolvecPipeline {
 			}
 			List<String> ikeys = _imgkeyCache.get(f.getName());
 			if(keys!=null) {
-				keys.forEach(k->_imgCACHE.remove(k));
+				ikeys.forEach(k->_imgCACHE.remove(k));
 			}
 		}
 	}
