@@ -42,6 +42,7 @@ import javax.imageio.ImageIO;
 
 import gov.nih.ncats.molvec.internal.image.Bitmap;
 import gov.nih.ncats.molvec.internal.image.Bitmap.WedgeInfo;
+import gov.nih.ncats.molvec.internal.image.ImageUtil;
 import gov.nih.ncats.molvec.internal.util.CachedSupplier;
 import gov.nih.ncats.molvec.internal.image.binarization.Binarization;
 import gov.nih.ncats.molvec.internal.image.binarization.LeastPopulatedThreshold;
@@ -395,7 +396,7 @@ public class StructureImageExtractor {
 	public static StructureImageExtractor createFromImage(BufferedImage bufferedImage, ImageExtractionValues vals)throws IOException{
 		BufferedImage img = bufferedImage;
 		if(BufferedImage.TYPE_BYTE_GRAY != bufferedImage.getType()){
-			img = toGrayScale(bufferedImage);
+			img = ImageUtil.toGrayScale(bufferedImage);
 		}
 		try {
 			return new StructureImageExtractor(img.getRaster(), vals );
@@ -407,23 +408,7 @@ public class StructureImageExtractor {
 
 	
 	
-	/**
-	 * Convert the given BufferdImage into a new GrayScaled image.
-	 * the input image is not modified.
-	 * @param image the image to convert;
-	 * @return a new BufferedImage of the same size as the input
-	 * but in grayscale.
-	 */
-	private static BufferedImage toGrayScale(BufferedImage image){
-		BufferedImage grayScaled = new BufferedImage(image.getWidth(),image.getHeight(),	BufferedImage.TYPE_BYTE_GRAY);
-
-		ColorConvertOp op = new ColorConvertOp(
-				image.getColorModel().getColorSpace(),
-				grayScaled.getColorModel().getColorSpace(),null);
-		op.filter(image,grayScaled);
-		return grayScaled;
-
-	}
+	
 	
 	/**
 	 * Create a new {@link StructureImageExtractor}, using a given {@link Raster}.

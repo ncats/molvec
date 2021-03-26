@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.DoubleSummaryStatistics;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
@@ -18,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -34,6 +34,7 @@ import gov.nih.ncats.molvec.internal.algo.StructureImageExtractor.ImageExtractio
 import gov.nih.ncats.molvec.internal.algo.experimental.ChemFixer.ChemFixResult;
 import gov.nih.ncats.molvec.internal.algo.experimental.ChemFixer.FixType;
 import gov.nih.ncats.molvec.internal.algo.experimental.ChemFixer.KnownMissingBond;
+import gov.nih.ncats.molvec.internal.algo.experimental.ModifiedMolvecPipeline.TempResult;
 import gov.nih.ncats.molvec.internal.image.ImageUtil;
 import gov.nih.ncats.molvec.ui.SCOCR;
 import gov.nih.ncats.molvec.ui.StupidestPossibleSCOCRSansSerif;
@@ -429,7 +430,7 @@ public class ModifiedMolvecPipeline {
 		
 	}
 	public static void setInChIDefaultScorer(){
-		ResultScorer rs=new InChIKeySetScorer(new File("./resources/ikeys.txt"));
+		ResultScorer rs=new InChIKeySetScorer(new File("./resources/ikeys.txt"),false);
 		ModifiedMolvecPipeline.setDefaultScorer(rs);
 	}
 	public static void setFakeScorer(){
@@ -437,6 +438,9 @@ public class ModifiedMolvecPipeline {
 		ModifiedMolvecPipeline.setDefaultScorer(rs);
 	}
 	public static ModifiedMolvecResult process(File f, MolvecOptions op) throws IOException{
+
+		HashMap<String,BufferedImage> _imgCACHE = new HashMap<>();
+		HashMap<String,TempResult> _mfileCache = new HashMap<>();
 		try {
 		double pscore=-1;
 		op=op.modFlags();
@@ -523,7 +527,7 @@ public class ModifiedMolvecPipeline {
 				
 				try{
 					MolvecResult mvr = ModifiedMolvecPipeline.processTogether
-							(f, op);
+							(f, op,_mfileCache, _imgCACHE);
 					
 					Chemical mc = Chemical.parse(mvr.getMolfile().get());
 					
@@ -600,24 +604,10 @@ public class ModifiedMolvecPipeline {
 		}
 		return mvrbest;
 		}finally {
-			List<String> keys = _keyCache.get(f.getName());
-			if(keys!=null) {
-				keys.forEach(k->_mfileCache.remove(k));
-			}
-			List<String> ikeys = _imgkeyCache.get(f.getName());
-			if(keys!=null) {
-				ikeys.forEach(k->_imgCACHE.remove(k));
-			}
-			_keyCache.remove(f.getName());
-			_imgkeyCache.remove(f.getName());
-//			System.out.println()
+			_imgCACHE.clear();
+			_mfileCache.clear();
 		}
 	}
-	
-	public static ConcurrentHashMap<String,BufferedImage> _imgCACHE = new ConcurrentHashMap<>();
-	public static ConcurrentHashMap<String,TempResult> _mfileCache = new ConcurrentHashMap<>();
-	public static ConcurrentHashMap<String,List<String>> _keyCache = new ConcurrentHashMap<>();
-	public static ConcurrentHashMap<String,List<String>> _imgkeyCache = new ConcurrentHashMap<>();
 	
 	//there are 3 stages:
 	//1. Image Preprocess
@@ -629,7 +619,7 @@ public class ModifiedMolvecPipeline {
 		public Set<KnownMissingBond> missingAt;
 	}
 	
-	public static MolvecResult processTogether(File f, MolvecOptions opt) throws IOException{
+	public static MolvecResult processTogether(File f, MolvecOptions opt, HashMap<String,TempResult> _mfileCache, HashMap<String,BufferedImage> _imgCACHE) throws IOException{
 		boolean RESIZE=ModifiedMolvecPipeline.RESIZE;
 		boolean DO_FIX=true;
 
@@ -649,7 +639,6 @@ public class ModifiedMolvecPipeline {
 		String fkey = k + preSetting;
 		
 		
-		_keyCache.computeIfAbsent(k, (kk)->new ArrayList<>()).add(fkey);
 		
 		TempResult tmresult=_mfileCache.computeIfAbsent(fkey, mm->{
 			try {
@@ -659,8 +648,6 @@ public class ModifiedMolvecPipeline {
 				String ikey = k + preImgSetting;
 				
 
-				_imgkeyCache.computeIfAbsent(k, (kk)->new ArrayList<>()).add(k);
-				
 				BufferedImage biIn=_imgCACHE.computeIfAbsent(k, (kk)->{
 					try {
 						RenderedImage ri = ImageUtil.decode(f);
@@ -675,7 +662,6 @@ public class ModifiedMolvecPipeline {
 				}
 				boolean _doRotate=dorotate;
 
-				_imgkeyCache.computeIfAbsent(k, (kk)->new ArrayList<>()).add(ikey);
 				
 				BufferedImage nbir=_imgCACHE.computeIfAbsent(ikey, (kk)->{
 					BufferedImage nbi;
@@ -692,6 +678,9 @@ public class ModifiedMolvecPipeline {
 							if(!MODIFICATION_FLAGS.get(74)){
 								nbi=ImageCleaner.preCleanImageResize(nbi, 1, true, _doRotate);
 							}
+						}
+						if(BufferedImage.TYPE_BYTE_GRAY != nbi.getType()){
+							nbi = ImageUtil.toGrayScale(nbi);
 						}
 						return nbi;
 					}catch(Exception ee) {

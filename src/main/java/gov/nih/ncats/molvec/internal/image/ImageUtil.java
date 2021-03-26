@@ -5,6 +5,7 @@ import com.twelvemonkeys.imageio.stream.ByteArrayImageInputStream;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.awt.image.ColorConvertOp;
 import java.awt.image.ColorModel;
 import java.awt.image.IndexColorModel;
 import java.awt.image.Raster;
@@ -25,7 +26,24 @@ public class ImageUtil {
     private static final Logger logger = Logger.getLogger
 	(ImageUtil.class.getName());
 
+    /**
+	 * Convert the given BufferdImage into a new GrayScaled image.
+	 * the input image is not modified.
+	 * @param image the image to convert;
+	 * @return a new BufferedImage of the same size as the input
+	 * but in grayscale.
+	 */
+	public static BufferedImage toGrayScale(BufferedImage image){
+		BufferedImage grayScaled = new BufferedImage(image.getWidth(),image.getHeight(),	BufferedImage.TYPE_BYTE_GRAY);
 
+		ColorConvertOp op = new ColorConvertOp(
+				image.getColorModel().getColorSpace(),
+				grayScaled.getColorModel().getColorSpace(),null);
+		op.filter(image,grayScaled);
+		return grayScaled;
+
+	}
+	
     private static BufferedImage toRGBColorModel(BufferedImage bi2){
 		
 		int nwidth=bi2.getWidth();
