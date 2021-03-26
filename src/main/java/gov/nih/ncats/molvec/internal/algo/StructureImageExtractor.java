@@ -542,6 +542,8 @@ public class StructureImageExtractor {
 				"/".equalsIgnoreCase(t) ||
 				"K".equalsIgnoreCase(t) ||
 				"Y".equalsIgnoreCase(t) ||
+				"Y".equalsIgnoreCase(t) ||
+				"y".equalsIgnoreCase(t) ||
 				"V".equalsIgnoreCase(t) ||
 				"W".equalsIgnoreCase(t) ||
 				"A".equalsIgnoreCase(t) ||

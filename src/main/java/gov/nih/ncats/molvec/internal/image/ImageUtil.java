@@ -162,6 +162,7 @@ public class ImageUtil {
     }
 
     public static BufferedImage decode (File file) throws IOException {
+//    	System.out.println(file.getName());
         return ImageIO.read(file);
     }
 

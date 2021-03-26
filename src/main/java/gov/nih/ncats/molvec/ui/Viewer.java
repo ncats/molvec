@@ -391,8 +391,8 @@ public class Viewer extends JPanel
 	        	RenderedImage ri = ImageUtil.decode(file);
 	    		BufferedImage biIn= convertRenderedImage(ri);
 	        	BufferedImage bii=ImageCleaner.preCleanImageResize(biIn, 2, true, true);
-	        	MolvecOptions mo= new MolvecOptions().modFlags().setDebug();
-	        	mo=ModifiedMolvecPipeline.prepare(mo);
+	        	MolvecOptions mo= new MolvecOptions().modFlags();
+	        	mo=ModifiedMolvecPipeline.prepare(mo).setDebug();
 	            sie = StructureImageExtractor.createFromImage(bii,mo.getValues());
         	}else{
         		sie = new StructureImageExtractor(file,((new MolvecOptions()).setDebug()).getValues());
