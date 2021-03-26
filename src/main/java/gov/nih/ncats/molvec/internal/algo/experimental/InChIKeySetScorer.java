@@ -9,6 +9,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BinaryOperator;
 import java.util.stream.Stream;
@@ -21,6 +23,61 @@ public class InChIKeySetScorer implements ResultScorer{
 	private ConcurrentHashMap<Long,Long> ikeys;
 
 	private static BinaryOperator<Long> bin = (a,b)->a|b;
+	
+	private File dir;
+	
+	private Set<String> preLoaded = new HashSet<String>();
+	
+	private String getPref(String l){
+		return l.substring(0, 2);
+	}
+	
+	private void markRead(String l){
+		preLoaded.add(getPref(l));
+	}
+	
+	private boolean isLoaded(String ik){
+		return preLoaded.contains(getPref(ik));
+	}
+
+	
+	private void loadFile(File iKeysFile, boolean compressed){
+		if(compressed){
+			try(InputStream fis= new FileInputStream(iKeysFile)){
+				try(InputStream in = new GZIPInputStream(fis)){
+					new BufferedReader(new InputStreamReader(in,StandardCharsets.UTF_8)).lines().parallel()
+					.peek(this::markRead)
+					.map(l->Tuple.of(encodeKey(l), encodeStereoKey(l)))
+
+					.forEach(t->{
+						ikeys.merge(t.k(), t.v(), bin);
+					});	
+
+					;
+
+				}
+
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}else{
+			try(Stream<String> sf= Files.lines((iKeysFile).toPath())){
+				sf.parallel()
+				.peek(this::markRead)
+				.map(l->Tuple.of(encodeKey(l), encodeStereoKey(l)))
+
+				.forEach(t->{
+					ikeys.merge(t.k(), t.v(), bin);
+				});	
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+		}
+	}
 
 	public InChIKeySetScorer(File iKeysFile, boolean compressed){
 		ikeys=new ConcurrentHashMap<Long,Long>(119803351);

@@ -139,7 +139,7 @@ public class Viewer extends JPanel
 //    		Color.ORANGE
         //Color.red, Color.blue, Color.black
     };
-    public static boolean MODIFIED_PIPE=false; 
+    public static boolean MODIFIED_PIPE=true; 
     
     
     
