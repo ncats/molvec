@@ -7,7 +7,6 @@ import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.DoubleSummaryStatistics;
@@ -23,6 +22,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import gov.nih.ncats.common.Tuple;
 import gov.nih.ncats.common.stream.StreamUtil;
 import gov.nih.ncats.common.stream.StreamUtil.StreamConcatter;
 import gov.nih.ncats.molvec.Molvec;
@@ -31,10 +31,10 @@ import gov.nih.ncats.molvec.MolvecResult;
 import gov.nih.ncats.molvec.internal.algo.BranchNode;
 import gov.nih.ncats.molvec.internal.algo.StructureImageExtractor;
 import gov.nih.ncats.molvec.internal.algo.StructureImageExtractor.ImageExtractionValues;
+import gov.nih.ncats.molvec.internal.algo.StructureImageExtractor.PreCalculated;
 import gov.nih.ncats.molvec.internal.algo.experimental.ChemFixer.ChemFixResult;
 import gov.nih.ncats.molvec.internal.algo.experimental.ChemFixer.FixType;
 import gov.nih.ncats.molvec.internal.algo.experimental.ChemFixer.KnownMissingBond;
-import gov.nih.ncats.molvec.internal.algo.experimental.ModifiedMolvecPipeline.TempResult;
 import gov.nih.ncats.molvec.internal.image.ImageUtil;
 import gov.nih.ncats.molvec.ui.SCOCR;
 import gov.nih.ncats.molvec.ui.StupidestPossibleSCOCRSansSerif;
@@ -245,22 +245,23 @@ public class ModifiedMolvecPipeline {
 	}
 	
 	static BitSet ALL_IMG_SETTINGS=new BitSet();
-
 	static BitSet PREPROCESS_ONLY_SETTINGS=new BitSet();
+	static BitSet BASIC_BITMAP_SETTINGS=new BitSet();
 	
 	
 	static {
 		ALL_IMG_SETTINGS.set(0,34);
 		ALL_IMG_SETTINGS.clear(32);
 		ALL_IMG_SETTINGS.set(74,76);
-	}
-	
-
-	
-	static {
 		PREPROCESS_ONLY_SETTINGS.set(74);
 		PREPROCESS_ONLY_SETTINGS.set(75);
 		PREPROCESS_ONLY_SETTINGS.set(76);
+		
+		BASIC_BITMAP_SETTINGS.or(PREPROCESS_ONLY_SETTINGS);
+		BASIC_BITMAP_SETTINGS.set(34);
+		BASIC_BITMAP_SETTINGS.set(29);
+		BASIC_BITMAP_SETTINGS.set(30);
+		
 	}
 	
 	
@@ -439,174 +440,208 @@ public class ModifiedMolvecPipeline {
 	}
 	public static ModifiedMolvecResult process(File f, MolvecOptions op) throws IOException{
 
-		HashMap<String,BufferedImage> _imgCACHE = new HashMap<>();
-		HashMap<String,TempResult> _mfileCache = new HashMap<>();
-		try {
-		double pscore=-1;
-		op=op.modFlags();
-		if(op.isOverrideScorer()){
-			op.setScorer(DEFAULT_RESULT_SCORER);
-		}
-		op=_adapter.apply(op);
-		int[] tries = op.getFlagTries();
-		ResultScorer rs =op.getScorer();
-		
-		if(rs instanceof ConstantValueResultScorer){
-			tries= new int[]{tries[0]};
-		}
-//		List<int[]> mflags = new ArrayList<>();
-//		mflags.add(new int[]{-1});
-//		
-//		for(int j=1;j<Math.pow(2, tries.length-1);j++){
-//			String bs = Integer.toBinaryString(j);
-//			StringBuilder sb = new StringBuilder(bs);
-//			sb.reverse();
-//			
-//					
-//			int[] bitset=Arrays.stream(sb.toString().split(""))
-//			.mapToInt(s->Integer.parseInt(s))
-//			.toArray();
-//			List<Integer> mlist= new ArrayList<>();
-//			
-//			for(int k=0;k<bitset.length;k++){
-//				if(bitset[k]>0){
-//					mlist.add(tries[k+1]);
-//				}
-//			}
-//			mflags.add(mlist.stream().mapToInt(jj->jj).toArray());
-//		}
-		
-		
-		StreamConcatter<int[]> sc = StreamUtil.with(Arrays.stream(tries).mapToObj(i->new int[]{i}));
-		if(DO_MULTI_TRIES) {
-			sc=sc
-					.and(new int[]{74,30,75})
-					.and(new int[]{30,75,5})
-					.and(new int[]{74,75,5})
-					.and(new int[]{1,76,6})
-					.and(new int[]{74,30,1,75})
-					.and(new int[]{30,7})
-					.and(new int[]{74,1})
-					.and(new int[]{74,59})
-					.and(new int[]{74,6})
-					.and(new int[]{74,5})
-					.and(new int[]{30,1})
-					.and(new int[]{30,5})
-					.and(new int[]{74,75})
-					.and(new int[]{74,30,75,7,6})
-					.and(new int[]{74,35})
-					.and(new int[]{75,5,7})
-					.and(new int[]{30,5,6})
-					.and(new int[]{5,6})
-					.and(new int[]{30,59})
-					.and(new int[]{75,5,6})
-					.and(new int[]{75,7})
-					.and(new int[]{7,6})
-					.and(new int[]{30,75})
-					.and(new int[]{74,7})
-					.and(new int[]{74,75,5,76})
-					.and(new int[]{73});
-			
-		}
-		int[][] realtries=sc
-				.stream()
-				.toArray(i->new int[i][]);
-		
-//		realtries = mflags.stream().toArray(i->new int[i][]);
-		
-		ModifiedMolvecResult mvrbest = null;
-		
-		for(int ii=0;ii<realtries.length;ii++){
-				op=op.modFlags();
-				int[] fii=realtries[ii];
-				for(int j:fii){
-					if(j>=0){
-						op=op.clearFlag(j);
-					}
-				}			
-				
-				try{
-					MolvecResult mvr = ModifiedMolvecPipeline.processTogether
-							(f, op,_mfileCache, _imgCACHE);
-					
-					Chemical mc = Chemical.parse(mvr.getMolfile().get());
-					
-					double score=rs.score(mc);
-					ModifiedMolvecResult mt=new ModifiedMolvecResult(mvr, score,null);
-					
-					String type="";
-					String runName=Arrays.toString(fii).replace("[", "").replace("]", "").replace(",","_").replace(" ", "");
-					
-					
-					if(score<0.9) {
-						//Here is where you could try variations
-						List<Chemical> tryvar=ChemFixer.getVariations(mc, op.getFlags());
-						int k=0;
-						for(Chemical cc:tryvar) {
-							try {
-								double ns=rs.score(cc);
-								if(ns>0.90) {
-									pscore=ns;
-									mt.setChemical(cc);
-									mc=cc;
-									mt.setScore(ns);
-									score=ns;
-									type="var" + k;
-									break;
-								}
-							}catch(Exception e) {}
-							k++;
-						}						
-					}
-					
-					if(score>0.9){
-						
-						mvrbest=mt;
-						if(score>0.99) {
-							mt.setType(type + "found-t" + runName);
-						}else {
-							List<Chemical> tryAgain = StreamUtil.with(Stream.of(ChemFixer.allUnspecifiedUpStereo(mc)))
-									.and(ChemFixer.allUnspecifiedDownStereo(mc))
-									.and(ChemFixer.allUpStereo(mc))
-									.and(ChemFixer.allDownStereo(mc))
-									.and(ChemFixer.invertStereo(mc))
-									.and(ChemFixer.allUnspecifiedUpStereo(ChemFixer.invertStereo(mc)))
-									.and(ChemFixer.allUnspecifiedDownStereo(ChemFixer.invertStereo(mc)))
-									.and(ChemFixer.removeEZDoubleBondsOnly(mc))
-									.and(ChemFixer.removeChiralCenterBonds(mc))
-									.stream()
-									.collect(Collectors.toList());
-							mt.setType(type + "found-imp-t" + runName);
-							int k=0;
-							for(Chemical cc:tryAgain) {
-								
-								double ns=rs.score(cc);
-								if(ns>0.99) {
-									mt.setChemical(cc);
-									mt.setScore(score);
-//									mt.setType(k + "found-t" + Arrays.toString(fii).replace("[", "").replace("]", "").replace(",","_").replace(" ", ""));
-									mt.setType(type + "found-t" + runName);
-									break;
-								}
-								k++;
-							}
-						}
-						break;
-					}else if(score>pscore){
-						mvrbest=mt;
-						pscore=score;
-						mt.setType("best-t" + runName);
-					}
-				}catch(Exception ee){
-//					ee.printStackTrace();
-				}
-				
-		}
-		return mvrbest;
-		}finally {
-			_imgCACHE.clear();
-			_mfileCache.clear();
-		}
+	    HashMap<String,BufferedImage> _imgCACHE = new HashMap<>();
+	    HashMap<String,TempResult> _mfileCache = new HashMap<>();
+	    HashMap<String,PreCalculated> _preCCache = new HashMap<>();
+	    try {
+	        double pscore=-1;
+	        op=op.modFlags();
+	        if(op.isOverrideScorer()){
+	            op.setScorer(DEFAULT_RESULT_SCORER);
+	        }
+	        op=_adapter.apply(op);
+	        int[] tries = op.getFlagTries();
+	        ResultScorer rs =op.getScorer();
+
+	        if(rs instanceof ConstantValueResultScorer){
+	            tries= new int[]{tries[0]};
+	        }
+	        //		List<int[]> mflags = new ArrayList<>();
+	        //		mflags.add(new int[]{-1});
+	        //		
+	        //		for(int j=1;j<Math.pow(2, tries.length-1);j++){
+	        //			String bs = Integer.toBinaryString(j);
+	        //			StringBuilder sb = new StringBuilder(bs);
+	        //			sb.reverse();
+	        //			
+	        //					
+	        //			int[] bitset=Arrays.stream(sb.toString().split(""))
+	        //			.mapToInt(s->Integer.parseInt(s))
+	        //			.toArray();
+	        //			List<Integer> mlist= new ArrayList<>();
+	        //			
+	        //			for(int k=0;k<bitset.length;k++){
+	        //				if(bitset[k]>0){
+	        //					mlist.add(tries[k+1]);
+	        //				}
+	        //			}
+	        //			mflags.add(mlist.stream().mapToInt(jj->jj).toArray());
+	        //		}
+
+
+	        StreamConcatter<int[]> sc = StreamUtil.with(Arrays.stream(tries).mapToObj(i->new int[]{i}));
+	        if(DO_MULTI_TRIES) {
+	            sc=sc
+	                    .and(new int[]{74,30,75})
+	                    .and(new int[]{30,75,5})
+	                    .and(new int[]{74,75,5})
+	                    .and(new int[]{1,76,6})
+	                    .and(new int[]{74,30,1,75})
+	                    .and(new int[]{30,7})
+	                    .and(new int[]{74,1})
+	                    .and(new int[]{74,59})
+	                    .and(new int[]{74,6})
+	                    .and(new int[]{74,5})
+	                    .and(new int[]{30,1})
+	                    .and(new int[]{30,5})
+	                    .and(new int[]{74,75})
+	                    .and(new int[]{74,30,75,7,6})
+	                    .and(new int[]{74,35})
+	                    .and(new int[]{75,5,7})
+	                    .and(new int[]{30,5,6})
+	                    .and(new int[]{5,6})
+	                    .and(new int[]{30,59})
+	                    .and(new int[]{75,5,6})
+	                    .and(new int[]{75,7})
+	                    .and(new int[]{7,6})
+	                    .and(new int[]{30,75})
+	                    .and(new int[]{74,7})
+	                    .and(new int[]{74,75,5,76})
+	                    .and(new int[]{73});
+
+	        }
+	        int[][] realtries=sc
+	                .stream()
+	                .toArray(i->new int[i][]);
+
+	        //		realtries = mflags.stream().toArray(i->new int[i][]);
+
+	        ModifiedMolvecResult mvrbest = null;
+
+	        for(int ii=0;ii<realtries.length;ii++){
+	            op=op.modFlags();
+	            int[] fii=realtries[ii];
+	            for(int j:fii){
+	                if(j>=0){
+	                    op=op.clearFlag(j);
+	                }
+	            }			
+
+	            try{
+	                MolvecResult mvr = ModifiedMolvecPipeline.processTogether
+	                        (f, op,_mfileCache, _imgCACHE, _preCCache);
+
+	                Chemical mc = Chemical.parse(mvr.getMolfile().get());
+
+	                double score=rs.score(mc);
+	                ModifiedMolvecResult mt=new ModifiedMolvecResult(mvr, score,null);
+
+	                String type="";
+	                String runName=Arrays.toString(fii).replace("[", "").replace("]", "").replace(",","_").replace(" ", "");
+
+
+	                if(score<0.9) {
+	                    Chemical[] tmc = new Chemical[] {mc};
+	                    double[] tscore= new double[] {pscore,score};
+	                    String[] ttype = new String[] {type};
+	                    
+	                    //Here is where you could try variations
+	                    ChemFixer.getVariations(mc, op.getFlags(),
+	                            tt->{
+	                                int k=tt.k();
+	                                Chemical cc=tt.v();
+	                                
+	                                try {
+	                                    double ns=rs.score(cc);
+	                                    if(ns>0.90) {
+	                                        tscore[0]=ns;
+	                                        tmc[0]=cc;
+	                                        tscore[1]=ns;
+                                            ttype[0]="var" + k;
+                                            
+	                                        mt.setChemical(cc);
+	                                        mt.setScore(ns);
+	                                        
+	                                        return true;
+	                                    }
+	                                }catch(Exception e) {}	      
+	                                return false;
+	                            }
+	                            );
+	                    mc=tmc[0];
+	                    pscore=tscore[0];
+	                    score=tscore[1];
+	                    type=ttype[0];
+	                    
+	                    
+	                    
+//	                    int k=0;
+//	                    for(Chemical cc:tryvar) {
+//	                        try {
+//	                            double ns=rs.score(cc);
+//	                            if(ns>0.90) {
+//	                                pscore=ns;
+//	                                mt.setChemical(cc);
+//	                                mc=cc;
+//	                                mt.setScore(ns);
+//	                                score=ns;
+//	                                type="var" + k;
+//	                                break;
+//	                            }
+//	                        }catch(Exception e) {}
+//	                        k++;
+//	                    }						
+	                }
+
+	                if(score>0.9){
+
+	                    mvrbest=mt;
+	                    if(score>0.99) {
+	                        mt.setType(type + "found-t" + runName);
+	                    }else {
+	                        List<Chemical> tryAgain = StreamUtil.with(Stream.of(ChemFixer.allUnspecifiedUpStereo(mc)))
+	                                .and(ChemFixer.allUnspecifiedDownStereo(mc))
+	                                .and(ChemFixer.allUpStereo(mc))
+	                                .and(ChemFixer.allDownStereo(mc))
+	                                .and(ChemFixer.invertStereo(mc))
+	                                .and(ChemFixer.allUnspecifiedUpStereo(ChemFixer.invertStereo(mc)))
+	                                .and(ChemFixer.allUnspecifiedDownStereo(ChemFixer.invertStereo(mc)))
+	                                .and(ChemFixer.removeEZDoubleBondsOnly(mc))
+	                                .and(ChemFixer.removeChiralCenterBonds(mc))
+	                                .stream()
+	                                .collect(Collectors.toList());
+	                        mt.setType(type + "found-imp-t" + runName);
+	                        int k=0;
+	                        for(Chemical cc:tryAgain) {
+
+	                            double ns=rs.score(cc);
+	                            if(ns>0.99) {
+	                                mt.setChemical(cc);
+	                                mt.setScore(score);
+	                                //									mt.setType(k + "found-t" + Arrays.toString(fii).replace("[", "").replace("]", "").replace(",","_").replace(" ", ""));
+	                                mt.setType(type + "found-t" + runName);
+	                                break;
+	                            }
+	                            k++;
+	                        }
+	                    }
+	                    break;
+	                }else if(score>pscore){
+	                    mvrbest=mt;
+	                    pscore=score;
+	                    mt.setType("best-t" + runName);
+	                }
+	            }catch(Exception ee){
+	                //					ee.printStackTrace();
+	            }
+
+	        }
+	        return mvrbest;
+	    }finally {
+	        _imgCACHE.clear();
+	        _mfileCache.clear();
+	        _preCCache.clear();
+	    }
 	}
 	
 	//there are 3 stages:
@@ -619,7 +654,8 @@ public class ModifiedMolvecPipeline {
 		public Set<KnownMissingBond> missingAt;
 	}
 	
-	public static MolvecResult processTogether(File f, MolvecOptions opt, HashMap<String,TempResult> _mfileCache, HashMap<String,BufferedImage> _imgCACHE) throws IOException{
+	public static MolvecResult processTogether(File f, MolvecOptions opt, HashMap<String,TempResult> _mfileCache, HashMap<String,BufferedImage> _imgCACHE,   HashMap<String,StructureImageExtractor.PreCalculated> _bmCACHE ) throws IOException{
+//	    HashMap<String,StructureImageExtractor.PreCalculated> _bmCACHE = new HashMap<>();
 		boolean RESIZE=ModifiedMolvecPipeline.RESIZE;
 		boolean DO_FIX=true;
 
@@ -635,6 +671,10 @@ public class ModifiedMolvecPipeline {
 		bs2.and(MODIFICATION_FLAGS);
 		String preImgSetting = bs2.toString();
 		
+		BitSet bs3=(BitSet) BASIC_BITMAP_SETTINGS.clone();
+        bs3.and(MODIFICATION_FLAGS);
+        String basicBitmapSettings = bs3.toString();
+		
 		String k = f.getName();
 		String fkey = k + preSetting;
 		
@@ -646,6 +686,7 @@ public class ModifiedMolvecPipeline {
 				boolean dorotate=true;
 				
 				String ikey = k + preImgSetting;
+				String bkey = k + basicBitmapSettings;
 				
 
 				BufferedImage biIn=_imgCACHE.computeIfAbsent(k, (kk)->{
@@ -689,9 +730,18 @@ public class ModifiedMolvecPipeline {
 					
 				});
 				
-
-
-				MolvecResult mol = Molvec.ocr(nbir, op);
+				Tuple<MolvecResult,StructureImageExtractor> tmol;
+				PreCalculated preCalc = _bmCACHE.get(bkey);
+				if(preCalc==null) {
+				    tmol = Molvec.ocrAndExtractor(nbir, op);
+				    preCalc = tmol.v().preCalculated;
+				    _bmCACHE.put(bkey, preCalc);
+				}else {
+				    tmol = Molvec.ocrAndExtractor(preCalc, op);
+				}
+				 
+				MolvecResult mol=tmol.k();
+				
 				Chemical ct = Chemical.parse(mol.getSDfile().get());
 
 				Rectangle2D bon = ChemFixer.bounds(ct);

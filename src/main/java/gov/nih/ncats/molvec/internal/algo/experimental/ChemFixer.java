@@ -8,11 +8,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -568,9 +572,9 @@ public class ChemFixer {
                         double sim=s2.similarity(s3);
 
                         if(sim<0.5){
-                            //
                             Atom an=tc.addAtom("F", ca.getAtomCoordinates().getX()+1,ca.getAtomCoordinates().getY());
                             tc.addBond(ca,an, BondType.SINGLE);
+                            an.setAtomCoordinates(AtomCoordinates.valueOf(ca.getAtomCoordinates().getX()+1,ca.getAtomCoordinates().getY()));
                         }
                     }else{
                         fs.forEach(att->{
@@ -1093,8 +1097,6 @@ public class ChemFixer {
                         bn.setStereo(Stereo.DOWN);
                     });
 
-
-                    //					c.addBond(b)
                 }
             });
         }
@@ -1779,13 +1781,64 @@ public class ChemFixer {
                 .filter(s->s.equals(st))
                 .count();
     }
+    
+    public static class SimpleFeaturesAboutChemical{
+        public int bondCount;
+        public int atomCount;
+        public Map<String,AtomicInteger> atomcounts = new HashMap<>();
+        public Map<String,AtomicInteger> bondcounts = new HashMap<>();
+        
+        public Map<String,AtomicInteger> termatomcounts = new HashMap<>();
+        
+        public boolean hasRing=false;
+        
+        public SimpleFeaturesAboutChemical(Chemical c) {
+            this.bondCount = c.getBondCount();
+            this.atomCount = c.getAtomCount();
+            c.atoms()
+             .forEach(a->atomcounts.computeIfAbsent(a.getSymbol(), k->new AtomicInteger(0)).incrementAndGet());
+            
+            c.atoms()
+                .filter(aa->aa.getBondCount()==1)
+                .forEach(a->termatomcounts.computeIfAbsent(a.getSymbol(), k->new AtomicInteger(0)).incrementAndGet());
+            
+            c.bonds()
+             .forEach(a->bondcounts.computeIfAbsent(a.getBondType().getSymbol()+"", k->new AtomicInteger(0)).incrementAndGet());
+            hasRing = c.bonds().filter(b->b.isInRing()).limit(1).findAny().isPresent();
+            
+        }
+        
+        public boolean hasAtom(String at) {
+            return atomcounts.containsKey(at);
+        }
+        
+        public boolean hasRing() {
+            return this.hasRing;
+        }
+        
+        public boolean hasTermAtom(String at) {
+            return termatomcounts.containsKey(at);
+        }
+        
+        public int countTermAtom(String at) {
+            return Optional.ofNullable(termatomcounts.getOrDefault(at,null)).map(ai->ai.get()).orElse(0);
+        }
 
-    public static List<Chemical> getVariations(Chemical c, BitSet bs){
+        public boolean hasBond(String string) {
+            return bondcounts.containsKey(string);
+        }
+        
+    }
+
+    public static void getVariations(Chemical c, BitSet bs , Predicate<Tuple<Integer,Chemical>> consumer){
         double avg= c.bonds().mapToDouble(b->b.getBondLength())
                 .average().getAsDouble();
-        List<Chemical> clist=  new ArrayList<>();
+
+        SimpleFeaturesAboutChemical sfchem = new SimpleFeaturesAboutChemical(c);
+        
         //0 terminal Cl as OCH3
-        {
+        if(sfchem.hasAtom("Cl")){
+            AtomicBoolean did = new AtomicBoolean(false);
             Chemical cc=c.copy();
             cc.atoms().filter(a->isTermCl(a))
             .distinct()
@@ -1797,22 +1850,32 @@ public class ChemFixer {
 
                 a.setImplicitHCount(null);
                 n.setImplicitHCount(null);
+                did.set(true);
             });
-            clist.add(cleanImplicitCount(cc));
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(0,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
         }
         //1 terminal Cl as OH
-        {
+        if(sfchem.hasAtom("Cl")){
+            AtomicBoolean did = new AtomicBoolean(false);
             Chemical cc=c.copy();
             cc.atoms().filter(a->isTermCl(a))
             .distinct()
             .forEach(a->{
                 a.setAtomicNumber(8);
                 a.setImplicitHCount(null);
+                did.set(true);
             });
-            clist.add(cleanImplicitCount(cc));
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(1,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
         }
         //2 terminal Cl as =O
-        {
+        if(sfchem.hasAtom("Cl")){
+            AtomicBoolean did = new AtomicBoolean(false);
             Chemical cc=c.copy();
             cc.atoms().filter(a->isTermCl(a))
             .distinct()
@@ -1821,11 +1884,16 @@ public class ChemFixer {
                 a.getBonds().get(0).setBondType(BondType.DOUBLE);
                 a.setImplicitHCount(null);
                 a.getNeighbors().forEach(n->n.setImplicitHCount(null));
+                did.set(true);
             });
-            clist.add(cleanImplicitCount(cc));
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(2,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
         }
         //3 terminal aromatic CH3 as -F
-        {
+        if(sfchem.hasAtom("Cl")){
+            AtomicBoolean did = new AtomicBoolean(false);
             Chemical cc=c.copy();
             cc.atoms().filter(a->isTermAromatic(a))
             .filter(a->a.getSymbol().equals("C"))
@@ -1834,11 +1902,16 @@ public class ChemFixer {
                 a.setAtomicNumber(9);
                 a.setImplicitHCount(null);
                 a.getNeighbors().forEach(n->n.setImplicitHCount(null));
+                did.set(true);
             });
-            clist.add(cleanImplicitCount(cc));
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(3,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
         }
         //4 terminal aromatic CH3 as -I
-        {
+        if(sfchem.hasRing() && sfchem.hasTermAtom("C")){
+            AtomicBoolean did = new AtomicBoolean(false);
             Chemical cc=c.copy();
             cc.atoms().filter(a->isTermAromatic(a))
             .filter(a->a.getSymbol().equals("C"))
@@ -1847,12 +1920,17 @@ public class ChemFixer {
                 a.setAtomicNumber(53);
                 a.setImplicitHCount(null);
                 a.getNeighbors().forEach(n->n.setImplicitHCount(null));
+                did.set(true);
             });
-            clist.add(cleanImplicitCount(cc));
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(4,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
         }
 
         //5 adamantane O as C (good)
-        {
+        if(sfchem.hasRing() && sfchem.hasAtom("O")){
+            AtomicBoolean did = new AtomicBoolean(false);
             Chemical cc=c.copy();
             cc.atoms()
             .filter(a->a.getSymbol().equals("O"))
@@ -1862,12 +1940,17 @@ public class ChemFixer {
                 a.setAtomicNumber(6);
                 a.setImplicitHCount(null);
                 a.getNeighbors().forEach(n->n.setImplicitHCount(null));
+                did.set(true);
             });
-            clist.add(cc);
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(5,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
         }
 
         //6 I as F (good)
-        {
+        if(sfchem.hasAtom("I")){
+            AtomicBoolean did = new AtomicBoolean(false);
             Chemical cc=c.copy();
             cc.atoms()
             .filter(a->a.getSymbol().equals("I"))
@@ -1876,11 +1959,16 @@ public class ChemFixer {
                 a.setAtomicNumber(9);
                 a.setImplicitHCount(null);
                 a.getNeighbors().forEach(n->n.setImplicitHCount(null));
+                did.set(true);
             });
-            clist.add(cc);
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(6,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
         }
         //7 terminal OH as Cl
-        {
+        if(sfchem.hasTermAtom("O")){
+            AtomicBoolean did = new AtomicBoolean(false);
             Chemical cc=c.copy();
             cc.atoms().filter(a->isTermOH(a))
             .distinct()
@@ -1889,11 +1977,17 @@ public class ChemFixer {
                 //						a.getBonds().get(0).setBondType(BondType.DOUBLE);
                 a.setImplicitHCount(null);
                 a.getNeighbors().forEach(n->n.setImplicitHCount(null));
+                did.set(true);
             });
-            clist.add(cleanImplicitCount(cc));
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(7,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
         }
         //8 terminal OH as NH2 (good)
-        {
+        
+        if(sfchem.hasTermAtom("O")){
+            AtomicBoolean did = new AtomicBoolean(false);
             Chemical cc=c.copy();
             cc.atoms().filter(a->isTermOH(a))
             .distinct()
@@ -1901,12 +1995,17 @@ public class ChemFixer {
                 a.setAtomicNumber(7);
                 a.setImplicitHCount(null);
                 a.getNeighbors().forEach(n->n.setImplicitHCount(null));
+                did.set(true);
             });
-            clist.add(cc);
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(8,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
         }
 
         //9 terminal OH as NH2 (good)
-        {
+        if(sfchem.hasAtom("H")){
+            AtomicBoolean did = new AtomicBoolean(false);
             Chemical cc=c.copy();
             cc.atoms().filter(a->a.getSymbol().equals("H"))
             .distinct()
@@ -1914,12 +2013,17 @@ public class ChemFixer {
                 a.setAtomicNumber(7);
                 a.setImplicitHCount(null);
                 a.getNeighbors().forEach(n->n.setImplicitHCount(null));
+                did.set(true);
             });
-            clist.add(cc);
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(9,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
         }
 
         //10 terminal aromatic F as -I
-        {
+        if(sfchem.hasTermAtom("F") && sfchem.hasRing()){
+            AtomicBoolean did = new AtomicBoolean(false);
             Chemical cc=c.copy();
             cc.atoms().filter(a->isTermAromatic(a))
             .filter(a->a.getSymbol().equals("F"))
@@ -1928,14 +2032,19 @@ public class ChemFixer {
                 a.setAtomicNumber(53);
                 a.setImplicitHCount(null);
                 a.getNeighbors().forEach(n->n.setImplicitHCount(null));
+                did.set(true);
             });
-            clist.add(cc);
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(10,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
         }
 
 
 
         //11 NH2 -> NH 
-        {
+        if(sfchem.hasTermAtom("N")){
+            AtomicBoolean did = new AtomicBoolean(false);
             Chemical cc=c.copy();
             cc.atoms().filter(a->isTermNH2(a))
             .flatMap(a->a.getBonds().stream())
@@ -1944,15 +2053,20 @@ public class ChemFixer {
                 a.setBondType(BondType.DOUBLE);
                 a.getAtom1().setImplicitHCount(null);
                 a.getAtom2().setImplicitHCount(null);
+                did.set(true);
             });
-            clist.add(cc);
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(11,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
         }
 
 
 
 
         //12 =C =N -> =O
-        {
+        if((sfchem.hasTermAtom("C") || sfchem.hasTermAtom("N")) && sfchem.hasBond("=")){
+            AtomicBoolean did = new AtomicBoolean(false);
             Chemical cc=c.copy();
             cc.atoms()
             .filter(a->a.getBondCount()==1)
@@ -1961,12 +2075,17 @@ public class ChemFixer {
             .distinct()
             .forEach(a->{
                 a.setAtomicNumber(8);
+                did.set(true);
             });
-            clist.add(cleanImplicitCount(cc));
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(12,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
         }
 
         //13 arginine
-        {
+        if(sfchem.hasTermAtom("O") && sfchem.hasBond("=")){
+            AtomicBoolean did = new AtomicBoolean(false);
             Chemical cc=c.copy();
             cc.atoms()
             .filter(a->isTermOH(a))
@@ -1975,12 +2094,17 @@ public class ChemFixer {
             .distinct()
             .forEach(a->{
                 a.setAtomicNumber(7);
+                did.set(true);
             });
-            clist.add(cleanImplicitCount(cc));
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(13,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
         }
 
         //14 O ring to N ring
-        {
+        if(sfchem.hasTermAtom("O") && sfchem.hasRing()){
+            AtomicBoolean did = new AtomicBoolean(false);
             Chemical cc=c.copy();
             cc.atoms()
             .filter(a->a.getSymbol().equals("O"))
@@ -1989,12 +2113,17 @@ public class ChemFixer {
             .distinct()
             .forEach(a->{
                 a.setAtomicNumber(7);
+                did.set(true);
             });
-            clist.add(cleanImplicitCount(cc));
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(14,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
         }
 
         //15 ester
-        {
+        if(sfchem.hasTermAtom("O")){
+            AtomicBoolean did = new AtomicBoolean(false);
             Chemical cc=c.copy();
             cc.atoms()
             .filter(a->a.getSymbol().equals("C"))
@@ -2004,12 +2133,17 @@ public class ChemFixer {
             .distinct()
             .forEach(a->{
                 a.setAtomicNumber(8);
+                did.set(true);
             });
-            clist.add(cleanImplicitCount(cc));
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(15,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
         }
 
         //16 F2
-        {
+        if(sfchem.hasTermAtom("F")){
+            AtomicBoolean did = new AtomicBoolean(false);
             Chemical cc=c.copy();
             cc.atoms()
             .filter(a->a.getSymbol().equals("C"))
@@ -2029,11 +2163,16 @@ public class ChemFixer {
                 }
 
 
+                did.set(true);
             });
-            clist.add(cleanImplicitCount(cc));
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(16,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
         }
         //17 Term S to F
-        {
+        if(sfchem.hasTermAtom("S")){
+            AtomicBoolean did = new AtomicBoolean(false);
             Chemical cc=c.copy();
             cc.atoms()
             .filter(a->a.getSymbol().equals("S"))
@@ -2041,11 +2180,16 @@ public class ChemFixer {
             .distinct()
             .forEach(a->{
                 a.setAtomicNumber(9);
+                did.set(true);
             });
-            clist.add(cleanImplicitCount(cc));
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(17,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
         }
         //18 -N-C-H -N=C-H
-        {
+        if(sfchem.hasTermAtom("H") && sfchem.hasAtom("N")){
+            AtomicBoolean did = new AtomicBoolean(false);
             Chemical cc=c.copy();
             cc.bonds()
             .filter(b->b.getBondType().getOrder()==1)
@@ -2062,32 +2206,17 @@ public class ChemFixer {
                 a.getAtom1().setImplicitHCount(null);
                 a.getAtom2().setImplicitHCount(null);
                 //						a.getNeighbors().forEach(n->n.setImplicitHCount(null));
+                did.set(true);
             });
-            clist.add(cleanImplicitCount(cc));
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(18,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
         }
-        //19 -N-C-H -N=C-H
-        {
-            Chemical cc=c.copy();
-            cc.bonds()
-            .filter(b->b.getBondType().getOrder()==1)
-            .filter(b->bondCount(b, "-H")>0)
-            .filter(b->b.getAtom1().getSymbol().equals("N") || b.getAtom2().getSymbol().equals("N"))
-            .filter(b->b.getAtom1().getSymbol().equals("C") || b.getAtom2().getSymbol().equals("C"))
-            .filter(b->(b.getAtom1().getSymbol().equals("N") && sumOrder(b.getAtom1()) == 2) || 
-                    (b.getAtom2().getSymbol().equals("N") && sumOrder(b.getAtom2()) == 2))
-            .filter(b->(b.getAtom1().getSymbol().equals("C") && sumOrder(b.getAtom1()) == 3) || 
-                    (b.getAtom2().getSymbol().equals("C") && sumOrder(b.getAtom2()) == 3))
-            .distinct()
-            .forEach(a->{
-                a.setBondType(BondType.DOUBLE);
-                a.getAtom1().setImplicitHCount(null);
-                a.getAtom2().setImplicitHCount(null);
-                //						a.getNeighbors().forEach(n->n.setImplicitHCount(null));
-            });
-            clist.add(cleanImplicitCount(cc));
-        }
+        
         //20 cyclopent force
-        {
+        if(sfchem.countTermAtom("C")>1){
+            AtomicBoolean did = new AtomicBoolean(false);
             Chemical cc=c.copy();
             cc.atoms()
             .filter(a->a.getSymbol().equals("C"))
@@ -2099,11 +2228,16 @@ public class ChemFixer {
                 Atom l1=ll.get(0);
                 Atom l2=ll.get(1);
                 cc.addBond(l1,l2,BondType.SINGLE);
+                did.set(true);
             });
-            clist.add(cleanImplicitCount(cc));
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(20,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
         }
         //21 term N=C to C#N
-        {
+        if(sfchem.hasTermAtom("C") && sfchem.hasAtom("N")){
+            AtomicBoolean did = new AtomicBoolean(false);
             Chemical cc=c.copy();
             cc.atoms()
             .filter(a->a.getSymbol().equals("C"))
@@ -2114,11 +2248,16 @@ public class ChemFixer {
                 a.getNeighbors().get(0).setAtomicNumber(6);
                 a.setAtomicNumber(7);
                 a.getBonds().get(0).setBondType(BondType.TRIPLE);
+                did.set(true);
             });
-            clist.add(cleanImplicitCount(cc));
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(21,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
         }
         //22 terminal aromatic CH3 as -Cl
-        {
+        if(sfchem.hasTermAtom("C") && sfchem.hasRing()){
+            AtomicBoolean did = new AtomicBoolean(false);
             Chemical cc=c.copy();
             cc.atoms().filter(a->isTermAromatic(a))
             .filter(a->a.getSymbol().equals("C"))
@@ -2127,13 +2266,13 @@ public class ChemFixer {
                 a.setAtomicNumber(17);
                 a.setImplicitHCount(null);
                 a.getNeighbors().forEach(n->n.setImplicitHCount(null));
+                did.set(true);
             });
-            clist.add(cleanImplicitCount(cc));
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(22,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
         }
-
-
-
-        return clist;
 
     }
     
@@ -2565,104 +2704,6 @@ public class ChemFixer {
 
     public static void main(String[] h) throws Exception{
 
-        Chemical c= Chemical.parse("C(=CC=C1C(C(C=CC3)(C(C=3P(C(=CC=C6)C=C6)C(=CC=C7)C=C7)2P(C(=CC=C4)C=C4)C(=CC=C5)C=C5)O2)=O)C=C1");
-        c.generateCoordinates();
-        System.out.println(c.toMol());
-        if(true)return;
-        c.atoms().forEach(a->System.out.println(atFeatSmi(c,a,1)));
-        if(true)return;
-        Chemical mc= Chemical.parse("\n"
-                + "   JSDraw203252114492D\n"
-                + "\n"
-                + " 35 34  0  0  0  0            999 V2000\n"
-                + "   32.9018   -8.0737    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   32.9018   -6.5519    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   34.2312   -4.2333    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   32.9018   -3.4655    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   27.5551   -6.5519    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   28.9094   -5.7933    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   18.2140   -5.7933    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   19.5692   -6.5519    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   20.9249   -5.7933    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   26.2591   -5.7933    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   24.8960   -6.5519    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   26.2591   -8.8461    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   27.5551   -8.0174    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   31.5696   -4.2333    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   15.4219   -5.7933    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   16.8917   -6.5519    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   31.4171   -5.7933    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   26.2591  -10.3310    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   24.8960  -11.1160    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   24.8960  -12.6969    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   23.5828  -13.4725    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   14.2419   -6.5519    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   12.9143   -5.7933    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   30.2428   -6.5519    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   23.5828   -5.7933    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   22.2478   -6.5519    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   34.4057   -5.6882    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   26.2591  -13.4725    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   20.9249   -4.2333    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   23.5828   -4.2333    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   22.2478   -3.4655    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   32.9018   -1.9195    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   19.5692   -8.0737    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   28.9094   -4.2333    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "   24.8960   -8.0737    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n"
-                + "  2 27  1  0  0  0  0\n"
-                + " 11 35  1  0  0  0  0\n"
-                + " 15 16  1  0  0  0  0\n"
-                + " 19 20  1  0  0  0  0\n"
-                + " 30 31  1  0  0  0  0\n"
-                + " 15 22  1  0  0  0  0\n"
-                + "  6 24  2  0  0  0  0\n"
-                + "  7 16  1  0  0  0  0\n"
-                + "  5 13  1  0  0  0  0\n"
-                + " 17 24  1  0  0  0  0\n"
-                + " 22 23  1  0  0  0  0\n"
-                + "  1  2  2  0  0  0  0\n"
-                + "  2 17  1  0  0  0  0\n"
-                + "  3  4  2  0  0  0  0\n"
-                + "  5  6  1  0  0  0  0\n"
-                + " 12 13  1  0  0  0  0\n"
-                + " 11 25  1  0  0  0  0\n"
-                + " 18 19  1  0  0  0  0\n"
-                + "  5 10  1  0  0  0  0\n"
-                + "  7  8  1  0  0  0  0\n"
-                + " 12 18  1  0  0  0  0\n"
-                + "  8  9  1  0  0  0  0\n"
-                + "  9 26  2  0  0  0  0\n"
-                + " 20 28  2  0  0  0  0\n"
-                + "  4 32  1  0  0  0  0\n"
-                + "  6 34  1  0  0  0  0\n"
-                + "  4 14  1  0  0  0  0\n"
-                + "  9 29  1  0  0  0  0\n"
-                + " 20 21  1  0  0  0  0\n"
-                + " 25 26  1  0  0  0  0\n"
-                + " 25 30  1  0  0  0  0\n"
-                + "  8 33  1  0  0  0  0\n"
-                + " 10 11  2  0  0  0  0\n"
-                + " 14 17  1  0  0  0  0\n"
-                + "M  END");
-        //		mc.generateCoordinates();
-        //		System.out.println(mc.toMol());
-
-        mc=dumbClean(mc, DO_ALL);
-        //		
-        //		
-        List<Chemical> tryAgain =getVariations(mc, null);
-
-        for(Chemical c2: tryAgain) {
-
-            c2= Chemical.parse(c2.toMol());
-
-            System.out.println(c2.toMol());
-            System.out.println(c2.toInchi().getInchi());
-        }
-        //		Chemical c2= inver(c);
-        ////		System.out.println(correlationToClean(c));
-        //		System.out.println(mc.toMol());
     }
 
 }

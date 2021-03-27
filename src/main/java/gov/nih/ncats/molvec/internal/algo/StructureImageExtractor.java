@@ -120,6 +120,9 @@ public class StructureImageExtractor {
 		//((FontBasedRasterCosineSCOCR)OCR_BACKUP).debug();
 	}
 
+	public PreCalculated preCalculated;
+	
+	
 	public static int SKIP_STEP_AT = -1;
 	private Bitmap bitmap; // original bitmap
 	private Bitmap thin; // thinned bitmap
@@ -405,9 +408,22 @@ public class StructureImageExtractor {
 		}
 
 	}
+	
+	public static StructureImageExtractor createFromBitmap(Bitmap bm, ImageExtractionValues vals)throws IOException{
+	    try {
+	        return new StructureImageExtractor(bm, vals );
+	    }catch(InterruptedException e){
+	        throw new IOException("interrupted", e);
+	    }
+    }	
 
-	
-	
+    public static StructureImageExtractor createFromPC(PreCalculated pc, ImageExtractionValues vals) throws IOException {
+        try {
+            return new StructureImageExtractor(pc, vals);
+        }catch(InterruptedException e){
+            throw new IOException("interrupted", e);
+        }
+    }
 	
 	
 	/**
@@ -447,6 +463,17 @@ public class StructureImageExtractor {
 			throw new IOException("interrupted", e);
 		}
 	}
+	
+	public StructureImageExtractor(Bitmap bm, ImageExtractionValues vals) throws IOException, InterruptedException{
+	    this.values=vals;
+        load(bm,false);
+	}
+	
+	public StructureImageExtractor(PreCalculated pc, ImageExtractionValues vals) throws IOException, InterruptedException{
+        this.values=vals;
+        load(pc,false);
+    }
+	
 	public StructureImageExtractor(byte[] file, ImageExtractionValues vals) throws IOException{
 		this.values=vals;
 		try {
@@ -966,14 +993,14 @@ public class StructureImageExtractor {
 	 * very small structure images.
 	 * @author tyler
 	 */
-	private class ImageTooSmallException extends IOException{}
+	private static class ImageTooSmallException extends IOException{}
 	
 	/**
 	 * Thrown to signify that the supplied image has characteristics expected from 
 	 * a split/spotty thresholding or very washed image.
 	 * @author tyler
 	 */
-	private class ImageTooSpottyException extends IOException{}
+	private static class ImageTooSpottyException extends IOException{}
 	
 	
 
@@ -1252,141 +1279,169 @@ public class StructureImageExtractor {
 				}
 			});
 	}
-
-	private void load(Bitmap aBitMap, boolean allowThresholdTooLowThrow) throws IOException, InterruptedException{
-
-		boolean killsmallocr=values.AGGRESSIVE_REMOVE_SHORT_OCR;
 	
+	public static class PreCalculated{
+	    boolean isCalc = false;
+	    Bitmap raw;
+	    Bitmap thin;
+	    List<ShapeWrapper> polygon;
+	}
+	
+	public static PreCalculated getPreCalculated(Bitmap aBitMap,boolean allowThresholdTooLowThrow, ImageExtractionValues values) throws IOException, InterruptedException{
+	    PreCalculated precalc = new PreCalculated();
+	    
+	    Bitmap bitmap = aBitMap;
+        Bitmap thin = bitmap.thin();
+        List<ShapeWrapper> polygons;
+        
+        boolean blurred=false;
+        
+
+        List<int[]> hollow =thin.findHollowPoints();
+
+        if(hollow.size()> 0.002*thin.fractionPixelsOn()*thin.width()*thin.height()){
+            bitmap=new Bitmap.BitmapBuilder(bitmap).boxBlur(1).threshold(2).build();
+            thin=bitmap.thin();
+            blurred=true;
+        }
+            
+            
+
+//      Bitmap bitmap2=new Bitmap.BitmapBuilder(bitmap).boxBlur(1).threshold(1).build();
+        polygons = bitmap.connectedComponents(Bitmap.Bbox.DoublePolygon)
+                .stream()
+                .map(s->ShapeWrapper.of(s))
+                .collect(Collectors.toList());
+        
+        
+        long noise=polygons.stream()
+                         .map(p->p.getBounds())
+                         .map(p->Tuple.of(p,GeomUtil.area(p)))
+                         .filter(t->t.v()<6)
+                         .map(t->t.k())
+                         .count();
+
+        if(noise> polygons.size()*0.8){
+            bitmap=new Bitmap.BitmapBuilder(bitmap).boxBlur(2).threshold(7).build();
+            thin=bitmap.thin();
+            polygons.clear();
+            
+            polygons.addAll(bitmap.connectedComponents(Bitmap.Bbox.DoublePolygon)
+                    .stream()
+                    .map(s->ShapeWrapper.of(s))
+                    .collect(Collectors.toList()));
+        }else if(!blurred){
+//
+            //look for tiny polygons that might be broken apart
+            
+            List<ShapeWrapper> toRemoveShape = new ArrayList<>();
+            
+            List<ShapeWrapper> combined=polygons.stream()
+             .map(p->Tuple.of(p,p))
+             .map(Tuple.vmap(p->p.getArea()))
+             .filter(t->t.v()<values.MAX_AREA_TO_STITCH_OCR_SHAPE)
+             .map(t->t.k())
+             .collect(GeomUtil.groupThings(t->{
+                 return GeomUtil.distance(t.k(), t.v()) < values.MAX_DISTANCE_BETWEEN_OCR_SHAPES_TO_STITCH;
+             }))
+             .stream()
+             .filter(sl->sl.size()>1)
+             .map(s->{
+                 Shape ss=s.stream()
+                         .peek(s1->toRemoveShape.add(s1))
+                         .flatMap(s1->Arrays.stream(s1.getVerts()))
+                         .collect(GeomUtil.convexHull());
+                 
+                 return ShapeWrapper.of(ss);
+                 
+             })
+             .collect(Collectors.toList());
+            
+            if(combined.size() >= 2){
+                
+                if(allowThresholdTooLowThrow)throw new ImageTooSpottyException();
+                
+                //this is characteristic of "spotting", usually meaning that there was a bad threshold
+                //
+                Bitmap bm2=new Bitmap.BitmapBuilder(bitmap).boxBlur(1).threshold(1).build();
+                
+                List<ShapeWrapper> npolys = bm2.connectedComponents(Bitmap.Bbox.DoublePolygon)
+                        .stream()
+                        .map(s->ShapeWrapper.of(s))
+                        .collect(Collectors.toList());
+
+                Set<ShapeWrapper> toAdd = new HashSet<>();
+                Set<ShapeWrapper> toRem = new HashSet<>();
+                
+                
+                
+                if(values.COMBINE_WITH_BLUR){
+                    Bitmap bmold=bitmap;
+                    combined.stream()
+                            .map(ss->ss.getWrappedBounds().growShapeNPoly(2, 6))
+                            .forEach(ss->{
+                                bmold.paste(bm2,ss.getShape());
+                            });
+                    
+                    combined.stream()
+                        .map(ss->GeomUtil.growShapeHex(ss.getShape().getBounds2D(), 10))
+                        .map(ss->ShapeWrapper.of(ss))
+                        .forEach(ss->{
+                            npolys.stream()
+                                  .filter(sn->GeomUtil.intersects(ss, sn))
+                                  .forEach(sn->toAdd.add(sn));
+                            polygons.stream()
+                              .filter(sn->GeomUtil.intersects(ss, sn))
+                              .forEach(sn->toRem.add(sn));
+                        });
+                }else{
+                    toRem.addAll(toRemoveShape);
+                    toAdd.addAll(combined);
+                }
+                
+                polygons.removeAll(toRem);
+                polygons.addAll(toAdd);
+                
+            }
+        }
+        precalc.raw=bitmap; 
+        precalc.thin=thin;
+        precalc.polygon=polygons;
+        precalc.isCalc=true;
+        return precalc;
+	}
+
+    private void load(Bitmap aBitMap, boolean allowThresholdTooLowThrow) throws IOException, InterruptedException{
+        PreCalculated pc = new PreCalculated();
+        pc.raw=aBitMap;
+        load(pc, allowThresholdTooLowThrow);
+        
+    }
+
+	private void load(PreCalculated preCalc, boolean allowThresholdTooLowThrow) throws IOException, InterruptedException{
+
+		
 		List<Shape> realRescueOCRCandidates = Collections.synchronizedList(new ArrayList<>());
-		
-		
 		ctabRaw.clear();
 		ocrAttempt.clear();
-		bitmap = aBitMap;
-
-		SCOCR[] socr=new SCOCR[]{values.OCR_DEFAULT.orElse(OCR_BACKUP, OCRcutoffCosine)};
-
-		double[] maxBondLength=new double[]{INITIAL_MAX_BOND_LENGTH};    
-
-
-
+        SCOCR[] socr=new SCOCR[]{values.OCR_DEFAULT.orElse(OCR_BACKUP, OCRcutoffCosine)};
+        double[] maxBondLength=new double[]{INITIAL_MAX_BOND_LENGTH};    
+        boolean killsmallocr=values.AGGRESSIVE_REMOVE_SHORT_OCR;
+        
 		
-		
-		
-
-		thin = bitmap.thin();
-		boolean blurred=false;
-		
-
-		List<int[]> hollow =thin.findHollowPoints();
-
-		if(hollow.size()> 0.002*thin.fractionPixelsOn()*thin.width()*thin.height()){
-			bitmap=new Bitmap.BitmapBuilder(bitmap).boxBlur(1).threshold(2).build();
-			thin=bitmap.thin();
-			blurred=true;
-		}
-			
-			
-
-//		Bitmap bitmap2=new Bitmap.BitmapBuilder(bitmap).boxBlur(1).threshold(1).build();
-		polygons = bitmap.connectedComponents(Bitmap.Bbox.DoublePolygon)
-				.stream()
-				.map(s->ShapeWrapper.of(s))
-				.collect(Collectors.toList());
-		
-		
-		long noise=polygons.stream()
-						 .map(p->p.getBounds())
-						 .map(p->Tuple.of(p,GeomUtil.area(p)))
-						 .filter(t->t.v()<6)
-						 .map(t->t.k())
-						 .count();
-
-		if(noise> polygons.size()*0.8){
-			bitmap=new Bitmap.BitmapBuilder(bitmap).boxBlur(2).threshold(7).build();
-			thin=bitmap.thin();
-			polygons = bitmap.connectedComponents(Bitmap.Bbox.DoublePolygon)
-					.stream()
-					.map(s->ShapeWrapper.of(s))
-					.collect(Collectors.toList());;
-		}else if(!blurred){
-//
-			//look for tiny polygons that might be broken apart
-			
-			List<ShapeWrapper> toRemoveShape = new ArrayList<>();
-			
-			List<ShapeWrapper> combined=polygons.stream()
-			 .map(p->Tuple.of(p,p))
-			 .map(Tuple.vmap(p->p.getArea()))
-			 .filter(t->t.v()<values.MAX_AREA_TO_STITCH_OCR_SHAPE)
-			 .map(t->t.k())
-			 .collect(GeomUtil.groupThings(t->{
-				 return GeomUtil.distance(t.k(), t.v()) < values.MAX_DISTANCE_BETWEEN_OCR_SHAPES_TO_STITCH;
-			 }))
-			 .stream()
-			 .filter(sl->sl.size()>1)
-			 .map(s->{
-				 Shape ss=s.stream()
-						 .peek(s1->toRemoveShape.add(s1))
-						 .flatMap(s1->Arrays.stream(s1.getVerts()))
-						 .collect(GeomUtil.convexHull());
-				 
-				 realRescueOCRCandidates.add(ss);
-				 return ShapeWrapper.of(ss);
-				 
-			 })
-			 .collect(Collectors.toList());
-			
-			if(combined.size() >= 2){
-				
-				if(allowThresholdTooLowThrow)throw new ImageTooSpottyException();
-				
-				//this is characteristic of "spotting", usually meaning that there was a bad threshold
-				//
-				Bitmap bm2=new Bitmap.BitmapBuilder(bitmap).boxBlur(1).threshold(1).build();
-				
-				List<ShapeWrapper> npolys = bm2.connectedComponents(Bitmap.Bbox.DoublePolygon)
-						.stream()
-						.map(s->ShapeWrapper.of(s))
-						.collect(Collectors.toList());
-
-				Set<ShapeWrapper> toAdd = new HashSet<>();
-				Set<ShapeWrapper> toRem = new HashSet<>();
-				
-				
-				
-				if(values.COMBINE_WITH_BLUR){
-					Bitmap bmold=bitmap;
-					combined.stream()
-							.map(ss->ss.getWrappedBounds().growShapeNPoly(2, 6))
-							.forEach(ss->{
-								bmold.paste(bm2,ss.getShape());
-							});
-					
-					combined.stream()
-						.map(ss->GeomUtil.growShapeHex(ss.getShape().getBounds2D(), 10))
-						.map(ss->ShapeWrapper.of(ss))
-						.forEach(ss->{
-							npolys.stream()
-							      .filter(sn->GeomUtil.intersects(ss, sn))
-							      .forEach(sn->toAdd.add(sn));
-							polygons.stream()
-						      .filter(sn->GeomUtil.intersects(ss, sn))
-						      .forEach(sn->toRem.add(sn));
-						});
-				}else{
-					toRem.addAll(toRemoveShape);
-					toAdd.addAll(combined);
-				}
-				
-				polygons.removeAll(toRem);
-				polygons.addAll(toAdd);
-				
-			}
+		if(!preCalc.isCalc) {
+		    preCalc = getPreCalculated(preCalc.raw,allowThresholdTooLowThrow, values);
 		}
 		
+		if(preCalc.isCalc) {
+            bitmap = preCalc.raw;
+            thin= preCalc.thin;
+            polygons = preCalc.polygon.stream().collect(Collectors.toList());
+		}
 		
-
+		preCalculated= preCalc;
+		
+		
 		boolean isLarge = false;
 		if (!polygons.isEmpty()) {
 			isLarge = polygons.size() > 4000;			
@@ -6815,6 +6870,7 @@ public class StructureImageExtractor {
 	public List<ConnectionTable> getCtabRaw() {
 		return this.ctabRaw;
 	}
+
 
 
 

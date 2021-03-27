@@ -8,7 +8,10 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+import gov.nih.ncats.common.Tuple;
 import gov.nih.ncats.molvec.internal.algo.StructureImageExtractor;
+import gov.nih.ncats.molvec.internal.algo.StructureImageExtractor.PreCalculated;
+import gov.nih.ncats.molvec.internal.image.Bitmap;
 
 /**
  *
@@ -44,7 +47,7 @@ public final class Molvec {
 	public static MolvecResult ocr(File image, MolvecOptions options) throws IOException{
 		checkNotNull(image);
 		options = Optional.ofNullable(options).orElse(DEFAULT_OPTIONS);
-		StructureImageExtractor sie = new StructureImageExtractor(image);
+		StructureImageExtractor sie = new StructureImageExtractor(image, options.getValues());
 		return options.computeResult(sie.getCtab());
 
 	}
@@ -98,28 +101,45 @@ public final class Molvec {
 		return ocr(image, DEFAULT_OPTIONS).getMolfile().get();
 		
 	}
-	/**
-	 * Analyze the given image and try to recognize a molecular structure
-	 * and compute a {@link MolvecResult} using the given {@link MolvecOptions}.
-	 *
-	 * @param image the image to analyze, can not be null.
-	 * @param options the {@link MolvecOptions} to use; if options is null, then the default options are used.
-	 *
-	 * @return a {@link MolvecResult} which includes a String encoded in mol format of the recognized molecular structure.
-	 *
-	 * @throws IOException if there are any problems parsing the images.
-	 * @throws NullPointerException if image is null.
-	 *
-	 * @since 0.9.8
-	 */
-	public static MolvecResult ocr(BufferedImage image, MolvecOptions options) throws IOException{
-		checkNotNull(image);
+	
+	public static Tuple<MolvecResult,StructureImageExtractor> ocrAndExtractor(PreCalculated pc, MolvecOptions options) throws IOException{
+        options = Optional.ofNullable(options).orElse(DEFAULT_OPTIONS);
+        StructureImageExtractor sie = StructureImageExtractor.createFromPC(pc,options.getValues());
+        return Tuple.of(options.computeResult(sie.getCtab()),sie);
+    }
+	
+	public static Tuple<MolvecResult,StructureImageExtractor> ocrAndExtractor(BufferedImage image, MolvecOptions options) throws IOException{
 		options = Optional.ofNullable(options).orElse(DEFAULT_OPTIONS);
 		StructureImageExtractor sie = StructureImageExtractor.createFromImage(image,options.getValues());
-		
-		return options.computeResult(sie.getCtab());
-
+		return Tuple.of(options.computeResult(sie.getCtab()),sie);
 	}
+	
+	
+	
+	
+	/**
+     * Analyze the given image and try to recognize a molecular structure
+     * and compute a {@link MolvecResult} using the given {@link MolvecOptions}.
+     *
+     * @param image the image to analyze, can not be null.
+     * @param options the {@link MolvecOptions} to use; if options is null, then the default options are used.
+     *
+     * @return a {@link MolvecResult} which includes a String encoded in mol format of the recognized molecular structure.
+     *
+     * @throws IOException if there are any problems parsing the images.
+     * @throws NullPointerException if image is null.
+     *
+     * @since 0.9.8
+     */
+    public static MolvecResult ocr(BufferedImage image, MolvecOptions options) throws IOException{
+        checkNotNull(image);
+        options = Optional.ofNullable(options).orElse(DEFAULT_OPTIONS);
+        StructureImageExtractor sie = StructureImageExtractor.createFromImage(image,options.getValues());
+        
+        return options.computeResult(sie.getCtab());
+
+    }
+	
 	public static CompletableFuture<String> ocrAsync(byte[] image){
 		return CompletableFuture.supplyAsync(() -> {
 			try{
