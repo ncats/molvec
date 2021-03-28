@@ -247,6 +247,7 @@ public class ModifiedMolvecPipeline {
 	static BitSet ALL_IMG_SETTINGS=new BitSet();
 	static BitSet PREPROCESS_ONLY_SETTINGS=new BitSet();
 	static BitSet BASIC_BITMAP_SETTINGS=new BitSet();
+	static BitSet BASIC_BITMAP_AND_OCR_SETTINGS=new BitSet();
 	
 	
 	static {
@@ -261,7 +262,9 @@ public class ModifiedMolvecPipeline {
 		BASIC_BITMAP_SETTINGS.set(34);
 		BASIC_BITMAP_SETTINGS.set(29);
 		BASIC_BITMAP_SETTINGS.set(30);
-		
+	
+		BASIC_BITMAP_AND_OCR_SETTINGS.or(BASIC_BITMAP_SETTINGS);
+		BASIC_BITMAP_AND_OCR_SETTINGS.set(1);
 	}
 	
 	
@@ -674,6 +677,10 @@ public class ModifiedMolvecPipeline {
 		BitSet bs3=(BitSet) BASIC_BITMAP_SETTINGS.clone();
         bs3.and(MODIFICATION_FLAGS);
         String basicBitmapSettings = bs3.toString();
+        
+        BitSet bs4=(BitSet) BASIC_BITMAP_AND_OCR_SETTINGS.clone();
+        bs4.and(MODIFICATION_FLAGS);
+        String basicBitmapOCRSettings = bs4.toString();
 		
 		String k = f.getName();
 		String fkey = k + preSetting;
@@ -735,8 +742,15 @@ public class ModifiedMolvecPipeline {
 				if(preCalc==null) {
 				    tmol = Molvec.ocrAndExtractor(nbir, op);
 				    preCalc = tmol.v().preCalculated;
+				    preCalc.gkey = basicBitmapOCRSettings;
+				    
 				    _bmCACHE.put(bkey, preCalc);
 				}else {
+				    if((preCalc.gkey+"").equals(basicBitmapOCRSettings)) {
+				        preCalc.didOCR=true;
+				    }else {
+				        preCalc.didOCR=false;
+				    }
 				    tmol = Molvec.ocrAndExtractor(preCalc, op);
 				}
 				 
@@ -775,7 +789,7 @@ public class ModifiedMolvecPipeline {
 				}
 
 
-				if(bon.getHeight()>0.8*bon.getWidth()){
+				if(bon.getHeight()>0.85*bon.getWidth()){
 
 					BufferedImage nbi2;
 

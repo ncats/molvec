@@ -1286,7 +1286,7 @@ public class StructureImageExtractor {
 	    Bitmap thin;
 	    List<ShapeWrapper> polygon;
 	    
-	    boolean didOCR = false;
+	    public boolean didOCR = false;
 	    
 	    Set<ShapeWrapper> likelyOCR;
         Set<ShapeWrapper> likelyOCRNumbers;
@@ -1296,6 +1296,8 @@ public class StructureImageExtractor {
         Set<ShapeWrapper> verticalShapes;
         Set<ShapeWrapper> NPlusShapes;
         Map<ShapeWrapper,List<Tuple<Character,Number>>> ocrAttempt;
+        
+        public String gkey;
 
         
 	}
@@ -1527,19 +1529,21 @@ public class StructureImageExtractor {
 			            
 			        });
 			        
-			        preCalculated.likelyOCR = likelyOCR.stream().collect(Collectors.toSet());
-			        preCalculated.likelyOCRNumbers = likelyOCRNumbers.stream().collect(Collectors.toSet());
-			        preCalculated.likelyOCRNonBond = likelyOCRNonBond.stream().collect(Collectors.toSet());
-                    preCalculated.likelyOCRAll = likelyOCRAll.stream().collect(Collectors.toSet());
-                    preCalculated.likelyOCRIgnore = likelyOCRIgnore.stream().collect(Collectors.toSet());
-                    preCalculated.verticalShapes = verticalShapes.stream().collect(Collectors.toSet());
-                    
-			        preCalculated.NPlusShapes = NPlusShapes.stream().collect(Collectors.toSet());
-			        preCalculated.ocrAttempt = ocrAttempt.entrySet().stream()
-			                .map(Tuple::of)
-			                .collect(Tuple.toMap());
-			        preCalculated.didOCR=true;
-			                
+			        if(preCalculated.gkey==null) {
+			        
+    			        preCalculated.likelyOCR = likelyOCR.stream().collect(Collectors.toSet());
+    			        preCalculated.likelyOCRNumbers = likelyOCRNumbers.stream().collect(Collectors.toSet());
+    			        preCalculated.likelyOCRNonBond = likelyOCRNonBond.stream().collect(Collectors.toSet());
+                        preCalculated.likelyOCRAll = likelyOCRAll.stream().collect(Collectors.toSet());
+                        preCalculated.likelyOCRIgnore = likelyOCRIgnore.stream().collect(Collectors.toSet());
+                        preCalculated.verticalShapes = verticalShapes.stream().collect(Collectors.toSet());
+                        
+    			        preCalculated.NPlusShapes = NPlusShapes.stream().collect(Collectors.toSet());
+    			        preCalculated.ocrAttempt = ocrAttempt.entrySet().stream()
+    			                .map(Tuple::of)
+    			                .collect(Tuple.toMap());
+    			        preCalculated.didOCR=true;
+			        }
 			        
 //			        preCalculated.likelyOCR = new ArrayList<>(likelyOCR);
 
