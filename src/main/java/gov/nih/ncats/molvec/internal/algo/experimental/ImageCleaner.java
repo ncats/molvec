@@ -62,14 +62,37 @@ public class ImageCleaner {
 	        biIn2 = op.filter(biIn, biIn2);
 	        biIn=biIn2;
 
-	        for (int x = 0; x < biIn.getWidth(); x++) {
+	        int w = biIn.getWidth();
+	        int h = biIn.getHeight();
+	        
+//	        int[] rgbarr = new int[w];
+//	        
+//	        for (int y = 0; y < h; y++) {
+//	            biIn.getRGB(0, y, w, 1, rgbarr, 0, w);
+//	            
+//	            
+//                for (int y = 0; y < biIn.getHeight(); y++) {
+//                    int rgba = biIn.getRGB(x, y);
+//                    Color col = new Color(rgba, false);
+////                    col = new Color(col.getRed(),
+////                            col.getRed(),
+////                            col.getRed());
+//                    if(col.getRed()>253 || x<3||y<3||x>biIn.getWidth()-3||y>biIn.getHeight()-3){
+//                        biIn.setRGB(x, y, Color.WHITE.getRGB());    
+//                    }else{
+//                        biIn.setRGB(x, y, Color.BLACK.getRGB());
+//                    }
+//                }
+//            }
+
+	        
+	        for (int x = 0; x < w; x++) {
 	        	for (int y = 0; y < biIn.getHeight(); y++) {
 	        		int rgba = biIn.getRGB(x, y);
-	        		Color col = new Color(rgba, false);
-	        		col = new Color(col.getRed(),
-	        				col.getRed(),
-	        				col.getRed());
-	        		if(col.getRed()>253 || x<3||y<3||x>biIn.getWidth()-3||y>biIn.getHeight()-3){
+//	        		Color col = new Color(rgba, false);
+	        		int b = 0xff & rgba;
+	        		
+	        		if(b>253 || x<3||y<3||x>w-3||y>h-3){
 	        			biIn.setRGB(x, y, Color.WHITE.getRGB());	
 	        		}else{
 	        			biIn.setRGB(x, y, Color.BLACK.getRGB());
@@ -102,17 +125,22 @@ public class ImageCleaner {
         g2d.drawImage(biIn, 0, 0, null);
         g2d.dispose();
 
-        for (int x = 0; x < outputImage.getWidth(); x++) {
-            for (int y = 0; y < outputImage.getHeight(); y++) {
-                int rgba = outputImage.getRGB(x, y);
-                Color col = new Color(rgba, false);
-                col = new Color(col.getRed(),
-                		col.getRed(),
-                		col.getRed());
-                outputImage.setRGB(x, y, col.getRGB());
-                
-            }
-        }
+        int w=outputImage.getWidth();
+        int h=outputImage.getHeight(); 
+//        int wrgb=Color.WHITE.getRGB();
+//        int brgb=Color.BLACK.getRGB();
+//        
+//        for (int x = 0; x < w; x++) {
+//            for (int y = 0; y < h; y++) {
+//                int rgba = outputImage.getRGB(x, y);
+//                Color col = new Color(rgba, false);
+//                col = new Color(col.getRed(),
+//                		col.getRed(),
+//                		col.getRed());
+//                outputImage.setRGB(x, y, col.getRGB());
+//                
+//            }
+//        }
 
 //        ImageIO.write(outputImage, "png", new File("tmp.2.png"));
 		

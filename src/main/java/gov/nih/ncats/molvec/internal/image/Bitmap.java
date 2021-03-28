@@ -393,11 +393,13 @@ public class Bitmap implements Serializable {
     	public Bitmap build(){
     		int[][] raw = new int[nwidth][nheight];
     		double iscale=1/scale;
+    		boolean anyIgnore =toRemove.size()>0;
+    		
     		for(int i=0;i<nwidth;i++){
     			for(int j=0;j<nheight;j++){
     				int x=(int)Math.round(iscale*i);
     				int y=(int)Math.round(iscale*j);
-    				boolean ignore=toRemove.stream()
+    				boolean ignore= anyIgnore && toRemove.stream()
     				        .filter(r->r.contains(x, y))
     				        .findAny()
     				        .isPresent();
@@ -2662,12 +2664,15 @@ public class Bitmap implements Serializable {
 			         .mapToObj(k->Tuple.of(k,k))
 			         .map(Tuple.kmap(k->lines.get(k)))
 			         .map(Tuple.kmap(l->LineDistanceCalculator.from(line1.getLine(), l.getLine())))
-			         .map(t->t.withKComparatorMap(lu->lu.getAbsoluteClosestDistance()))
-			         .sorted()
+			         .map(Tuple.kmap(l->Tuple.of(l.getAbsoluteClosestDistance() ,l ).withKComparator()))
+			         .map(t->t.withKComparator())
+//			         .map(t->t.withKComparatorMap(lu->lu.getAbsoluteClosestDistance()))
 			         .filter(t->{
-			        	 double dist=t.k().getAbsoluteClosestDistance();
-			        	 return dist<maxMinDistance; 
-			         })
+                         double dist=t.k().k();
+                         return dist<maxMinDistance; 
+                     })
+			         .sorted()
+                     .map(Tuple.kmap(tk->tk.v()))
 			         .filter(t->{
 			        	 
 			        	 LineWrapper line2=lines.get(t.v());

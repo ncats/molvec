@@ -1285,6 +1285,19 @@ public class StructureImageExtractor {
 	    Bitmap raw;
 	    Bitmap thin;
 	    List<ShapeWrapper> polygon;
+	    
+	    boolean didOCR = false;
+	    
+	    Set<ShapeWrapper> likelyOCR;
+        Set<ShapeWrapper> likelyOCRNumbers;
+        Set<ShapeWrapper> likelyOCRNonBond;
+        Set<ShapeWrapper> likelyOCRAll;
+        Set<ShapeWrapper> likelyOCRIgnore;
+        Set<ShapeWrapper> verticalShapes;
+        Set<ShapeWrapper> NPlusShapes;
+        Map<ShapeWrapper,List<Tuple<Character,Number>>> ocrAttempt;
+
+        
 	}
 	
 	public static PreCalculated getPreCalculated(Bitmap aBitMap,boolean allowThresholdTooLowThrow, ImageExtractionValues values) throws IOException, InterruptedException{
@@ -1459,49 +1472,110 @@ public class StructureImageExtractor {
 		
 		while(startloop){
 			ocrAttempt.clear();
+			Set<ShapeWrapper> likelyOCR= Collections.synchronizedSet(new LinkedHashSet<>());
+	        Set<ShapeWrapper> likelyOCRNumbers= Collections.synchronizedSet(new LinkedHashSet<>());
+	        Set<ShapeWrapper> likelyOCRNonBond= Collections.synchronizedSet(new LinkedHashSet<>());
+	        Set<ShapeWrapper> likelyOCRAll=Collections.synchronizedSet(new LinkedHashSet<>());
+	        Set<ShapeWrapper> likelyOCRIgnore = Collections.synchronizedSet(new LinkedHashSet<>());
+	        /*
+	         * Looks at each polygon, and gets the likely OCR chars.
+	         */   
+
+	        Set<ShapeWrapper> verticalShapes = Collections.synchronizedSet(new LinkedHashSet<>());
+
+	        Set<ShapeWrapper> NPlusShapes = Collections.synchronizedSet(new LinkedHashSet<>());
+			
+			if(startloop) {
+			    if(preCalculated.didOCR) {
+			        likelyOCR.addAll( preCalculated.likelyOCR);
+			        likelyOCRNumbers.addAll( preCalculated.likelyOCRNumbers);
+			        likelyOCRNonBond.addAll( preCalculated.likelyOCRNonBond);
+			        likelyOCRAll.addAll( preCalculated.likelyOCRAll);
+			        likelyOCRIgnore.addAll( preCalculated.likelyOCRIgnore);
+			        verticalShapes.addAll( preCalculated.verticalShapes);
+			        NPlusShapes.addAll( preCalculated.NPlusShapes);
+
+			        preCalculated.ocrAttempt.forEach((k,v)->{
+			            ocrAttempt.put(k, v);
+			        });
+			        
+			    }else {
+
+			        
+			        processOCR(socr[0],polygons,bitmap,thin,(s,potential)->{
+			            ocrAttempt.put(s, potential);
+			            
+			            if(potential.stream().filter(e->e.v().doubleValue()>OCRcutoffCosine).findAny().isPresent()){
+			                CharType ct=computeCharType(potential.get(0));
+			                
+			                if(potential.get(0).k().toString().equals("?")){
+			                    NPlusShapes.add(s);
+			                }else{
+			                    if(ct.equals(CharType.ChemLikely)){
+			                        likelyOCR.add(s);
+			                        likelyOCRNonBond.add(s);
+			                        
+			                    }else if(ct.equals(CharType.NumericLikely)){
+			                        likelyOCRNonBond.add(s);
+			                        likelyOCRNumbers.add(s);
+			                    }else if(ct.equals(CharType.VerticalBondLikely)){
+			                        verticalShapes.add(s);
+			                    }
+			                    likelyOCRAll.add(s);
+			                }
+			            }
+			            
+			        });
+			        
+			        preCalculated.likelyOCR = likelyOCR.stream().collect(Collectors.toSet());
+			        preCalculated.likelyOCRNumbers = likelyOCRNumbers.stream().collect(Collectors.toSet());
+			        preCalculated.likelyOCRNonBond = likelyOCRNonBond.stream().collect(Collectors.toSet());
+                    preCalculated.likelyOCRAll = likelyOCRAll.stream().collect(Collectors.toSet());
+                    preCalculated.likelyOCRIgnore = likelyOCRIgnore.stream().collect(Collectors.toSet());
+                    preCalculated.verticalShapes = verticalShapes.stream().collect(Collectors.toSet());
+                    
+			        preCalculated.NPlusShapes = NPlusShapes.stream().collect(Collectors.toSet());
+			        preCalculated.ocrAttempt = ocrAttempt.entrySet().stream()
+			                .map(Tuple::of)
+			                .collect(Tuple.toMap());
+			        preCalculated.didOCR=true;
+			                
+			        
+//			        preCalculated.likelyOCR = new ArrayList<>(likelyOCR);
+
+			    }
+			}else {
+			    processOCR(socr[0],polygons,bitmap,thin,(s,potential)->{
+                    ocrAttempt.put(s, potential);
+                    
+                    if(potential.stream().filter(e->e.v().doubleValue()>OCRcutoffCosine).findAny().isPresent()){
+                        CharType ct=computeCharType(potential.get(0));
+                        
+                        if(potential.get(0).k().toString().equals("?")){
+                            NPlusShapes.add(s);
+                        }else{
+                            if(ct.equals(CharType.ChemLikely)){
+                                likelyOCR.add(s);
+                                likelyOCRNonBond.add(s);
+                                
+                            }else if(ct.equals(CharType.NumericLikely)){
+                                likelyOCRNonBond.add(s);
+                                likelyOCRNumbers.add(s);
+                            }else if(ct.equals(CharType.VerticalBondLikely)){
+                                verticalShapes.add(s);
+                            }
+                            likelyOCRAll.add(s);
+                        }
+                    }
+                    
+                });
+			}
 			startloop=false;
 		
-		Set<ShapeWrapper> likelyOCR= Collections.synchronizedSet(new LinkedHashSet<>());
-		Set<ShapeWrapper> likelyOCRNumbers= Collections.synchronizedSet(new LinkedHashSet<>());
-		Set<ShapeWrapper> likelyOCRNonBond= Collections.synchronizedSet(new LinkedHashSet<>());
-		Set<ShapeWrapper> likelyOCRAll=Collections.synchronizedSet(new LinkedHashSet<>());
-		Set<ShapeWrapper> likelyOCRIgnore = Collections.synchronizedSet(new LinkedHashSet<>());
+		
 		
 		List<Shape> ocrRescues = new ArrayList<Shape>();
 		
-		/*
-		 * Looks at each polygon, and gets the likely OCR chars.
-		 */   
-
-		Set<ShapeWrapper> verticalShapes = Collections.synchronizedSet(new LinkedHashSet<>());
-
-		Set<ShapeWrapper> NPlusShapes = Collections.synchronizedSet(new LinkedHashSet<>());
-		
-		
-		processOCR(socr[0],polygons,bitmap,thin,(s,potential)->{
-			ocrAttempt.put(s, potential);
-			
-			if(potential.stream().filter(e->e.v().doubleValue()>OCRcutoffCosine).findAny().isPresent()){
-				CharType ct=computeCharType(potential.get(0));
-				
-				if(potential.get(0).k().toString().equals("?")){
-					NPlusShapes.add(s);
-				}else{
-					if(ct.equals(CharType.ChemLikely)){
-						likelyOCR.add(s);
-						likelyOCRNonBond.add(s);
-						
-					}else if(ct.equals(CharType.NumericLikely)){
-						likelyOCRNonBond.add(s);
-						likelyOCRNumbers.add(s);
-					}else if(ct.equals(CharType.VerticalBondLikely)){
-						verticalShapes.add(s);
-					}
-					likelyOCRAll.add(s);
-				}
-			}
-			
-		});
 		
 		
 		double averageHeightOCR1=likelyOCR.stream()
@@ -1582,7 +1656,7 @@ public class StructureImageExtractor {
 		lines= GeomUtil.asLines(thin.segments())
 					   .stream()
 					   .filter(l->!circles.stream()
-								           .filter(s->s.contains(l.getP1()) || s.contains(l.getP1()))
+								           .filter(s->s.contains(l.getP1()) || s.contains(l.getP2()))
 								           .findFirst()
 								           .isPresent())
 					   .map(l->GeomUtil.LineWrapper.of(l))
@@ -6634,9 +6708,7 @@ public class StructureImageExtractor {
 			if(ct.getNodes().size()<ctab.getNodes().size()){
 				killsmallocr=false;
 				startloop=true;
-			}
-			
-			
+			}			
 		}
 	
 		if(values.FORCE_MERGE_SMALL_RINGS){

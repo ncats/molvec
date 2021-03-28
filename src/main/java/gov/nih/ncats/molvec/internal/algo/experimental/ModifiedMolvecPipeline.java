@@ -431,7 +431,7 @@ public class ModifiedMolvecPipeline {
 		
 	}
 	public static void setInChIDefaultScorer(){
-		ResultScorer rs=new InChIKeySetScorer(new File("./resources/ikeys.txt"),false);
+		ResultScorer rs=new InChIKeySetScorer(new File("./resources"),false,2);
 		ModifiedMolvecPipeline.setDefaultScorer(rs);
 	}
 	public static void setFakeScorer(){
@@ -531,7 +531,7 @@ public class ModifiedMolvecPipeline {
 	                MolvecResult mvr = ModifiedMolvecPipeline.processTogether
 	                        (f, op,_mfileCache, _imgCACHE, _preCCache);
 
-	                Chemical mc = Chemical.parse(mvr.getMolfile().get());
+	                Chemical mc = Chemical.parseMol(mvr.getMolfile().get());
 
 	                double score=rs.score(mc);
 	                ModifiedMolvecResult mt=new ModifiedMolvecResult(mvr, score,null);
@@ -807,7 +807,7 @@ public class ModifiedMolvecPipeline {
 				throw new RuntimeException(e);
 			}
 		});
-		Chemical ct = Chemical.parse(tmresult.mres.getSDfile().get());
+		Chemical ct = Chemical.parseMol(tmresult.mres.getSDfile().get());
 		MolvecResult mresult=tmresult.mres;
 		Chemical[] t = new Chemical[]{
 				ct

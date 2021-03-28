@@ -16,6 +16,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -107,7 +108,8 @@ public class ChemFixer {
 
 
 
-    public static Chemical makeMissingBonds(Chemical c, BitSet bs){
+    public static boolean makeMissingBonds(Chemical c, BitSet bs){
+        AtomicBoolean changes = new AtomicBoolean(false);
         double avg= c.bonds().mapToDouble(b->b.getBondLength())
                 .average().getAsDouble();
         GeomUtil.eachCombination(c.atoms()
@@ -286,10 +288,10 @@ public class ChemFixer {
                 t.k().setImplicitHCount(null);
                 t.v().setImplicitHCount(null);
             }
-
+            changes.set(true);
 
         });
-        return c;
+        return changes.get();
     }
 
     public static double correlationToClean(Chemical c) throws MolwitchException{
@@ -351,8 +353,10 @@ public class ChemFixer {
         return Math.sqrt(smallestTot/pts1.size());
     }
 
-    public static Chemical combineCloseBonds(Chemical c){
-        //		if(true)return c;
+    public static boolean combineCloseBonds(Chemical c){
+        AtomicBoolean changed = new AtomicBoolean(false);
+        
+        
         double avg= c.bonds().mapToDouble(b->b.getBondLength())
                 .average().getAsDouble();
         GeomUtil.eachCombination(c.atoms()
@@ -410,13 +414,14 @@ public class ChemFixer {
 
                     c.addBond(oa,t.v(),BondType.SINGLE);
                     c.removeAtom(t.k());	
+                    changed.set(true);
                 }
 
 
 
             }
         });
-        return c;
+        return changed.get();
     }
 
 
@@ -464,15 +469,26 @@ public class ChemFixer {
 
 
     public static Chemical dumbClean(Chemical c, BitSet ops){
-        double avg= c.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
+       
 
         c=cleanDupeBonds(c);
-
+        
         if(ops.get(CLEAN_ADD_MISSING_BONDS)){
             makeMissingBonds(c,ops);
         }
+        
 
-        if(ops.get(CLEAN_FORCE_CARBON_ON_RARE_ATOM_RING)){
+        SimpleFeaturesAboutChemical sfac = new SimpleFeaturesAboutChemical(c);
+        
+        double avg= sfac.avg;
+        
+
+
+        if(ops.get(CLEAN_FORCE_CARBON_ON_RARE_ATOM_RING) && 
+                sfac.hasAnyAtoms("H", "P", "Cl", "S") &&
+                sfac.hasRingOfSize(6)
+                ){
+            boolean[] did = new boolean[] {false};
             c.atoms()
             .filter(at->at.getSymbol().equals("H")  || at.getSymbol().equals("Cl") 
                     ||(at.getSymbol().equals("P") && sumOrder(at)<=4)
@@ -483,48 +499,63 @@ public class ChemFixer {
             .forEach(at->{
                 at.setAtomicNumber(6);
                 at.setImplicitHCount(null);
+                did[0]=true;
             });
+            if(did[0])sfac.reload(c);
         }
-        if(ops.get(CLEAN_FORCE_CARBON_ON_TRIVALENT_OXYGEN)){
-
+        if(ops.get(CLEAN_FORCE_CARBON_ON_TRIVALENT_OXYGEN) && 
+                sfac.hasAnyAtoms("O")){
+            boolean[] did = new boolean[] {false};
+            
             c.atoms()
             .filter(at->at.getSymbol().equals("O"))
-            .filter(at->{
-                return at.getBonds().stream().mapToInt(b->b.getBondType().getOrder()).sum()>=3;
-            })
+            .filter(at->sfac.getValanceFor(at)>=3)
             .forEach(at->{
                 at.setAtomicNumber(6);;
                 at.setImplicitHCount(null);
+                did[0]=true;
             });
+            if(did[0])sfac.reload(c);
         }
 
-        if(ops.get(CLEAN_FORCE_CARBON_ON_BIVALENT_F)){
-
+        if(ops.get(CLEAN_FORCE_CARBON_ON_BIVALENT_F) &&
+                sfac.hasAnyAtoms("F")
+                ){
+            boolean[] did = new boolean[] {false};
+            
             c.atoms()
             .filter(at->at.getSymbol().equals("F"))
-            .filter(at->{
-                return at.getBonds().stream().mapToInt(b->b.getBondType().getOrder()).sum()>=2;
-            })
+            .filter(at->sfac.getValanceFor(at)>=2)
             .forEach(at->{
-                at.setAtomicNumber(6);;
+                at.setAtomicNumber(6);
                 at.setImplicitHCount(null);
+                did[0]=true;
             });
+            if(did[0])sfac.reload(c);
         }
 
 
-        if(ops.get(CLEAN_FORCE_NITROGEN_ON_BIVALENT_CL)){
+        if(ops.get(CLEAN_FORCE_NITROGEN_ON_BIVALENT_CL)  &&
+                sfac.hasAnyAtoms("Cl")){
+            boolean[] did = new boolean[] {false};
+            
             c.atoms()
             .filter(at->at.getSymbol().equals("Cl"))
-            .filter(at->{
-                return at.getBonds().stream().mapToInt(b->b.getBondType().getOrder()).sum()>=2;
-            })
+            .filter(at->sfac.getValanceFor(at)>=2)
             .forEach(at->{
                 at.setAtomicNumber(7);;
                 at.setImplicitHCount(null);
+                did[0]=true;
             });
+            if(did[0])sfac.reload(c);
         }
 
-        if(ops.get(CLEAN_REMOVE_O_CL_BOND)){
+        if(ops.get(CLEAN_REMOVE_O_CL_BOND) && 
+                sfac.hasTermAtom("Cl") && 
+                sfac.hasAtom("O")
+                ){
+            boolean[] did = new boolean[] {false};
+            
             Chemical tc=c;
             c.atoms()
             .filter(at->at.getSymbol().equals("Cl"))
@@ -533,10 +564,16 @@ public class ChemFixer {
             .collect(Collectors.toList())
             .forEach(at->{
                 tc.removeAtom(at);
+                did[0]=true;
             });
+            if(did[0])sfac.reload(c);
         }
 
-        if(ops.get(CLEAN_FORCE_F_ON_TERM)){
+        if(ops.get(CLEAN_FORCE_F_ON_TERM)  && 
+                sfac.hasAtom("F") 
+                ){
+
+            boolean[] did = new boolean[] {false};
             Chemical tc=c;
             c.atoms()
             .filter(at->at.getSymbol().equals("F"))
@@ -555,6 +592,7 @@ public class ChemFixer {
                     fs.forEach(att->{
                         att.setAtomicNumber(9);	
                         att.setImplicitHCount(null);
+                        did[0]=true;
                     });
 
                 }
@@ -564,6 +602,7 @@ public class ChemFixer {
                         fs.forEach(att->{
                             att.setAtomicNumber(9);	
                             att.setImplicitHCount(null);
+                            did[0]=true;
                         });
                         ShapeWrapper s=ShapeWrapper.of(ca.getNeighbors().stream().map(aa->getPoint(aa))
                                 .collect(GeomUtil.convexHull()));
@@ -575,27 +614,34 @@ public class ChemFixer {
                             Atom an=tc.addAtom("F", ca.getAtomCoordinates().getX()+1,ca.getAtomCoordinates().getY());
                             tc.addBond(ca,an, BondType.SINGLE);
                             an.setAtomCoordinates(AtomCoordinates.valueOf(ca.getAtomCoordinates().getX()+1,ca.getAtomCoordinates().getY()));
+
+                            did[0]=true;
                         }
                     }else{
                         fs.forEach(att->{
                             att.setAtomicNumber(9);	
                             att.setImplicitHCount(null);
+
+                            did[0]=true;
                         });	
                     }
 
                 }
 
 
+
             });
+            if(did[0])sfac.reload(c);
         }
 
-        if(!ops.get(CLEAN_REMOVE_DASH_BOND_ON_PENT_C)){
+        if(!ops.get(CLEAN_REMOVE_DASH_BOND_ON_PENT_C) && 
+                sfac.hasAtom("C")){
+
+            boolean[] did = new boolean[] {false};
             Chemical tc=c;
             c.atoms()
             .filter(at->at.getSymbol().equals("C"))
-            .filter(at->{
-                return at.getBonds().stream().mapToInt(b->b.getBondType().getOrder()).sum()>=5;
-            })
+            .filter(at->sfac.getValanceFor(at)>=5)
             .forEach(at->{
                 at.getBonds().stream().filter(b->b.getBondType().equals(BondType.SINGLE))
                 .filter(b->b.getStereo().equals(Stereo.DOWN)||b.getStereo().equals(Stereo.DOWN_INVERTED))
@@ -604,13 +650,17 @@ public class ChemFixer {
                     tc.removeBond(b);
                     b.getAtom1().setImplicitHCount(null);
                     b.getAtom2().setImplicitHCount(null);
+                    did[0]=true;
                 });;
-
+               
             });
+            if(did[0])sfac.reload(c);
         }
 
-        if(ops.get(CLEAN_FORCE_VERTICAL_I_TO_C)){
+        if(ops.get(CLEAN_FORCE_VERTICAL_I_TO_C) &&
+                sfac.hasAtom("I")){
 
+            boolean[] did = new boolean[] {false};
             List<Atom> rem = c.atoms()
                     .filter(at->at.getSymbol().equals("I"))
                     .filter(at->at.getBondCount()>0)
@@ -627,27 +677,38 @@ public class ChemFixer {
             rem.forEach(at->{
                 at.setAtomicNumber(6);
                 at.setImplicitHCount(null);
+                did[0]=true;
             });
+            if(did[0])sfac.reload(c);
         }
 
-        if(ops.get(CLEAN_FORCE_IODINES_TO_BE_F)){
-            long fcount=c.atoms().filter(at->at.getSymbol().equals("F")).count();
-            if(fcount>0){
-                c.atoms()
+        if(ops.get(CLEAN_FORCE_IODINES_TO_BE_F) && 
+                sfac.hasAtom("F") && 
+                sfac.hasAtom("I")
+                ){
+            boolean[] did = new boolean[] {false};
+            Predicate<Atom> pp =(at)->{
+                return at.getNeighbors().get(0)
+                        .getBonds()
+                        .stream()
+                        .filter(bb->bb.getBondType().getOrder()==2)
+                        .count()>0;
+            };
+            c.atoms()
                 .filter(at->at.getSymbol().equals("I"))
-                .filter(at->at.getBondCount()==0 || at.getNeighbors().get(0)
-                .getBonds()
-                .stream()
-                .filter(bb->bb.getBondType().getOrder()==2)
-                .count()>0)
+                .filter(at->at.getBondCount()==0 || pp.test(at))
                 .forEach(at->{
                     at.setAtomicNumber(9);
+                    did[0]=true;
                 });
-            }
+            
+            if(did[0])sfac.reload(c);
         }
 
-        if(ops.get(CLEAN_REMOVE_H_WITH_DOUBLE_BONDS)){
-
+        if(ops.get(CLEAN_REMOVE_H_WITH_DOUBLE_BONDS) && 
+                sfac.hasTermAtom("H")
+                ){
+            boolean[] did = new boolean[] {false};
             Chemical tc=c;
             c.atoms()
             .filter(at->at.getSymbol().equals("H"))
@@ -665,36 +726,56 @@ public class ChemFixer {
                 }
                 //remove? Or make N?
                 tc.removeAtom(at);
+                did[0]=true;
             });
+            if(did[0])sfac.reload(c);
         }
 
 
-        if(ops.get(CLEAN_FORCE_PEPTIDE_BOND)){
+        if(ops.get(CLEAN_FORCE_PEPTIDE_BOND) && 
+                sfac.hasTermAtom("O")){
 
-
+            boolean[] did = new boolean[] {false};
+            
+            Predicate<Atom> ptest = (nn)->{
+                return nn.getBonds().stream().allMatch(bn->bn.getBondType().equals(BondType.SINGLE));
+            };
+            Predicate<Atom> ptest2 = nn->nn.getSymbol().equals("N");
+            
+            
             c.atoms()
             .filter(at->at.getSymbol().equals("O"))
             .filter(at->at.getBondCount()==1)
             .filter(at->at.getBonds().get(0).getBondType().equals(BondType.SINGLE))
             //					.filter(at->Stereo.DOWN.equals(at.getBonds().get(0).getStereo()) ||at.getBonds().get(0).getStereo().equals(Stereo.DOWN_INVERTED))
-            .filter(at->sumOrder(at.getNeighbors().get(0))
-                    <4)
-            .filter(at->at.getNeighbors().get(0).getNeighbors().stream()
-                    .filter(nn->nn.getSymbol().equals("N"))
-                    .filter(nn->nn.getBonds().stream().allMatch(bn->bn.getBondType().equals(BondType.SINGLE))).count()>0)
+            .filter(at->sfac.getValanceFor(at.getNeighbors().get(0))<4)
+            .filter(at->at.getNeighbors().get(0).getNeighbors()
+                    .stream()
+                    .filter(ptest2)
+                    .filter(ptest)
+                    .count()>0)
             .forEach(at->{
                 at.getBonds().get(0).setBondType(BondType.DOUBLE);
                 at.setImplicitHCount(null);
                 at.getNeighbors().get(0).setImplicitHCount(null);
+                did[0]=true;
             });
+            if(did[0])sfac.reload(c);
         }
 
-        if(!ops.get(CLEAN_FORCE_DASH_N_TO_DOUBLE)){
+        if(!ops.get(CLEAN_FORCE_DASH_N_TO_DOUBLE) && 
+                sfac.hasTermAtom("N") && 
+                sfac.hasStereo()
+                ){
 
+            boolean[] did = new boolean[] {false};
+            Predicate<Atom> k =(at)->{
+                return at.getBonds().stream().filter(bb->bb.getBondType().equals(BondType.DOUBLE)).count()==0;
+            };
 
             c.atoms()
             .filter(at->at.getSymbol().equals("N"))
-            .filter(at->at.getBonds().stream().filter(bb->bb.getBondType().equals(BondType.DOUBLE)).count()==0)
+            .filter(k)
             .filter(at->at.getBondCount()<=2)
             .forEach(na->{
                 List<Bond> stereoBond = na.getBonds().stream().filter(bb->bb.getBondType().equals(BondType.SINGLE))
@@ -709,19 +790,26 @@ public class ChemFixer {
                         b.setBondType(BondType.DOUBLE);
                         b.getAtom1().setImplicitHCount(null);
                         b.getAtom2().setImplicitHCount(null);
+                        did[0]=true;
                     }else if(b.getAtom2().equals(na) && b.getStereo().equals(Stereo.DOWN_INVERTED)){
                         b.setBondType(BondType.DOUBLE);
                         b.getAtom1().setImplicitHCount(null);
                         b.getAtom2().setImplicitHCount(null);
+                        did[0]=true;
                     }
                 }
             });
+            if(did[0])sfac.reload(c);
         }
 
 
 
 
-        if(!ops.get(CLEAN_FORCE_BORON_TO_C)){
+        if(!ops.get(CLEAN_FORCE_BORON_TO_C) && 
+                sfac.hasAtom("B")){
+
+            boolean[] did = new boolean[] {false};
+
             Set<String> allowb=Arrays.stream("C,O,F,Cl".split(",")).collect(Collectors.toSet());
             c.atoms()
             .filter(at->at.getSymbol().equals("B"))
@@ -730,12 +818,19 @@ public class ChemFixer {
                 if(na.getNeighbors().stream().anyMatch(nn->!allowb.contains(nn.getSymbol()))){
                     na.setAtomicNumber(6);
                     na.setImplicitHCount(null);
+                    did[0]=true;
                 }
+
             });
+            if(did[0])sfac.reload(c);
         }
 
 
-        if(ops.get(CLEAN_FORCE_B_TO_BR)){
+        if(ops.get(CLEAN_FORCE_B_TO_BR) && 
+                sfac.hasAtom("B")){
+            
+            
+            boolean[] did = new boolean[] {false};
 
             //If there's a little MORE it's Br, if there's a little LESS, it's probably F
             //Br=35
@@ -746,12 +841,21 @@ public class ChemFixer {
             .filter(at->at.getNeighbors().get(0).isInRing())
             .forEach(na->{
                 na.setAtomicNumber(35);
+                did[0]=true;
             });
+            if(did[0])sfac.reload(c);
         }
 
         //!@@@@@@@@@@@@@@
-        if(ops.get(CLEAN_FORCE_DASH_RING_AS_DOUBLE)){
+        if(ops.get(CLEAN_FORCE_DASH_RING_AS_DOUBLE) && 
+                sfac.hasStereo() && 
+                sfac.hasRingOfSize(6)){
+            
+            
+            boolean[] did = new boolean[] {false};
 
+            Predicate<Atom> hasNoDoubleBonds = aa->aa.getBonds().stream().mapToInt(b->b.getBondType().getOrder()).filter(k->k==2).count()==0;
+            
 
             c.bonds()
             .filter(bb->bb.getBondType().getOrder()==1)
@@ -759,19 +863,24 @@ public class ChemFixer {
             .filter(bb->bb.getAtom1().getSymbol().equals("C") && bb.getAtom2().getSymbol().equals("C"))
             .filter(bb->bb.isInRing())
             .filter(bb->bb.getAtom1().getSmallestRingSize()==6 && bb.getAtom2().getSmallestRingSize()==6)
-            .filter(bb->bb.getAtom1().getBonds().stream().mapToInt(b->b.getBondType().getOrder()).sum()<=3)
-            .filter(bb->bb.getAtom2().getBonds().stream().mapToInt(b->b.getBondType().getOrder()).sum()<=3)
-            .filter(bb->bb.getAtom1().getBonds().stream().mapToInt(b->b.getBondType().getOrder()).filter(k->k==2).count()==0)
-            .filter(bb->bb.getAtom2().getBonds().stream().mapToInt(b->b.getBondType().getOrder()).filter(k->k==2).count()==0)
+            .filter(bb->sfac.getValanceFor(bb.getAtom1())<=3)
+            .filter(bb->sfac.getValanceFor(bb.getAtom2())<=3)
+            .filter(bb->hasNoDoubleBonds.test(bb.getAtom1()))
+            .filter(bb->hasNoDoubleBonds.test(bb.getAtom2()))
             .forEach(bb->{
                 bb.setBondType(BondType.DOUBLE);
-
+                did[0]=true;
             });
+            if(did[0])sfac.reload(c);
         }
 
         c=cleanDupeBonds(c);
 
-        if(ops.get(CLEAN_REMOVE_EXTRA_RING_LINK_MAKE_DOUBLE)){
+        if(ops.get(CLEAN_REMOVE_EXTRA_RING_LINK_MAKE_DOUBLE) && 
+                sfac.hasRing()){
+            
+            
+            boolean[] did = new boolean[] {false};
 
             Chemical tc=c;
 
@@ -791,6 +900,11 @@ public class ChemFixer {
                 Atom latom=tlatom;
                 Atom patom=tpatom;
 
+                Predicate<Bond> predb = rb->rb.getOtherAtom(patom).getBonds().stream()
+                        .filter(bn->bn.getBondType().equals(BondType.DOUBLE))
+                        .count()<=0;
+                
+                
                 if(latom!=null){
                     List<Bond> ringBonds=patom.getBonds().stream().filter(b->!bb.equals(b))
                             .filter(b->b.isInRing())
@@ -799,9 +913,7 @@ public class ChemFixer {
                     if(ringBonds.size()==2){
 
                         ringBonds.stream()
-                        .filter(rb->rb.getOtherAtom(patom).getBonds().stream()
-                                .filter(bn->bn.getBondType().equals(BondType.DOUBLE))
-                                .count()<=0)
+                        .filter(predb)
                         .findFirst()
                         .ifPresent(bbb->{
                             bbb.setBondType(BondType.DOUBLE);
@@ -812,17 +924,21 @@ public class ChemFixer {
                                 .findFirst().get().getOtherAtom(latom);
                         tc.removeAtom(latom);
                         tc.addBond(patom, nlatom, BondType.SINGLE);
-
+                        did[0]=true;
                     }
 
                 }
-
+               
             });
+            if(did[0])sfac.reload(c);
         }
 
 
         if(ops.get(CLEAN_FORCE_REMOVE_SMALL_BOND)){
-
+            
+            
+            boolean[] did = new boolean[] {false};
+            
             Chemical tc=c;
             c.bonds()
             .filter(bb->bb.getBondLength()<avg*0.3)
@@ -838,16 +954,36 @@ public class ChemFixer {
                     List<Atom> nat=toD.getNeighbors();
                     tc.removeAtom(toD);
                     tc.addBond(nat.get(0),nat.get(1), BondType.SINGLE);
+                    did[0]=true;
                 }
 
+
             });
+            if(did[0])sfac.reload(c);
         }
 
         c=cleanDupeBonds(c);
 
-        if(ops.get(CLEAN_FORCE_5_MEMBER_RING_DOUBLE)){
+        if(ops.get(CLEAN_FORCE_5_MEMBER_RING_DOUBLE) &&
+                sfac.hasStereo() && 
+                sfac.hasRingOfSize(5)
+                ){
+            
+            
+            boolean[] did = new boolean[] {false};
             try{
-                //			double avg= c.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
+                Predicate<Bond> hasNoDouble = bb->{
+                        return Stream.of(bb.getAtom1(),bb.getAtom2())
+                                     .flatMap(at->at.getBonds().stream())
+                                     .filter(b1->b1.getBondType().equals(BondType.DOUBLE))
+                                     .count()==0;
+                };
+                Predicate<Bond> hasNoTriN = b->Stream.of(b.getAtom1(),b.getAtom2())
+                        .filter(at->at.getSymbol().equals("N"))
+                        .filter(at->sumOrder(at)>=3)
+                        .count() ==0;
+                
+                
                 c.bonds()
                 .filter(bb->bb.getBondType().equals(BondType.SINGLE))
                 .filter(bb->bb.getStereo().equals(Stereo.DOWN) || bb.getStereo().equals(Stereo.DOWN_INVERTED)  )
@@ -856,19 +992,15 @@ public class ChemFixer {
                 .filter(bb->bb.getAtom2().getSmallestRingSize()==5)
                 .filter(bb->!bb.getAtom2().getSymbol().equals("O") && !bb.getAtom2().getSymbol().equals("S"))
                 .filter(bb->!bb.getAtom1().getSymbol().equals("O") && !bb.getAtom1().getSymbol().equals("S"))
-                .filter(bb->Stream.of(bb.getAtom1(),bb.getAtom2()).flatMap(at->at.getBonds().stream()).filter(b1->b1.getBondType().equals(BondType.DOUBLE)).count()==0)
-                .filter(b->Stream.of(b.getAtom1(),b.getAtom2())
-                        .filter(at->at.getSymbol().equals("N"))
-                        .filter(at->sumOrder(at)>=3)
-                        .count() ==0
-                        )
+                .filter(hasNoDouble)
+                .filter(hasNoTriN)
                 .collect(Collectors.toList())
 
                 .forEach(bb->{
-
                     bb.setBondType(BondType.DOUBLE);
-
+                    did[0]=true;
                 });
+                if(did[0])sfac.reload(c);
             }catch(Exception e){
                 throw e;
             }
@@ -882,16 +1014,22 @@ public class ChemFixer {
 
         });
 
-        if(ops.get(CLEAN_FORCE_STEREO_ON_H)){
+        if(ops.get(CLEAN_FORCE_STEREO_ON_H) &&
+                sfac.hasAtom("H") 
+                ){
+            
+            
+            boolean[] did = new boolean[] {false};
 
             Chemical tc=c;
-            c.atoms().filter(at->at.getSymbol().equals("H"))
-
+            c.atoms()
+            .filter(at->at.getSymbol().equals("H"))
             .forEach(at->{
                 if(at.getBondCount()>0){
                     Bond b = at.getBonds().get(0);
                     if(b.getBondType().equals(BondType.DOUBLE)){
                         b.setBondType(BondType.SINGLE);
+                        did[0]=true;
                     }
                     if(b.getStereo().equals(Stereo.NONE)){
                         if(b.getAtom1().equals(at)){
@@ -899,10 +1037,14 @@ public class ChemFixer {
                         }else{
                             b.setStereo(Stereo.DOWN);
                         }
+                        did[0]=true;
                     }}else{
                         tc.removeAtom(at);
+                        did[0]=true;
                     }
+               
             });
+            if(did[0])sfac.reload(c);
         }
 
 
@@ -911,41 +1053,62 @@ public class ChemFixer {
 
 
 
-        if(ops.get(CLEAN_FORCE_DOUBLE_BOND_FROM_RING_TO_N)){
+        if(ops.get(CLEAN_FORCE_DOUBLE_BOND_FROM_RING_TO_N) &&
+                sfac.hasRingOfSize(6) && 
+                sfac.hasBond("=")
+                ){
+            
+            
+            boolean[] did = new boolean[] {false};
 
+            Predicate<Atom> has2DoubleBonds = b->{
+                
+                return b.getBonds().stream()
+                    .filter(bn->bn.getBondType().equals(BondType.DOUBLE))
+                    .count()==2;
+            };
+            
+            Function<Atom,Stream<Atom>> dblNeighbors = a->{
+                return a.getBonds().stream()
+                        .filter(b->b.getBondType().getOrder()==2)
+                        .map(b->b.getOtherAtom(a));
+            };
+            
             Chemical tc=c;
             //remove dumb double bonds
             c.atoms()
             .filter(at->at.getSmallestRingSize()==6)
             .filter(at->at.getSymbol().equals("C"))
-
-            .filter(b->b.getBonds().stream()
-                    .filter(bn->bn.getBondType().equals(BondType.DOUBLE))
-                    .count()==2)
-            .flatMap(a->a.getBonds().stream().filter(b->b.getBondType().getOrder()==2).map(b->b.getOtherAtom(a)))
+            .filter(has2DoubleBonds)
+            .flatMap(dblNeighbors)
             .filter(a->a.getBondCount()==1)
             .collect(Collectors.toList())
             .forEach(a->{
                 a.getNeighbors().get(0).setAtomicNumber(7);
                 tc.removeAtom(a);
+                did[0]=true;
             });
+            if(did[0])sfac.reload(c);
         }
 
         if(ops.get(CLEAN_ADD_MISSING_BONDS)){
-
-            makeMissingBonds(c,ops);
+            if(makeMissingBonds(c,ops)) {
+                sfac.reload(c);   
+            }
         }
-
-
 
         c=cleanDupeBonds(c);
 
-        if(ops.get(CLEAN_REMOVE_TINY_BOND_OFF_RING)){
+        if(ops.get(CLEAN_REMOVE_TINY_BOND_OFF_RING) && 
+                sfac.hasRing()
+                ){
+
+            boolean[] did = new boolean[] {false};
+            
             Chemical tc=c;
             //			
             c.bonds()
             .filter(b->b.getBondLength()<avg*0.35)
-            //			.peek(b->System.out.println(b))
             .filter(b->b.getAtom1().getSymbol().equals("C") && b.getAtom2().getSymbol().equals("C") )
             .filter(b->(b.getAtom1().getSmallestRingSize()==6 && b.getAtom2().getBondCount()==1) ||
                     (b.getAtom2().getSmallestRingSize()==6 && b.getAtom1().getBondCount()==1)
@@ -955,20 +1118,52 @@ public class ChemFixer {
                 Atom at1=(b.getAtom1().getBondCount()==1)?b.getAtom1():b.getAtom2();
                 Atom at2=b.getOtherAtom(at1);
                 at2.setAtomCoordinates(at1.getAtomCoordinates());
-                tc.removeAtom(at1);
-                //				b.setBondType(BondType.DOUBLE);
+                tc.removeAtom(at1); 
+                did[0]=true;
             });
-            ;
+            if(did[0])sfac.reload(c);
         }
 
         if(ops.get(CLEAN_EXTEND_CLOSE_BONDS)){
-            combineCloseBonds(c);
+            if(combineCloseBonds(c)) {
+                sfac.reload(c);
+            }
         }
 
-        if(ops.get(CLEAN_FORCE_DOUBLE_BOND_ON_CARDINAL_6RING)){
+        if(ops.get(CLEAN_FORCE_DOUBLE_BOND_ON_CARDINAL_6RING) && 
+                sfac.hasRingOfSize(6) 
+                ){
 
+
+            boolean[] did = new boolean[] {false};
+            
             boolean[] changed = new boolean[]{false};
 
+            Predicate<Atom> hasOnlySingleBonds = a->a.getBonds()
+                    .stream()
+                    .filter(bb->!bb.getBondType().equals(BondType.SINGLE))
+                    .count()==0;
+            Predicate<Bond> hasNoTriN = b->Stream.of(b.getAtom1(),b.getAtom2())
+                    .filter(at->at.getSymbol().equals("N"))
+                    .filter(at->sumOrder(at)>=3)
+                    .count() ==0;
+            Predicate<Bond> hasNoTetC = b->Stream.of(b.getAtom1(),b.getAtom2())
+                    .filter(at->at.getSymbol().equals("C"))
+                    .filter(at->sumOrder(at)>=4)
+                    .count() ==0;
+            Predicate<Bond> hasN1Conjugation = b->b.getAtom1().getNeighbors()
+                    .stream()
+                    .filter(at->at.bondTo(b.getAtom1()).get().isInRing())
+                    .filter(at->at.getSmallestRingSize()>=5)
+                    .flatMap(aa->aa.getBonds().stream())
+                    .filter(bb->bb.getBondType().equals(BondType.DOUBLE)).count()>=1;
+            Predicate<Bond> hasN2Conjugation = b->b.getAtom2().getNeighbors()
+                    .stream()
+                    .filter(at->at.bondTo(b.getAtom2()).get().isInRing())
+                    .filter(at->at.getSmallestRingSize()>=5)
+                    .flatMap(aa->aa.getBonds().stream())
+                    .filter(bb->bb.getBondType().equals(BondType.DOUBLE)).count()>=1;
+            
             Set<String> createDoublesFor = Stream.of("C","N").collect(Collectors.toSet());
             do{
                 changed[0]=false;
@@ -980,34 +1175,33 @@ public class ChemFixer {
                         Math.abs(b.getAtom1().getAtomCoordinates().getY() - b.getAtom2().getAtomCoordinates().getY())<avg*0.2
                         )
                 .filter(b->b.getAtom1().getSmallestRingSize()>=5 &&b.getAtom2().getSmallestRingSize()>=5)
-                .filter(b->b.getAtom1().getBonds().stream().filter(bb->!bb.getBondType().equals(BondType.SINGLE)).count()==0)
-                .filter(b->b.getAtom2().getBonds().stream().filter(bb->!bb.getBondType().equals(BondType.SINGLE)).count()==0)
+                .filter(b->hasOnlySingleBonds.test(b.getAtom1()))
+                .filter(b->hasOnlySingleBonds.test(b.getAtom2()))
                 .filter(b->createDoublesFor.contains(b.getAtom1().getSymbol()))
                 .filter(b->createDoublesFor.contains(b.getAtom2().getSymbol()))
                 //			.peek(b->System.out.println(b))
-                .filter(b->Stream.of(b.getAtom1(),b.getAtom2())
-                        .filter(at->at.getSymbol().equals("N"))
-                        .filter(at->sumOrder(at)>=3)
-                        .count() ==0
-                        )
-                .filter(b->Stream.of(b.getAtom1(),b.getAtom2())
-                        .filter(at->at.getSymbol().equals("C"))
-                        .filter(at->sumOrder(at)>=4)
-                        .count() ==0
-                        )
-                .filter(b->b.getAtom1().getNeighbors().stream().filter(at->at.bondTo(b.getAtom1()).get().isInRing()).filter(at->at.getSmallestRingSize()>=5).flatMap(aa->aa.getBonds().stream()).filter(bb->bb.getBondType().equals(BondType.DOUBLE)).count()>=1)
-                .filter(b->b.getAtom2().getNeighbors().stream().filter(at->at.bondTo(b.getAtom2()).get().isInRing()).filter(at->at.getSmallestRingSize()>=5).flatMap(aa->aa.getBonds().stream()).filter(bb->bb.getBondType().equals(BondType.DOUBLE)).count()>=1)
+                .filter(hasNoTriN)
+                .filter(hasNoTetC)
+                .filter(hasN1Conjugation)
+                .filter(hasN2Conjugation)
 
                 .forEach(b->{
-
+                    did[0]=true;
                     changed[0]=true;
                     b.setBondType(BondType.DOUBLE);
                 });
+                
             }while(changed[0]);
+            if(did[0])sfac.reload(c);
+            
         }
+        
 
-        if(!ops.get(CLEAN_FORCE_DOUBLE_BOND_ON_CARDINAL_5RING)){
+        if(!ops.get(CLEAN_FORCE_DOUBLE_BOND_ON_CARDINAL_5RING) && 
+                sfac.hasRingOfSize(5)){
 
+            boolean[] did = new boolean[] {false};
+            
             Set<String> createDoublesFor = Stream.of("C","N").collect(Collectors.toSet());
             c.atoms()
             .filter(at->at.getSmallestRingSize()==5)
@@ -1039,11 +1233,16 @@ public class ChemFixer {
             })
             .forEach(b->{
                 b.setBondType(BondType.DOUBLE);
+                did[0]=true;
             });
-            ;
+
+            if(did[0])sfac.reload(c);
         }
 
-        if(ops.get(CLEAN_REMOVE_DASHED_BONDS_ON_TRIANGLES)){
+        if(ops.get(CLEAN_REMOVE_DASHED_BONDS_ON_TRIANGLES) && 
+                sfac.hasRingOfSize(3)){
+
+            boolean[] did = new boolean[] {false};
             Chemical tc=c;
             //remove dumb triangles
             c.atoms()
@@ -1055,6 +1254,7 @@ public class ChemFixer {
             .filter(b->b.getAtom1().getSmallestRingSize()==3 &&b.getAtom2().getSmallestRingSize()==3)
             .collect(Collectors.toList())
             .forEach(b->{
+                did[0]=true;
                 boolean addback=true;
                 if(b.getAtom1().getNeighbors().stream().filter(nn->nn.getSmallestRingSize()==4).count()>0 ||
                         b.getAtom2().getNeighbors().stream().filter(nn->nn.getSmallestRingSize()==4).count()>0
@@ -1069,12 +1269,18 @@ public class ChemFixer {
 
                 if(addback){
                     tc.addBond(b);
+                    did[0]=false;
                 }
             });
             c=c.copy();
+
+            if(did[0])sfac.reload(c);
         }
 
-        if(ops.get(CLEAN_FORCE_N_ON_VERY_CLOSE_H_BOND)){
+        if(ops.get(CLEAN_FORCE_N_ON_VERY_CLOSE_H_BOND) && 
+                sfac.hasAtom("H")){
+
+            boolean[] did = new boolean[] {false};
             Chemical tc=c;
             //probably N
             c.atoms()
@@ -1084,10 +1290,12 @@ public class ChemFixer {
             .collect(Collectors.toList())
             .forEach(b->{
                 Atom a1=b.getNeighbors().get(0);
-                if(sumOrder(a1)==3){
+                int so = sfac.getValanceFor(a1);
+                if(so==3){
                     a1.setAtomicNumber(7);
                     a1.setImplicitHCount(null);
-                }else if(sumOrder(a1)==2){
+                    did[0]=false;
+                }else if(so==2){
                     a1.getNeighbors().stream()
                     .filter(nn->!b.equals(nn))
                     .findFirst()
@@ -1095,13 +1303,19 @@ public class ChemFixer {
                         tc.removeAtom(a1);
                         Bond bn=tc.addBond(oo,b, BondType.SINGLE);
                         bn.setStereo(Stereo.DOWN);
+                        did[0]=false;
                     });
+                    
 
                 }
             });
+            if(did[0])sfac.reload(c);
         }
 
-        if(ops.get(CLEAN_REMOVE_DISTORTED_TRANGLES)){
+        if(ops.get(CLEAN_REMOVE_DISTORTED_TRANGLES) && 
+                sfac.hasRingOfSize(3)){
+
+            boolean[] did = new boolean[] {false};
             Chemical tc=c;
             c.atoms()
             .filter(at->at.getSymbol().equals("C"))
@@ -1127,12 +1341,16 @@ public class ChemFixer {
                         tc.removeAtom(at);
                         a1.setImplicitHCount(null);
                         a2.setImplicitHCount(null);
+                        did[0]=true;
                     }
                 }
             });
+            if(did[0])sfac.reload(c);
         }
 
-        if(ops.get(CLEAN_ADD_ATOM_ON_5_MEMBER_RING_WITH_LONG_BOND)){
+        if(ops.get(CLEAN_ADD_ATOM_ON_5_MEMBER_RING_WITH_LONG_BOND) &&
+                sfac.hasRingOfSize(5)){
+            boolean[] did = new boolean[] {false};
             Chemical tc=c;
             Set<Bond> obond = getOverlappingBonds(c).stream().flatMap(t->Stream.of(t.k(),t.v())).collect(Collectors.toSet());
             c.bonds()
@@ -1160,15 +1378,18 @@ public class ChemFixer {
                 mat.setImplicitHCount(null);
                 b.getAtom1().setImplicitHCount(null);
                 b.getAtom2().setImplicitHCount(null);
+                did[0] =true;
             });
+            if(did[0])sfac.reload(c);
         }
 
 
-        if(!ops.get(CLEAN_DEMOTE_DOUBLE_BOND_ON_PENT_C)){
+        if(!ops.get(CLEAN_DEMOTE_DOUBLE_BOND_ON_PENT_C) ){
+            boolean[] did = new boolean[] {false};
 
             c.atoms()
             .filter(at->at.getSymbol().equals("C"))
-            .filter(at->sumOrder(at)>4)
+            .filter(at->sfac.getValanceFor(at)>4)
             .filter(at->at.getBondCount(BondType.DOUBLE)>=2)
             .forEach(at->{
                 List<Bond> tbds=at.getBonds().stream().filter(bb->bb.getBondType().getOrder()==2)
@@ -1177,25 +1398,33 @@ public class ChemFixer {
                 ;
                 if(tbds.size()==2){
                     tbds.get(0).setBondType(BondType.SINGLE);
+                    did[0]=true;
                 }
             });
+            if(did[0])sfac.reload(c);
         }
 
 
-        if(ops.get(CLEAN_FORCE_QUAT_N_TO_C)){
+        if(ops.get(CLEAN_FORCE_QUAT_N_TO_C) && 
+                sfac.hasAtom("N")){
 
+            boolean[] did = new boolean[] {false};
             c.atoms()
             .filter(at->at.getSymbol().equals("N"))
             .forEach(na->{
-                if(sumOrder(na)>3){
+                if(sfac.getValanceFor(na)>3){
                     na.setAtomicNumber(6);
+                    did[0]=true;
                 }
             });
+            if(did[0])sfac.reload(c);
         }
 
 
-        if(ops.get(CLEAN_FORCE_N_ON_SHORT_N_DOUBLE_C)){
+        if(ops.get(CLEAN_FORCE_N_ON_SHORT_N_DOUBLE_C) && 
+                sfac.hasTermAtom("N")){
             Chemical ct=c;
+            boolean[] did = new boolean[] {false};
 
             c.atoms()
             .filter(at->at.getSymbol().equals("N"))
@@ -1209,10 +1438,16 @@ public class ChemFixer {
                 Atom aa=nb.v().getOtherAtom(nb.k());
                 ct.removeAtom(nb.k());
                 aa.setAtomicNumber(7);
+                did[0]=true;
             });
+            if(did[0])sfac.reload(c);
         }
 
-        if(ops.get(CLEAN_FORCE_N_ON_SHORT_RING_C_SINGLE_C)){
+        if(ops.get(CLEAN_FORCE_N_ON_SHORT_RING_C_SINGLE_C) && 
+                sfac.hasTermAtom("C") &&
+                sfac.hasRing()
+                ){
+            boolean[] did = new boolean[] {false};
             Chemical ct=c;
 
             c.atoms()
@@ -1231,36 +1466,51 @@ public class ChemFixer {
                 Atom aa=nb.v().getOtherAtom(nb.k());
                 ct.removeAtom(nb.k());
                 aa.setAtomicNumber(7);
+                did[0]=true;
             });
+            if(did[0])sfac.reload(c);
         }
 
 
-        if(ops.get(CLEAN_S_TO_SI_WHEN_ORG)){
+        if(ops.get(CLEAN_S_TO_SI_WHEN_ORG) && 
+                sfac.hasAtom("S")
+                ){
+            boolean[] did = new boolean[] {false};
             c.atoms()
             .filter(at->at.getSymbol().equals("S"))
-            .filter(at->sumOrder(at)>2)
+            .filter(at->sfac.getValanceFor(at)>2)
             .filter(at->at.getBonds().stream().filter(bb->!bb.getBondType().equals(BondType.SINGLE)).count()==0)
             .forEach(nb->{
                 nb.setAtomicNumber(14);
+                did[0]=true;
             });
+            if(did[0])sfac.reload(c);
         }
 
-        if(ops.get(CLEAN_3_OXYGENS_ARE_D)){
+        if(ops.get(CLEAN_3_OXYGENS_ARE_D) && 
+                sfac.countTermAtom("O")>=3){
+            boolean[] did = new boolean[] {false};
             c.atoms()
             .filter(at->at.getSymbol().equals("C"))
-            .filter(at->sumOrder(at)==4)
+            .filter(at->sfac.getValanceFor(at)==4)
             .filter(at->at.getBonds().stream().filter(bb->bb.getBondType().equals(BondType.SINGLE)).count()==4)
             .filter(at->at.getNeighbors().stream().filter(na->na.getSymbol().equals("O")).count()==3)
             .flatMap(at->at.getNeighbors().stream().filter(na->na.getSymbol().equals("O")))
             .forEach(nb->{
                 nb.setAtomicNumber(1);
                 nb.setMassNumber(2);
+                did[0]=true;
             });
+            if(did[0])sfac.reload(c);
         }
 
 
         //H-N-ring 
-        if(ops.get(CLEAN_DOUBLE_BOND_ON_N_PENT_RING)){
+        if(ops.get(CLEAN_DOUBLE_BOND_ON_N_PENT_RING) && 
+                sfac.hasRingOfSize(5) && 
+                sfac.hasAtom("N")){
+
+            boolean[] did = new boolean[] {false};
             Chemical cc=c;
             cc.atoms()
             //			.filter(a->isTermAromatic(a))
@@ -1277,11 +1527,18 @@ public class ChemFixer {
                 a.setBondType(BondType.DOUBLE);
                 a.getAtom1().setImplicitHCount(null);
                 a.getAtom2().setImplicitHCount(null);
+                did[0]=true;
             });
+            if(did[0])sfac.reload(c);
         }
 
 
-        if(ops.get(CLEAN_LINK_S_TO_FLOATING_O)){
+        if(ops.get(CLEAN_LINK_S_TO_FLOATING_O) && 
+                sfac.hasAtom("S") && 
+                sfac.hasAtom("O") 
+                ){
+
+            boolean[] did = new boolean[] {false};
             Atom oo = c.atoms()
                     .filter(at->at.getSymbol().equals("O"))
                     .filter(at->at.getBondCount()==0)
@@ -1296,11 +1553,19 @@ public class ChemFixer {
                 .limit(1)
                 .forEach(nb->{
                     c2.addBond(oo,nb,BondType.DOUBLE);
+                    did[0]=true;
                 });
             }
 
+            if(did[0])sfac.reload(c);
         }
-        if(ops.get(CLEAN_MAKE_DOUBLE_BOND_ON_EXPLICIT_HS)) {
+        if(ops.get(CLEAN_MAKE_DOUBLE_BOND_ON_EXPLICIT_HS) && 
+                sfac.countTermAtom("H")>=2
+                ) {
+            
+
+            boolean[] did = new boolean[] {false};
+            
             Chemical cc=c;
             cc.bonds()
             .filter(b->b.getBondType().getOrder()==1)
@@ -1315,12 +1580,19 @@ public class ChemFixer {
                 a.setBondType(BondType.DOUBLE);
                 a.getAtom1().setImplicitHCount(null);
                 a.getAtom2().setImplicitHCount(null);
+                did[0]=true;
                 //					a.getNeighbors().forEach(n->n.setImplicitHCount(null));
             });
             //				clist.add(cc);
 
+            if(did[0])sfac.reload(c);
         }
-        if(ops.get(CLEAN_MAKE_LONG_NH2_CYAN)) {
+        if(ops.get(CLEAN_MAKE_LONG_NH2_CYAN) && 
+                sfac.hasTermAtom("N")
+                ) {
+            
+
+            boolean[] did = new boolean[] {false};
             Chemical cc=c;
             cc.bonds()
             .filter(b->b.getBondLength()>avg*1.7)
@@ -1343,10 +1615,13 @@ public class ChemFixer {
                 cc.addBond(mat, a2, BondType.SINGLE);
 
                 mat.setAtomCoordinates(AtomCoordinates.valueOf(fx, fy));
+
+                did[0]=true;
                 
             });
             //              clist.add(cc);
 
+            if(did[0])sfac.reload(c);
         }
         
         c.atoms().forEach(at->{
@@ -1785,35 +2060,98 @@ public class ChemFixer {
     public static class SimpleFeaturesAboutChemical{
         public int bondCount;
         public int atomCount;
+        public int stereoCount;
         public Map<String,AtomicInteger> atomcounts = new HashMap<>();
         public Map<String,AtomicInteger> bondcounts = new HashMap<>();
-        
         public Map<String,AtomicInteger> termatomcounts = new HashMap<>();
         
+        public Map<Atom,Integer> valences = new HashMap<>();
+        public Map<Atom,Integer> bondCounts = new HashMap<>();
+        
+        
+        public double avg;
+        
         public boolean hasRing=false;
+        public BitSet hasRings = new BitSet();
+        
         
         public SimpleFeaturesAboutChemical(Chemical c) {
+            reload(c);
+        }
+        
+        public boolean hasAnyAtoms(String ... syms) {
+            return Arrays.stream(syms)
+            .anyMatch(at->hasAtom(at));
+        }
+        
+        public int getValanceFor(Atom a) {
+            return valences.computeIfAbsent(a, aa->sumOrder(aa));
+        }
+        
+        public int getBondCountFor(Atom a) {
+            return bondCounts.computeIfAbsent(a, aa->aa.getBondCount());
+        }
+        
+        public boolean hasStereo() {
+            return this.stereoCount>0;
+        }
+
+        public SimpleFeaturesAboutChemical reload(Chemical c) {
+            hasRings.clear();
+            valences.clear();
+            bondCounts.clear();
+            
             this.bondCount = c.getBondCount();
             this.atomCount = c.getAtomCount();
+            AtomicInteger stereoCount = new AtomicInteger(0);
+           
             c.atoms()
              .forEach(a->atomcounts.computeIfAbsent(a.getSymbol(), k->new AtomicInteger(0)).incrementAndGet());
             
             c.atoms()
+                .peek(aa->{
+                    valences.put(aa, sumOrder(aa));
+                })
                 .filter(aa->aa.getBondCount()==1)
                 .forEach(a->termatomcounts.computeIfAbsent(a.getSymbol(), k->new AtomicInteger(0)).incrementAndGet());
             
             c.bonds()
+            .peek(b->{
+                if(b.getBondType().getOrder()==1 && !b.getStereo().equals(Stereo.NONE)) {
+                    stereoCount.incrementAndGet();   
+                }
+            })
              .forEach(a->bondcounts.computeIfAbsent(a.getBondType().getSymbol()+"", k->new AtomicInteger(0)).incrementAndGet());
-            hasRing = c.bonds().filter(b->b.isInRing()).limit(1).findAny().isPresent();
+//            hasRing = c.bonds().filter(b->b.isInRing()).limit(1).findAny().isPresent();
+            this.stereoCount=stereoCount.get();
+            avg = c.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
             
+            c.atoms().filter(aa->aa.isInRing())
+            .forEach(aa->{
+                hasRings.set( aa.getSmallestRingSize());
+            });
+            
+            if(hasRings.cardinality()>0) {
+                hasRing=true;
+            }else {
+                hasRing=false;
+            }
+            
+            return this;
         }
         
         public boolean hasAtom(String at) {
             return atomcounts.containsKey(at);
         }
+        public int countAtom(String at) {
+            return Optional.ofNullable(atomcounts.get(at)).map(ai->ai.get()).orElse(0);
+        }
         
         public boolean hasRing() {
             return this.hasRing;
+        }
+        public boolean hasRingOfSize(int n) {
+            return this.hasRings.get(n);
         }
         
         public boolean hasTermAtom(String at) {
@@ -1831,11 +2169,11 @@ public class ChemFixer {
     }
 
     public static void getVariations(Chemical c, BitSet bs , Predicate<Tuple<Integer,Chemical>> consumer){
-        double avg= c.bonds().mapToDouble(b->b.getBondLength())
-                .average().getAsDouble();
-
+      
         SimpleFeaturesAboutChemical sfchem = new SimpleFeaturesAboutChemical(c);
+        double avg=sfchem.avg;
         
+
         //0 terminal Cl as OCH3
         if(sfchem.hasAtom("Cl")){
             AtomicBoolean did = new AtomicBoolean(false);
@@ -2293,11 +2631,14 @@ public class ChemFixer {
         try {
             c.atoms().forEach(at->at.setCharge(0));
             String[] lines=c.toMol().split("\n");
+            boolean[] changed = new boolean[] {false};
+            
             for(int ii=4;ii<4+Integer.parseInt(lines[3].substring(0,3).trim());ii++){
+//                if(lines[ii].substring(34).replace("0","").replace(" ","").length())
                 lines[ii]=lines[ii].substring(0,33) + "  0  0  0  0  0  0  0  0  0  0  0  0";
             }
             String mm = Arrays.stream(lines).collect(Collectors.joining("\n"));
-            Chemical cf= Chemical.parse(mm);
+            Chemical cf= Chemical.parseMol(mm);
             return cf;
         }catch(Exception e) {
             return c;
@@ -2305,6 +2646,7 @@ public class ChemFixer {
     }
 
     public static ChemFixResult fixChemical(Chemical cf, Set<KnownMissingBond> mset , BitSet bs){
+        
         ChemFixResult res = new ChemFixResult();
 
         res.c=cf;
@@ -2655,7 +2997,7 @@ public class ChemFixer {
         });
 
 
-        return Chemical.parse(cc.toMol());
+        return Chemical.parseMol(cc.toMol()); //TODO molwitch bug
     }
 
 

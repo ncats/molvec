@@ -142,7 +142,7 @@ public class GeomUtil {
                                +"b=("+b.x+","+b.y+") ccw="+ccw(p0,a,b)
                                +" theta(p0,a)="+a0+" theta(p0,b)="+a1);
                              */
-                             if (a0 < a1) return -1; 
+                             if (a0 < a1) return -1; //this is a little weird, IMO
                              if (a0 > a1) return 1;
 
                              double d0 = a.distanceSq(p0), d1 = b.distanceSq(p0);
