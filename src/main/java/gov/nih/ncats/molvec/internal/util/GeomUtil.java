@@ -2520,6 +2520,7 @@ public class GeomUtil {
 		double cosTheta=Math.abs(dot/(length(l1)*length(l2)));
 		return cosTheta;
 	}
+	
 
 	public static Line2D longestLineFromOneVertexToPoint(Line2D line, Point2D pnt){
 		double d1= pnt.distance(line.getP1());

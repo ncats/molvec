@@ -125,11 +125,11 @@ public class ImageCleaner {
         g2d.drawImage(biIn, 0, 0, null);
         g2d.dispose();
 
-        int w=outputImage.getWidth();
-        int h=outputImage.getHeight(); 
-//        int wrgb=Color.WHITE.getRGB();
-//        int brgb=Color.BLACK.getRGB();
-//        
+//        int w=outputImage.getWidth();
+//        int h=outputImage.getHeight(); 
+////        int wrgb=Color.WHITE.getRGB();
+////        int brgb=Color.BLACK.getRGB();
+////        
 //        for (int x = 0; x < w; x++) {
 //            for (int y = 0; y < h; y++) {
 //                int rgba = outputImage.getRGB(x, y);

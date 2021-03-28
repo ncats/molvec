@@ -59,6 +59,9 @@ public class MolvecOptions {
 			12, //
 			19, //
 			43, //
+            84, //Testing
+            85, //Testing 2
+            86, //Testing 3
 			58,
 			2,  //
 			26, //
