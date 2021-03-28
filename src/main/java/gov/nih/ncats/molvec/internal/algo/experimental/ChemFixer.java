@@ -95,7 +95,7 @@ public class ChemFixer {
     private static final int CLEAN_S_TO_S2O_WHEN_ORG = 72;
     private static final BitSet DO_ALL = new BitSet();
     private static final int CLEAN_INFER_MISSING_FROM_MARGIN = 73;
-    private static final int CLEAN_ADD_CYCLO_PENT_RING = 77;
+    private static final int CLEAN_ADD_CYCLO_PRO_RING = 77;
     private static final int CLEAN_3_OXYGENS_ARE_D = 78;
     private static final int CLEAN_DOUBLE_BOND_ON_N_PENT_RING = 79;
     private static final int CLEAN_LINK_S_TO_FLOATING_O = 80;
@@ -182,20 +182,24 @@ public class ChemFixer {
         })
         //		.filter(t->false)
         .filter(t->{
-            double sd = t.k().getAtomCoordinates().distanceSquaredTo(t.v().getAtomCoordinates());
-            for(Atom na:t.k().getNeighbors()){
-                if(na.getAtomCoordinates().distanceSquaredTo(t.v().getAtomCoordinates())<sd){
-                    return false;
+            if(!bs.get(CLEAN_ADD_CYCLO_PRO_RING)) {
+                double sd = t.k().getAtomCoordinates().distanceSquaredTo(t.v().getAtomCoordinates());
+                for(Atom na:t.k().getNeighbors()){
+                    if(na.getAtomCoordinates().distanceSquaredTo(t.v().getAtomCoordinates())<sd){
+                        return false;
+                    }
                 }
-            }
-            for(Atom na:t.v().getNeighbors()){
-                if(na.getAtomCoordinates().distanceSquaredTo(t.k().getAtomCoordinates())<sd){
-                    return false;
+                for(Atom na:t.v().getNeighbors()){
+                    if(na.getAtomCoordinates().distanceSquaredTo(t.k().getAtomCoordinates())<sd){
+                        return false;
+                    }
                 }
+                boolean shared=t.k().getNeighbors().stream().filter(nn->t.v().getNeighbors().contains(nn)).findAny().isPresent();
+    
+                return !shared;
+            }else {
+                return true;
             }
-            boolean shared=t.k().getNeighbors().stream().filter(nn->t.v().getNeighbors().contains(nn)).findAny().isPresent();
-
-            return !shared;
         })
         .filter(t->{
             double dx= t.k().getAtomCoordinates().getX()-t.v().getAtomCoordinates().getX();
@@ -281,7 +285,7 @@ public class ChemFixer {
                     }
 
                 }else if (ca1.getSmallestRingSize()==3) {
-                    if(!bs.get(CLEAN_ADD_CYCLO_PENT_RING)) {
+                    if(!bs.get(CLEAN_ADD_CYCLO_PRO_RING)) {
 
                         c.addBond(t.k(),t.v(),BondType.SINGLE);
                         changes.set(true);
@@ -1562,6 +1566,7 @@ public class ChemFixer {
             .filter(a->sumOrder(a)==2)
             .filter(a->a.isInRing())
             .filter(a->a.getSmallestRingSize()==5)
+            .filter(a->a.getBonds().stream().anyMatch(b->hasNeighborDoubleBond(b)))
             .flatMap(a->a.getBonds().stream())
             .filter(b->!hasNeighborDoubleBond(b))
             .filter(b->b.getAtom1().equals("C") || b.getAtom2().equals("C"))
@@ -2000,6 +2005,12 @@ public class ChemFixer {
     }
     public static boolean isTermNH2(Atom a) {
         if(a.getBondCount()==1 && a.getSymbol().equals("N") && a.getBonds().get(0).getBondType().getOrder()==1) {
+            return true;
+        }
+        return false;
+    }
+    public static boolean isTermCH3(Atom a) {
+        if(a.getBondCount()==1 && a.getSymbol().equals("C") && a.getBonds().get(0).getBondType().getOrder()==1) {
             return true;
         }
         return false;
@@ -2735,6 +2746,48 @@ public class ChemFixer {
             });
             if(did.get()) {
                 boolean endnow = consumer.test(Tuple.of(26,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
+        }
+        
+        //27 N=C in ring is sometimes single
+        if(sfchem.hasAtom("N") && sfchem.hasRingOfSize(5)){
+            AtomicBoolean did = new AtomicBoolean(false);
+            Chemical cc=c.copy();
+            cc.atoms()
+            .filter(a->a.getSymbol().equals("N"))
+            .filter(a->a.isInRing())
+            .filter(a->a.getSmallestRingSize()==5)
+            .filter(a->a.getBondCount(BondType.DOUBLE)==1)
+            .filter(a->a.getBondCount()==2)
+            .distinct()
+            .forEach(b->{
+                b.getBonds().forEach(bb->{
+                    bb.setBondType(BondType.SINGLE);
+                });
+                did.set(true);
+            });
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(27,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
+        }
+        
+        //28 O-me sometimes O-et
+        if(sfchem.hasAtom("O") && sfchem.hasTermAtom("C")){
+            AtomicBoolean did = new AtomicBoolean(false);
+            Chemical cc=c.copy();
+            cc.atoms()
+            .filter(a->isTermCH3(a))
+            .filter(a->hasBond(a, "-O"))
+            .distinct()
+            .forEach(b->{
+                Atom na =cc.addAtom("C");
+                cc.addBond(b,na,BondType.SINGLE);
+                did.set(true);
+            });
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(28,cleanImplicitCount(cc)));
                 if(endnow)return;
             }
         }

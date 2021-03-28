@@ -434,7 +434,8 @@ public class ModifiedMolvecPipeline {
 		
 	}
 	public static void setInChIDefaultScorer(){
-		ResultScorer rs=new InChIKeySetScorer(new File("./resources"),false,2);
+		ResultScorer rs=new InChIKeySetScorer(new File("./resources/ikeys.txt"),false);
+//		ResultScorer rs=new InChIKeySetScorer(new File("./resources"),false,2);
 		ModifiedMolvecPipeline.setDefaultScorer(rs);
 	}
 	public static void setFakeScorer(){
@@ -485,10 +486,12 @@ public class ModifiedMolvecPipeline {
 	        StreamConcatter<int[]> sc = StreamUtil.with(Arrays.stream(tries).mapToObj(i->new int[]{i}));
 	        if(DO_MULTI_TRIES) {
 	            sc=sc
+	                    
 	                    .and(new int[]{74,30,75})
 	                    .and(new int[]{30,75,5})
 	                    .and(new int[]{74,75,5})
 	                    .and(new int[]{1,76,6})
+	                    .and(new int[]{31,4})
 	                    .and(new int[]{74,30,1,75})
 	                    .and(new int[]{30,7})
 	                    .and(new int[]{74,1})

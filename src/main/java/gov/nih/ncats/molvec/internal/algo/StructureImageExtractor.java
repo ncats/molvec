@@ -6829,7 +6829,7 @@ public class StructureImageExtractor {
 		}
 		
 		if(values.FORCE_FINAL_MERGE){
-			ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*0.10);
+			ctab.mergeNodesCloserThan(ctab.getAverageBondLength()*0.5);
 			ctab.standardCleanEdges();	
 		}
 		

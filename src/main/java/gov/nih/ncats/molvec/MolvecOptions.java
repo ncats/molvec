@@ -40,7 +40,6 @@ public class MolvecOptions {
 	
 	private static int[] FLAG_TRY_ORDER=new int[]{
 			-1,
-			77,
 			74,
 			30,
 			35,
@@ -59,6 +58,7 @@ public class MolvecOptions {
 			12, //
 			19, //
 			43, //
+            77,
             84, //Testing
             85, //Testing 2
             86, //Testing 3
