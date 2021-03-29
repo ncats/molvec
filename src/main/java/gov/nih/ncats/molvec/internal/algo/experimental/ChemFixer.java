@@ -2230,6 +2230,31 @@ public class ChemFixer {
     }
 
     public static void getVariations(Chemical c, BitSet bs , Predicate<Tuple<Integer,Chemical>> consumer){
+        getVariations(c,bs,1,consumer);
+    }
+    
+    public static void getVariations(Chemical c, BitSet bs , int r, Predicate<Tuple<Integer,Chemical>> consumer2){
+        Predicate<Tuple<Integer,Chemical>> consumerb = consumer2;
+        if(r>0) {
+            consumerb = t->{
+                if(consumer2.test(t)) {
+                    return true;
+                }else {
+                    AtomicBoolean ab = new AtomicBoolean(false);
+                    
+                    getVariations(t.v(),bs,r-1,tt->{
+                        Tuple<Integer,Chemical> t2 = Tuple.of(t.k()*100+tt.k(),tt.v());
+                        if(consumer2.test(t2)) {
+                            ab.set(true);
+                            return true;
+                        }
+                        return false;
+                    });
+                    return ab.get();
+                }
+            };
+        }
+        Predicate<Tuple<Integer,Chemical>> consumer = consumerb;
       
         SimpleFeaturesAboutChemical sfchem = new SimpleFeaturesAboutChemical(c);
         double avg=sfchem.avg;

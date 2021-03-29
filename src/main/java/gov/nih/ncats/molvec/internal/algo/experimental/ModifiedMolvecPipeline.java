@@ -251,12 +251,16 @@ public class ModifiedMolvecPipeline {
 	
 	
 	static {
+
+        PREPROCESS_ONLY_SETTINGS.set(74);
+        PREPROCESS_ONLY_SETTINGS.set(75);
+        PREPROCESS_ONLY_SETTINGS.set(76);
+        
+
+        ALL_IMG_SETTINGS.or(PREPROCESS_ONLY_SETTINGS);
 		ALL_IMG_SETTINGS.set(0,34);
 		ALL_IMG_SETTINGS.clear(32);
-		ALL_IMG_SETTINGS.set(74,76);
-		PREPROCESS_ONLY_SETTINGS.set(74);
-		PREPROCESS_ONLY_SETTINGS.set(75);
-		PREPROCESS_ONLY_SETTINGS.set(76);
+		ALL_IMG_SETTINGS.clear(87);
 		
 		BASIC_BITMAP_SETTINGS.or(PREPROCESS_ONLY_SETTINGS);
 		BASIC_BITMAP_SETTINGS.set(34);
@@ -335,6 +339,8 @@ public class ModifiedMolvecPipeline {
 			if(!MODIFICATION_FLAGS.get(31))values.REMOVE_MIDDLE_NODES=false;
 			if(MODIFICATION_FLAGS.get(33))values.AGGRESSIVE_CLEAN_TRIPLE_BONDS=false;
 			if(MODIFICATION_FLAGS.get(34))values.COMBINE_WITH_BLUR=false;
+			if(!MODIFICATION_FLAGS.get(87))values.REMOVE_SMALL_RING_EDGES=false;
+			
 		}
 		return op;
 	}
@@ -434,8 +440,17 @@ public class ModifiedMolvecPipeline {
 		
 	}
 	public static void setInChIDefaultScorer(){
+	    
+	    //This would split up the files if you haven't split them up (you shouldn't do
+	    //this here)
+	    
+//	    InChIKeySetScorer.flushToFiles(new File("./resources/ikeys.txt"), false, 2);
+	    
+	    //this uses one big file
 		ResultScorer rs=new InChIKeySetScorer(new File("./resources/ikeys.txt"),false);
-//		ResultScorer rs=new InChIKeySetScorer(new File("./resources"),false,2);
+	    
+	    //this uses files split up into ikAA.txt-ikZZ.txt
+//	    ResultScorer rs=new InChIKeySetScorer(new File("./resources"),false,2);
 		ModifiedMolvecPipeline.setDefaultScorer(rs);
 	}
 	public static void setFakeScorer(){

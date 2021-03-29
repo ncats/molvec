@@ -71,10 +71,9 @@ public class InChIKeySetScorer implements ResultScorer{
         markRead(ik);        
     }
 
-    public void flushToFiles(int plength) {
+    public static void flushToFiles(File ofile, boolean compressed, int plength) {
+        InChIKeySetScorer iksscore = new InChIKeySetScorer(ofile.getParentFile(),compressed, plength);
         if(ofile!=null) {
-            this.plength=plength;
-
             ConcurrentHashMap<String, PrintWriter> writers = new ConcurrentHashMap<>();
 
             AtomicInteger ai = new AtomicInteger(0);
@@ -84,9 +83,9 @@ public class InChIKeySetScorer implements ResultScorer{
                 if(ii%100==0) {
                     System.out.println("Printed:" + ii);
                 }
-                String pf = this.getPref(s);
+                String pf = iksscore.getPref(s);
                 writers.computeIfAbsent(pf, k->{
-                    File f= new File (dir, getSectionName(k));
+                    File f= new File (iksscore.dir, iksscore.getSectionName(k));
                     try {
                         OutputStream os = new FileOutputStream(f);
                         if(compressed){
@@ -106,10 +105,8 @@ public class InChIKeySetScorer implements ResultScorer{
                         .forEach(iwriter);
                     }
                 } catch (FileNotFoundException e) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 } catch (IOException e) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }finally {
                     writers.values().forEach(pw->pw.close());
