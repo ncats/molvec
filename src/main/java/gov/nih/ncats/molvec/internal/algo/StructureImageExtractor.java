@@ -258,7 +258,10 @@ public class StructureImageExtractor {
 	
 	public static class ImageExtractionValues{
 
-		private boolean DEBUG=false;
+		
+
+
+        private boolean DEBUG=false;
 		
 		public SCOCR OCR_DEFAULT=OCR_DEFAULT_INIT;
 		
@@ -307,7 +310,10 @@ public class StructureImageExtractor {
 		public double MAX_AREA_TO_STITCH_OCR_SHAPE = 100;
 		public double MAX_DISTANCE_BETWEEN_OCR_SHAPES_TO_STITCH = 3;
 		public boolean REMOVE_SMALL_RING_EDGES = true;
-		
+		public boolean MERGE_CLOSE_NODES_ON_FLOATING_METHYL_GROUP = true;
+
+        public boolean REMOVE_SMALLISH_NOISE_BOXES = false;
+        
 		public ImageExtractionValues debug(boolean d){
 			this.DEBUG=d;
 			return this;
@@ -1308,7 +1314,7 @@ public class StructureImageExtractor {
 	    
 	    Bitmap bitmap = aBitMap;
         Bitmap thin = bitmap.thin();
-        List<ShapeWrapper> polygons;
+        List<ShapeWrapper> polygons2;
         
         boolean blurred=false;
         
@@ -1324,18 +1330,30 @@ public class StructureImageExtractor {
             
 
 //      Bitmap bitmap2=new Bitmap.BitmapBuilder(bitmap).boxBlur(1).threshold(1).build();
-        polygons = bitmap.connectedComponents(Bitmap.Bbox.DoublePolygon)
+        polygons2 = bitmap.connectedComponents(Bitmap.Bbox.DoublePolygon)
                 .stream()
                 .map(s->ShapeWrapper.of(s))
                 .collect(Collectors.toList());
         
         
+        if(values.REMOVE_SMALLISH_NOISE_BOXES) {
+            polygons2= polygons2.stream()
+//            .map(p->p.getBounds())
+            .map(p->Tuple.of(p,p.getWrappedBounds().getArea()))
+            .filter(t->t.v()>16)
+            .map(t->t.k()).collect(Collectors.toList());
+        }
+        List<ShapeWrapper> polygons=polygons2;
+        
+
         long noise=polygons.stream()
                          .map(p->p.getBounds())
                          .map(p->Tuple.of(p,GeomUtil.area(p)))
                          .filter(t->t.v()<6)
                          .map(t->t.k())
                          .count();
+        
+        
 
         if(noise> polygons.size()*0.8){
             bitmap=new Bitmap.BitmapBuilder(bitmap).boxBlur(2).threshold(7).build();
@@ -5236,7 +5254,7 @@ public class StructureImageExtractor {
 			
 			
 			
-			if(!toMergeNodes.isEmpty()){
+			if(!toMergeNodes.isEmpty() && values.MERGE_CLOSE_NODES_ON_FLOATING_METHYL_GROUP){
 				try{
 					toMergeNodes.forEach(nm->{
 						//nervous about this

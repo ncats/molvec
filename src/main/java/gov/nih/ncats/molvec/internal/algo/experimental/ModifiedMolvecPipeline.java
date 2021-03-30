@@ -66,6 +66,11 @@ public class ModifiedMolvecPipeline {
 	}
 	
 	
+	public static void setTrySkipAndLimit(int s, int l){
+        addAdaptionStep(mo->mo.limitSkipAttempts(s, l));
+    }
+	
+	
 //	private static boolean DO_FIX=true;
 //	public static boolean RESIZE=true;
 	private static Set<String> hetset = Stream.of("N", "Br", "F").collect(Collectors.toSet());
@@ -261,9 +266,12 @@ public class ModifiedMolvecPipeline {
 		ALL_IMG_SETTINGS.set(0,34);
 		ALL_IMG_SETTINGS.clear(32);
 		ALL_IMG_SETTINGS.clear(87);
+		ALL_IMG_SETTINGS.clear(88);
+		ALL_IMG_SETTINGS.clear(89);
 		
 		BASIC_BITMAP_SETTINGS.or(PREPROCESS_ONLY_SETTINGS);
 		BASIC_BITMAP_SETTINGS.set(34);
+		BASIC_BITMAP_SETTINGS.set(89);
 		BASIC_BITMAP_SETTINGS.set(29);
 		BASIC_BITMAP_SETTINGS.set(30);
 	
@@ -340,6 +348,8 @@ public class ModifiedMolvecPipeline {
 			if(MODIFICATION_FLAGS.get(33))values.AGGRESSIVE_CLEAN_TRIPLE_BONDS=false;
 			if(MODIFICATION_FLAGS.get(34))values.COMBINE_WITH_BLUR=false;
 			if(!MODIFICATION_FLAGS.get(87))values.REMOVE_SMALL_RING_EDGES=false;
+            if(!MODIFICATION_FLAGS.get(88))values.MERGE_CLOSE_NODES_ON_FLOATING_METHYL_GROUP=false;
+            if(!MODIFICATION_FLAGS.get(89))values.REMOVE_SMALLISH_NOISE_BOXES=true;
 			
 		}
 		return op;
@@ -501,7 +511,7 @@ public class ModifiedMolvecPipeline {
 	        StreamConcatter<int[]> sc = StreamUtil.with(Arrays.stream(tries).mapToObj(i->new int[]{i}));
 	        if(DO_MULTI_TRIES) {
 	            sc=sc
-	                    
+	                    .and(new int[]{88,89})
 	                    .and(new int[]{74,30,75})
 	                    .and(new int[]{30,75,5})
 	                    .and(new int[]{74,75,5})

@@ -196,6 +196,14 @@ public class MolvecOptions {
 		return this;
 	}
 	
+	public MolvecOptions limitSkipAttempts(int skip, int max){
+        this.flagTries=Arrays.stream(Arrays.copyOf(FLAG_TRY_ORDER, FLAG_TRY_ORDER.length))
+                .skip(skip)
+                .limit(max)
+                .toArray();
+        return this;
+    }
+	
 	public MolvecOptions clearFlag(int p){
 		this.flags.clear(p);
 		return this;
