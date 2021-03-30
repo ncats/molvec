@@ -348,8 +348,8 @@ public class ModifiedMolvecPipeline {
 			if(MODIFICATION_FLAGS.get(33))values.AGGRESSIVE_CLEAN_TRIPLE_BONDS=false;
 			if(MODIFICATION_FLAGS.get(34))values.COMBINE_WITH_BLUR=false;
 			if(!MODIFICATION_FLAGS.get(87))values.REMOVE_SMALL_RING_EDGES=false;
-            if(!MODIFICATION_FLAGS.get(88))values.MERGE_CLOSE_NODES_ON_FLOATING_METHYL_GROUP=false;
-            if(!MODIFICATION_FLAGS.get(89))values.REMOVE_SMALLISH_NOISE_BOXES=true;
+            if(MODIFICATION_FLAGS.get(88))values.MERGE_CLOSE_NODES_ON_FLOATING_METHYL_GROUP=false;
+            if(MODIFICATION_FLAGS.get(89))values.REMOVE_SMALLISH_NOISE_BOXES=true;
 			
 		}
 		return op;
