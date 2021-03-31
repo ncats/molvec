@@ -265,9 +265,10 @@ public class ModifiedMolvecPipeline {
         ALL_IMG_SETTINGS.or(PREPROCESS_ONLY_SETTINGS);
 		ALL_IMG_SETTINGS.set(0,34);
 		ALL_IMG_SETTINGS.clear(32);
-		ALL_IMG_SETTINGS.clear(87);
-		ALL_IMG_SETTINGS.clear(88);
-		ALL_IMG_SETTINGS.clear(89);
+		ALL_IMG_SETTINGS.set(87);
+		ALL_IMG_SETTINGS.set(88);
+		ALL_IMG_SETTINGS.set(89);
+		ALL_IMG_SETTINGS.set(90);
 		
 		BASIC_BITMAP_SETTINGS.or(PREPROCESS_ONLY_SETTINGS);
 		BASIC_BITMAP_SETTINGS.set(34);
@@ -348,9 +349,15 @@ public class ModifiedMolvecPipeline {
 			if(MODIFICATION_FLAGS.get(33))values.AGGRESSIVE_CLEAN_TRIPLE_BONDS=false;
 			if(MODIFICATION_FLAGS.get(34))values.COMBINE_WITH_BLUR=false;
 			if(!MODIFICATION_FLAGS.get(87))values.REMOVE_SMALL_RING_EDGES=false;
-            if(MODIFICATION_FLAGS.get(88))values.MERGE_CLOSE_NODES_ON_FLOATING_METHYL_GROUP=false;
-            if(MODIFICATION_FLAGS.get(89))values.REMOVE_SMALLISH_NOISE_BOXES=true;
 			
+			
+			
+            if(!MODIFICATION_FLAGS.get(88))values.MERGE_CLOSE_NODES_ON_FLOATING_METHYL_GROUP=false;
+            if(!MODIFICATION_FLAGS.get(89))values.REMOVE_SMALLISH_NOISE_BOXES=true;
+			if(!MODIFICATION_FLAGS.get(90))values.MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS=15;   //~22.00 -> ~30.00 if commented
+            if(!MODIFICATION_FLAGS.get(90))values.maxCandidateRatioForIntersection=1.9;           //~21.78 -> ~21.79 if commented
+            
+            
 		}
 		return op;
 	}
@@ -480,9 +487,12 @@ public class ModifiedMolvecPipeline {
 	        }
 	        op=_adapter.apply(op);
 	        int[] tries = op.getFlagTries();
-	        ResultScorer rs =op.getScorer();
+	        ResultScorer rsStart =op.getScorer();
+	        
+	        ResultScorer tryHarderResultScorer = new InChILengthScorer(90).ifAbove(0.9, rsStart);
 
-	        if(rs instanceof ConstantValueResultScorer){
+
+	        if(rsStart instanceof ConstantValueResultScorer){
 	            tries= new int[]{tries[0]};
 	        }
 	        //		List<int[]> mflags = new ArrayList<>();
@@ -509,55 +519,77 @@ public class ModifiedMolvecPipeline {
 
 
 	        StreamConcatter<int[]> sc = StreamUtil.with(Arrays.stream(tries).mapToObj(i->new int[]{i}));
+	        StreamConcatter<int[]> stryHarderSc = StreamUtil.with(Stream.empty());
 	        if(DO_MULTI_TRIES) {
 	            sc=sc
-	                    .and(new int[]{88,89})
 	                    .and(new int[]{74,30,75})
-	                    .and(new int[]{30,75,5})
+	                    .and(new int[]{90})
+                        .and(new int[]{88,89})
 	                    .and(new int[]{74,75,5})
-	                    .and(new int[]{1,76,6})
 	                    .and(new int[]{31,4})
 	                    .and(new int[]{74,30,1,75})
-	                    .and(new int[]{30,7})
-	                    .and(new int[]{74,1})
-	                    .and(new int[]{74,59})
+	                    .and(new int[]{74,1})   
+	                    .and(new int[]{74,59})   
 	                    .and(new int[]{74,6})
 	                    .and(new int[]{74,5})
 	                    .and(new int[]{30,1})
 	                    .and(new int[]{30,5})
-	                    .and(new int[]{74,75})
-	                    .and(new int[]{74,30,75,7,6})
+	                    .and(new int[]{74,30,75,7,6}) 
 	                    .and(new int[]{74,35})
-	                    .and(new int[]{75,5,7})
-	                    .and(new int[]{30,5,6})
-	                    .and(new int[]{5,6})
 	                    .and(new int[]{30,59})
-	                    .and(new int[]{75,5,6})
-	                    .and(new int[]{75,7})
-	                    .and(new int[]{7,6})
-	                    .and(new int[]{30,75})
-	                    .and(new int[]{74,7})
-	                    .and(new int[]{74,75,5,76})
-	                    .and(new int[]{73});
+	                    .and(new int[]{73})
+	                    .and(new int[]{90,74,30,75})
+                        .and(new int[]{90,5})
+                        .and(new int[]{1,76,6}) //???
+                        ;
 
+	        }
+	        if(DO_MULTI_TRIES) {
+	            stryHarderSc = stryHarderSc.and(new int[]{30,75,5}) //bad usually
+                      .and(new int[]{30,7})    //not great
+                      .and(new int[]{74,75})   //not great
+                      .and(new int[]{75,5,7})  //didn't get anything
+                      .and(new int[]{30,5,6})  //not great
+                      .and(new int[]{5,6})     //terrible
+                      .and(new int[]{75,5,6})  //terrible
+                      .and(new int[]{75,7})    //didn't get anything
+                      .and(new int[]{7,6})     //terrible
+                      .and(new int[]{30,75})   //not great
+                      .and(new int[]{74,7})    //terrible
+                      .and(new int[]{74,75,5,76}) //terrible
+                      ;
 	        }
 	        int[][] realtries=sc
 	                .stream()
 	                .toArray(i->new int[i][]);
+	        int maxNormal = realtries.length;
+	        
 
-	        //		realtries = mflags.stream().toArray(i->new int[i][]);
-
+	        int[][] secondTries=stryHarderSc
+                    .stream()
+                    .toArray(i->new int[i][]);
+	        
+	        int[][] ttries = StreamUtil.with(Arrays.stream(realtries)).and(secondTries)
+                    .stream()
+                    .toArray(i->new int[i][]);
+	        
 	        ModifiedMolvecResult mvrbest = null;
 
-	        for(int ii=0;ii<realtries.length;ii++){
+	        for(int ii=0;ii<ttries.length;ii++){
 	            op=op.modFlags();
-	            int[] fii=realtries[ii];
+	            int[] fii=ttries[ii];
 	            for(int j:fii){
 	                if(j>=0){
 	                    op=op.clearFlag(j);
 	                }
-	            }			
+	            }	
+	            ResultScorer rst = rsStart;
+	            if(ii>=maxNormal) {
+	                rst = tryHarderResultScorer;
+	            }
 
+	            ResultScorer rs = rst;
+	            
 	            try{
 	                MolvecResult mvr = ModifiedMolvecPipeline.processTogether
 	                        (f, op,_mfileCache, _imgCACHE, _preCCache);
@@ -602,26 +634,7 @@ public class ModifiedMolvecPipeline {
 	                    mc=tmc[0];
 	                    pscore=tscore[0];
 	                    score=tscore[1];
-	                    type=ttype[0];
-	                    
-	                    
-	                    
-//	                    int k=0;
-//	                    for(Chemical cc:tryvar) {
-//	                        try {
-//	                            double ns=rs.score(cc);
-//	                            if(ns>0.90) {
-//	                                pscore=ns;
-//	                                mt.setChemical(cc);
-//	                                mc=cc;
-//	                                mt.setScore(ns);
-//	                                score=ns;
-//	                                type="var" + k;
-//	                                break;
-//	                            }
-//	                        }catch(Exception e) {}
-//	                        k++;
-//	                    }						
+	                    type=ttype[0];			
 	                }
 
 	                if(score>0.9){

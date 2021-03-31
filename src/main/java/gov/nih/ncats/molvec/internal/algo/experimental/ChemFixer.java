@@ -479,11 +479,11 @@ public class ChemFixer {
         double minsq=99999;
         for(int i=0;i<c1.getAtomCount();i++){
             Atom a1=c1.getAtom(i);
-            if(a1.getSymbol().equals("H"))continue;
+//            if(a1.getSymbol().equals("H"))continue;
             if(a1.getSymbol().equals("O") && sumOrder(a1)>=2)continue;
             for(int j=0;j<c2.getAtomCount();j++){
                 Atom a2=c2.getAtom(j);
-                if(a2.getSymbol().equals("H"))continue;
+//                if(a2.getSymbol().equals("H"))continue;
                 if(a2.getSymbol().equals("O") && sumOrder(a2)>=2)continue;
                 double[] xy1=a1.getAtomCoordinates().xy();
                 double[] xy2=a2.getAtomCoordinates().xy();
@@ -1848,6 +1848,12 @@ public class ChemFixer {
                         }
 
                         if(addBond){
+                            if(a1.getSymbol().equals("H") && a1.getBondCount()>0) {
+                                a1.setAtomicNumber(7);
+                            }
+                            if(a2.getSymbol().equals("H") && a2.getBondCount()>0) {
+                                a2.setAtomicNumber(7);
+                            }
                             c.addBond(a1,a2,BondType.SINGLE);
                             a1.setImplicitHCount(null);
                             a2.setImplicitHCount(null);
@@ -2011,6 +2017,12 @@ public class ChemFixer {
     }
     public static boolean isTermCH3(Atom a) {
         if(a.getBondCount()==1 && a.getSymbol().equals("C") && a.getBonds().get(0).getBondType().getOrder()==1) {
+            return true;
+        }
+        return false;
+    }
+    public static boolean isTerm(Atom a) {
+        if(a.getBondCount()==1 && a.getBonds().get(0).getBondType().getOrder()==1) {
             return true;
         }
         return false;
@@ -2233,6 +2245,9 @@ public class ChemFixer {
         getVariations(c,bs,1,consumer);
     }
     
+    private static Set<Integer> RECURSE_WITH = Stream.of(1,3,4,6,7,8,11,12,17,18,22,23,29).collect(Collectors.toSet());
+    private static Set<Integer> TRY_RECURSED = Stream.of(7,10,23,6,24,0,2,12,22,26,27,8).collect(Collectors.toSet());
+    
     public static void getVariations(Chemical c, BitSet bs , int r, Predicate<Tuple<Integer,Chemical>> consumer2){
         Predicate<Tuple<Integer,Chemical>> consumerb = consumer2;
         if(r>0) {
@@ -2240,9 +2255,13 @@ public class ChemFixer {
                 if(consumer2.test(t)) {
                     return true;
                 }else {
+                    if(!RECURSE_WITH.contains(t.k()))return false;
                     AtomicBoolean ab = new AtomicBoolean(false);
                     
                     getVariations(t.v(),bs,r-1,tt->{
+                        if(!TRY_RECURSED.contains(tt.k())) {
+                            return false;
+                        }
                         Tuple<Integer,Chemical> t2 = Tuple.of(t.k()*100+tt.k(),tt.v());
                         if(consumer2.test(t2)) {
                             ab.set(true);
@@ -2257,7 +2276,6 @@ public class ChemFixer {
         Predicate<Tuple<Integer,Chemical>> consumer = consumerb;
       
         SimpleFeaturesAboutChemical sfchem = new SimpleFeaturesAboutChemical(c);
-        double avg=sfchem.avg;
         
 
         //0 terminal Cl as OCH3
@@ -2813,6 +2831,24 @@ public class ChemFixer {
             });
             if(did.get()) {
                 boolean endnow = consumer.test(Tuple.of(28,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
+        }
+        
+        //29 term P as F
+        if(sfchem.hasTermAtom("P")){
+            AtomicBoolean did = new AtomicBoolean(false);
+            Chemical cc=c.copy();
+            cc.atoms()
+            .filter(a->isTerm(a))
+            .filter(a->a.getSymbol().equals("P"))
+            .distinct()
+            .forEach(b->{
+                b.setAtomicNumber(9);
+                did.set(true);
+            });
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(29,cleanImplicitCount(cc)));
                 if(endnow)return;
             }
         }

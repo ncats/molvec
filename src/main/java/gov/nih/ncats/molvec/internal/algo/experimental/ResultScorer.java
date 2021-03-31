@@ -14,6 +14,15 @@ public interface ResultScorer {
 			return d;
 		};
 	}
+	public default ResultScorer ifAbove(double s, ResultScorer alt){
+        return (c)->{
+            double d=this.score(c);
+            if(d>s){
+                return alt.score(c);
+            }
+            return d;
+        };
+    }
 	public default ResultScorer scale(double scale){
 		return (c)->{
 			double m=this.score(c);
