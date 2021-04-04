@@ -464,11 +464,20 @@ public class ModifiedMolvecPipeline {
 //	    InChIKeySetScorer.flushToFiles(new File("./resources/ikeys.txt"), false, 2);
 	    
 	    //this uses one big file
-		ResultScorer rs=new InChIKeySetScorer(new File("./resources/ikeys.txt"),false);
+	    InChIKeySetScorer rs=new InChIKeySetScorer(new File("./resources/ikeys.txt"),false);
+	    File f = new File ("./resources/bayes.txt");
+	    if (f.exists()) {
+		try {
+		    //rs.setNaiveBayesModel(f);
+		}
+		catch (Exception ex) {
+		    
+		}
+	    }
 	    
 	    //this uses files split up into ikAA.txt-ikZZ.txt
 //	    ResultScorer rs=new InChIKeySetScorer(new File("./resources"),false,2);
-		ModifiedMolvecPipeline.setDefaultScorer(rs);
+	    ModifiedMolvecPipeline.setDefaultScorer(rs);
 	}
 	public static void setFakeScorer(){
 		ResultScorer rs=(c)->0.5;

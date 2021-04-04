@@ -7,7 +7,7 @@
   <groupId>gov.nih.ncats</groupId>
   <artifactId>molvec</artifactId>
   <packaging>jar</packaging>
-  <version>0.9.8-SNAPSHOT</version>
+  <version>0.9.8-SNAPSHOT-xclean-score</version>
   <name>MolVec</name>
 
 

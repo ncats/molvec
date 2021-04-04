@@ -39,6 +39,7 @@ public class InChIKeySetScorer implements ResultScorer{
     private File ofile;
 
     private Set<String> preLoaded = new HashSet<String>();
+    private NaiveBayesScore nbscore;
 
     private String getPref(String l){
         return l.substring(0, plength);
@@ -181,6 +182,10 @@ public class InChIKeySetScorer implements ResultScorer{
         }
     }
 
+    public void setNaiveBayesModel (File file) throws Exception {
+	nbscore = new NaiveBayesScore (file);
+    }
+
     //    public void writeAll
 
     private boolean hasIKey(String ikey){
@@ -235,7 +240,10 @@ public class InChIKeySetScorer implements ResultScorer{
         } catch (IOException e) {
             // TODO Auto-generated catch block
             //			e.printStackTrace();
-        }		
+        }
+	if (nbscore != null)
+	    return nbscore.score(c);
+	
         return 0;
     }
 
