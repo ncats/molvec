@@ -468,7 +468,7 @@ public class ModifiedMolvecPipeline {
 	    File f = new File ("./resources/bayes.txt");
 	    if (f.exists()) {
 		try {
-		    //rs.setNaiveBayesModel(f);
+		    rs.setNaiveBayesModel(f);
 		}
 		catch (Exception ex) {
 		    
