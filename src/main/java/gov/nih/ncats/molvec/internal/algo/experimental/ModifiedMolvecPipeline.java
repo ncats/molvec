@@ -18,9 +18,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import javax.imageio.ImageIO;
 
 import gov.nih.ncats.common.Tuple;
 import gov.nih.ncats.common.stream.StreamUtil;
@@ -38,7 +41,12 @@ import gov.nih.ncats.molvec.internal.algo.experimental.ChemFixer.KnownMissingBon
 import gov.nih.ncats.molvec.internal.image.ImageUtil;
 import gov.nih.ncats.molvec.ui.SCOCR;
 import gov.nih.ncats.molvec.ui.StupidestPossibleSCOCRSansSerif;
+import gov.nih.ncats.molwitch.Atom;
+import gov.nih.ncats.molwitch.AtomCoordinates;
+import gov.nih.ncats.molwitch.Bond;
 import gov.nih.ncats.molwitch.Chemical;
+import gov.nih.ncats.molwitch.ChemicalBuilder;
+import gov.nih.ncats.molwitch.Bond.Stereo;
 
 public class ModifiedMolvecPipeline {
 	public static boolean DO_MULTI_TRIES=false;
@@ -181,6 +189,8 @@ public class ModifiedMolvecPipeline {
 				.replace("5", "S")
 				.replace("r1", "PH") //risky
 				.replaceAll("^CH$", "OH") //risky
+                .replace("a", "Cl")
+                .replace("Mb", "NH2")
 				;
 	};
 	
@@ -237,6 +247,12 @@ public class ModifiedMolvecPipeline {
 //			"S	MjB4MjAKMTQuMHgzNC4wCjksOSw5LDksOSw5LDksOSw5LDksOSw5LDcsNSwyLDIsMiwzLDMsMwo2LDYsNiw2LDYsNiw2LDYsNiw2LDYsNiw1LDQsMiwyLDIsMywzLDMKNiw2LDYsNiw2LDYsNiw2LDYsNiw2LDYsNiw2LDQsNCw0LDYsNiw2CjMsNCw1LDYsNSw0LDMsMyw0LDUsNiw1LDUsNSw0LDQsNCw2LDYsNgozLDQsNSw2LDUsNCwzLDMsNCw1LDYsNSw1LDUsNCw0LDQsNiw2LDYKMCwyLDQsNiw0LDIsMCwwLDIsNCw2LDQsNCw0LDQsNCw0LDYsNiw2CjAsMiw0LDYsNCwyLDAsMCwyLDQsNiw0LDQsNCw0LDQsNCw2LDYsNgowLDIsNCw2LDQsMiwwLDAsMiw0LDYsNCw0LDQsNCw0LDQsNiw2LDYKMCwyLDQsNiw0LDIsMCwwLDIsNCw2LDQsNCw0LDQsNCw0LDYsNiw2CjAsMiw0LDYsNCwyLDAsMCwyLDQsNiw0LDQsNCw1LDUsNSw2LDYsNgowLDMsNiw5LDYsMywwLDAsMyw2LDksNiw2LDYsOCw4LDgsOSw5LDkKMCwyLDQsNiw0LDIsMCwwLDIsNCw2LDQsNCw0LDYsNiw2LDYsNiw2CjIsNCw1LDYsNSw0LDMsMyw0LDUsNiw0LDQsNCw2LDYsNiw2LDYsNgo0LDYsNiw2LDYsNiw2LDYsNiw2LDYsNCw0LDQsNiw2LDYsNiw2LDYKNCw2LDYsNiw2LDYsNiw2LDYsNiw2LDQsNCw0LDYsNiw2LDYsNiw2CjQsNiw2LDYsNiw2LDYsNiw2LDUsNCwyLDIsMiwzLDMsMywzLDMsMwo0LDYsNiw2LDYsNiw2LDYsNiw0LDIsMCwwLDAsMCwwLDAsMCwwLDAKNCw2LDYsNiw2LDYsNiw2LDYsNCwyLDAsMCwwLDAsMCwwLDAsMCwwCjIsMywzLDMsMywzLDMsMywzLDIsMSwwLDAsMCwwLDAsMCwwLDAsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDA",
 			"H	MjB4MjAKMTguMHgxOC4wCjksOSw5LDksOSw5LDksNiw2LDYsOSw5LDksOSw5LDksOSw2LDMsMAo5LDksOSw5LDksOSw5LDYsNiw2LDksOSw5LDksOSw5LDksNiwzLDAKNiw2LDYsNiw3LDgsOSw2LDYsNSw3LDYsNiw2LDYsNiw2LDQsMiwwCjMsMywzLDMsNSw3LDksNiw2LDQsNSwzLDMsMywzLDMsMywyLDEsMAowLDAsMCwwLDMsNiw5LDYsNiwzLDMsMCwwLDAsMCwwLDAsMCwwLDAKMCwwLDAsMCwzLDYsOSw2LDYsMywzLDAsMCwwLDAsMCwwLDAsMCwwCjAsMCwwLDAsMyw2LDksNiw2LDMsMywwLDAsMCwwLDAsMCwwLDAsMAowLDAsMCwwLDIsNCw2LDQsNCwyLDIsMCwwLDAsMCwwLDAsMCwwLDAKMCwwLDAsMCwyLDQsNiw0LDQsMiwyLDAsMCwwLDAsMCwwLDAsMCwwCjMsMywzLDMsNCw1LDYsNCw0LDMsNCwzLDMsMywzLDMsMywyLDEsMAo2LDYsNiw2LDcsOCw5LDYsNiw1LDcsNiw2LDYsNiw2LDYsNCwyLDAKOSw5LDksOSw5LDksOSw2LDYsNiw5LDksOSw5LDksOSw5LDYsMywwCjgsOSw5LDksOSw5LDksNiw2LDYsOSw5LDksOSw5LDksOSw2LDMsMAo1LDYsNyw4LDksOSw4LDUsNCw0LDYsNiw2LDYsNiw2LDYsNCwyLDAKMiwzLDUsNyw5LDksNyw0LDIsMiwzLDMsMywzLDMsMywzLDIsMSwwCjAsMCwzLDYsOSw5LDYsMywwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMAowLDAsMyw2LDksOSw2LDMsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAKMCwwLDIsNCw2LDYsNCwyLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwCjAsMCwxLDIsMywzLDIsMSwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDA",
 			"N	MjB4MjAKMjAuMHgyMC4wCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwzLDYsOSw5LDksOQowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMyw2LDksOSw5LDkKMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDIsNCw2LDYsNiw2CjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwxLDIsMywzLDMsMwoxLDIsMywzLDMsMywzLDMsMywzLDMsMywzLDMsMiwxLDAsMCwwLDAKMiw0LDYsNiw2LDYsNiw2LDYsNiw2LDYsNiw2LDQsMiwwLDAsMCwwCjUsNyw5LDksOSw5LDksOSw5LDksOSw5LDksOSw2LDMsMCwwLDAsMAo3LDgsOSw5LDksOSw5LDksOSw5LDksOSw5LDksNiwzLDAsMCwwLDAKOSw5LDksOSw5LDksOCw3LDYsNiw2LDYsNiw2LDQsMiwwLDAsMCwwCjgsOSw5LDksOSw5LDcsNSwzLDMsMywzLDMsMywyLDEsMCwwLDAsMAo2LDgsOSw5LDksOSw3LDUsMiwxLDAsMCwwLDAsMCwwLDAsMCwwLDAKNCw3LDksOSw5LDksOCw3LDQsMiwwLDAsMCwwLDAsMCwwLDAsMCwwCjIsNCw2LDYsNyw4LDksOSw2LDMsMCwwLDAsMCwwLDAsMCwwLDAsMAoxLDIsMywzLDUsNyw5LDksNiwzLDAsMCwwLDAsMCwwLDAsMCwwLDAKMSwyLDMsMyw0LDUsNyw4LDcsNSwzLDMsMywzLDMsMywyLDEsMCwwCjIsNCw2LDYsNSw0LDUsNyw4LDcsNiw2LDYsNiw2LDYsNCwyLDAsMAozLDYsOSw5LDYsMywzLDYsOSw5LDksOSw5LDksOSw5LDYsMywwLDAKMyw2LDksOSw2LDMsMyw2LDksOSw5LDksOSw5LDksOSw2LDMsMCwwCjMsNiw5LDksNiwzLDMsNiw5LDksOSw5LDksOSw5LDksNiwzLDAsMAozLDYsOSw5LDYsMywzLDYsOSw5LDksOSw5LDksOSw5LDYsMywwLDA",
+			
+			"\\\tMjB4MjAKOC4weDEwLjAKNCwyLDQsMiw0LDIsNCwyLDQsMiwyLDAsMCwwLDAsMCwwLDAsMCwwCjIsMSwyLDEsMiwxLDIsMSwyLDEsMSwwLDAsMCwwLDAsMCwwLDAsMAoyLDEsMiwxLDIsMSwyLDEsMiwxLDEsMCwwLDAsMCwwLDAsMCwwLDAKMiwxLDIsMSwyLDEsMiwxLDIsMSwyLDEsMiwxLDIsMSwyLDEsMSwwCjIsMSwyLDEsMiwxLDIsMSwyLDEsMiwxLDIsMSwyLDEsMiwxLDEsMAozLDIsNCwyLDQsMiw0LDIsNCwyLDQsMiw0LDIsNCwyLDQsMiwyLDAKMSwxLDIsMSwyLDEsMiwxLDIsMSwyLDEsMiwxLDIsMSwyLDEsMSwwCjEsMSwyLDEsMiwxLDIsMSwyLDEsMiwxLDIsMSwyLDEsMiwxLDEsMAowLDAsMCwwLDAsMCwxLDEsMiwxLDIsMSwyLDEsMiwxLDIsMSwxLDAKMCwwLDAsMCwwLDAsMSwxLDIsMSwyLDEsMiwxLDIsMSwyLDEsMSwwCjAsMCwwLDAsMCwwLDIsMiw0LDIsNCwyLDQsMiw0LDIsNCwyLDIsMAowLDAsMCwwLDAsMCwxLDEsMiwxLDIsMSwyLDEsMiwxLDIsMSwxLDAKMCwwLDAsMCwwLDAsMSwxLDIsMSwyLDEsMiwxLDIsMSwyLDEsMSwwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMSwxLDIsMSwyLDEsMiwxLDEsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDEsMSwyLDEsMiwxLDIsMSwxLDAKMCwwLDAsMCwwLDAsMCwwLDAsMCwyLDIsNCwyLDQsMiw0LDIsMiwwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMSwxLDIsMSwyLDEsMiwxLDEsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDEsMSwyLDEsMiwxLDIsMSwxLDAKMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMA==",
+			"N\tMjB4MjAKMTIuMHgyMC4wCjYsNiw2LDYsNiw2LDYsNiw2LDYsNiw2LDYsNiw0LDIsMCwwLDAsMAo2LDYsNiw2LDYsNiw2LDYsNiw2LDYsNiw2LDYsNCwyLDAsMCwwLDAKMywzLDMsMywzLDMsMywzLDMsMywzLDMsMywzLDIsMSwwLDAsMCwwCjYsNiw2LDYsNiw2LDYsNiw2LDYsNiw2LDYsNiw0LDIsMCwwLDAsMAo2LDYsNiw2LDYsNiw2LDYsNSw0LDMsMywzLDMsMywzLDMsMywzLDMKNiw2LDYsNiw2LDYsNiw2LDUsNCwzLDMsMywzLDMsMywzLDMsMywzCjUsNiw2LDYsNiw2LDYsNiw0LDIsMCwwLDAsMCwyLDQsNiw2LDYsNgoyLDMsMywzLDMsMywzLDMsMiwxLDAsMCwwLDAsMSwyLDMsMywzLDMKMiwzLDQsNSw2LDYsNiw2LDUsNCwzLDMsMiwxLDIsNCw2LDYsNiw2CjAsMCwxLDMsNSw2LDYsNiw2LDYsNiw2LDQsMiwyLDQsNiw2LDYsNgowLDAsMSwzLDUsNiw2LDYsNiw2LDYsNiw0LDIsMiw0LDYsNiw2LDYKMCwwLDAsMSwyLDMsNCw1LDYsNiw2LDYsNSw0LDMsMywzLDMsMywzCjAsMCwwLDAsMCwwLDEsMiwzLDMsMywzLDMsMywyLDEsMCwwLDAsMAowLDAsMCwwLDAsMCwxLDMsNSw2LDYsNiw2LDYsNCwyLDAsMCwwLDAKMCwwLDAsMCwwLDAsMCwxLDIsMyw0LDUsNiw2LDQsMiwwLDAsMCwwCjAsMCwwLDAsMCwwLDAsMSwyLDMsNCw1LDYsNiw0LDIsMCwwLDAsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDIsNCw2LDYsNCwyLDAsMCwwLDAKMCwwLDAsMCwwLDAsMCwwLDAsMCwxLDIsMywzLDIsMSwwLDAsMCwwCjAsMCwwLDAsMCwwLDAsMCwwLDAsMSwyLDMsMywyLDEsMCwwLDAsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDA=",
+			"S\tMjB4MjAKMTIuMHgyMC4wCjYsNiw2LDYsNiw2LDYsNiw0LDIsMCwwLDAsMCwwLDAsMCwwLDAsMAo2LDYsNiw2LDYsNiw2LDYsNSw0LDIsMSwwLDAsMSwyLDMsMywzLDMKMywzLDMsMywzLDMsMywzLDMsMywyLDEsMCwwLDEsMiwzLDMsMywzCjUsNiw2LDYsNiw2LDYsNiw2LDYsNCwyLDAsMCwyLDQsNiw2LDYsNgozLDUsNiw2LDUsNCw0LDUsNiw2LDQsMiwwLDAsMiw0LDYsNiw2LDYKMyw1LDYsNiw1LDQsNCw1LDYsNiw0LDIsMCwwLDIsNCw2LDYsNiw2CjIsNCw2LDYsNCwyLDIsNCw2LDYsNCwyLDAsMCwyLDQsNiw2LDYsNgoxLDIsMywzLDIsMSwxLDIsMywzLDIsMSwwLDAsMSwyLDMsMywzLDMKMiw0LDYsNiw0LDIsMiw0LDYsNiw1LDQsMywzLDQsNSw2LDYsNiw2CjIsNCw2LDYsNCwyLDIsNCw2LDYsNiw2LDYsNiw2LDYsNiw2LDYsNgoyLDQsNiw2LDQsMiwyLDQsNiw2LDYsNiw2LDYsNiw2LDYsNiw2LDYKMiw0LDYsNiw0LDIsMSwyLDQsNSw2LDYsNiw2LDYsNiw1LDQsMywzCjEsMiwzLDMsMiwxLDAsMCwxLDIsMywzLDMsMywzLDMsMiwxLDAsMAoxLDMsNSw2LDQsMiwwLDAsMiw0LDYsNiw2LDYsNiw2LDQsMiwwLDAKMCwxLDIsMywyLDEsMCwwLDIsNCw2LDYsNiw2LDYsNiw0LDIsMCwwCjAsMSwyLDMsMiwxLDAsMCwyLDQsNiw2LDYsNiw2LDYsNCwyLDAsMAowLDAsMCwwLDAsMCwwLDAsMiw0LDYsNiw2LDYsNiw2LDQsMiwwLDAKMCwwLDAsMCwwLDAsMCwwLDEsMiwzLDMsMywzLDMsMywyLDEsMCwwCjAsMCwwLDAsMCwwLDAsMCwxLDIsMywzLDMsMywzLDMsMiwxLDAsMAowLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDA=",
+			
+			
 	};
 	
 	static StupidestPossibleSCOCRSansSerif MOD_OCR = new StupidestPossibleSCOCRSansSerif(additions);
@@ -269,6 +285,7 @@ public class ModifiedMolvecPipeline {
 		ALL_IMG_SETTINGS.set(88);
 		ALL_IMG_SETTINGS.set(89);
 		ALL_IMG_SETTINGS.set(90);
+		ALL_IMG_SETTINGS.set(91);
 		
 		BASIC_BITMAP_SETTINGS.or(PREPROCESS_ONLY_SETTINGS);
 		BASIC_BITMAP_SETTINGS.set(34);
@@ -354,9 +371,10 @@ public class ModifiedMolvecPipeline {
 			
             if(!MODIFICATION_FLAGS.get(88))values.MERGE_CLOSE_NODES_ON_FLOATING_METHYL_GROUP=false;
             if(!MODIFICATION_FLAGS.get(89))values.REMOVE_SMALLISH_NOISE_BOXES=true;
-			if(!MODIFICATION_FLAGS.get(90))values.MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS=15;   //~22.00 -> ~30.00 if commented
-            if(!MODIFICATION_FLAGS.get(90))values.maxCandidateRatioForIntersection=1.9;           //~21.78 -> ~21.79 if commented
+			if(!MODIFICATION_FLAGS.get(90))values.MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS=15;   
+            if(!MODIFICATION_FLAGS.get(90))values.maxCandidateRatioForIntersection=1.9;           
             
+            if(!MODIFICATION_FLAGS.get(91))values.MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL=1.2;
             
 		}
 		return op;
@@ -474,6 +492,8 @@ public class ModifiedMolvecPipeline {
 		ResultScorer rs=(c)->0.5;
 		ModifiedMolvecPipeline.setDefaultScorer(rs);
 	}
+	
+	
 	public static ModifiedMolvecResult process(File f, MolvecOptions op) throws IOException{
 
 	    HashMap<String,BufferedImage> _imgCACHE = new HashMap<>();
@@ -541,6 +561,7 @@ public class ModifiedMolvecPipeline {
 	                    .and(new int[]{90,74,30,75})
                         .and(new int[]{90,5})
                         .and(new int[]{1,76,6}) //???
+                        .and(new int[]{91}) //???
                         ;
 
 	        }
@@ -677,6 +698,8 @@ public class ModifiedMolvecPipeline {
 	                }
 	            }catch(Exception ee){
 	                //					ee.printStackTrace();
+	                
+//	                ee.printStackTrace();
 	            }
 
 	        }
@@ -777,81 +800,87 @@ public class ModifiedMolvecPipeline {
 					}
 					
 				});
-				
 				Tuple<MolvecResult,StructureImageExtractor> tmol;
-				PreCalculated preCalc = _bmCACHE.get(bkey);
-				if(preCalc==null) {
-				    tmol = Molvec.ocrAndExtractor(nbir, op);
-				    preCalc = tmol.v().preCalculated;
-				    preCalc.gkey = basicBitmapOCRSettings;
-				    
-				    _bmCACHE.put(bkey, preCalc);
-				}else {
-				    if((preCalc.gkey+"").equals(basicBitmapOCRSettings)) {
-				        preCalc.didOCR=true;
-				    }else {
-				        preCalc.didOCR=false;
-				    }
-				    tmol = Molvec.ocrAndExtractor(preCalc, op);
-				}
+				Chemical cc;
+
+              
+    				
+    				PreCalculated preCalc = _bmCACHE.get(bkey);
+    				if(preCalc==null) {
+    				    tmol = Molvec.ocrAndExtractor(nbir, op);
+    				    preCalc = tmol.v().preCalculated;
+    				    preCalc.gkey = basicBitmapOCRSettings;
+    				    
+    				    _bmCACHE.put(bkey, preCalc);
+    				}else {
+    				    if((preCalc.gkey+"").equals(basicBitmapOCRSettings)) {
+    				        preCalc.didOCR=true;
+    				    }else {
+    				        preCalc.didOCR=false;
+    				    }
+    				    tmol = Molvec.ocrAndExtractor(preCalc, op);
+    				}
 				 
 				MolvecResult mol=tmol.k();
 				
 				Chemical ct = Chemical.parse(mol.getSDfile().get());
 
 				Rectangle2D bon = ChemFixer.bounds(ct);
-				long hetero1 = ct.atoms().filter(at->hetset.contains(at.getSymbol())).count()
-						-ct.atoms().filter(at->badset.contains(at.getSymbol())).count();
-				Rectangle2D bonImg = mol.getOriginalBoundingBox().get();
-
-				double avg=ct.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
-				double imgBondWidth=avg/bon.getWidth()*bonImg.getWidth();
-
-				double sx=mol.getOriginalBoundingBox().get().getMinX();
-				double sy=mol.getOriginalBoundingBox().get().getMinY();
-				double sx2=nbir.getWidth()-mol.getOriginalBoundingBox().get().getMaxX();
-				double sy2=nbir.getHeight()-mol.getOriginalBoundingBox().get().getMaxY();
-
-
-				double[] bds = new double[]{sx,sy,sx2,sy2};
-
-				DoubleSummaryStatistics  dss=Arrays.stream(bds).mapToObj(d->d).collect(Collectors.summarizingDouble(d->d));
-
-
 				Set<KnownMissingBond> missingAt = new HashSet<>();
-
-				for(int i=0;i<4;i++){
-					if(bds[i]>dss.getMin()+imgBondWidth*1.0){
-						if(i==0)missingAt.add(KnownMissingBond.LEFT);
-						if(i==1)missingAt.add(KnownMissingBond.TOP);
-						if(i==2)missingAt.add(KnownMissingBond.RIGHT);
-						if(i==3)missingAt.add(KnownMissingBond.BOTTOM);
-					}
-				}
-
-
-				if(bon.getHeight()>0.85*bon.getWidth()){
-
-					BufferedImage nbi2;
-
-					if(!RESIZE){
-						nbi2=ImageCleaner.preCleanImageResize(biIn, 1, false, !dorotate);			
-					}else{
-						nbi2=ImageCleaner.preCleanImageResize(biIn, 2, true, !dorotate);
-					}
-
-
-					MolvecResult mol2 = Molvec.ocr(nbi2, op);
-
-					Chemical ct2 = Chemical.parse(mol.getSDfile().get());
-
-					long hetero2 =  ct2.atoms().filter(at->hetset.contains(at.getSymbol())).count()
-							       -ct2.atoms().filter(at->badset.contains(at.getSymbol())).count();
-					if(hetero2>hetero1){
-						ct=ct2;
-						mol=mol2;
-					}
-
+				if(mol.getOriginalBoundingBox().isPresent()) {
+    				long hetero1 = ct.atoms().filter(at->hetset.contains(at.getSymbol())).count()
+    						-ct.atoms().filter(at->badset.contains(at.getSymbol())).count();
+    				Rectangle2D bonImg = mol.getOriginalBoundingBox().get();
+    
+    				double avg=ct.bonds().mapToDouble(b->b.getBondLength()).average().getAsDouble();
+    				double imgBondWidth=avg/bon.getWidth()*bonImg.getWidth();
+    
+    				double sx=mol.getOriginalBoundingBox().get().getMinX();
+    				double sy=mol.getOriginalBoundingBox().get().getMinY();
+    				double sx2=nbir.getWidth()-mol.getOriginalBoundingBox().get().getMaxX();
+    				double sy2=nbir.getHeight()-mol.getOriginalBoundingBox().get().getMaxY();
+    
+    
+    				double[] bds = new double[]{sx,sy,sx2,sy2};
+    
+    				DoubleSummaryStatistics  dss=Arrays.stream(bds).mapToObj(d->d).collect(Collectors.summarizingDouble(d->d));
+    
+    
+    				
+    
+    				for(int i=0;i<4;i++){
+    					if(bds[i]>dss.getMin()+imgBondWidth*1.0){
+    						if(i==0)missingAt.add(KnownMissingBond.LEFT);
+    						if(i==1)missingAt.add(KnownMissingBond.TOP);
+    						if(i==2)missingAt.add(KnownMissingBond.RIGHT);
+    						if(i==3)missingAt.add(KnownMissingBond.BOTTOM);
+    					}
+    				}
+    
+    
+    				if(bon.getHeight()>0.85*bon.getWidth()){
+    
+    					BufferedImage nbi2;
+    
+    					if(!RESIZE){
+    						nbi2=ImageCleaner.preCleanImageResize(biIn, 1, false, !dorotate);			
+    					}else{
+    						nbi2=ImageCleaner.preCleanImageResize(biIn, 2, true, !dorotate);
+    					}
+    
+    
+    					MolvecResult mol2 = Molvec.ocr(nbi2, op);
+    
+    					Chemical ct2 = Chemical.parse(mol.getSDfile().get());
+    
+    					long hetero2 =  ct2.atoms().filter(at->hetset.contains(at.getSymbol())).count()
+    							       -ct2.atoms().filter(at->badset.contains(at.getSymbol())).count();
+    					if(hetero2>hetero1){
+    						ct=ct2;
+    						mol=mol2;
+    					}
+    
+    				}
 				}
 				TempResult tr = new TempResult();
 				tr.mres=mol;
@@ -859,6 +888,7 @@ public class ModifiedMolvecPipeline {
 
 				return tr;
 			}catch(Exception e) {
+//			    e.printStackTrace();
 				throw new RuntimeException(e);
 			}
 		});

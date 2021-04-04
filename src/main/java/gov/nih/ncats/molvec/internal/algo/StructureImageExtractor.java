@@ -179,7 +179,6 @@ public class StructureImageExtractor {
 	
 	private final double maxCandidateRatioForIntersectionWithNeighbor = 1.3; 
 	
-	private final double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL = 0.6;
 	private final double MAX_BOND_TO_AVG_BOND_RATIO_FOR_INTERSECTION= 0.8;
 
 	private final double MAX_ANGLE_FOR_JOINING_SEGMENTS=25 * Math.PI/180.0;
@@ -227,35 +226,6 @@ public class StructureImageExtractor {
 
 	
 	
-
-//	public static double MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS = 6;	
-//	public static boolean ATTEMPT_CROP = true;
-//	public static boolean KEEP_ALL_LINES = false;
-//	public static boolean FORCE_FINAL_MERGE = false;
-//	public static boolean PREFER_OXYGENS = false;
-//	public static boolean PREFER_FLOURINE = false;	
-//	public static boolean ADD_ORPHANS = false;	
-//	public static boolean PHENOL_TO_CL = false;
-//	public static boolean HEMI_ACE_TO_CARB = false;
-//	public static boolean EXPLICIT_METHYL_CHANGE_TO_PEPTIDE_ENOL = false;
-//	public static boolean EXPLICIT_METHYL_TO_CL = false;
-//	public static boolean EXPLICIT_ALKENE_TO_CARBONYL = false;	
-//	public static boolean ADD_DETECTED_CHILDREN = true;
-//	public static boolean ELEVATE_NITROGENS = false;
-//	public static boolean ELEVATE_OXYGENS = false;
-//	public static boolean ELEVATE_FLOURINE = false;
-//	public static boolean GREEDY_ADD_EDGES = true;
-//	public static boolean AGGRESSIVE_REMOVE_SHORT_OCR = false;
-//	public static boolean FIX_HALOGENS = true;
-//	public static boolean FORCE_MERGE_SMALL_RINGS = false;
-//	public static boolean TURN_SMALL_DOUBLE_BOND_TO_N = false;
-//	public static boolean AGGRESSIVE_CONNECT_ATOMS = true;	
-//	public static boolean REMOVE_MIDDLE_NODES = true;	
-//	public static boolean AGGRESSIVE_CLEAN_TRIPLE_BONDS = true;
-//	public static boolean COMBINE_WITH_BLUR = true;
-//	public static double MAX_AREA_TO_STITCH_OCR_SHAPE = 100;
-//	public static double MAX_DISTANCE_BETWEEN_OCR_SHAPES_TO_STITCH = 3;
-	
 	public static class ImageExtractionValues{
 
 		
@@ -274,6 +244,7 @@ public class StructureImageExtractor {
 		public double OCR_TO_BOND_MAX_DISTANCE=3.0;
 		
 
+		public double MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL = 0.6;
 
 		//This number is likely one of the most important to adjust.
 		//It may have to have some changes done to the algorithm using it too
@@ -1900,7 +1871,7 @@ public class StructureImageExtractor {
 					.collect(Collectors.toList());
 
 
-			smallLines= bitmap.combineLines(smallLines, values.MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
+			smallLines= bitmap.combineLines(smallLines, values.MAX_DISTANCE_FOR_STITCHING_SMALL_SEGMENTS, values.MAX_TOLERANCE_FOR_STITCHING_SMALL_SEGMENTS_FULL, MAX_POINT_DISTANCE_TO_BE_PART_OF_MULTI_NODE,MAX_ANGLE_FOR_JOINING_SEGMENTS,MIN_SIZE_FOR_ANGLE_COMPARE_JOINING_SEGMENTS);
 
 			List<Line2D> removedTinyLines =smallLines.stream()
 					.map(l->l.getLine())

@@ -115,6 +115,12 @@ public class ChemFixer {
         AtomicBoolean changes = new AtomicBoolean(false);
         double avg= c.bonds().mapToDouble(b->b.getBondLength())
                 .average().getAsDouble();
+        
+        double CLOSEST_NORMAL = 1.3;
+        double CLOSEST_ON_TERM = 1.5;
+//        if(bs.get(ALLOW_FARTHER_STITCHES)) {
+//            
+//        }
         GeomUtil.eachCombination(c.atoms()
                 .filter(at->at.getSymbol().equals("N") || at.getSymbol().equals("C") || at.getSymbol().equals("O"))
                 .filter(at->{
@@ -150,7 +156,12 @@ public class ChemFixer {
         .filter(t->{
             double ds= t.k().getAtomCoordinates().distanceSquaredTo(t.v().getAtomCoordinates());
 
-            if(ds<avg*avg*(1.3*1.3) && ds> avg*avg*0.75*0.75){
+            double multMax=CLOSEST_NORMAL*CLOSEST_NORMAL;
+            double multMaxTerm=CLOSEST_ON_TERM*CLOSEST_ON_TERM;
+            
+            if(ds<avg*avg*(multMax) && ds> avg*avg*0.75*0.75){
+                return true;
+            }else if(isTerm(t.k()) && isTerm(t.v()) && ds<avg*avg*(multMaxTerm) && ds> avg*avg*0.75*0.75){
                 return true;
             }
             return false;
@@ -398,8 +409,11 @@ public class ChemFixer {
     public static boolean combineCloseBonds(Chemical c, BitSet bs1){
         AtomicBoolean changed = new AtomicBoolean(false);
         double maxDistStart = 0.55*0.55;
+        double maxDistAlt = 0.8*0.8;
+        double maxLenForAlt = 0.7*0.7;
+        
         if(!bs1.get(CLEAN_ALLOW_EXTENDED_COMBINED)) {
-            maxDistStart = 0.8*0.8;
+            maxDistStart = maxDistAlt;
         }
         
         double maxD = maxDistStart;
@@ -407,6 +421,7 @@ public class ChemFixer {
         
         double avg= c.bonds().mapToDouble(b->b.getBondLength())
                 .average().getAsDouble();
+        double maxLenAlt = Math.sqrt(avg*avg*maxLenForAlt);
         GeomUtil.eachCombination(c.atoms()
                 .filter(at->at.getSymbol().equals("N") || at.getSymbol().equals("C") || at.getSymbol().equals("O"))
                 .filter(at->{
@@ -428,8 +443,18 @@ public class ChemFixer {
         .filter(t->{
             double ds= t.k().getAtomCoordinates().distanceSquaredTo(t.v().getAtomCoordinates());
             
+            boolean altLenOK = ds<avg*avg*maxDistAlt*maxDistAlt;
+            
+            
             if(ds<avg*avg*maxD){
                 return true;
+            }else if (altLenOK){
+                if((t.k().getBondCount()==1 && t.k().getBonds().get(0).getBondLength()<maxLenAlt) || 
+                        (t.v().getBondCount()==1 && t.v().getBonds().get(0).getBondLength()<maxLenAlt)
+                        
+                        ) {
+                    return true;
+                }
             }
             return false;
         })
@@ -533,13 +558,14 @@ public class ChemFixer {
 
 
         if(ops.get(CLEAN_FORCE_CARBON_ON_RARE_ATOM_RING) && 
-                sfac.hasAnyAtoms("H", "P", "Cl", "S") &&
+                sfac.hasAnyAtoms("H", "P", "Cl", "S", "Br") &&
                 sfac.hasRingOfSize(6)
                 ){
             boolean[] did = new boolean[] {false};
             c.atoms()
             .filter(at->at.getSymbol().equals("H")  || at.getSymbol().equals("Cl") 
                     ||(at.getSymbol().equals("P") && sumOrder(at)<=4)
+                    ||(at.getSymbol().equals("Br") && sumOrder(at)>=2)
                     ||(at.getSymbol().equals("S") && sumOrder(at)>2)
 
                     )
@@ -2849,6 +2875,58 @@ public class ChemFixer {
             });
             if(did.get()) {
                 boolean endnow = consumer.test(Tuple.of(29,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
+        }
+        //30 -N-C -N=C
+        if(sfchem.hasAtom("N")){
+            AtomicBoolean did = new AtomicBoolean(false);
+            Chemical cc=c.copy();
+            cc.bonds()
+            .filter(b->b.getBondType().getOrder()==1)
+//            .filter(b->bondCount(b, "-H")>0)
+            .filter(b->b.getAtom1().getSymbol().equals("N") || b.getAtom2().getSymbol().equals("N"))
+            .filter(b->b.getAtom1().getSymbol().equals("C") || b.getAtom2().getSymbol().equals("C"))
+            .filter(b->(b.getAtom1().getSymbol().equals("N") && sumOrder(b.getAtom1()) == 2) || 
+                    (b.getAtom2().getSymbol().equals("N") && sumOrder(b.getAtom2()) == 2))
+            .filter(b->(b.getAtom1().getSymbol().equals("C") && sumOrder(b.getAtom1()) == 3) || 
+                    (b.getAtom2().getSymbol().equals("C") && sumOrder(b.getAtom2()) == 3))
+            .limit(1)
+            .distinct()
+            .forEach(a->{
+                a.setBondType(BondType.DOUBLE);
+                a.getAtom1().setImplicitHCount(null);
+                a.getAtom2().setImplicitHCount(null);
+                //                      a.getNeighbors().forEach(n->n.setImplicitHCount(null));
+                did.set(true);
+            });
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(30,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
+        }
+        //31 C(-O,-O,-O) -> P
+        if(sfchem.hasAtom("C") && sfchem.hasAtom("O")){
+            AtomicBoolean did = new AtomicBoolean(false);
+            Chemical cc=c.copy();
+            cc.atoms()
+            .filter(at->sumOrder(at)>=4)
+            .filter(a->bondCount(a, "-O") + bondCount(a, "=O") >=3)
+            .distinct()
+            .forEach(a->{
+                a.setAtomicNumber(15);
+                a.getBonds().stream()
+                            .filter(b->b.getOtherAtom(a).getSymbol().equals("O"))
+                            .filter(b->b.getBondType().getOrder()==1)
+                            .filter(b->b.getOtherAtom(a).getBondCount()==1)
+                            .limit(1)
+                            .forEach(b->{
+                                b.setBondType(BondType.DOUBLE);
+                            });
+                did.set(true);
+            });
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(31,cleanImplicitCount(cc)));
                 if(endnow)return;
             }
         }

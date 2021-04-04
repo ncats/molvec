@@ -72,7 +72,7 @@ public class InChIKeySetScorer implements ResultScorer{
     }
 
     public static void flushToFiles(File ofile, boolean compressed, int plength) {
-        InChIKeySetScorer iksscore = new InChIKeySetScorer(ofile.getParentFile(),compressed, plength);
+        InChIKeySetScorer iksscore = new InChIKeySetScorer(ofile.getParentFile(),compressed, plength,false);
         if(ofile!=null) {
             ConcurrentHashMap<String, PrintWriter> writers = new ConcurrentHashMap<>();
 
@@ -164,10 +164,13 @@ public class InChIKeySetScorer implements ResultScorer{
     }
 
     public InChIKeySetScorer(File iKeysFile, boolean compressed){
-        this(iKeysFile, compressed,0);
+        this(iKeysFile, compressed,0,true);
+    }
+    public InChIKeySetScorer(File iKeysFile, boolean compressed, int plength){
+        this(iKeysFile,compressed,plength,false);
     }
 
-    public InChIKeySetScorer(File iKeysFile, boolean compressed, int plength){
+    public InChIKeySetScorer(File iKeysFile, boolean compressed, int plength, boolean load){
         ikeys=new ConcurrentHashMap<Long,Long>(119803351);
         this.compressed=compressed;
         this.plength=plength;
@@ -175,7 +178,9 @@ public class InChIKeySetScorer implements ResultScorer{
         if(plength==0) {
             dir=iKeysFile.getParentFile();
             ofile=iKeysFile;
-            loadFile(iKeysFile);
+            if(load) {
+                loadFile(iKeysFile);
+            }
         }else {
             dir=iKeysFile;
         }

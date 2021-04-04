@@ -242,6 +242,10 @@ public class MolvecOptions {
                                                     .collect(GeomUtil.convexHull())
                                                     .getBounds2D()));
     }
+    public MolvecResult computeResult(String mol){
+    
+        return new Result(mol, name, CachedSupplier.of(()->null));
+    }
 
     private String toMol(ConnectionTable ct){
         AffineTransform at = new AffineTransform();
