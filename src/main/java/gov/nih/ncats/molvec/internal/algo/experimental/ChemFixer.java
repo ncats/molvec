@@ -2931,6 +2931,38 @@ public class ChemFixer {
             }
         }
 
+        //32 B->S
+        if(sfchem.hasAtom("B")){
+            AtomicBoolean did = new AtomicBoolean(false);
+            Chemical cc=c.copy();
+            cc.atoms()
+            .filter(at->at.getSymbol().equals("B"))
+            .distinct()
+            .forEach(a->{
+                a.setAtomicNumber(16);
+                did.set(true);
+            });
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(32,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
+        }
+        //33 S->B
+        if(sfchem.hasAtom("S")){
+            AtomicBoolean did = new AtomicBoolean(false);
+            Chemical cc=c.copy();
+            cc.atoms()
+            .filter(at->at.getSymbol().equals("S"))
+            .distinct()
+            .forEach(a->{
+                a.setAtomicNumber(5);
+                did.set(true);
+            });
+            if(did.get()) {
+                boolean endnow = consumer.test(Tuple.of(33,cleanImplicitCount(cc)));
+                if(endnow)return;
+            }
+        }
         //isSufficientlyVerticalOrHorizontal
     }
     
