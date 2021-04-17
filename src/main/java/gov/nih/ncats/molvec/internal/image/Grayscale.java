@@ -150,7 +150,8 @@ public class Grayscale {
             throw new IllegalArgumentException ("Input raster is null");
         }
         grayscale = createRaster (raster, listener);
-       
+        
+    
     }
 
     public BufferedImage asNewBufferedImage(){
@@ -208,7 +209,7 @@ public class Grayscale {
         	outRaster.setSamples(0, y, width, 1, 0, resultRow);
         }
         raster = outRaster;
-
+       
         listener.finishImage();
         
         
@@ -397,13 +398,16 @@ public class Grayscale {
             }else {
                 pp[alphaBand]=(pp[alphaBand]-info.minAlpha)/(info.maxAlpha-info.minAlpha);
                 pp[alphaBand]*=255;
+                //Issue #15 - always invert alpha channel
+                pp[alphaBand]=255-pp[alphaBand];
+                
                 //assume that there's supposed to be more
                 //transparent things than opaque things.
                 //If that's not the case, invert the alpha
                 //channel
-                if(info.moreAlphaCount>info.lessAlphaCount) {
-                    pp[alphaBand]=255-pp[alphaBand];
-                }
+//                if(info.moreAlphaCount>info.lessAlphaCount) {
+                
+//                }
             }
         }
     }
@@ -412,6 +416,8 @@ public class Grayscale {
         private int minAlpha=255;
         private int moreAlphaCount=0;
         private int lessAlphaCount=0;
+        
+        private int[] hist= new int[256];
 
         public void accept(int pixel){
             if (pixel > maxAlpha) {
@@ -420,6 +426,7 @@ public class Grayscale {
             if (pixel < minAlpha) {
                 minAlpha = pixel;
             }
+            hist[pixel]++;
             if(pixel > 128) {
                 moreAlphaCount++;
             }

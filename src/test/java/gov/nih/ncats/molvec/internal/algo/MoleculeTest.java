@@ -5877,6 +5877,61 @@ public class MoleculeTest {
 			String form=c.getFormula();
 			assertEquals(cReal.getFormula(),form);
 		} )});
+		
+		
+		list.add(new Object[]{"alphaPro", new TestSpec("moleculeTest/alpha_problem2.png", c->{
+            Chemical cReal=ChemicalBuilder.createFromSmiles("C=C(C)C1CCC(C)=CC1").build();
+            String keyReal=Inchi.asStdInchi(cReal).getKey();
+            String keyGot=Inchi.asStdInchi(c).getKey();
+            assertEquals(keyReal,keyGot);
+        } )});
+		
+		list.add(new Object[]{"gsrsalpha", new TestSpec("moleculeTest/gsrstrans.png", c->{
+            Chemical cReal=ChemicalBuilder.createFromMol("\n"
+                    + "   JSDraw204162113482D\n"
+                    + "\n"
+                    + " 17 18  0  0  0  0              0 V2000\n"
+                    + "   26.4198   -6.1360    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                    + "   26.4198   -7.6960    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                    + "   27.7706   -8.4760    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                    + "   29.1217   -7.6960    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                    + "   29.1217   -6.1360    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                    + "   30.4727   -8.4760    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                    + "   25.0688   -8.4760    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                    + "   23.7178   -7.6960    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                    + "   23.7178   -6.1360    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                    + "   22.3668   -5.3561    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                    + "   21.0160   -6.1360    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                    + "   19.5322   -5.6539    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                    + "   18.6153   -6.9160    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                    + "   19.5322   -8.1780    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                    + "   21.0160   -7.6960    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                    + "   22.3668   -8.4760    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                    + "   25.0688  -10.0359    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n"
+                    + "  1  2  1  0  0  0  0\n"
+                    + "  2  3  1  0  0  0  0\n"
+                    + "  3  4  1  0  0  0  0\n"
+                    + "  4  5  1  0  0  0  0\n"
+                    + "  4  6  1  0  0  0  0\n"
+                    + "  2  7  1  0  0  0  0\n"
+                    + "  7  8  1  0  0  0  0\n"
+                    + "  8  9  2  0  0  0  0\n"
+                    + "  9 10  1  0  0  0  0\n"
+                    + " 10 11  2  0  0  0  0\n"
+                    + " 11 12  1  0  0  0  0\n"
+                    + " 12 13  1  0  0  0  0\n"
+                    + " 13 14  1  0  0  0  0\n"
+                    + " 11 15  1  0  0  0  0\n"
+                    + " 14 15  1  0  0  0  0\n"
+                    + " 15 16  2  0  0  0  0\n"
+                    + "  8 16  1  0  0  0  0\n"
+                    + "  7 17  2  0  0  0  0\n"
+                    + "M  END").build();
+            String keyReal=Inchi.asStdInchi(cReal).getKey();
+            String keyGot=Inchi.asStdInchi(c).getKey();
+            assertEquals(keyReal,keyGot);
+        } )});
+		
 
 		//debug=true;
 		//StructureImageExtractor.SKIP_STEP_AT=43;
