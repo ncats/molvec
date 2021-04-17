@@ -4,9 +4,7 @@ import java.awt.image.BandedSampleModel;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
-import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
@@ -400,7 +398,7 @@ public class Grayscale {
             }else {
                 pp[alphaBand]=(pp[alphaBand]-info.minAlpha)/(info.maxAlpha-info.minAlpha);
                 pp[alphaBand]*=255;
-                
+                //Issue #15 - always invert alpha channel
                 pp[alphaBand]=255-pp[alphaBand];
                 
                 //assume that there's supposed to be more
