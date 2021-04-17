@@ -7,7 +7,7 @@
   <groupId>gov.nih.ncats</groupId>
   <artifactId>molvec</artifactId>
   <packaging>jar</packaging>
-  <version>0.9.9</version>
+  <version>0.9.9-SNAPSHOT</version>
   <name>MolVec</name>
 
 
@@ -62,7 +62,7 @@
     </developers>
 
     <scm>
-        <url>https://spotlite.nih.gov/ncats/ncats-common</url>
+        <url>https://github.com/ncats/molvec</url>
     </scm>
 
     <distributionManagement>
