@@ -85,7 +85,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <commonsFileuploadVersion>1.2.1</commonsFileuploadVersion>
     <commonsIoVersion>2.3</commonsIoVersion>
-    <log4jVersion>1.2.16</log4jVersion>
+    <log4jVersion>2.17.1</log4jVersion>
     <commonsLang3Version>3.1</commonsLang3Version>
     <downloadLabel>Beta</downloadLabel>
     <gae.version>1.6.5</gae.version>
@@ -107,7 +107,7 @@
     <dependency>
         <groupId>gov.nih.ncats</groupId>
         <artifactId>ncats-common</artifactId>
-        <version>0.3.4</version>
+        <version>0.3.5</version>
     </dependency>
     <dependency>
         <groupId>gov.nih.ncats</groupId>
@@ -118,7 +118,7 @@
     <dependency>
         <groupId>gov.nih.ncats</groupId>
         <artifactId>molwitch-cdk</artifactId>
-        <version>1.0.1</version>
+        <version>1.0.8</version>
         <scope>test</scope>
 </dependency>
 <dependency>
