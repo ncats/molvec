@@ -315,7 +315,7 @@ public class Main {
                                     mol -> {
                                         File out = new File(effectivelyFinalOutputDir, f.getName() + ".mol");
                                         try (PrintWriter writer = new PrintWriter(out)) {
-                                            writer.println(mol);
+                                            writer.println(mol.getMolfile().get());
                                         }
                                     }
                             ));
