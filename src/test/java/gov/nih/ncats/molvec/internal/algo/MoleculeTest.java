@@ -5882,7 +5882,7 @@ public class MoleculeTest {
 		list.add(new Object[]{"alphaPro", new TestSpec("moleculeTest/alpha_problem2.png", c->{
             Chemical cReal=ChemicalBuilder.createFromSmiles("C=C(C)C1CCC(C)=CC1").build();
             String keyReal=Inchi.asStdInchi(cReal).getKey();
-            String keyGot=Inchi.asStdInchi(c).getKey();
+		String keyGot=Inchi.asStdInchi(c).getKey();
             assertEquals(keyReal,keyGot);
         } )});
 		
