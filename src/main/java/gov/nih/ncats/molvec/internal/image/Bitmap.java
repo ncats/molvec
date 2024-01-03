@@ -2064,10 +2064,10 @@ public class Bitmap implements Serializable {
 
         if (i != j) {
             if (eqvtab[j] < eqvtab[i]) {
-                eqvtab[j] += eqvtab[i] - 1;
+                eqvtab[j] += eqvtab[i] - (short)1;
                 eqvtab[i] = j;
             } else {
-                eqvtab[i] += eqvtab[j] - 1;
+                eqvtab[i] += eqvtab[j] - (short)1;
                 eqvtab[j] = i;
             }
         }
