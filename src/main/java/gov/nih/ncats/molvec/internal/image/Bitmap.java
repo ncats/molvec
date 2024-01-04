@@ -2045,6 +2045,7 @@ public class Bitmap implements Serializable {
     
     void union (short[] eqvtab, short cls1, short cls2) {
         short i = cls1, j = cls2, k;
+		short one = 1;
         //logger.info("union "+cls1+" "+cls2);
 
         while (eqvtab[i] > 0) i = eqvtab[i];
@@ -2064,10 +2065,10 @@ public class Bitmap implements Serializable {
 
         if (i != j) {
             if (eqvtab[j] < eqvtab[i]) {
-                eqvtab[j] += eqvtab[i] - (short)1;
+                eqvtab[j] += eqvtab[i] - one;
                 eqvtab[i] = j;
             } else {
-                eqvtab[i] += eqvtab[j] - (short)1;
+                eqvtab[i] += eqvtab[j] - one;
                 eqvtab[j] = i;
             }
         }
