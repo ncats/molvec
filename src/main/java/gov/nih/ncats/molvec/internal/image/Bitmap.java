@@ -2065,10 +2065,18 @@ public class Bitmap implements Serializable {
 
         if (i != j) {
             if (eqvtab[j] < eqvtab[i]) {
-                eqvtab[j] += eqvtab[i] - one;
+				int sum =eqvtab[j] + (eqvtab[i] - one);
+				if( sum < Short.MAX_VALUE && sum > Short.MIN_VALUE) {
+					eqvtab[j] = (short) sum;
+				}
+                //eqvtab[j] += eqvtab[i] - one;
                 eqvtab[i] = j;
             } else {
-                eqvtab[i] += eqvtab[j] - one;
+				int sum = eqvtab[i] + (eqvtab[j] - one);
+				if( sum < Short.MAX_VALUE && sum > Short.MIN_VALUE) {
+					eqvtab[i] = (short) sum;
+				}
+                //eqvtab[i] += eqvtab[j] - one;
                 eqvtab[j] = i;
             }
         }
