@@ -102,7 +102,7 @@
     <dependency>
         <groupId>com.twelvemonkeys.imageio</groupId>
         <artifactId>imageio-tiff</artifactId>
-        <version>3.6</version>
+        <version>3.7.1</version>
     </dependency>
     <dependency>
         <groupId>gov.nih.ncats</groupId>
@@ -118,13 +118,13 @@
     <dependency>
         <groupId>gov.nih.ncats</groupId>
         <artifactId>molwitch-cdk</artifactId>
-        <version>1.0.14</version>
+        <version>1.0.23</version>
         <scope>test</scope>
 </dependency>
 <dependency>
         <groupId>gov.nih.ncats</groupId>
         <artifactId>molwitch-renderer</artifactId>
-        <version>1.0.15</version>
+        <version>1.0.16</version>
         <scope>test</scope>
 </dependency>
 <dependency>
