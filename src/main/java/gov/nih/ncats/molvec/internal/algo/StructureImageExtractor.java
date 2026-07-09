@@ -314,7 +314,8 @@ public class StructureImageExtractor {
 	/**
 	 * Create a new {@link StructureImageExtractor}, using a given {@link Raster}.
 	 * @param raster the raster to be processed
-	 * @throws Exception
+	 * @throws IOException if the raster cannot be processed
+	 * @throws InterruptedException if processing is interrupted
 	 */
 	public StructureImageExtractor(Raster raster)throws IOException, InterruptedException{
 		this(raster, false);
@@ -326,7 +327,7 @@ public class StructureImageExtractor {
 	 * which can be obtained via {@link #getCtabRaw()}.
 	 * @param raster the raster to be processed
 	 * @param debug if true, print debug information to standard out
-	 * @throws Exception
+	 * @throws IOException if the raster cannot be processed
 	 */
 	public StructureImageExtractor(Raster raster, boolean debug )throws IOException{
 		this.DEBUG = debug;

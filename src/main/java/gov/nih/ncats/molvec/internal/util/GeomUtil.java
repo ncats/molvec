@@ -1190,8 +1190,7 @@ public class GeomUtil {
 		 * 
 		 * Where A is the signed area of the polygon. For shapes with near zero area, the center of the bounding box is returned instead.
 		 * 
-	     * @param s1
-	     * @return
+	     * @return the center of mass
 	     */
 		public Point2D centerOfMass(){
 
@@ -1228,7 +1227,6 @@ public class GeomUtil {
 		 * This method scales the shape based on its bounding box. The value given will scale the shape
 		 * such that the new bounding box width is 2*dr larger than it was before. Note that this
 		 * may scale a shape quite differently depending on whether they are "tall" or "wide"
-		 * @param s
 		 * @param dr
 		 * @return
 		 */
@@ -2821,8 +2819,10 @@ public class GeomUtil {
 	 * so that the first point (P1) is on the origin, and then taking the signed "rejection" of the the
 	 * vector from P1->P3 onto the vector P1->P2. That value, multiplied by the length of P1->P2 gives
 	 * the area of the parallelogram. Divide the answer by 2, and it's the area of the triangle.
-	 * @param verts
-	 * @return
+	 * @param p1 the first triangle point
+	 * @param p2 the second triangle point
+	 * @param p3 the third triangle point
+	 * @return the signed triangle area
 	 */
 	public static double areaTriangle(Point2D p1, Point2D p2, Point2D p3){
 		//base x height
@@ -2842,8 +2842,8 @@ public class GeomUtil {
 	 * Returns the signed area of a triangle, assuming that a CW orientation is positive,
 	 * and a CCW orientation is negative. This just delegates to the {@link #areaTriangle(Point2D, Point2D, Point2D)}
 	 * method.
-	 * @param s
-	 * @return
+	 * @param s the triangle shape
+	 * @return the signed triangle area
 	 */
 	public static double areaTriangle(Shape s){
 		Point2D[] pts=vertices(s);
