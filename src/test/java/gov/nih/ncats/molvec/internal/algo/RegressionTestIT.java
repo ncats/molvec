@@ -58,7 +58,6 @@ import javax.imageio.stream.FileImageOutputStream;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.mortennobel.imagescaling.ResampleOp;
 
 import gov.nih.ncats.molwitch.Atom;
 import gov.nih.ncats.molwitch.AtomCoordinates;
@@ -697,9 +696,16 @@ public class RegressionTestIT {
 		BufferedImage outputImage=null;
 		
 		if(Interpolation.SINC.equals(terp)){
-			
-			ResampleOp resizeOp = new ResampleOp(nwidth, nheight);
-			outputImage = resizeOp.filter(convertRenderedImage(ri), null);
+			outputImage = new BufferedImage(nwidth,
+	                nheight,BufferedImage.TYPE_3BYTE_BGR);
+			Graphics2D g2d = outputImage.createGraphics();
+			g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+			g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+			g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+			       RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+			g2d.drawRenderedImage(ri,
+	                AffineTransform.getScaleInstance(scale, scale));
+			g2d.dispose();
 			
 		}else{
 			
